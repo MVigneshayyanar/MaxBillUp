@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Stocks/Products.dart';
 import 'package:maxbillup/Stocks/Category.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SaleAllPage extends StatefulWidget {
-  const SaleAllPage({super.key});
+  final String uid;
+  final String? userEmail;
+
+  const SaleAllPage({
+    super.key,
+    required this.uid,
+    this.userEmail,
+  });
 
   @override
   State<SaleAllPage> createState() => _SaleAllPageState();
@@ -13,6 +21,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
   final TextEditingController _searchController = TextEditingController();
   double _totalBill = 320.00;
   int _selectedTabIndex = 0;
+
+  late String _uid;
+  String? _userEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _uid = widget.uid;
+    _userEmail = widget.userEmail;
+    print('SaleAllPage initialized with UID: $_uid');
+  }
 
   @override
   void dispose() {
@@ -222,14 +241,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 // Stock - navigate to ProductsPage
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProductsPage()),
+                  MaterialPageRoute(
+                    builder: (context) => ProductsPage(uid: _uid, userEmail: _userEmail),
+                  ),
                 );
                 break;
               case 4:
                 // Settings - navigate to CategoryPage (or create settings page)
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const CategoryPage()),
+                  MaterialPageRoute(
+                    builder: (context) => CategoryPage(uid: _uid, userEmail: _userEmail),
+                  ),
                 );
                 break;
             }
@@ -292,117 +315,171 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   Widget _buildProductGrid() {
-    final products = [
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': -2, 'status': 'out'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': -2, 'status': 'out'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-      {'name': '10 Cm Electric', 'price': '35', 'stock': 111, 'status': 'in'},
-    ];
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(_uid)
+          .collection('Products')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF2196F3),
+            ),
+          );
+        }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.2,
-      ),
-      itemCount: products.length,
-      itemBuilder: (context, index) {
-        final product = products[index];
-        final isOutOfStock = product['status'] == 'out';
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      product['name'] as String,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      product['price'] as String,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isOutOfStock
-                          ? '${product['stock']} box'
-                          : '${product['stock']} box',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isOutOfStock ? const Color(0xFFFF5252) : const Color(0xFF4CAF50),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  size: 80,
+                  color: Colors.grey[300],
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  'No products available',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Add products to start making sales',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final products = snapshot.data!.docs;
+
+        return GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.2,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final productData = products[index].data() as Map<String, dynamic>;
+
+            final itemName = productData['itemName'] ?? 'Unnamed Product';
+            final price = productData['price'];
+            final stockEnabled = productData['stockEnabled'] ?? false;
+            final currentStock = productData['currentStock'] ?? 0.0;
+            final stockUnit = productData['stockUnit'] ?? 'box';
+
+            // Determine if out of stock
+            final isOutOfStock = stockEnabled && currentStock <= 0;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              if (isOutOfStock)
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 36,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF5252),
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(12),
-                        bottomRight: Radius.circular(12),
-                      ),
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          itemName,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          price != null ? '₹${price.toStringAsFixed(0)}' : 'Price on sale',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        if (stockEnabled)
+                          Text(
+                            '${currentStock.toStringAsFixed(0)} $stockUnit',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isOutOfStock ? const Color(0xFFFF5252) : const Color(0xFF4CAF50),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
                     ),
-                    child: const Center(
-                      child: RotatedBox(
-                        quarterTurns: 3,
-                        child: Text(
-                          'Out Of Stock',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
+                  ),
+                  if (isOutOfStock)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      child: Container(
+                        width: 36,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFFF5252),
+                          borderRadius: BorderRadius.only(
+                            topRight: Radius.circular(12),
+                            bottomRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: const Center(
+                          child: RotatedBox(
+                            quarterTurns: 3,
+                            child: Text(
+                              'Out Of Stock',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-            ],
-          ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

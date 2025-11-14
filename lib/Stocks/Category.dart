@@ -3,9 +3,17 @@ import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/Stocks/Products.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/Stocks/AddCategoryPopup.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CategoryPage extends StatefulWidget {
-  const CategoryPage({super.key});
+  final String uid;
+  final String? userEmail;
+
+  const CategoryPage({
+    super.key,
+    required this.uid,
+    this.userEmail,
+  });
 
   @override
   State<CategoryPage> createState() => _CategoryPageState();
@@ -14,59 +22,102 @@ class CategoryPage extends StatefulWidget {
 class _CategoryPageState extends State<CategoryPage> {
   int _selectedTabIndex = 1;
 
+  late String _uid;
+  String? _userEmail;
+
+  @override
+  void initState() {
+    super.initState();
+    _uid = widget.uid;
+    _userEmail = widget.userEmail;
+    print('CategoryPage initialized with UID: $_uid');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Tabs at the top
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  _buildTab('Products (150)', 0),
-                  const SizedBox(width: 8),
-                  _buildTab('Category (7)', 1),
-                ],
-              ),
-            ),
-            // Add Category button
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () {
-                    _showAddCategoryDialog(context);
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Stock',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.black,
+          ),
+        ),
+        automaticallyImplyLeading: false,
+      ),
+      body: Column(
+        children: [
+          // Tabs
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 2.5),
+            child: Row(
+              children: [
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(_uid)
+                      .collection('Products')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                    return _buildTab('Products ($productCount)', 0);
                   },
-                  icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 20),
-                  label: const Text(
-                    'Add Category',
-                    style: TextStyle(
-                      color: Color(0xFF4CAF50),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                ),
+                const SizedBox(width: 10),
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(_uid)
+                      .collection('categories')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                    return _buildTab('Category ($categoryCount)', 1);
+                  },
+                ),
+              ],
+            ),
+          ),
+          // Add Category button
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(0, 0, 16, 2.5),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () {
+                  _showAddCategoryDialog(context);
+                },
+                icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 18),
+                label: const Text(
+                  'Add Category',
+                  style: TextStyle(
+                    color: Color(0xFF4CAF50),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
                   ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                 ),
               ),
             ),
-            // Category list
-            Expanded(
-              child: Container(
-                color: const Color(0xFFF5F5F5),
-                child: _buildCategoryList(),
-              ),
+          ),
+          // Category list
+          Expanded(
+            child: Container(
+              color: const Color(0xFFF5F5F5),
+              child: _buildCategoryList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNavigationBar(),
     );
@@ -78,10 +129,11 @@ class _CategoryPageState extends State<CategoryPage> {
       child: GestureDetector(
         onTap: () {
           if (index == 0) {
-            // Navigate to Products page
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const ProductsPage()),
+              MaterialPageRoute(
+                builder: (context) => ProductsPage(uid: _uid, userEmail: _userEmail),
+              ),
             );
           } else {
             setState(() {
@@ -92,7 +144,7 @@ class _CategoryPageState extends State<CategoryPage> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
+            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF0F0F0),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
@@ -100,7 +152,7 @@ class _CategoryPageState extends State<CategoryPage> {
               text,
               style: TextStyle(
                 color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),
@@ -111,150 +163,451 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   Widget _buildCategoryList() {
-    final categories = [
-      {'name': 'BAG', 'products': 0},
-      {'name': 'BAG', 'products': 0},
-      {'name': 'BAG', 'products': 0},
-      {'name': 'BAG', 'products': 0},
-    ];
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(_uid)
+          .collection('categories')
+          .orderBy('createdAt', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFF2196F3),
+            ),
+          );
+        }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: categories.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final category = categories[index];
-        final showEdit = index == 1;
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.red),
+            ),
+          );
+        }
 
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 4,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.category_outlined,
+                  size: 80,
+                  color: Colors.grey[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No categories yet',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Add your first category to organize products',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final categories = snapshot.data!.docs;
+
+        return ListView.separated(
           padding: const EdgeInsets.all(16),
+          itemCount: categories.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final categoryDoc = categories[index];
+            final categoryData = categoryDoc.data() as Map<String, dynamic>;
+            final categoryName = categoryData['name'] ?? 'Unknown';
+            final categoryId = categoryDoc.id;
+
+            return FutureBuilder<QuerySnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(_uid)
+                  .collection('Products')
+                  .where('category', isEqualTo: categoryName)
+                  .get(),
+              builder: (context, productSnapshot) {
+                final productCount = productSnapshot.hasData
+                    ? productSnapshot.data!.docs.length
+                    : 0;
+
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              categoryName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2196F3),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              GestureDetector(
+                                onTap: () {
+                                  _showEditCategoryDialog(context, categoryId, categoryName);
+                                },
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.edit_outlined, color: Color(0xFF2196F3), size: 20),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Edit',
+                                      style: TextStyle(
+                                        color: Color(0xFF2196F3),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: () {
+                                  _showDeleteConfirmation(context, categoryId, categoryName);
+                                },
+                                child: const Icon(
+                                  Icons.delete_outline,
+                                  color: Color(0xFFFF5252),
+                                  size: 24,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '$productCount Products',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Add Product button - Shows existing products
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF2196F3), width: 1.5),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              _showAddExistingProductDialog(context, categoryName);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 11),
+                              child: const Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.add, color: Color(0xFF2196F3), size: 20),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'Add Product',
+                                      style: TextStyle(
+                                        color: Color(0xFF2196F3),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Create New Product button - Pre-selects category
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddProductPage(
+                                uid: _uid,
+                                userEmail: _userEmail,
+                                preSelectedCategory: categoryName,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 18),
+                        label: const Text(
+                          'Create New Product',
+                          style: TextStyle(
+                            color: Color(0xFF4CAF50),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Show dialog to select and add existing products to category
+  void _showAddExistingProductDialog(BuildContext context, String categoryName) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          constraints: const BoxConstraints(maxHeight: 500),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    category['name'] as String,
-                    style: const TextStyle(
+                  const Text(
+                    'Add Existing Product',
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF2196F3),
                     ),
                   ),
-                  Row(
-                    children: [
-                      if (showEdit)
-                        Row(
-                          children: [
-                            Icon(Icons.edit, color: const Color(0xFF2196F3), size: 20),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'Edit',
-                              style: TextStyle(
-                                color: Color(0xFF2196F3),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                          ],
-                        ),
-                      Icon(Icons.delete, color: const Color(0xFFFF5252), size: 22),
-                    ],
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                '${category['products']} Products',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
               const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF2196F3), width: 1.5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const AddProductPage()),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(_uid)
+                      .collection('Products')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Text('No products available'),
                       );
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: const Center(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, color: Color(0xFF2196F3), size: 20),
-                            SizedBox(width: 4),
-                            Text(
-                              'Add Product',
-                              style: TextStyle(
-                                color: Color(0xFF2196F3),
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
+                    }
+
+                    final products = snapshot.data!.docs;
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final productDoc = products[index];
+                        final productData = productDoc.data() as Map<String, dynamic>;
+                        final productName = productData['itemName'] ?? 'Unknown';
+                        final currentCategory = productData['category'] ?? 'UnCategorised';
+                        final productId = productDoc.id;
+                        final price = productData['price'];
+
+                        // Show if product is not already in this category
+                        if (currentCategory == categoryName) {
+                          return const SizedBox.shrink();
+                        }
+
+                        return ListTile(
+                          title: Text(
+                            productName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
                             ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AddProductPage()),
-                  );
-                },
-                icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 20),
-                label: const Text(
-                  'Create New Product',
-                  style: TextStyle(
-                    color: Color(0xFF4CAF50),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
+                          ),
+                          subtitle: Text(
+                            'Current: $currentCategory | ${price != null ? "Rs ${price.toStringAsFixed(1)}" : "Price on sale"}',
+                          ),
+                          trailing: ElevatedButton(
+                            onPressed: () async {
+                              try {
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(_uid)
+                                    .collection('Products')
+                                    .doc(productId)
+                                    .update({'category': categoryName});
+
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('$productName added to $categoryName'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2196F3),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            child: const Text('Add'),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   void _showAddCategoryDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => const AddCategoryPopup(),
+      builder: (context) => AddCategoryPopup(
+        uid: _uid,
+        userEmail: _userEmail,
+      ),
+    );
+  }
+
+  void _showEditCategoryDialog(BuildContext context, String categoryId, String currentName) {
+    final TextEditingController controller = TextEditingController(text: currentName);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Edit Category'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            hintText: 'Category Name',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newName = controller.text.trim();
+              if (newName.isNotEmpty) {
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(_uid)
+                      .collection('categories')
+                      .doc(categoryId)
+                      .update({'name': newName});
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Category updated successfully')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, String categoryId, String categoryName) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Delete Category'),
+        content: Text('Are you sure you want to delete "$categoryName"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(_uid)
+                    .collection('categories')
+                    .doc(categoryId)
+                    .delete();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Category deleted successfully')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $e')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5252)),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -264,7 +617,7 @@ class _CategoryPageState extends State<CategoryPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -275,34 +628,33 @@ class _CategoryPageState extends State<CategoryPage> {
         backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF2196F3),
         unselectedItemColor: Colors.grey[400],
-        currentIndex: 4,
+        currentIndex: 3,
         selectedFontSize: 12,
         unselectedFontSize: 12,
+        iconSize: 26,
         elevation: 0,
         onTap: (index) {
           switch (index) {
             case 0:
-              // Menu
+            // Menu
               break;
             case 1:
-              // Reports
+            // Reports
               break;
             case 2:
-              // New Sale
+            // New Sale
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (context) => const SaleAllPage()),
+                MaterialPageRoute(
+                  builder: (context) => SaleAllPage(uid: _uid, userEmail: _userEmail),
+                ),
               );
               break;
             case 3:
-              // Stock
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ProductsPage()),
-              );
+            // Stock - already on this page
               break;
             case 4:
-              // Settings - already on this page
+            // Settings
               break;
           }
         },
@@ -316,7 +668,7 @@ class _CategoryPageState extends State<CategoryPage> {
             label: 'Reports',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_bag),
+            icon: Icon(Icons.shopping_cart),
             label: 'New Sale',
           ),
           BottomNavigationBarItem(
@@ -332,4 +684,3 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 }
-

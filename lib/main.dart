@@ -141,7 +141,12 @@ class _MyHomePageState extends State<MyHomePage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SaleAllPage()),
+                  MaterialPageRoute(
+                    builder: (context) => const SaleAllPage(
+                      uid: 'test-uid',
+                      userEmail: 'test@example.com',
+                    ),
+                  ),
                 );
               },
               icon: const Icon(Icons.shopping_cart),

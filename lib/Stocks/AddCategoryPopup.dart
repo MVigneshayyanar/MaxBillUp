@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AddCategoryPopup extends StatefulWidget {
-  const AddCategoryPopup({super.key});
+  final String uid;
+  final String? userEmail;
+
+  const AddCategoryPopup({
+    super.key,
+    required this.uid,
+    this.userEmail,
+  });
 
   @override
   State<AddCategoryPopup> createState() => _AddCategoryPopupState();
@@ -9,11 +17,69 @@ class AddCategoryPopup extends StatefulWidget {
 
 class _AddCategoryPopupState extends State<AddCategoryPopup> {
   final TextEditingController _categoryController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _categoryController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveCategory() async {
+    final categoryName = _categoryController.text.trim();
+    if (categoryName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a category name')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final categoriesCollection = FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.uid)
+          .collection('categories');
+
+      // Check if category already exists
+      final existingCategory = await categoriesCollection
+          .where('name', isEqualTo: categoryName)
+          .get();
+
+      if (existingCategory.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category already exists')),
+        );
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Add new category
+      await categoriesCollection.add({
+        'name': categoryName,
+        'createdAt': FieldValue.serverTimestamp(),
+        'ownerUid': widget.uid,
+        'ownerEmail': widget.userEmail,
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category added successfully')),
+      );
+      Navigator.pop(context, categoryName);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add category: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -94,9 +160,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
+                onPressed: _isLoading ? null : _saveCategory,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2196F3),
                   shape: RoundedRectangleBorder(
@@ -104,14 +168,23 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Add',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],

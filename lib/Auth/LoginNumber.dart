@@ -92,15 +92,23 @@ class _LoginNumberPageState extends State<LoginNumberPage> {
   // Sign in with credential
   Future<void> _signInWithCredential(PhoneAuthCredential credential) async {
     try {
-      await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
       setState(() => _isLoading = false);
 
-      // Navigate to main app
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const SaleAllPage()),
-        );
+      if (userCredential.user != null) {
+        final uid = userCredential.user!.uid;
+        final phoneNumber = userCredential.user!.phoneNumber;
+        print('Login successful: $phoneNumber (UID: $uid)');
+
+        // Navigate to main app with UID
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SaleAllPage(uid: uid, userEmail: phoneNumber),
+            ),
+          );
+        }
       }
     } catch (e) {
       setState(() => _isLoading = false);

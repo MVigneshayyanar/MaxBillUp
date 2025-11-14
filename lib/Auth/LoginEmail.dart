@@ -59,18 +59,22 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
 
       // Check if sign in was successful
       if (userCredential.user != null) {
-        print('Login successful: ${userCredential.user!.email}');
+        final uid = userCredential.user!.uid;
+        final email = userCredential.user!.email;
+        print('Login successful: $email (UID: $uid)');
 
         if (!mounted) return;
 
         setState(() => _isLoading = false);
 
-        // Navigate to main app on success using a slight delay
+        // Navigate to main app on success with UID
         Future.microtask(() {
           if (mounted) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const SaleAllPage()),
+              MaterialPageRoute(
+                builder: (context) => SaleAllPage(uid: uid, userEmail: email),
+              ),
             );
           }
         });
@@ -85,6 +89,9 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
       // Handle specific error cases
       String errorMessage;
       switch (e.code) {
+        case 'network-request-failed':
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+          break;
         case 'user-not-found':
           errorMessage = 'No user found with this email. Please sign up first.';
           break;
@@ -171,7 +178,7 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 80),
+                const SizedBox(height: 40),
                 // Welcome text and logo
                 Center(
                   child: Column(
@@ -433,7 +440,6 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
