@@ -311,20 +311,29 @@
               // Determine if stock is low (less than 10)
               final isLowStock = stockEnabled && currentStock < 10;
 
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(16),
-                child: Column(
+              return GestureDetector(
+                onTap: () {
+                  _showUpdateQuantityDialog(
+                    context,
+                    products[index].id,
+                    itemName,
+                    currentStock,
+                  );
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -414,13 +423,145 @@
                     ],
                   ],
                 ),
-              );
-            },
-          );
-        },
-      );
-    }
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
+  void _showUpdateQuantityDialog(
+    BuildContext context,
+    String productId,
+    String productName,
+    double currentStock,
+  ) {
+    final TextEditingController quantityController = TextEditingController();
+    bool isAdding = true;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text('Update Stock - $productName'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Current Stock: ${currentStock.toStringAsFixed(1)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2196F3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isAdding = true;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isAdding ? const Color(0xFF4CAF50) : Colors.grey[300],
+                        foregroundColor: isAdding ? Colors.white : Colors.black87,
+                      ),
+                      child: const Text('Add'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          isAdding = false;
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: !isAdding ? const Color(0xFFFF5252) : Colors.grey[300],
+                        foregroundColor: !isAdding ? Colors.white : Colors.black87,
+                      ),
+                      child: const Text('Remove'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: isAdding ? 'Quantity to Add' : 'Quantity to Remove',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(
+                    isAdding ? Icons.add : Icons.remove,
+                    color: isAdding ? const Color(0xFF4CAF50) : const Color(0xFFFF5252),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final quantity = double.tryParse(quantityController.text.trim());
+                if (quantity == null || quantity <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid quantity')),
+                  );
+                  return;
+                }
+
+                try {
+                  final newStock = isAdding
+                      ? currentStock + quantity
+                      : currentStock - quantity;
+
+                  if (newStock < 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Stock cannot be negative')),
+                    );
+                    return;
+                  }
+
+                  await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(_uid)
+                      .collection('Products')
+                      .doc(productId)
+                      .update({'currentStock': newStock});
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Stock updated successfully to ${newStock.toStringAsFixed(1)}'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2196F3),
+              ),
+              child: const Text('Update'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
     Widget _buildBottomNavigationBar() {
       return Container(
         decoration: BoxDecoration(

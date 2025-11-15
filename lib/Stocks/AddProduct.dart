@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -28,10 +29,11 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _productCodeController = TextEditingController();
   final TextEditingController _hsnController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
+  final TextEditingController _quantityController = TextEditingController();
 
   String? _selectedCategory;
   String? _selectedStockUnit;
-  bool _moreDetailsExpanded = false; // Set to false to show collapsed by default
+  bool _moreDetailsExpanded = false;
   bool _stockEnabled = false;
 
   // Tax switches
@@ -54,7 +56,24 @@ class _AddProductPageState extends State<AddProductPage> {
     _productCodeController.dispose();
     _hsnController.dispose();
     _barcodeController.dispose();
+    _quantityController.dispose();
     super.dispose();
+  }
+
+  // Barcode Scanner Function
+  Future<void> _scanBarcode() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const BarcodeScannerScreen(),
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _barcodeController.text = result;
+      });
+    }
   }
 
   @override
@@ -115,6 +134,14 @@ class _AddProductPageState extends State<AddProductPage> {
                     hint: 'Price',
                     keyboardType: TextInputType.number,
                   ),
+                  const SizedBox(height: 16),
+
+                  // Quantity
+                  _buildTextField(
+                    controller: _quantityController,
+                    hint: 'Quantity',
+                    keyboardType: TextInputType.number,
+                  ),
                   const SizedBox(height: 12),
 
                   // Info message
@@ -140,7 +167,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // More Details Section Header - Clickable
+                  // More Details Section Header
                   InkWell(
                     onTap: () {
                       setState(() {
@@ -172,7 +199,7 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                   ),
 
-                  // More Details Content - Animated
+                  // More Details Content
                   AnimatedCrossFade(
                     firstChild: const SizedBox.shrink(),
                     secondChild: Column(
@@ -269,14 +296,12 @@ class _AddProductPageState extends State<AddProductPage> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Barcode with scanner icon
+                        // Barcode with scanner icon - UPDATED
                         _buildTextField(
                           controller: _barcodeController,
                           hint: 'Barcode',
                           suffixIcon: Icons.qr_code_scanner,
-                          onSuffixTap: () {
-                            // Implement barcode scanner
-                          },
+                          onSuffixTap: _scanBarcode, // Calls scanner
                         ),
                         const SizedBox(height: 12),
 
@@ -390,7 +415,7 @@ class _AddProductPageState extends State<AddProductPage> {
               ),
             ),
 
-            // Add Button - Fixed at bottom
+            // Add Button
             Container(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               color: const Color(0xFFF5F5F5),
@@ -491,18 +516,14 @@ class _AddProductPageState extends State<AddProductPage> {
           categories.addAll(fetchedCategories);
         }
 
-        // Initialize from preSelectedCategory if not already set
         if (_selectedCategory == null && widget.preSelectedCategory != null) {
           _selectedCategory = widget.preSelectedCategory;
         }
 
-        // Ensure selected category is in the list
         if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
-          // If it's the preselected category, add it to the list temporarily
           if (_selectedCategory == widget.preSelectedCategory) {
             categories.add(_selectedCategory!);
           } else {
-            // Otherwise reset to first category
             _selectedCategory = categories.first;
           }
         }
@@ -645,9 +666,11 @@ class _AddProductPageState extends State<AddProductPage> {
         'productCode': _productCodeController.text.trim(),
         'hsn': _hsnController.text.trim(),
         'barcode': _barcodeController.text.trim(),
-        'stockUnit': _selectedStockUnit,
+        'stockUnit': _selectedStockUnit ?? 'Piece',
         'stockEnabled': _stockEnabled,
-        'currentStock': 0.0,
+        'currentStock': _quantityController.text.isNotEmpty
+            ? double.tryParse(_quantityController.text) ?? 0.0
+            : 0.0,
         'taxes': selectedTax > 0 ? [selectedTax] : [],
         'createdAt': FieldValue.serverTimestamp(),
       };
@@ -679,5 +702,106 @@ class _AddProductPageState extends State<AddProductPage> {
         );
       }
     }
+  }
+}
+
+// Barcode Scanner Screen
+class BarcodeScannerScreen extends StatefulWidget {
+  const BarcodeScannerScreen({super.key});
+
+  @override
+  State<BarcodeScannerScreen> createState() => _BarcodeScannerScreenState();
+}
+
+class _BarcodeScannerScreenState extends State<BarcodeScannerScreen> {
+  MobileScannerController cameraController = MobileScannerController();
+  bool _isScanned = false;
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF00B0FF),
+        title: const Text(
+          'Scan Barcode',
+          style: TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              cameraController.torchEnabled ? Icons.flash_on : Icons.flash_off,
+              color: Colors.white,
+            ),
+            onPressed: () => cameraController.toggleTorch(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+            onPressed: () => cameraController.switchCamera(),
+          ),
+        ],
+      ),
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: cameraController,
+            onDetect: (capture) {
+              if (_isScanned) return;
+
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                if (barcode.rawValue != null) {
+                  setState(() {
+                    _isScanned = true;
+                  });
+                  Navigator.pop(context, barcode.rawValue);
+                  break;
+                }
+              }
+            },
+          ),
+          // Scanning overlay
+          Center(
+            child: Container(
+              width: 300,
+              height: 200,
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF00B0FF), width: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          // Instructions
+          Positioned(
+            bottom: 100,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              child: const Text(
+                'Position the barcode within the frame',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  backgroundColor: Colors.black54,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
