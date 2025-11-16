@@ -1,64 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/Sales/saleall.dart';
-import 'package:maxbillup/Sales/QuickSale.dart';
-import 'package:maxbillup/Stocks/Products.dart';
-import 'package:maxbillup/Stocks/Category.dart';
+import 'package:maxbillup/Sales/NewSale.dart';
 
 class SavedOrdersPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
 
-  const SavedOrdersPage({
-    super.key,
-    required this.uid,
-    this.userEmail,
-  });
+  const SavedOrdersPage({super.key, required this.uid, this.userEmail});
 
   @override
   State<SavedOrdersPage> createState() => _SavedOrdersPageState();
 }
 
 class _SavedOrdersPageState extends State<SavedOrdersPage> {
-  int _selectedTabIndex = 2;
-  late String _uid;
-  String? _userEmail;
-
-  @override
-  void initState() {
-    super.initState();
-    _uid = widget.uid;
-    _userEmail = widget.userEmail;
-  }
-
-  void _loadSavedOrder(Map<String, dynamic> orderData) {
-    // Navigate back to SaleAll with the saved order items
+  void _loadOrder(Map<String, dynamic> data) {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (context) => SaleAllPage(
-          uid: _uid,
-          userEmail: _userEmail,
-          savedOrderData: orderData,
+        builder: (context) => NewSalePage(
+          uid: widget.uid,
+          userEmail: widget.userEmail,
+          savedOrderData: data,
         ),
       ),
     );
   }
 
-  void _deleteSavedOrder(String orderId) async {
+  Future<void> _deleteOrder(String id) async {
     try {
       await FirebaseFirestore.instance
           .collection('users')
-          .doc(_uid)
+          .doc(widget.uid)
           .collection('savedOrders')
-          .doc(orderId)
+          .doc(id)
           .delete();
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order deleted successfully'),
-            backgroundColor: Color(0xFF4CAF50),
+          SnackBar(
+            content: const Text('Order deleted'),
+            backgroundColor: Colors.green[600],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
       }
@@ -66,360 +48,195 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error deleting order: $e'),
-            backgroundColor: const Color(0xFFFF5252),
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red[400],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
         );
       }
     }
   }
 
+  void _confirmDelete(String id, String name) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Order', style: TextStyle(fontWeight: FontWeight.w600)),
+        content: Text('Delete order for $name?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteOrder(id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[400],
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(Timestamp ts) {
+    final dt = ts.toDate();
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
+    if (diff.inDays < 1) return '${diff.inHours}h ago';
+    if (diff.inDays == 1) return 'Yesterday';
+    if (diff.inDays < 7) return '${diff.inDays}d ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final tabPadding = screenWidth * 0.04;
-    final tabHeight = screenHeight * 0.06;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Tabs
-            Container(
-              color: Colors.white,
-              padding: EdgeInsets.fromLTRB(tabPadding, tabPadding, tabPadding, tabPadding * 0.5),
-              child: Row(
-                children: [
-                  _buildTab('Sale / All', 0, screenWidth, tabHeight),
-                  SizedBox(width: screenWidth * 0.02),
-                  _buildTab('Quick Sale', 1, screenWidth, tabHeight),
-                  SizedBox(width: screenWidth * 0.02),
-                  _buildTab('Saved Orders', 2, screenWidth, tabHeight),
-                ],
-              ),
-            ),
+        child: StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.uid)
+              .collection('savedOrders')
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+            }
 
-            // Saved Orders List
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(_uid)
-                    .collection('savedOrders')
-                    .orderBy('timestamp', descending: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF2196F3),
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2196F3).withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                    );
-                  }
+                      child: const Icon(Icons.bookmark_border, size: 64, color: Color(0xFF2196F3)),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('No Saved Orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Text('Save orders to access them later', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  ],
+                ),
+              );
+            }
 
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text('Error: ${snapshot.error}'),
-                    );
-                  }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: snapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final doc = snapshot.data!.docs[index];
+                final data = doc.data() as Map<String, dynamic>;
+                final name = data['customerName'] ?? 'Unknown';
+                final phone = data['customerPhone'] ?? '';
+                final total = (data['total'] ?? 0).toDouble();
+                final items = data['items'] as List<dynamic>? ?? [];
+                final timestamp = data['timestamp'] as Timestamp?;
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: InkWell(
+                    onTap: () => _loadOrder(data),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.bookmark_border,
-                            size: screenWidth * 0.2,
-                            color: Colors.grey[300],
-                          ),
-                          SizedBox(height: screenHeight * 0.02),
-                          Text(
-                            'No Saved Orders',
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.045,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          SizedBox(height: screenHeight * 0.01),
-                          Text(
-                            'Save orders to access them later',
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.035,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final orders = snapshot.data!.docs;
-
-                  return ListView.builder(
-                    padding: EdgeInsets.all(screenWidth * 0.04),
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final orderDoc = orders[index];
-                      final orderData = orderDoc.data() as Map<String, dynamic>;
-                      final orderId = orderDoc.id;
-
-                      final customerName = orderData['customerName'] ?? 'Unknown';
-                      final customerPhone = orderData['customerPhone'] ?? '';
-                      final total = orderData['total'] ?? 0.0;
-                      final itemCount = (orderData['items'] as List?)?.length ?? 0;
-                      final timestamp = orderData['timestamp'] as Timestamp?;
-
-                      return Card(
-                        margin: EdgeInsets.only(bottom: screenHeight * 0.015),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: InkWell(
-                          onTap: () => _loadSavedOrder(orderData),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: EdgeInsets.all(screenWidth * 0.04),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2196F3).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.person_outline, color: Color(0xFF2196F3), size: 24),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                    Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                    if (phone.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Row(
                                         children: [
-                                          Text(
-                                            customerName,
-                                            style: TextStyle(
-                                              fontSize: screenWidth * 0.045,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          if (customerPhone.isNotEmpty)
-                                            Text(
-                                              customerPhone,
-                                              style: TextStyle(
-                                                fontSize: screenWidth * 0.035,
-                                                color: Colors.grey[600],
-                                              ),
-                                            ),
+                                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                                          const SizedBox(width: 4),
+                                          Text(phone, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
                                         ],
                                       ),
-                                    ),
-                                    IconButton(
-                                      onPressed: () {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Delete Order'),
-                                            content: const Text('Are you sure you want to delete this saved order?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.pop(context),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                  _deleteSavedOrder(orderId);
-                                                },
-                                                child: const Text(
-                                                  'Delete',
-                                                  style: TextStyle(color: Color(0xFFFF5252)),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        );
-                                      },
-                                      icon: const Icon(Icons.delete_outline, color: Color(0xFFFF5252)),
-                                      padding: EdgeInsets.zero,
-                                      constraints: const BoxConstraints(),
-                                    ),
+                                    ],
                                   ],
                                 ),
-                                SizedBox(height: screenHeight * 0.01),
-                                Row(
-                                  children: [
-                                    Icon(Icons.shopping_cart, size: screenWidth * 0.04, color: Colors.grey[600]),
-                                    SizedBox(width: screenWidth * 0.02),
-                                    Text(
-                                      '$itemCount items',
-                                      style: TextStyle(
-                                        fontSize: screenWidth * 0.035,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    Text(
-                                      '₹${total.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        fontSize: screenWidth * 0.045,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF2196F3),
-                                      ),
-                                    ),
-                                  ],
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete_outline, color: Colors.red[400]),
+                                onPressed: () => _confirmDelete(doc.id, name),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(10)),
+                            child: Row(
+                              children: [
+                                Icon(Icons.shopping_bag_outlined, size: 18, color: Colors.grey[700]),
+                                const SizedBox(width: 6),
+                                Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                                    style: TextStyle(fontSize: 14, color: Colors.grey[700], fontWeight: FontWeight.w500)),
+                                const Spacer(),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(color: const Color(0xFF2196F3), borderRadius: BorderRadius.circular(8)),
+                                  child: Text('₹${total.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
                                 ),
-                                if (timestamp != null) ...[
-                                  SizedBox(height: screenHeight * 0.005),
-                                  Text(
-                                    _formatTimestamp(timestamp),
-                                    style: TextStyle(
-                                      fontSize: screenWidth * 0.03,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ),
-                                ],
                               ],
                             ),
                           ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF2196F3),
-          unselectedItemColor: Colors.grey[400],
-          currentIndex: 2,
-          selectedFontSize: screenWidth * 0.03,
-          unselectedFontSize: screenWidth * 0.03,
-          elevation: 0,
-          iconSize: screenWidth * 0.06,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                break;
-              case 1:
-                break;
-              case 2:
-                break;
-              case 3:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductsPage(uid: _uid, userEmail: _userEmail),
+                          if (timestamp != null) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                const SizedBox(width: 4),
+                                Text(_formatTime(timestamp), style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ),
                 );
-                break;
-              case 4:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CategoryPage(uid: _uid, userEmail: _userEmail),
-                  ),
-                );
-                break;
-            }
+              },
+            );
           },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu),
-              label: 'Menu',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Reports',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag),
-              label: 'New Sale',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_outlined),
-              label: 'Stock',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
         ),
       ),
     );
-  }
-
-  Widget _buildTab(String text, int index, double screenWidth, double tabHeight) {
-    final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 0) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SaleAllPage(uid: _uid, userEmail: _userEmail),
-              ),
-            );
-          } else if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => QuickSalePage(uid: _uid, userEmail: _userEmail),
-              ),
-            );
-          }
-        },
-        child: Container(
-          height: tabHeight,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: screenWidth * 0.035,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatTimestamp(Timestamp timestamp) {
-    final dateTime = timestamp.toDate();
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays == 0) {
-      return 'Today ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
-    }
   }
 }
-

@@ -36,17 +36,19 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
+        elevation: 2,
         centerTitle: true,
+        surfaceTintColor: Colors.transparent,
         title: const Text(
           'Stock',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Colors.black,
+            letterSpacing: 0.5,
           ),
         ),
         automaticallyImplyLeading: false,
@@ -56,7 +58,7 @@ class _CategoryPageState extends State<CategoryPage> {
           // Tabs
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 2.5),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 2.5),
             child: Row(
               children: [
                 StreamBuilder<QuerySnapshot>(

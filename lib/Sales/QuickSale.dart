@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maxbillup/Stocks/Products.dart';
-import 'package:maxbillup/Stocks/Category.dart';
 import 'package:maxbillup/models/cart_item.dart';
-import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/Sales/Bill.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -10,12 +7,14 @@ class QuickSalePage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final List<CartItem>? initialCartItems;
+  final Function(List<CartItem>)? onCartChanged;
 
   const QuickSalePage({
     super.key,
     required this.uid,
     this.userEmail,
     this.initialCartItems,
+    this.onCartChanged,
   });
 
   @override
@@ -39,7 +38,6 @@ class QuickSaleItem {
 class _QuickSalePageState extends State<QuickSalePage> {
   final List<QuickSaleItem> _saleItems = [];
   String _currentInput = '';
-  int _selectedTabIndex = 1;
   int _itemCounter = 1;
 
   late String _uid;
@@ -66,6 +64,19 @@ class _QuickSalePageState extends State<QuickSalePage> {
 
   double get _totalBill {
     return _saleItems.fold(0.0, (sum, item) => sum + item.total);
+  }
+
+  void _notifyCartChanged() {
+    // Convert QuickSaleItems to CartItems and notify parent
+    if (widget.onCartChanged != null) {
+      final cartItems = _saleItems.map((item) => CartItem(
+        productId: '', // Quick sale items don't have product IDs
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity.toInt(),
+      )).toList();
+      widget.onCartChanged?.call(cartItems);
+    }
   }
 
   void _showSaveOrderDialog() {
@@ -281,7 +292,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
       }
 
       setState(() {
-        _saleItems.add(QuickSaleItem(
+        _saleItems.insert(0, QuickSaleItem(
           name: 'item$_itemCounter',
           price: price,
           quantity: quantity,
@@ -289,6 +300,9 @@ class _QuickSalePageState extends State<QuickSalePage> {
         _itemCounter++;
         _currentInput = '';
       });
+
+      // Notify parent about cart changes
+      _notifyCartChanged();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -314,12 +328,16 @@ class _QuickSalePageState extends State<QuickSalePage> {
       _currentInput = '';
       _itemCounter = 1;
     });
+    // Notify parent about cart changes
+    _notifyCartChanged();
   }
 
   void _removeItem(int index) {
     setState(() {
       _saleItems.removeAt(index);
     });
+    // Notify parent about cart changes
+    _notifyCartChanged();
   }
 
   @override
@@ -330,19 +348,6 @@ class _QuickSalePageState extends State<QuickSalePage> {
         child: Column(
           children: [
             // Tabs at the top
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  _buildTab('Sale / All', 0),
-                  const SizedBox(width: 8),
-                  _buildTab('Quick Sale', 1),
-                  const SizedBox(width: 8),
-                  _buildTab('Saved Orders', 2),
-                ],
-              ),
-            ),
 
             // Counter display at top right
             Container(
@@ -452,322 +457,225 @@ class _QuickSalePageState extends State<QuickSalePage> {
               color: const Color(0xFFF5F5F5),
             ),
 
-            // Calculator keypad
-            Expanded(
-              child: Container(
-                color: Colors.white,
-                padding: const EdgeInsets.all(16),
-                child: Column(
+            // Spacer to push content up
+            const Spacer(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Calculator keypad (static above action buttons)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Row 1: 7, 8, 9, backspace
+                Row(
                   children: [
-                    // Row 1: 7, 8, 9, backspace
+                    _buildNumberButton('7'),
+                    const SizedBox(width: 8),
+                    _buildNumberButton('8'),
+                    const SizedBox(width: 8),
+                    _buildNumberButton('9'),
+                    const SizedBox(width: 8),
+                    _buildActionButton(Icons.backspace_outlined, _handleBackspace),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Row 2: 4, 5, 6, ×
+                Row(
+                  children: [
+                    _buildNumberButton('4'),
+                    const SizedBox(width: 8),
+                    _buildNumberButton('5'),
+                    const SizedBox(width: 8),
+                    _buildNumberButton('6'),
+                    const SizedBox(width: 8),
+                    _buildOperatorButton('×', _handleMultiply),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // Row 3: 1, 2, 3, Add Item (tall button)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Expanded(
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildNumberButton('7'),
-                          const SizedBox(width: 12),
-                          _buildNumberButton('8'),
-                          const SizedBox(width: 12),
-                          _buildNumberButton('9'),
-                          const SizedBox(width: 12),
-                          _buildActionButton(Icons.backspace_outlined, _handleBackspace),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Row 2: 4, 5, 6, ×
-                    Expanded(
-                      child: Row(
-                        children: [
-                          _buildNumberButton('4'),
-                          const SizedBox(width: 12),
-                          _buildNumberButton('5'),
-                          const SizedBox(width: 12),
-                          _buildNumberButton('6'),
-                          const SizedBox(width: 12),
-                          _buildOperatorButton('×', _handleMultiply),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Row 3: 1, 2, 3, Add Item (tall button)
-                    Expanded(
-                      flex: 2,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      _buildNumberButton('1'),
-                                      const SizedBox(width: 12),
-                                      _buildNumberButton('2'),
-                                      const SizedBox(width: 12),
-                                      _buildNumberButton('3'),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                // Row 4: 0, 00, .
-                                Expanded(
-                                  child: Row(
-                                    children: [
-                                      _buildNumberButton('0'),
-                                      const SizedBox(width: 12),
-                                      _buildNumberButton('00'),
-                                      const SizedBox(width: 12),
-                                      _buildNumberButton('•'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Row(
+                            children: [
+                              _buildNumberButton('1'),
+                              const SizedBox(width: 8),
+                              _buildNumberButton('2'),
+                              const SizedBox(width: 8),
+                              _buildNumberButton('3'),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          // Add Item button (spans 2 rows)
-                          _buildAddItemButton(),
+                          const SizedBox(height: 8),
+                          // Row 4: 0, 00, .
+                          Row(
+                            children: [
+                              _buildNumberButton('0'),
+                              const SizedBox(width: 8),
+                              _buildNumberButton('00'),
+                              const SizedBox(width: 8),
+                              _buildNumberButton('•'),
+                            ],
+                          ),
                         ],
                       ),
                     ),
+                    const SizedBox(width: 8),
+                    // Add Item button (spans 2 rows)
+                    _buildAddItemButton(),
                   ],
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 70),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bookmark button - Save Order
-            GestureDetector(
-              onTap: _saleItems.isNotEmpty ? _showSaveOrderDialog : null,
-              child: Container(
-                height: 56,
-                width: 56,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2196F3), width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+          ),
+          // Action buttons container (static above bottom navbar)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Saved button - Save Order
+                GestureDetector(
+                  onTap: _saleItems.isNotEmpty ? _showSaveOrderDialog : null,
+                  child: Container(
+                    height: 56,
+                    width: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: const Icon(Icons.bookmark_border, color: Color(0xFF2196F3), size: 26),
-              ),
-            ),
-            const SizedBox(width: 16),
-            // Print button
-            Container(
-              height: 56,
-              width: 56,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF2196F3), width: 1),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    child: const Icon(Icons.bookmark_border, color: Color(0xFF2196F3), size: 26),
                   ),
-                ],
-              ),
-              child: const Icon(Icons.print, color: Color(0xFF2196F3), size: 26),
-            ),
-            const SizedBox(width: 16),
-            // Bill button
-            GestureDetector(
-              onTap: () {
-                if (_saleItems.isNotEmpty) {
-                  // Convert QuickSaleItems to CartItems
-                  final cartItems = _saleItems.map((item) => CartItem(
-                    productId: '', // Quick sale items don't have product IDs
-                    name: item.name,
-                    price: item.price,
-                    quantity: item.quantity.toInt(),
-                  )).toList();
+                ),
+                const SizedBox(width: 12),
+                // Print button
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.print, color: Color(0xFF2196F3), size: 26),
+                ),
+                const Spacer(),
+                // Bill button (on right side)
+                GestureDetector(
+                  onTap: () {
+                    if (_saleItems.isNotEmpty) {
+                      // Convert QuickSaleItems to CartItems
+                      final cartItems = _saleItems.map((item) => CartItem(
+                        productId: '', // Quick sale items don't have product IDs
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity.toInt(),
+                      )).toList();
 
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BillPage(
-                        uid: _uid,
-                        userEmail: _userEmail,
-                        cartItems: cartItems,
-                        totalAmount: _totalBill,
-                      ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BillPage(
+                            uid: _uid,
+                            userEmail: _userEmail,
+                            cartItems: cartItems,
+                            totalAmount: _totalBill,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  );
-                }
-              },
-              child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2196F3).withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _totalBill.toStringAsFixed(2),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Bill',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _totalBill.toStringAsFixed(2),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'Bill',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF2196F3),
-          unselectedItemColor: Colors.grey[400],
-          currentIndex: 2,
-          selectedFontSize: 12,
-          unselectedFontSize: 12,
-          elevation: 0,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                break;
-              case 1:
-                break;
-              case 2:
-                break;
-              case 3:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductsPage(uid: _uid, userEmail: _userEmail),
                   ),
-                );
-                break;
-              case 4:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CategoryPage(uid: _uid, userEmail: _userEmail),
-                  ),
-                );
-                break;
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu),
-              label: 'Menu',
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Reports',
+          ),
+          // Bottom Navigation Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag),
-              label: 'New Sale',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_outlined),
-              label: 'Stock',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTab(String text, int index) {
-    final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 0) {
-            // Navigate back to Sale/All
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SaleAllPage(uid: _uid, userEmail: _userEmail),
-              ),
-            );
-          } else {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildNumberButton(String number) {
     return Expanded(
       child: GestureDetector(
         onTap: () => _handleNumberInput(number == '•' ? '.' : number),
         child: Container(
+          height: 70,
           decoration: BoxDecoration(
             color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(12),
@@ -776,7 +684,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
             child: Text(
               number,
               style: const TextStyle(
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
@@ -792,6 +700,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
+          height: 70,
           decoration: BoxDecoration(
             color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(12),
@@ -800,7 +709,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
             child: Text(
               operator,
               style: const TextStyle(
-                fontSize: 32,
+                fontSize: 28,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
@@ -816,6 +725,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
+          height: 70,
           decoration: BoxDecoration(
             color: const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(12),
@@ -823,7 +733,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
           child: Center(
             child: Icon(
               icon,
-              size: 28,
+              size: 24,
               color: Colors.black87,
             ),
           ),
@@ -833,7 +743,9 @@ class _QuickSalePageState extends State<QuickSalePage> {
   }
 
   Widget _buildAddItemButton() {
-    return Expanded(
+    return SizedBox(
+      width: (MediaQuery.of(context).size.width - 56) / 4, // Match width of one button
+      height: 148, // 70 + 8 + 70 (two button heights + gap)
       child: GestureDetector(
         onTap: _addItem,
         child: Container(
@@ -848,7 +760,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                 Text(
                   'Add',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),
@@ -856,7 +768,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                 Text(
                   'Item',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),

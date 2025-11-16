@@ -9,6 +9,7 @@ class BillPage extends StatefulWidget {
   final String? userEmail;
   final List<CartItem> cartItems;
   final double totalAmount;
+  final String? savedOrderId; // Track saved order to delete after billing
 
   const BillPage({
     super.key,
@@ -16,6 +17,7 @@ class BillPage extends StatefulWidget {
     this.userEmail,
     required this.cartItems,
     required this.totalAmount,
+    this.savedOrderId,
   });
 
   @override
@@ -178,6 +180,7 @@ class _BillPageState extends State<BillPage> {
           customerGST: _selectedCustomerGST,
           discountAmount: _discountAmount,
           creditNote: _creditNote,
+          savedOrderId: widget.savedOrderId,
         ),
       ),
     );
@@ -911,6 +914,7 @@ class PaymentPage extends StatefulWidget {
   final String? customerGST;
   final double discountAmount;
   final String creditNote;
+  final String? savedOrderId;
 
   const PaymentPage({
     super.key,
@@ -924,6 +928,7 @@ class PaymentPage extends StatefulWidget {
     this.customerGST,
     required this.discountAmount,
     required this.creditNote,
+    this.savedOrderId,
   });
 
   @override
@@ -1014,6 +1019,16 @@ class _PaymentPageState extends State<PaymentPage> {
             }
           });
         }
+      }
+
+      // Delete saved order if this was from a saved order
+      if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(widget.uid)
+            .collection('savedOrders')
+            .doc(widget.savedOrderId)
+            .delete();
       }
 
       if (mounted) {

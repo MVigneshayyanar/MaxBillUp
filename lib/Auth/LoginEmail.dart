@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:maxbillup/Sales/saleall.dart';
+import 'package:maxbillup/Sales/NewSale.dart'; // Import NewSalePage
 import 'package:maxbillup/Auth/LoginNumber.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -73,7 +73,7 @@ class _LoginEmailPageState extends State<LoginEmailPage> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => SaleAllPage(uid: uid, userEmail: email),
+                builder: (context) => NewSalePage(uid: uid, userEmail: email),
               ),
             );
           }

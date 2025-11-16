@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:maxbillup/Auth/LoginEmail.dart';
-import 'package:maxbillup/Sales/saleall.dart';
+import 'package:maxbillup/Sales/NewSale.dart'; // Import NewSalePage
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginNumberPage extends StatefulWidget {
@@ -105,7 +105,7 @@ class _LoginNumberPageState extends State<LoginNumberPage> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => SaleAllPage(uid: uid, userEmail: phoneNumber),
+              builder: (context) => NewSalePage(uid: uid, userEmail: phoneNumber),
             ),
           );
         }
@@ -258,7 +258,7 @@ class _LoginNumberPageState extends State<LoginNumberPage> {
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) {
                                   return Container(
-                                    color: Colors.orange,
+                                    color: Colors.grey[100],
                                     child: const Center(
                                       child: Text(
                                         '🇮🇳',

@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
-import 'package:maxbillup/Stocks/Products.dart';
-import 'package:maxbillup/Stocks/Category.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/models/cart_item.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:maxbillup/Sales/Saved.dart';
 import 'package:maxbillup/Sales/Bill.dart';
+import 'package:maxbillup/components/barcode_scanner.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final Map<String, dynamic>? savedOrderData;
+  final List<CartItem>? initialCartItems;
+  final Function(List<CartItem>)? onCartChanged;
 
   const SaleAllPage({
     super.key,
     required this.uid,
     this.userEmail,
     this.savedOrderData,
+    this.initialCartItems,
+    this.onCartChanged,
   });
 
   @override
@@ -26,7 +26,6 @@ class SaleAllPage extends StatefulWidget {
 
 class _SaleAllPageState extends State<SaleAllPage> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTabIndex = 0;
   final List<CartItem> _cartItems = [];
   String _searchQuery = '';
 
@@ -40,8 +39,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
     _userEmail = widget.userEmail;
     _searchController.addListener(_onSearchChanged);
 
+    // Load initial cart items from QuickSale page
+    if (widget.initialCartItems != null && widget.initialCartItems!.isNotEmpty) {
+      _cartItems.addAll(widget.initialCartItems!);
+    }
     // Load saved order if provided
-    if (widget.savedOrderData != null) {
+    else if (widget.savedOrderData != null) {
       _loadSavedOrderData(widget.savedOrderData!);
     }
   }
@@ -78,70 +81,78 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   void _addToCart(String productId, String name, double price, bool stockEnabled, double currentStock) {
-    setState(() {
-      final existingIndex = _cartItems.indexWhere((item) => item.productId == productId);
+    final existingIndex = _cartItems.indexWhere((item) => item.productId == productId);
 
-      if (existingIndex != -1) {
-        // Check if stock is enabled and if we have enough stock
-        if (stockEnabled) {
-          final totalQuantityInCart = _cartItems[existingIndex].quantity + 1;
-          if (totalQuantityInCart > currentStock) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Not enough stock! Only ${currentStock.toInt()} available'),
-                backgroundColor: const Color(0xFFFF5252),
-                duration: const Duration(seconds: 2),
-              ),
-            );
-            return;
-          }
-        }
-        _cartItems[existingIndex].quantity++;
-
-        // Move the updated item to the front (left side)
-        final updatedItem = _cartItems.removeAt(existingIndex);
-        _cartItems.insert(0, updatedItem);
-      } else {
-        // Check stock for new item
-        if (stockEnabled && currentStock < 1) {
+    if (existingIndex != -1) {
+      // Check if stock is enabled and if we have enough stock
+      if (stockEnabled) {
+        final totalQuantityInCart = _cartItems[existingIndex].quantity + 1;
+        if (totalQuantityInCart > currentStock) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Out of stock!'),
-              backgroundColor: Color(0xFFFF5252),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text('Not enough stock! Only ${currentStock.toInt()} available'),
+              backgroundColor: const Color(0xFFFF5252),
+              duration: const Duration(seconds: 2),
             ),
           );
           return;
         }
-        // Add new item at the beginning (left side)
-        _cartItems.insert(0, CartItem(
-          productId: productId,
-          name: name,
-          price: price,
-        ));
       }
+      _cartItems[existingIndex].quantity++;
 
-      // Show success feedback
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$name added to cart'),
-          backgroundColor: const Color(0xFF4CAF50),
-          duration: const Duration(milliseconds: 800),
-        ),
-      );
-    });
+      // Move the updated item to the front (left side)
+      final updatedItem = _cartItems.removeAt(existingIndex);
+      _cartItems.insert(0, updatedItem);
+    } else {
+      // Check stock for new item
+      if (stockEnabled && currentStock < 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Out of stock!'),
+            backgroundColor: Color(0xFFFF5252),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+      // Add new item at the beginning (left side)
+      _cartItems.insert(0, CartItem(
+        productId: productId,
+        name: name,
+        price: price,
+      ));
+    }
+
+    // Show success feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$name added to cart'),
+        backgroundColor: const Color(0xFF4CAF50),
+        duration: const Duration(milliseconds: 800),
+      ),
+    );
+
+    // Notify parent about cart changes
+    widget.onCartChanged?.call(_cartItems);
+
+    // Only rebuild the cart section, not the entire page
+    setState(() {});
   }
 
   void _removeFromCart(int index) {
-    setState(() {
-      _cartItems.removeAt(index);
-    });
+    _cartItems.removeAt(index);
+    // Notify parent about cart changes
+    widget.onCartChanged?.call(_cartItems);
+    // Only rebuild the cart section
+    setState(() {});
   }
 
   void _clearOrder() {
-    setState(() {
-      _cartItems.clear();
-    });
+    _cartItems.clear();
+    // Notify parent about cart changes
+    widget.onCartChanged?.call(_cartItems);
+    // Only rebuild the cart section
+    setState(() {});
   }
 
   void _showEditQuantityDialog(int index) {
@@ -185,9 +196,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ),
           TextButton(
             onPressed: () {
-              setState(() {
-                _cartItems.removeAt(index);
-              });
+              _cartItems.removeAt(index);
+              // Notify parent about cart changes
+              widget.onCartChanged?.call(_cartItems);
+              // Only rebuild the cart section
+              setState(() {});
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -215,9 +229,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 return;
               }
 
-              setState(() {
-                _cartItems[index].quantity = newQuantity;
-              });
+              _cartItems[index].quantity = newQuantity;
+              // Notify parent about cart changes
+              widget.onCartChanged?.call(_cartItems);
+              // Only rebuild the cart section
+              setState(() {});
+
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -241,7 +258,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => _BarcodeScannerPage(
+        builder: (context) => BarcodeScannerPage(
           onBarcodeScanned: (barcode) {
             _searchProductByBarcode(barcode);
           },
@@ -457,9 +474,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
         );
 
         // Clear cart
-        setState(() {
-          _cartItems.clear();
-        });
+        _cartItems.clear();
+        // Notify parent about cart changes
+        widget.onCartChanged?.call(_cartItems);
+        setState(() {});
       }
     } catch (e) {
       if (mounted) {
@@ -473,6 +491,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -480,10 +499,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     // Responsive sizing values
     final tabPadding = screenWidth * 0.04;
-    final tabHeight = screenHeight * 0.06;
     final searchBarHeight = screenHeight * 0.06;
     final cartHeight = screenHeight * 0.12;
-    final floatingButtonSize = screenWidth * 0.14;
     final gridPadding = screenWidth * 0.04;
     final gridSpacing = screenWidth * 0.03;
 
@@ -492,20 +509,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Tabs at the top
-            Container(
-              color: Colors.white,
-              padding: EdgeInsets.fromLTRB(tabPadding, tabPadding, tabPadding, tabPadding * 0.5),
-              child: Row(
-                children: [
-                  _buildTab('Sale / All', 0, screenWidth, tabHeight),
-                  SizedBox(width: screenWidth * 0.02),
-                  _buildTab('Quick Sale', 1, screenWidth, tabHeight),
-                  SizedBox(width: screenWidth * 0.02),
-                  _buildTab('Saved Orders', 2, screenWidth, tabHeight),
-                ],
-              ),
-            ),
+            // App Bar Component (Tabs only)
+
 
             // Search bar
             Container(
@@ -540,7 +545,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: screenWidth * 0.04,
-                            vertical: screenHeight * 0.015,
+                            vertical: searchBarHeight * 0.25,
                           ),
                         ),
                       ),
@@ -726,243 +731,124 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ],
         ),
       ),
-      floatingActionButton: Container(
-        margin: const EdgeInsets.only(bottom: 0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Bookmark button
-            GestureDetector(
-              onTap: _showSaveOrderDialog,
-              child: Container(
-                height: floatingButtonSize,
-                width: floatingButtonSize,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Action buttons container (static above bottom navbar)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                // Saved button - Save Order
+                GestureDetector(
+                  onTap: _showSaveOrderDialog,
+                  child: Container(
+                    height: 56,
+                    width: 56,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.bookmark,
-                  color: const Color(0xFF2196F3),
-                  size: screenWidth * 0.065,
-                ),
-              ),
-            ),
-            SizedBox(width: screenWidth * 0.04),
-            // Print button
-            Container(
-              height: floatingButtonSize,
-              width: floatingButtonSize,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+                    child: const Icon(
+                      Icons.bookmark_border,
+                      color: Color(0xFF2196F3),
+                      size: 26,
+                    ),
                   ),
-                ],
-              ),
-              child: Icon(
-                Icons.print,
-                color: const Color(0xFF2196F3),
-                size: screenWidth * 0.065,
-              ),
-            ),
-            SizedBox(width: screenWidth * 0.04),
-            // Bill button
-            GestureDetector(
-              onTap: () {
-                if (_cartItems.isNotEmpty) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => BillPage(
-                        uid: _uid,
-                        userEmail: _userEmail,
-                        cartItems: _cartItems,
-                        totalAmount: _totalBill,
-                      ),
-                    ),
-                  );
-                }
-              },
-              child: Container(
-                height: floatingButtonSize,
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3),
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF2196F3).withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _totalBill.toStringAsFixed(2),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: screenWidth * 0.05,
-                        fontWeight: FontWeight.bold,
+                const SizedBox(width: 12),
+                // Print button
+                Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF2196F3), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                    SizedBox(width: screenWidth * 0.025),
-                    Text(
-                      'Bill',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: screenWidth * 0.045,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: const Color(0xFF2196F3),
-          unselectedItemColor: Colors.grey[400],
-          currentIndex: 2,
-          selectedFontSize: screenWidth * 0.03,
-          unselectedFontSize: screenWidth * 0.03,
-          elevation: 0,
-          iconSize: screenWidth * 0.06,
-          onTap: (index) {
-            switch (index) {
-              case 0:
-                break;
-              case 1:
-                break;
-              case 2:
-                break;
-              case 3:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProductsPage(uid: _uid, userEmail: _userEmail),
+                    ],
                   ),
-                );
-                break;
-              case 4:
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CategoryPage(uid: _uid, userEmail: _userEmail),
+                  child: const Icon(
+                    Icons.print,
+                    color: Color(0xFF2196F3),
+                    size: 26,
                   ),
-                );
-                break;
-            }
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu),
-              label: 'Menu',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Reports',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag),
-              label: 'New Sale',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_outlined),
-              label: 'Stock',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTab(String text, int index, double screenWidth, double tabHeight) {
-    final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 1) {
-            // Navigate to Quick Sale with current cart items
-            final List<CartItem>? cartItemsCopy = _cartItems.isNotEmpty ? List<CartItem>.from(_cartItems) : null;
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => QuickSalePage(
-                  uid: _uid,
-                  userEmail: _userEmail,
-                  initialCartItems: cartItemsCopy,
                 ),
-              ),
-            );
-          } else if (index == 2) {
-            // Navigate to Saved Orders
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SavedOrdersPage(
-                  uid: _uid,
-                  userEmail: _userEmail,
+                const Spacer(),
+                // Bill button (on right side)
+                GestureDetector(
+                  onTap: () {
+                    if (_cartItems.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BillPage(
+                            uid: _uid,
+                            userEmail: _userEmail,
+                            cartItems: _cartItems,
+                            totalAmount: _totalBill,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _totalBill.toStringAsFixed(2),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'Bill',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          } else {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-          }
-        },
-        child: Container(
-          height: tabHeight,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: screenWidth * 0.035,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
+              ],
             ),
           ),
-        ),
+          // Bottom Navigation Bar
+        ],
       ),
     );
   }
@@ -1202,250 +1088,3 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 }
 
-// Barcode Scanner Page Widget
-class _BarcodeScannerPage extends StatefulWidget {
-  final Function(String) onBarcodeScanned;
-
-  const _BarcodeScannerPage({
-    required this.onBarcodeScanned,
-  });
-
-  @override
-  State<_BarcodeScannerPage> createState() => _BarcodeScannerPageState();
-}
-
-class _BarcodeScannerPageState extends State<_BarcodeScannerPage> {
-  MobileScannerController cameraController = MobileScannerController();
-  bool _isScanning = true;
-  String _lastScannedCode = '';
-  int _scannedCount = 0;
-
-  @override
-  void dispose() {
-    cameraController.dispose();
-    super.dispose();
-  }
-
-  void _handleBarcodeScan(String barcode) {
-    if (!_isScanning || barcode == _lastScannedCode) return;
-
-    setState(() {
-      _lastScannedCode = barcode;
-      _scannedCount++;
-    });
-
-    // Call the callback to add product
-    widget.onBarcodeScanned(barcode);
-
-    // Show feedback with vibration-like animation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Product added! ($barcode) - Total scanned: $_scannedCount'),
-        backgroundColor: const Color(0xFF4CAF50),
-        duration: const Duration(milliseconds: 1500),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    // Reset last scanned code after 2 seconds to allow scanning same product again
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _lastScannedCode = '';
-        });
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Scan Barcode'),
-        backgroundColor: const Color(0xFF2196F3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(cameraController.torchEnabled ? Icons.flash_on : Icons.flash_off),
-            onPressed: () => cameraController.toggleTorch(),
-          ),
-          IconButton(
-            icon: const Icon(Icons.flip_camera_ios),
-            onPressed: () => cameraController.switchCamera(),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // Camera view
-          MobileScanner(
-            controller: cameraController,
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty) {
-                final barcode = barcodes.first;
-                if (barcode.rawValue != null) {
-                  _handleBarcodeScan(barcode.rawValue!);
-                }
-              }
-            },
-          ),
-
-          // Overlay with scanning area
-          CustomPaint(
-            painter: ScannerOverlay(
-              scanAreaSize: screenWidth * 0.7,
-            ),
-            child: const SizedBox.expand(),
-          ),
-
-          // Instructions and scan count
-          Positioned(
-            bottom: screenHeight * 0.1,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Scan counter
-                  if (_scannedCount > 0)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF4CAF50).withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        'Products Scanned: $_scannedCount',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                  // Instructions
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Text(
-                      'Scan multiple products\nPress back when done',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Custom painter for scanner overlay
-class ScannerOverlay extends CustomPainter {
-  final double scanAreaSize;
-
-  ScannerOverlay({required this.scanAreaSize});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final double scanAreaLeft = (size.width - scanAreaSize) / 2;
-    final double scanAreaTop = (size.height - scanAreaSize) / 2;
-    final Rect scanArea = Rect.fromLTWH(scanAreaLeft, scanAreaTop, scanAreaSize, scanAreaSize);
-
-    // Draw dark overlay
-    final Paint backgroundPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.5)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(
-      Path.combine(
-        PathOperation.difference,
-        Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height)),
-        Path()
-          ..addRRect(RRect.fromRectAndRadius(scanArea, const Radius.circular(12)))
-          ..close(),
-      ),
-      backgroundPaint,
-    );
-
-    // Draw border corners
-    final Paint borderPaint = Paint()
-      ..color = const Color(0xFF2196F3)
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-
-    final double cornerLength = 30;
-
-    // Top-left corner
-    canvas.drawLine(
-      Offset(scanAreaLeft, scanAreaTop),
-      Offset(scanAreaLeft + cornerLength, scanAreaTop),
-      borderPaint,
-    );
-    canvas.drawLine(
-      Offset(scanAreaLeft, scanAreaTop),
-      Offset(scanAreaLeft, scanAreaTop + cornerLength),
-      borderPaint,
-    );
-
-    // Top-right corner
-    canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop),
-      Offset(scanAreaLeft + scanAreaSize - cornerLength, scanAreaTop),
-      borderPaint,
-    );
-    canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop),
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop + cornerLength),
-      borderPaint,
-    );
-
-    // Bottom-left corner
-    canvas.drawLine(
-      Offset(scanAreaLeft, scanAreaTop + scanAreaSize),
-      Offset(scanAreaLeft + cornerLength, scanAreaTop + scanAreaSize),
-      borderPaint,
-    );
-    canvas.drawLine(
-      Offset(scanAreaLeft, scanAreaTop + scanAreaSize),
-      Offset(scanAreaLeft, scanAreaTop + scanAreaSize - cornerLength),
-      borderPaint,
-    );
-
-    // Bottom-right corner
-    canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize),
-      Offset(scanAreaLeft + scanAreaSize - cornerLength, scanAreaTop + scanAreaSize),
-      borderPaint,
-    );
-    canvas.drawLine(
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize),
-      Offset(scanAreaLeft + scanAreaSize, scanAreaTop + scanAreaSize - cornerLength),
-      borderPaint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
