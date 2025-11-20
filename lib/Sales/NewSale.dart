@@ -10,12 +10,14 @@ class NewSalePage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final Map<String, dynamic>? savedOrderData;
+  final String? savedOrderId;
 
   const NewSalePage({
     super.key,
     required this.uid,
     this.userEmail,
     this.savedOrderData,
+    this.savedOrderId,
   });
 
   @override
@@ -24,7 +26,8 @@ class NewSalePage extends StatefulWidget {
 
 class _NewSalePageState extends State<NewSalePage> {
   int _selectedTabIndex = 0;
-  List<CartItem>? _sharedCartItems; // Shared cart items between pages
+  List<CartItem>? _sharedCartItems;
+  String? _loadedSavedOrderId;
 
   late String _uid;
   String? _userEmail;
@@ -35,10 +38,9 @@ class _NewSalePageState extends State<NewSalePage> {
     _uid = widget.uid;
     _userEmail = widget.userEmail;
 
-    // Load saved order data if provided
     if (widget.savedOrderData != null) {
       _loadSavedOrderData(widget.savedOrderData!);
-      // Navigate to Sale/All tab to show the loaded order
+      _loadedSavedOrderId = widget.savedOrderId;
       _selectedTabIndex = 0;
     }
   }
@@ -46,12 +48,14 @@ class _NewSalePageState extends State<NewSalePage> {
   void _loadSavedOrderData(Map<String, dynamic> orderData) {
     final items = orderData['items'] as List<dynamic>?;
     if (items != null && items.isNotEmpty) {
-      final cartItems = items.map((item) => CartItem(
+      final cartItems = items
+          .map((item) => CartItem(
         productId: item['productId'] ?? '',
         name: item['name'] ?? '',
         price: (item['price'] ?? 0).toDouble(),
         quantity: item['quantity'] ?? 1,
-      )).toList();
+      ))
+          .toList();
 
       setState(() {
         _sharedCartItems = cartItems;
@@ -60,7 +64,6 @@ class _NewSalePageState extends State<NewSalePage> {
   }
 
   void _handleTabChange(int index) {
-    // Switch between all tabs inline (0 = Sale/All, 1 = Quick Sale, 2 = Saved Orders)
     setState(() {
       _selectedTabIndex = index;
     });
@@ -79,40 +82,42 @@ class _NewSalePageState extends State<NewSalePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // App Bar Component (Tabs)
-            SaleAppBar(
-              selectedTabIndex: _selectedTabIndex,
-              onTabChanged: _handleTabChange,
-              screenWidth: screenWidth,
-              screenHeight: screenHeight,
-            ),
+      body: Column(
+        spacing: 0,
+        children: [
+          // App Bar Component at the very top with no margin
+          SaleAppBar(
+            selectedTabIndex: _selectedTabIndex,
+            onTabChanged: _handleTabChange,
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+          ),
 
-            // Content Area - Show content based on selected tab
-            Expanded(
-              child: _selectedTabIndex == 0
-                  ? SaleAllPage(
-                      uid: _uid,
-                      userEmail: _userEmail,
-                      onCartChanged: _updateCartItems,
-                      initialCartItems: _sharedCartItems,
-                    )
-                  : _selectedTabIndex == 1
-                      ? QuickSalePage(
-                          uid: _uid,
-                          userEmail: _userEmail,
-                          initialCartItems: _sharedCartItems,
-                          onCartChanged: _updateCartItems,
-                        )
-                      : SavedOrdersPage(
-                          uid: _uid,
-                          userEmail: _userEmail,
-                        ),
+          //
+          // // Content Area - Show content based on selected tab
+          Expanded(
+            child: _selectedTabIndex == 0
+                ? SaleAllPage(
+              uid: _uid,
+              userEmail: _userEmail,
+              onCartChanged: _updateCartItems,
+              initialCartItems: _sharedCartItems,
+              savedOrderId: _loadedSavedOrderId,
+            )
+                : _selectedTabIndex == 1
+                ? QuickSalePage(
+              uid: _uid,
+              userEmail: _userEmail,
+              initialCartItems: _sharedCartItems,
+              onCartChanged: _updateCartItems,
+              savedOrderId: _loadedSavedOrderId,
+            )
+                : SavedOrdersPage(
+              uid: _uid,
+              userEmail: _userEmail,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
       bottomNavigationBar: CommonBottomNav(
         uid: _uid,
@@ -123,4 +128,3 @@ class _NewSalePageState extends State<NewSalePage> {
     );
   }
 }
-

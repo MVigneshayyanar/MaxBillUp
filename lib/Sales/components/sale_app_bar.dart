@@ -22,7 +22,7 @@ class SaleAppBar extends StatelessWidget {
     return Container(
       color: Colors.white,
       child: Container(
-        padding: EdgeInsets.all(tabPadding),
+        padding: EdgeInsets.fromLTRB(tabPadding, tabPadding + 30, tabPadding, tabPadding),
         child: Row(
           children: [
             _buildTab('Sale / All', 0, screenWidth, tabHeight),
@@ -62,4 +62,3 @@ class SaleAppBar extends StatelessWidget {
     );
   }
 }
-

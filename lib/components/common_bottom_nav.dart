@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
-import 'package:maxbillup/Stocks/Products.dart';
-import 'package:maxbillup/Stocks/Category.dart';
+import 'package:maxbillup/Settings/Profile.dart';
+import 'package:maxbillup/Stocks/Stock.dart' as stock;
+import 'package:maxbillup/Reports/Reports.dart'; // Add this import
 
 class CommonBottomNav extends StatelessWidget {
   final String uid;
@@ -24,7 +25,7 @@ class CommonBottomNav extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -32,7 +33,8 @@ class CommonBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         child: Container(
-          height: 57,
+          height: 60,
+          margin: const EdgeInsets.only(bottom: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -61,7 +63,6 @@ class CommonBottomNav extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Animated indicator line at top
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
@@ -73,7 +74,6 @@ class CommonBottomNav extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              // Icon with scale animation
               AnimatedScale(
                 scale: isSelected ? 1.1 : 1.0,
                 duration: const Duration(milliseconds: 200),
@@ -85,7 +85,6 @@ class CommonBottomNav extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              // Label with fade animation
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
@@ -111,7 +110,18 @@ class CommonBottomNav extends StatelessWidget {
       // Menu - TODO: Add menu page
         break;
       case 1:
-      // Reports - TODO: Add reports page
+      // Navigate to Analytics Dashboard
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                AnalyticsDashboard(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 200),
+          ),
+        );
         break;
       case 2:
         Navigator.pushReplacement(
@@ -131,7 +141,7 @@ class CommonBottomNav extends StatelessWidget {
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                ProductsPage(uid: uid, userEmail: userEmail),
+                stock.StockPage(uid: uid, userEmail: userEmail),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
@@ -144,7 +154,7 @@ class CommonBottomNav extends StatelessWidget {
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                CategoryPage(uid: uid, userEmail: userEmail),
+                SettingsPage(uid: uid, userEmail: userEmail),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },

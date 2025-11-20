@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:maxbillup/Stocks/Category.dart';
-import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/components/common_bottom_nav.dart';
+import 'package:maxbillup/Stocks/AddProduct.dart';
 
 class ProductsPage extends StatefulWidget {
   final String uid;
@@ -21,17 +19,22 @@ class ProductsPage extends StatefulWidget {
 
 class _ProductsPageState extends State<ProductsPage> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTabIndex = 0;
+  String _searchQuery = '';
+  String _sortBy = 'name'; // 'name', 'price', 'stock'
+  bool _sortAscending = true;
+  String _filterStock = 'all'; // 'all', 'inStock', 'outOfStock', 'lowStock'
 
   late String _uid;
-  String? _userEmail;
 
   @override
   void initState() {
     super.initState();
     _uid = widget.uid;
-    _userEmail = widget.userEmail;
-    print('ProductsPage initialized with UID: $_uid');
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
@@ -40,141 +43,267 @@ class _ProductsPageState extends State<ProductsPage> {
     super.dispose();
   }
 
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Sort By',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.sort_by_alpha),
+              title: const Text('Name'),
+              trailing: _sortBy == 'name' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  if (_sortBy == 'name') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'name';
+                    _sortAscending = true;
+                  }
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.attach_money),
+              title: const Text('Price'),
+              trailing: _sortBy == 'price' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  if (_sortBy == 'price') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'price';
+                    _sortAscending = true;
+                  }
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory),
+              title: const Text('Stock'),
+              trailing: _sortBy == 'stock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  if (_sortBy == 'stock') {
+                    _sortAscending = !_sortAscending;
+                  } else {
+                    _sortBy = 'stock';
+                    _sortAscending = true;
+                  }
+                });
+                Navigator.pop(context);
+              },
+            ),
+            const Divider(),
+            ListTile(
+              leading: Icon(_sortAscending ? Icons.arrow_upward : Icons.arrow_downward),
+              title: Text(_sortAscending ? 'Ascending' : 'Descending'),
+              onTap: () {
+                setState(() {
+                  _sortAscending = !_sortAscending;
+                });
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showFilterMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Filter By Stock',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.select_all),
+              title: const Text('All Products'),
+              trailing: _filterStock == 'all' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  _filterStock = 'all';
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
+              title: const Text('In Stock'),
+              trailing: _filterStock == 'inStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  _filterStock = 'inStock';
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.warning, color: Color(0xFFFF9800)),
+              title: const Text('Low Stock (< 10)'),
+              trailing: _filterStock == 'lowStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  _filterStock = 'lowStock';
+                });
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.cancel, color: Color(0xFFFF5252)),
+              title: const Text('Out of Stock'),
+              trailing: _filterStock == 'outOfStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
+              onTap: () {
+                setState(() {
+                  _filterStock = 'outOfStock';
+                });
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<QueryDocumentSnapshot> _filterAndSortProducts(List<QueryDocumentSnapshot> products) {
+    // Filter by search query
+    var filtered = products.where((doc) {
+      if (_searchQuery.isEmpty) return true;
+      final data = doc.data() as Map<String, dynamic>;
+      final name = (data['itemName'] ?? '').toString().toLowerCase();
+      return name.contains(_searchQuery);
+    }).toList();
+
+    // Filter by stock status
+    filtered = filtered.where((doc) {
+      if (_filterStock == 'all') return true;
+      final data = doc.data() as Map<String, dynamic>;
+      final stockEnabled = data['stockEnabled'] ?? false;
+      final stock = data['currentStock'] ?? 0.0;
+
+      if (!stockEnabled) return _filterStock == 'all';
+
+      if (_filterStock == 'outOfStock') return stock <= 0;
+      if (_filterStock == 'lowStock') return stock > 0 && stock < 10;
+      if (_filterStock == 'inStock') return stock >= 10;
+
+      return true;
+    }).toList();
+
+    // Sort products
+    filtered.sort((a, b) {
+      final dataA = a.data() as Map<String, dynamic>;
+      final dataB = b.data() as Map<String, dynamic>;
+
+      int comparison = 0;
+
+      if (_sortBy == 'name') {
+        final nameA = (dataA['itemName'] ?? '').toString().toLowerCase();
+        final nameB = (dataB['itemName'] ?? '').toString().toLowerCase();
+        comparison = nameA.compareTo(nameB);
+      } else if (_sortBy == 'price') {
+        final priceA = dataA['price'] ?? 0.0;
+        final priceB = dataB['price'] ?? 0.0;
+        comparison = priceA.compareTo(priceB);
+      } else if (_sortBy == 'stock') {
+        final stockA = dataA['currentStock'] ?? 0.0;
+        final stockB = dataB['currentStock'] ?? 0.0;
+        comparison = stockA.compareTo(stockB);
+      }
+
+      return _sortAscending ? comparison : -comparison;
+    });
+
+    return filtered;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        centerTitle: true,
-        surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Stock',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-            letterSpacing: 0.5,
-          ),
-        ),
-        automaticallyImplyLeading: false,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-      ),
       body: Column(
         children: [
-          // Fixed header section
+          // Search bar and action buttons
           Container(
             color: Colors.white,
-            child: Column(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            child: Row(
               children: [
-                // Tabs
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Row(
-                    children: [
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(_uid)
-                            .collection('Products')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                          return _buildTab('Products ($productCount)', 0);
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      StreamBuilder<QuerySnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(_uid)
-                            .collection('categories')
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                          return _buildTab('Category ($categoryCount)', 1);
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Search bar and action buttons
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: TextField(
-                            controller: _searchController,
-                            style: const TextStyle(color: Colors.black87),
-                            decoration: InputDecoration(
-                              hintText: 'Search',
-                              hintStyle: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 16,
-                              ),
-                              prefixIcon: Icon(
-                                Icons.search,
-                                color: Colors.grey[400],
-                                size: 24,
-                              ),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _buildActionButton(Icons.swap_vert, const Color(0xFF2196F3)),
-                      const SizedBox(width: 8),
-                      _buildActionButton(Icons.tune, const Color(0xFF2196F3)),
-                      const SizedBox(width: 8),
-                      _buildActionButton(Icons.more_vert, const Color(0xFF2196F3)),
-                    ],
-                  ),
-                ),
-
-                // Add Product button
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddProductPage(uid: _uid, userEmail: _userEmail),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 20),
-                      label: const Text(
-                        'Add Product',
-                        style: TextStyle(
-                          color: Color(0xFF4CAF50),
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.black87),
+                      decoration: InputDecoration(
+                        hintText: 'Search',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: Colors.blue,
+                          size: 24,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(width: 8),
+                _buildActionButton(Icons.swap_vert, const Color(0xFF2196F3), _showSortMenu),
+                const SizedBox(width: 8),
+                _buildActionButton(Icons.tune, const Color(0xFF2196F3), _showFilterMenu),
+                const SizedBox(width: 8),
+                _buildActionButton(
+                  Icons.add_circle,
+                  const Color(0xFF4CAF50),
+                      () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -184,78 +313,35 @@ class _ProductsPageState extends State<ProductsPage> {
           Expanded(
             child: Container(
               color: const Color(0xFFF5F5F5),
-              child: _buildProductGrid(),
+              child: _buildProductGrid(w),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: _uid,
-        userEmail: _userEmail,
-        currentIndex: 3,
-        screenWidth: MediaQuery.of(context).size.width,
-      ),
     );
   }
 
-  Widget _buildTab(String text, int index) {
-    final isSelected = _selectedTabIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 1) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CategoryPage(uid: _uid, userEmail: _userEmail),
-              ),
-            );
-          } else {
-            setState(() {
-              _selectedTabIndex = index;
-            });
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ),
+  Widget _buildActionButton(IconData icon, Color color, VoidCallback? onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        width: 48,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(8),
         ),
+        child: Icon(icon, color: color, size: icon == Icons.add_circle ? 32 : 24),
       ),
     );
   }
 
-  Widget _buildActionButton(IconData icon, Color color) {
-    return Container(
-      height: 48,
-      width: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon, color: color, size: 24),
-    );
-  }
-
-  Widget _buildProductGrid() {
+  Widget _buildProductGrid(double w) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('users')
           .doc(_uid)
           .collection('Products')
-          .orderBy('createdAt', descending: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -307,15 +393,39 @@ class _ProductsPageState extends State<ProductsPage> {
           );
         }
 
-        final products = snapshot.data!.docs;
+        final products = _filterAndSortProducts(snapshot.data!.docs);
+
+        if (products.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 80,
+                  color: Colors.grey[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No products found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
         return GridView.builder(
-          padding: const EdgeInsets.all(12),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          padding: EdgeInsets.all(w * 0.04),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            childAspectRatio: 1.15,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
+            crossAxisSpacing: w * 0.03,
+            mainAxisSpacing: w * 0.03,
+            childAspectRatio: 1.5,
           ),
           itemCount: products.length,
           itemBuilder: (context, index) {
@@ -326,7 +436,6 @@ class _ProductsPageState extends State<ProductsPage> {
             final stockEnabled = productData['stockEnabled'] ?? false;
             final currentStock = productData['currentStock'] ?? 0.0;
 
-            // Determine if stock is low (less than 10) or out of stock
             final isOutOfStock = stockEnabled && currentStock <= 0;
             final isLowStock = stockEnabled && currentStock > 0 && currentStock < 10;
 
@@ -345,19 +454,19 @@ class _ProductsPageState extends State<ProductsPage> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isOutOfStock
-                        ? const Color(0xFFFF5252).withOpacity(0.3)
+                        ? const Color(0xFFFF5252).withValues(alpha: 0.3)
                         : Colors.grey[200]!,
                     width: 1,
                   ),
                 ),
                 padding: const EdgeInsets.all(12),
                 child: Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Product name
                         Text(
                           itemName,
                           style: const TextStyle(
@@ -368,18 +477,14 @@ class _ProductsPageState extends State<ProductsPage> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-
-                        // Price
                         Text(
-                          price != null ? '${price.toStringAsFixed(0)}' : 'Price on sale',
+                          price != null ? '₹${price.toStringAsFixed(0)}' : 'Price on sale',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.grey[800],
                           ),
                         ),
-
-                        // Stock info
                         if (stockEnabled)
                           Text(
                             isOutOfStock
@@ -397,16 +502,14 @@ class _ProductsPageState extends State<ProductsPage> {
                           ),
                       ],
                     ),
-
-                    // Out of Stock badge
                     if (isOutOfStock)
                       Positioned(
-                        right: 0,
+                        right: -12,
                         top: 0,
                         bottom: 0,
                         child: Center(
                           child: Transform.rotate(
-                            angle: -1.5708, // -90 degrees in radians
+                            angle: -1.5708,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
@@ -538,18 +641,6 @@ class _ProductsPageState extends State<ProductsPage> {
                   final newStock = isAdding
                       ? currentStock + quantity
                       : currentStock - quantity;
-
-                  if (newStock < 0) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Stock cannot be negative'),
-                        backgroundColor: Colors.red[400],
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    );
-                    return;
-                  }
 
                   await FirebaseFirestore.instance
                       .collection('users')

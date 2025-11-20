@@ -21,6 +21,8 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   int _selectedTabIndex = 1;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   late String _uid;
   String? _userEmail;
@@ -31,85 +33,67 @@ class _CategoryPageState extends State<CategoryPage> {
     _uid = widget.uid;
     _userEmail = widget.userEmail;
     print('CategoryPage initialized with UID: $_uid');
+
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 2,
-        centerTitle: true,
-        surfaceTintColor: Colors.transparent,
-        title: const Text(
-          'Stock',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-            letterSpacing: 0.5,
-          ),
-        ),
-        automaticallyImplyLeading: false,
-      ),
       body: Column(
         children: [
-          // Tabs
+          // Search Bar and Add Category in one row
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 2.5),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_uid)
-                      .collection('Products')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                    return _buildTab('Products ($productCount)', 0);
-                  },
-                ),
-                const SizedBox(width: 10),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_uid)
-                      .collection('categories')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                    return _buildTab('Category ($categoryCount)', 1);
-                  },
-                ),
-              ],
-            ),
-          ),
-          // Add Category button
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(0, 0, 16, 2.5),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: () {
-                  _showAddCategoryDialog(context);
-                },
-                icon: const Icon(Icons.add, color: Color(0xFF4CAF50), size: 18),
-                label: const Text(
-                  'Add Category',
-                  style: TextStyle(
-                    color: Color(0xFF4CAF50),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                // Search Bar
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search categories...',
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF2196F3)),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                        icon: const Icon(Icons.clear, color: Colors.grey),
+                        onPressed: () {
+                          _searchController.clear();
+                        },
+                      )
+                          : null,
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                const SizedBox(width: 12),
+                // Add Category button
+                IconButton(
+                  onPressed: () {
+                    _showAddCategoryDialog(context);
+                  },
+                  icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50), size: 32),
+                  tooltip: 'Add Category',
                 ),
-              ),
+              ],
             ),
           ),
           // Category list
@@ -121,7 +105,6 @@ class _CategoryPageState extends State<CategoryPage> {
           ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -224,12 +207,51 @@ class _CategoryPageState extends State<CategoryPage> {
 
         final categories = snapshot.data!.docs;
 
+        // Filter categories based on search query
+        final filteredCategories = categories.where((doc) {
+          final categoryData = doc.data() as Map<String, dynamic>;
+          final categoryName = (categoryData['name'] ?? '').toString().toLowerCase();
+          return categoryName.contains(_searchQuery);
+        }).toList();
+
+        if (filteredCategories.isEmpty && _searchQuery.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.search_off,
+                  size: 80,
+                  color: Colors.grey[300],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No categories found',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Try searching with different keywords',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[400],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
         return ListView.separated(
           padding: const EdgeInsets.all(16),
-          itemCount: categories.length,
+          itemCount: filteredCategories.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
-            final categoryDoc = categories[index];
+            final categoryDoc = filteredCategories[index];
             final categoryData = categoryDoc.data() as Map<String, dynamic>;
             final categoryName = categoryData['name'] ?? 'Unknown';
             final categoryId = categoryDoc.id;
@@ -607,79 +629,6 @@ class _CategoryPageState extends State<CategoryPage> {
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5252)),
             child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF2196F3),
-        unselectedItemColor: Colors.grey[400],
-        currentIndex: 3,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        iconSize: 26,
-        elevation: 0,
-        onTap: (index) {
-          switch (index) {
-            case 0:
-            // Menu
-              break;
-            case 1:
-            // Reports
-              break;
-            case 2:
-            // New Sale
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => SaleAllPage(uid: _uid, userEmail: _userEmail),
-                ),
-              );
-              break;
-            case 3:
-            // Stock - already on this page
-              break;
-            case 4:
-            // Settings
-              break;
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu),
-            label: 'Menu',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Reports',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: 'New Sale',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2),
-            label: 'Stock',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
           ),
         ],
       ),
