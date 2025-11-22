@@ -205,29 +205,15 @@ class _LoginPageState extends State<LoginPage> {
       const Text('Welcome to',
           style: TextStyle(fontSize: 28, color: Colors.black87)),
       const SizedBox(height: 16),
-      RichText(
-        text: const TextSpan(
-          children: [
-            TextSpan(
-                text: 'bill',
-                style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black)),
-            TextSpan(
-                text: 'UP',
-                style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF00B8FF))),
-          ],
-        ),
-      ),
-      Container(
-        margin: const EdgeInsets.only(left: 60, top: 4),
-        child: CustomPaint(
-          size: const Size(50, 25),
-          painter: SmileyPainter(),
+      // Logo image added below the title
+      const SizedBox(height: 12),
+      Padding(
+        padding: const EdgeInsets.only(top: 0),
+        child: Image.asset(
+          'assets/logo.png',
+          width: 300,
+          height: 50,
+          fit: BoxFit.contain,
         ),
       ),
     ],

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Settings/Profile.dart';
 import 'package:maxbillup/Stocks/Stock.dart' as stock;
-import 'package:maxbillup/Reports/Reports.dart'; // Add this import
+import 'package:maxbillup/Reports/Reports.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 
 class CommonBottomNav extends StatelessWidget {
   final String uid;
@@ -107,7 +108,18 @@ class CommonBottomNav extends StatelessWidget {
 
     switch (index) {
       case 0:
-      // Menu - TODO: Add menu page
+        // Menu
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                MenuPage(uid: uid, userEmail: userEmail),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+            transitionDuration: const Duration(milliseconds: 200),
+          ),
+        );
         break;
       case 1:
       // Navigate to Analytics Dashboard
@@ -115,7 +127,11 @@ class CommonBottomNav extends StatelessWidget {
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                AnalyticsDashboard(),
+                ReportsDashboard(),
+            settings: RouteSettings(arguments: {
+              'uid': uid,
+              'userEmail': userEmail,
+            }),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },
