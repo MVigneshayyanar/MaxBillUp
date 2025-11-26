@@ -339,8 +339,6 @@ class _ProductsPageState extends State<ProductsPage> {
   Widget _buildProductGrid(double w) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(_uid)
           .collection('Products')
           .snapshots(),
       builder: (context, snapshot) {
@@ -643,8 +641,6 @@ class _ProductsPageState extends State<ProductsPage> {
                       : currentStock - quantity;
 
                   await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_uid)
                       .collection('Products')
                       .doc(productId)
                       .update({'currentStock': newStock});

@@ -9,7 +9,7 @@ class BillPage extends StatefulWidget {
   final String? userEmail;
   final List<CartItem> cartItems;
   final double totalAmount;
-  final String? savedOrderId; // Track saved order to delete after billing
+  final String? savedOrderId;
 
   const BillPage({
     super.key,
@@ -153,7 +153,7 @@ class _BillPageState extends State<BillPage> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              Navigator.pop(context); // Go back to sale page
+              Navigator.pop(context);
             },
             child: const Text(
               'Clear',
@@ -339,7 +339,7 @@ class _BillPageState extends State<BillPage> {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),
@@ -433,7 +433,9 @@ class _BillPageState extends State<BillPage> {
                       GestureDetector(
                         onTap: _showCreditNoteDialog,
                         child: Text(
-                          _creditNote.isNotEmpty ? 'Note: $_creditNote' : 'Add Credit Note',
+                          _creditNote.isNotEmpty
+                              ? 'Note: $_creditNote'
+                              : 'Add Credit Note',
                           style: const TextStyle(
                             color: Color(0xFF2196F3),
                             fontSize: 16,
@@ -568,7 +570,8 @@ class _CustomerSelectionDialog extends StatefulWidget {
   });
 
   @override
-  State<_CustomerSelectionDialog> createState() => _CustomerSelectionDialogState();
+  State<_CustomerSelectionDialog> createState() =>
+      _CustomerSelectionDialogState();
 }
 
 class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
@@ -652,8 +655,6 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 
               try {
                 await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(widget.uid)
                     .collection('customers')
                     .doc(phone)
                     .set({
@@ -666,7 +667,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 
                 if (mounted) {
                   Navigator.pop(context);
-                  widget.onCustomerSelected(phone, name, gst.isEmpty ? null : gst);
+                  widget.onCustomerSelected(
+                      phone, name, gst.isEmpty ? null : gst);
                   Navigator.pop(context);
                 }
               } catch (e) {
@@ -735,7 +737,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
@@ -763,8 +766,6 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(widget.uid)
                     .collection('customers')
                     .snapshots(),
                 builder: (context, snapshot) {
@@ -783,7 +784,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 
                     final data = doc.data() as Map<String, dynamic>;
                     final name = (data['name'] ?? '').toString().toLowerCase();
-                    final phone = (data['phone'] ?? '').toString().toLowerCase();
+                    final phone =
+                    (data['phone'] ?? '').toString().toLowerCase();
                     final gst = (data['gst'] ?? '').toString().toLowerCase();
 
                     return name.contains(_searchQuery) ||
@@ -800,7 +802,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   return ListView.builder(
                     itemCount: customers.length,
                     itemBuilder: (context, index) {
-                      final customerData = customers[index].data() as Map<String, dynamic>;
+                      final customerData =
+                      customers[index].data() as Map<String, dynamic>;
                       final name = customerData['name'] ?? 'Unknown';
                       final phone = customerData['phone'] ?? '';
                       final gst = customerData['gst'];
@@ -937,7 +940,8 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   double _cashReceived = 0.0;
-  final TextEditingController _displayController = TextEditingController(text: '0.0');
+  final TextEditingController _displayController =
+  TextEditingController(text: '0.0');
 
   double get _change => _cashReceived - widget.totalAmount;
 
@@ -955,7 +959,8 @@ class _PaymentPageState extends State<PaymentPage> {
   void _onBackspace() {
     setState(() {
       if (_displayController.text.isNotEmpty) {
-        _displayController.text = _displayController.text.substring(0, _displayController.text.length - 1);
+        _displayController.text = _displayController.text
+            .substring(0, _displayController.text.length - 1);
         if (_displayController.text.isEmpty) {
           _displayController.text = '0.0';
         }
@@ -973,13 +978,15 @@ class _PaymentPageState extends State<PaymentPage> {
       // Prepare sale data
       final saleData = {
         'invoiceNumber': invoiceNumber,
-        'items': widget.cartItems.map((item) => {
+        'items': widget.cartItems
+            .map((item) => {
           'productId': item.productId,
           'name': item.name,
           'price': item.price,
           'quantity': item.quantity,
           'total': item.total,
-        }).toList(),
+        })
+            .toList(),
         'subtotal': widget.totalAmount + widget.discountAmount,
         'discount': widget.discountAmount,
         'total': widget.totalAmount,
@@ -992,23 +999,17 @@ class _PaymentPageState extends State<PaymentPage> {
         'creditNote': widget.creditNote,
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
+        'staffId': widget.uid, // Automatically add staff id
       };
 
       // Save sale to Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .collection('sales')
-          .add(saleData);
+      await FirebaseFirestore.instance.collection('sales').add(saleData);
 
       // Update product stock
       for (var item in widget.cartItems) {
         if (item.productId.isNotEmpty) {
-          final productRef = FirebaseFirestore.instance
-              .collection('users')
-              .doc(widget.uid)
-              .collection('Products')
-              .doc(item.productId);
+          final productRef =
+          FirebaseFirestore.instance.collection('Products').doc(item.productId);
 
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final productDoc = await transaction.get(productRef);
@@ -1024,8 +1025,6 @@ class _PaymentPageState extends State<PaymentPage> {
       // Delete saved order if this was from a saved order
       if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
         await FirebaseFirestore.instance
-            .collection('users')
-            .doc(widget.uid)
             .collection('savedOrders')
             .doc(widget.savedOrderId)
             .delete();
@@ -1044,12 +1043,14 @@ class _PaymentPageState extends State<PaymentPage> {
               businessPhone: '+91 ${widget.uid}',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
-              items: widget.cartItems.map((item) => {
+              items: widget.cartItems
+                  .map((item) => {
                 'name': item.name,
                 'quantity': item.quantity,
                 'price': item.price,
                 'total': item.total,
-              }).toList(),
+              })
+                  .toList(),
               subtotal: widget.totalAmount + widget.discountAmount,
               discount: widget.discountAmount,
               total: widget.totalAmount,
@@ -1094,14 +1095,14 @@ class _PaymentPageState extends State<PaymentPage> {
       body: Column(
         children: [
           SizedBox(height: screenHeight * 0.02),
-
           // Info Cards
           Padding(
             padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
             child: Row(
               children: [
                 Expanded(
-                  child: _buildInfoCard('Due', widget.totalAmount.toStringAsFixed(1)),
+                  child: _buildInfoCard(
+                      'Due', widget.totalAmount.toStringAsFixed(1)),
                 ),
                 SizedBox(width: screenWidth * 0.02),
                 Expanded(
@@ -1109,14 +1110,13 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
                 SizedBox(width: screenWidth * 0.02),
                 Expanded(
-                  child: _buildInfoCard('Items', widget.cartItems.length.toString().padLeft(2, '0')),
+                  child: _buildInfoCard(
+                      'Items', widget.cartItems.length.toString().padLeft(2, '0')),
                 ),
               ],
             ),
           ),
-
           SizedBox(height: screenHeight * 0.03),
-
           // Cash Received Section
           const Text(
             'Cash Received',
@@ -1125,9 +1125,7 @@ class _PaymentPageState extends State<PaymentPage> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
           SizedBox(height: screenHeight * 0.02),
-
           // Display
           Container(
             margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.2),
@@ -1145,9 +1143,7 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
             ),
           ),
-
           SizedBox(height: screenHeight * 0.015),
-
           // Change Display
           Text(
             'change : ${_change.toStringAsFixed(2)}',
@@ -1157,9 +1153,7 @@ class _PaymentPageState extends State<PaymentPage> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
           SizedBox(height: screenHeight * 0.03),
-
           // Number Pad
           Expanded(
             child: Padding(
@@ -1186,7 +1180,6 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
             ),
           ),
-
           // Bill Button
           Padding(
             padding: EdgeInsets.all(screenWidth * 0.04),
@@ -1194,7 +1187,8 @@ class _PaymentPageState extends State<PaymentPage> {
               width: double.infinity,
               height: screenHeight * 0.07,
               child: ElevatedButton(
-                onPressed: _cashReceived >= widget.totalAmount ? _completeSale : null,
+                onPressed:
+                _cashReceived >= widget.totalAmount ? _completeSale : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF2196F3),
                   disabledBackgroundColor: Colors.grey[300],
@@ -1287,4 +1281,3 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 }
-

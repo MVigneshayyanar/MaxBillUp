@@ -36,8 +36,6 @@ class StockAppBar extends StatelessWidget {
               children: [
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
                       .collection('Products')
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -48,8 +46,6 @@ class StockAppBar extends StatelessWidget {
                 const SizedBox(width: 8),
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
                       .collection('categories')
                       .snapshots(),
                   builder: (context, snapshot) {

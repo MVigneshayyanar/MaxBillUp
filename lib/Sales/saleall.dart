@@ -32,10 +32,19 @@ class _SaleAllPageState extends State<SaleAllPage> {
   final List<CartItem> _cart = [];
   String _query = '';
 
+  // 1. Declare the stream variable here
+  late Stream<QuerySnapshot> _productsStream;
+
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text.toLowerCase()));
+
+    // 2. Initialize the stream here (ONCE only)
+    _productsStream = FirebaseFirestore.instance
+        .collection('Products')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
 
     if (widget.initialCartItems != null) {
       _cart.addAll(widget.initialCartItems!);
@@ -177,8 +186,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
   void _searchByBarcode(String barcode) async {
     try {
       final snap = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('Products')
           .where('barcode', isEqualTo: barcode)
           .limit(1)
@@ -403,12 +410,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   Widget _buildGrid(double w, double h) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .collection('Products')
-          .orderBy('createdAt', descending: true)
-          .snapshots(),
+      // 3. Use the variable initialized in initState
+      stream: _productsStream,
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));

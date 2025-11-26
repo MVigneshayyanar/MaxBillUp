@@ -30,8 +30,6 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
   Future<void> _deleteOrder(String id) async {
     try {
       await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('savedOrders')
           .doc(id)
           .delete();
@@ -102,8 +100,6 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('savedOrders')
           .orderBy('timestamp', descending: true)
           .snapshots(),

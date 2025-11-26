@@ -127,11 +127,7 @@ class CommonBottomNav extends StatelessWidget {
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
-                ReportsDashboard(),
-            settings: RouteSettings(arguments: {
-              'uid': uid,
-              'userEmail': userEmail,
-            }),
+                ReportsPage(uid: uid, userEmail: userEmail),
             transitionsBuilder: (context, animation, secondaryAnimation, child) {
               return FadeTransition(opacity: animation, child: child);
             },

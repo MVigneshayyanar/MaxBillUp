@@ -150,8 +150,6 @@ class _CategoryPageState extends State<CategoryPage> {
   Widget _buildCategoryList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(_uid)
           .collection('categories')
           .orderBy('createdAt', descending: true)
           .snapshots(),
@@ -258,8 +256,6 @@ class _CategoryPageState extends State<CategoryPage> {
 
             return FutureBuilder<QuerySnapshot>(
               future: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(_uid)
                   .collection('Products')
                   .where('category', isEqualTo: categoryName)
                   .get(),
@@ -449,8 +445,6 @@ class _CategoryPageState extends State<CategoryPage> {
               Expanded(
                 child: StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_uid)
                       .collection('Products')
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -496,8 +490,6 @@ class _CategoryPageState extends State<CategoryPage> {
                             onPressed: () async {
                               try {
                                 await FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(_uid)
                                     .collection('Products')
                                     .doc(productId)
                                     .update({'category': categoryName});
@@ -570,8 +562,6 @@ class _CategoryPageState extends State<CategoryPage> {
               if (newName.isNotEmpty) {
                 try {
                   await FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(_uid)
                       .collection('categories')
                       .doc(categoryId)
                       .update({'name': newName});
@@ -612,8 +602,6 @@ class _CategoryPageState extends State<CategoryPage> {
             onPressed: () async {
               try {
                 await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(_uid)
                     .collection('categories')
                     .doc(categoryId)
                     .delete();

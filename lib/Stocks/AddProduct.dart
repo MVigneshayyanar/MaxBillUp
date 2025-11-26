@@ -507,8 +507,6 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildCategoryDropdown() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('categories')
           .snapshots(),
       builder: (context, snapshot) {
@@ -682,8 +680,6 @@ class _AddProductPageState extends State<AddProductPage> {
 
 
       await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('Products')
           .add(productData);
 

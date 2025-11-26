@@ -40,8 +40,6 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
 
     try {
       final categoriesCollection = FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
           .collection('categories');
 
       // Check if category already exists
