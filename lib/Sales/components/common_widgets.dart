@@ -244,8 +244,6 @@ class CommonWidgets {
           .toList();
 
       await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
           .collection('savedOrders')
           .add({
         'customerName': name,

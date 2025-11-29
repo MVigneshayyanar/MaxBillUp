@@ -98,7 +98,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
       _cart.insert(0, CartItem(productId: id, name: name, price: price));
     }
 
-    CommonWidgets.showSnackBar(context, '$name added to cart', bgColor: const Color(0xFF4CAF50));
     widget.onCartChanged?.call(_cart);
     setState(() {});
   }

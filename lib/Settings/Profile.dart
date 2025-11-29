@@ -12,7 +12,7 @@ const Color kBgColor = Color(0xFFF2F2F7); // iOS Light Gray
 const Color kDangerColor = Color(0xFFFF3B30);
 
 // ==========================================
-// 1. MAIN SETTINGS PAGE
+// 1. MAIN SETTINGS PAGE (ROUTER)
 // ==========================================
 
 class SettingsPage extends StatefulWidget {
@@ -26,6 +26,11 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  // Navigation State
+  String? _currentView;
+  final List<String> _viewHistory = []; // To handle nested "Back" navigation
+
+  // User Data
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
 
@@ -49,10 +54,60 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  // Navigation Helpers
+  void _navigateTo(String view) {
+    setState(() {
+      if (_currentView != null) _viewHistory.add(_currentView!);
+      _currentView = view;
+    });
+  }
+
+  void _goBack() {
+    setState(() {
+      if (_viewHistory.isNotEmpty) {
+        _currentView = _viewHistory.removeLast();
+      } else {
+        _currentView = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
+    // ------------------------------------------
+    // CONDITIONAL RENDERING SWITCH
+    // ------------------------------------------
+    switch (_currentView) {
+      case 'BusinessDetails':
+        return BusinessDetailsPage(uid: widget.uid, onBack: _goBack);
+
+      case 'ReceiptSettings':
+        return ReceiptSettingsPage(
+          onBack: _goBack,
+          onNavigate: _navigateTo, // Pass navigator to allow nesting
+        );
+
+      case 'ReceiptCustomization':
+        return ReceiptCustomizationPage(onBack: _goBack);
+
+      case 'TaxSettings':
+        return TaxSettingsPage(onBack: _goBack);
+
+      case 'PrinterSetup':
+        return PrinterSetupPage(onBack: _goBack);
+
+      case 'FeatureSettings':
+        return FeatureSettingsPage(onBack: _goBack);
+
+      case 'Language':
+        return LanguagePage(onBack: _goBack);
+    }
+
+    // ------------------------------------------
+    // DEFAULT VIEW (MAIN SETTINGS LIST)
+    // ------------------------------------------
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
@@ -60,6 +115,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: kBgColor,
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false, // Hide back button on root
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -74,38 +130,38 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsTile(
               icon: Icons.store_mall_directory_outlined,
               title: "Business Details",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => BusinessDetailsPage(uid: widget.uid))).then((_) => _fetchUserData()),
+              onTap: () => _navigateTo('BusinessDetails'),
             ),
             _SettingsTile(
               icon: Icons.receipt_long_outlined,
               title: "Receipt",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ReceiptSettingsPage())),
+              onTap: () => _navigateTo('ReceiptSettings'),
             ),
             _SettingsTile(
               icon: Icons.percent_outlined,
               title: "TAX / WAT",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const TaxSettingsPage())),
+              onTap: () => _navigateTo('TaxSettings'),
             ),
             _SettingsTile(
               icon: Icons.print_outlined,
               title: "Printer Setup",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const PrinterSetupPage())),
+              onTap: () => _navigateTo('PrinterSetup'),
             ),
             _SettingsTile(
               icon: Icons.tune_outlined,
               title: "Feature Settings",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const FeatureSettingsPage())),
+              onTap: () => _navigateTo('FeatureSettings'),
             ),
             _SettingsTile(
               icon: Icons.language_outlined,
               title: "Languages",
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const LanguagePage())),
+              onTap: () => _navigateTo('Language'),
             ),
             _SettingsTile(
               icon: Icons.dark_mode_outlined,
               title: "Theme",
               showDivider: false,
-              onTap: () {}, // Simple toggle can be added here
+              onTap: () {}, // Simple toggle can remain logic-less for now
             ),
           ]),
 
@@ -175,6 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
         onPressed: () async {
           await FirebaseAuth.instance.signOut();
           if (!mounted) return;
+          // Logout essentially leaves this entire screen structure, so Navigator is correct here
           Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (r) => false);
         },
         style: OutlinedButton.styleFrom(
@@ -199,7 +256,10 @@ class _SettingsPageState extends State<SettingsPage> {
 // ==========================================
 
 class ReceiptSettingsPage extends StatelessWidget {
-  const ReceiptSettingsPage({super.key});
+  final VoidCallback onBack;
+  final Function(String) onNavigate; // To navigate deeper
+
+  const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate});
 
   @override
   Widget build(BuildContext context) {
@@ -208,6 +268,7 @@ class ReceiptSettingsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Receipt Settings", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
@@ -217,16 +278,16 @@ class ReceiptSettingsPage extends StatelessWidget {
             _SettingsTile(
               title: "Thermal Printer",
               subtitle: "Customize the 58mm and 80mm receipt",
-              icon: Icons.print, // Placeholder icon
+              icon: Icons.print,
               showDivider: true,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const PrinterSetupPage())),
+              onTap: () => onNavigate('PrinterSetup'), // Navigate Deeper
             ),
             _SettingsTile(
               title: "A4 Size / PDF",
               subtitle: "Customize the A4 Size",
-              icon: Icons.picture_as_pdf, // Placeholder icon
+              icon: Icons.picture_as_pdf,
               showDivider: false,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (c) => const ReceiptCustomizationPage())),
+              onTap: () => onNavigate('ReceiptCustomization'), // Navigate Deeper
             ),
           ]),
         ],
@@ -236,14 +297,14 @@ class ReceiptSettingsPage extends StatelessWidget {
 }
 
 class ReceiptCustomizationPage extends StatefulWidget {
-  const ReceiptCustomizationPage({super.key});
+  final VoidCallback onBack;
+  const ReceiptCustomizationPage({super.key, required this.onBack});
 
   @override
   State<ReceiptCustomizationPage> createState() => _ReceiptCustomizationPageState();
 }
 
 class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
-  // State variables for toggles
   bool _showLogo = true;
   bool _showEmail = false;
   bool _showPhone = false;
@@ -256,12 +317,12 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       appBar: AppBar(
         title: const Text("Receipt Settings", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Company Info Section (Expansion Tile style)
           _buildExpansionSection("Company Info", [
             _SwitchTile("Company Logo", _showLogo, (v) => setState(() => _showLogo = v)),
             _SwitchTile("Email", _showEmail, (v) => setState(() => _showEmail = v)),
@@ -269,14 +330,10 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             _SwitchTile("GST Number", _showGST, (v) => setState(() => _showGST = v), showDivider: false),
           ]),
           const SizedBox(height: 16),
-
-          // Item Table
           _buildExpansionSection("Item Table", [
             const Padding(padding: EdgeInsets.all(16), child: Text("Item table configuration here...")),
           ], isExpanded: false),
           const SizedBox(height: 16),
-
-          // Invoice Footer
           _buildExpansionSection("Invoice Footer", [
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -295,8 +352,6 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             ),
           ]),
           const SizedBox(height: 16),
-
-          // Quotation Footer
           _buildExpansionSection("Quotation footer setup", [
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -311,9 +366,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
               ),
             ),
           ]),
-
           const SizedBox(height: 30),
-          _PrimaryButton(text: "Update", onTap: () => Navigator.pop(context)),
+          _PrimaryButton(text: "Update", onTap: widget.onBack),
           const SizedBox(height: 30),
         ],
       ),
@@ -340,7 +394,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 // ==========================================
 
 class TaxSettingsPage extends StatefulWidget {
-  const TaxSettingsPage({super.key});
+  final VoidCallback onBack;
+  const TaxSettingsPage({super.key, required this.onBack});
 
   @override
   State<TaxSettingsPage> createState() => _TaxSettingsPageState();
@@ -348,7 +403,6 @@ class TaxSettingsPage extends StatefulWidget {
 
 class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  // Dummy data
   final List<Map<String, dynamic>> _taxes = [
     {'val': 5.0, 'name': 'GST', 'active': true, 'count': 0},
     {'val': 12.0, 'name': 'GST', 'active': false, 'count': 0},
@@ -369,6 +423,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       appBar: AppBar(
         title: const Text("Tax Settings", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
@@ -394,7 +449,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
             child: TabBarView(
               controller: _tabController,
               children: [
-                // Tab 1: Taxes (Add/List)
                 ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -421,7 +475,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     _SettingsGroup(children: _taxes.map((t) => _TaxListTile(t)).toList()),
                   ],
                 ),
-                // Tab 2: Tax for Quick Sale
                 ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
@@ -444,7 +497,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                       setState(() { t['active'] = v; });
                     })).toList()),
                     const SizedBox(height: 30),
-                    _PrimaryButton(text: "Update", onTap: () => Navigator.pop(context)),
+                    _PrimaryButton(text: "Update", onTap: widget.onBack),
                   ],
                 ),
               ],
@@ -511,7 +564,8 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 // ==========================================
 
 class PrinterSetupPage extends StatefulWidget {
-  const PrinterSetupPage({super.key});
+  final VoidCallback onBack;
+  const PrinterSetupPage({super.key, required this.onBack});
 
   @override
   State<PrinterSetupPage> createState() => _PrinterSetupPageState();
@@ -530,6 +584,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       appBar: AppBar(
         title: const Text("Thermal Printer Setup", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
@@ -560,7 +615,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
             ),
           ),
           const SizedBox(height: 30),
-          _PrimaryButton(text: "Update", onTap: () => Navigator.pop(context)),
+          _PrimaryButton(text: "Update", onTap: widget.onBack),
         ],
       ),
     );
@@ -601,7 +656,8 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 // ==========================================
 
 class FeatureSettingsPage extends StatefulWidget {
-  const FeatureSettingsPage({super.key});
+  final VoidCallback onBack;
+  const FeatureSettingsPage({super.key, required this.onBack});
 
   @override
   State<FeatureSettingsPage> createState() => _FeatureSettingsPageState();
@@ -619,6 +675,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
       appBar: AppBar(
         title: const Text("Feature Settings", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
@@ -652,7 +709,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
                           onChanged: (v) => setState(() => _decimalPoints = v),
                         ),
                       ),
-                      // Markers 0 1 2 3 4
                       Text(_decimalPoints.round().toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
                     ],
                   )
@@ -671,7 +727,8 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 // ==========================================
 
 class LanguagePage extends StatefulWidget {
-  const LanguagePage({super.key});
+  final VoidCallback onBack;
+  const LanguagePage({super.key, required this.onBack});
 
   @override
   State<LanguagePage> createState() => _LanguagePageState();
@@ -699,6 +756,7 @@ class _LanguagePageState extends State<LanguagePage> {
       appBar: AppBar(
         title: const Text("Choose Language", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
@@ -742,7 +800,7 @@ class _LanguagePageState extends State<LanguagePage> {
                     else
                       Positioned(right: 0, top: 0, child: Icon(Icons.radio_button_off, color: Colors.grey.shade300, size: 20)),
 
-                    if(lang['tag'] == 'Beta')
+                    if (lang['tag'] == 'Beta')
                       Positioned(
                           right: 0,
                           bottom: 0,
@@ -750,8 +808,7 @@ class _LanguagePageState extends State<LanguagePage> {
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(color: Colors.orange, borderRadius: BorderRadius.circular(4)),
                             child: const Text("Beta", style: TextStyle(color: Colors.white, fontSize: 10)),
-                          )
-                      )
+                          ))
                   ],
                 ),
               ),
@@ -764,21 +821,28 @@ class _LanguagePageState extends State<LanguagePage> {
 }
 
 // ==========================================
-// 7. BUSINESS DETAILS PAGE (Reused)
+// 7. BUSINESS DETAILS PAGE
 // ==========================================
 class BusinessDetailsPage extends StatelessWidget {
   final String uid;
-  const BusinessDetailsPage({super.key, required this.uid});
-  // Placeholder implementation for context
+  final VoidCallback onBack;
+  const BusinessDetailsPage({super.key, required this.uid, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(appBar: AppBar(title: const Text("Business Details")), body: const Center(child: Text("Edit Business Details Here")));
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Business Details", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+      ),
+      body: const Center(child: Text("Edit Business Details Here")),
+    );
   }
 }
 
-
 // ==========================================
-// HELPER WIDGETS
+// HELPER WIDGETS (UI COMPONENTS)
 // ==========================================
 
 class _SettingsGroup extends StatelessWidget {
@@ -884,18 +948,6 @@ class _SimpleDropdown extends StatelessWidget {
           onChanged: (v) {},
         ),
       ),
-    );
-  }
-}
-
-class _ImagePlaceholder extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 120,
-      width: double.infinity,
-      decoration: BoxDecoration(color: kBgColor, borderRadius: BorderRadius.circular(8)),
-      child: Center(child: Icon(Icons.add_photo_alternate_outlined, color: Colors.grey[400], size: 40)),
     );
   }
 }

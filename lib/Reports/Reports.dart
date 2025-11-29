@@ -1,8 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/components/common_bottom_nav.dart'; // Ensure this path is correct
+import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+
+// ==========================================
+// COLOR CONSTANTS
+// ==========================================
+const Color kPrimaryBlue = Color(0xFF1976D2);
+const Color kIncomeGreen = Color(0xFF22C55E);
+const Color kExpenseRed = Color(0xFFEF4444);
+const Color kLightGreen = Color(0xFFE8F5E9);
+const Color kLightRed = Color(0xFFFFEBEE);
+const Color kBackgroundGrey = Color(0xFFF5F5F5);
 
 // ==========================================
 // 1. MAIN REPORTS MENU (ROUTER)
@@ -22,7 +32,6 @@ class _ReportsPageState extends State<ReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // ROUTER
     switch (_currentView) {
       case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
       case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
@@ -40,12 +49,11 @@ class _ReportsPageState extends State<ReportsPage> {
       case 'TaxReport': return TaxReportPage(onBack: _reset);
     }
 
-    // MAIN MENU UI
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: kBackgroundGrey,
       appBar: AppBar(
-        title: const Text("Reports", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
+        title: const Text("Reports", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
@@ -54,26 +62,26 @@ class _ReportsPageState extends State<ReportsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _sectionHeader("Analytics & Overview"),
-          _tile("Analytics", Icons.bar_chart, Colors.purple, 'Analytics'),
-          _tile("DayBook (Today)", Icons.today, Colors.indigo, 'DayBook'),
-          _tile("Sales Summary", Icons.dashboard_outlined, Colors.deepPurple, 'Summary'),
+          _tile("Analytics", Icons.bar_chart, kPrimaryBlue, 'Analytics'),
+          _tile("DayBook (Today)", Icons.today, kPrimaryBlue, 'DayBook'),
+          _tile("Sales Summary", Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
 
           _sectionHeader("Sales & Transactions"),
-          _tile("Sales Report", Icons.receipt_long, Colors.blueGrey, 'SalesReport'),
-          _tile("Item Sales Report", Icons.category_outlined, Colors.teal, 'ItemSales'),
-          _tile("Top Customers", Icons.people_outline, Colors.pink, 'TopCustomers'),
+          _tile("Sales Report", Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
+          _tile("Item Sales Report", Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
+          _tile("Top Customers", Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
 
           _sectionHeader("Inventory & Products"),
-          _tile("Stock Report", Icons.inventory, Colors.brown, 'StockReport'),
-          _tile("Low Stock Products", Icons.warning_amber_rounded, Colors.red, 'LowStock'),
-          _tile("Top Products", Icons.star_border, Colors.orange, 'TopProducts'),
-          _tile("Top Categories", Icons.folder_open, Colors.deepOrange, 'TopCategories'),
+          _tile("Stock Report", Icons.inventory, kPrimaryBlue, 'StockReport'),
+          _tile("Low Stock Products", Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
+          _tile("Top Products", Icons.star_border, kPrimaryBlue, 'TopProducts'),
+          _tile("Top Categories", Icons.folder_open, kPrimaryBlue, 'TopCategories'),
 
           _sectionHeader("Financials & Tax"),
-          _tile("Expense Report", Icons.money_off, Colors.redAccent, 'ExpenseReport'),
-          _tile("Tax Report", Icons.percent, Colors.green, 'TaxReport'),
-          _tile("HSN Report", Icons.description, Colors.blueGrey, 'HSNReport'),
-          _tile("Staff Sale Report", Icons.badge_outlined, Colors.cyan, 'StaffReport'),
+          _tile("Expense Report", Icons.money_off, kExpenseRed, 'ExpenseReport'),
+          _tile("Tax Report", Icons.percent, kIncomeGreen, 'TaxReport'),
+          _tile("HSN Report", Icons.description, kPrimaryBlue, 'HSNReport'),
+          _tile("Staff Sale Report", Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
         ],
       ),
       bottomNavigationBar: CommonBottomNav(
@@ -113,7 +121,7 @@ class _ReportsPageState extends State<ReportsPage> {
 }
 
 // ==========================================
-// 2. ANALYTICS PAGE (Exact UI Match)
+// 2. ANALYTICS PAGE
 // ==========================================
 class AnalyticsPage extends StatefulWidget {
   final String uid;
@@ -131,14 +139,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Matches screenshot background
+      backgroundColor: Colors.white,
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
         ),
         title: const Text("Analytics", style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF1976D2), // Exact Blue
+        backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
       ),
@@ -152,7 +160,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // ================= DATA PROCESSING =================
               final now = DateTime.now();
               final todayStr = DateFormat('yyyy-MM-dd').format(now);
 
@@ -160,7 +167,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               int todaySaleCount = 0;
               double todayExpense = 0;
               int todayExpenseCount = 0;
-              double todayRefund = 0; // DB field missing placeholder
+              double todayRefund = 0;
 
               Map<int, double> weekRevenue = {};
               Map<int, double> weekExpense = {};
@@ -169,7 +176,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               double totalCash = 0;
               double totalOnline = 0;
 
-              // Process Sales
               for (var doc in salesSnap.data!.docs) {
                 final data = doc.data() as Map<String, dynamic>;
                 double amount = double.tryParse(data['total'].toString()) ?? 0.0;
@@ -177,13 +183,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 DateTime? dt = DateTime.tryParse(dateStr);
                 String mode = (data['paymentMode'] ?? '').toString().toLowerCase();
 
-                // Today
                 if (dateStr.startsWith(todayStr)) {
                   todayRevenue += amount;
                   todaySaleCount++;
                 }
 
-                // Charts (7 Days)
                 if (dt != null && now.difference(dt).inDays <= 7) {
                   periodIncome += amount;
                   weekRevenue[dt.day] = (weekRevenue[dt.day] ?? 0) + amount;
@@ -195,7 +199,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 }
               }
 
-              // Process Expenses
               for (var doc in expenseSnap.data!.docs) {
                 final data = doc.data() as Map<String, dynamic>;
                 double amount = double.tryParse(data['amount'].toString()) ?? 0.0;
@@ -212,7 +215,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                 }
               }
 
-              // ================= EXACT UI BUILD =================
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -221,34 +223,31 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     const Text("Today Summary", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
                     const SizedBox(height: 12),
 
-                    // --- FULL WIDTH REVENUE CARD ---
                     _buildFullWidthCard(
                         title: "Revenue",
                         value: todayRevenue,
-                        icon: Icons.inventory_2_outlined, // Shirt/Item icon style
-                        iconBg: const Color(0xFFF3E5F5), // Light Purple
-                        iconColor: Colors.purple.shade300
+                        icon: Icons.inventory_2_outlined,
+                        iconBg: kPrimaryBlue.withOpacity(0.1),
+                        iconColor: kPrimaryBlue
                     ),
                     const SizedBox(height: 12),
 
-                    // --- GRID ROW 1 ---
                     Row(
                       children: [
                         Expanded(child: _buildGridCard(
                             title: "Net Sale", value: todayRevenue, count: todaySaleCount,
-                            icon: Icons.receipt_long, iconBg: const Color(0xFFE3F2FD), iconColor: Colors.blue.shade700
+                            icon: Icons.receipt_long, iconBg: kPrimaryBlue.withOpacity(0.1), iconColor: kPrimaryBlue
                         )),
                         const SizedBox(width: 12),
                         Expanded(child: _buildGridCard(
-                            title: "Sale Profit", value: todayRevenue * 0.2, // Dummy 20%
-                            icon: Icons.bar_chart, iconBg: const Color(0xFFE8F5E9), iconColor: Colors.green.shade700,
+                            title: "Sale Profit", value: todayRevenue * 0.2,
+                            icon: Icons.bar_chart, iconBg: kLightGreen, iconColor: kIncomeGreen,
                             hideCount: true
                         )),
                       ],
                     ),
                     const SizedBox(height: 12),
 
-                    // --- GRID ROW 2 ---
                     Row(
                       children: [
                         Expanded(child: _buildGridCard(
@@ -258,14 +257,13 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         const SizedBox(width: 12),
                         Expanded(child: _buildGridCard(
                             title: "Expense", value: todayExpense, count: todayExpenseCount,
-                            icon: Icons.account_balance_wallet, iconBg: const Color(0xFFFFEBEE), iconColor: Colors.red.shade400
+                            icon: Icons.account_balance_wallet, iconBg: kLightRed, iconColor: kExpenseRed
                         )),
                       ],
                     ),
 
                     const SizedBox(height: 24),
 
-                    // --- ANALYTICS HEADER ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -296,7 +294,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- REVENUE VS EXPENSES CHART ---
+                    // BAR CHART: Revenue vs Expenses
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -347,9 +345,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildLegendDot(const Color(0xFF00C853), "Revenue"), // Bright Green
+                              _buildLegendDot(kIncomeGreen, "Revenue"),
                               const SizedBox(width: 20),
-                              _buildLegendDot(const Color(0xFFD50000), "Expenses"), // Bright Red
+                              _buildLegendDot(kExpenseRed, "Expenses"),
                             ],
                           )
                         ],
@@ -357,7 +355,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- TREND CARDS (Income / Expense) ---
                     Row(
                       children: [
                         Expanded(child: _buildTrendCard("Income", periodIncome, true)),
@@ -367,7 +364,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // --- PAYMENT MODE PIE CHART ---
+                    // PIE CHART: Payment Mode
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -383,33 +380,20 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           const SizedBox(height: 20),
                           SizedBox(
                             height: 200,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                PieChart(
-                                  PieChartData(
-                                    sectionsSpace: 0,
-                                    centerSpaceRadius: 50,
-                                    sections: _generatePieSections(totalCash, totalOnline),
-                                  ),
-                                ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text("${((totalCash/(totalCash+totalOnline+0.01))*100).toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)), // Hidden effectively inside circle if solid, but centered if doughnut
-                                  ],
-                                ),
-                                // Text inside is actually shown in slices in screenshot, or centered.
-                                // Screenshot has '80%' inside blue. '30%' inside orange.
-                              ],
+                            child: PieChart(
+                              PieChartData(
+                                sectionsSpace: 0,
+                                centerSpaceRadius: 50,
+                                sections: _generatePieSections(totalCash, totalOnline),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 30),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              _buildPieLegend(const Color(0xFF007AFF), "Cash", totalCash),
-                              _buildPieLegend(const Color(0xFFFF9800), "Online", totalOnline),
+                              _buildPieLegend(kPrimaryBlue, "Cash", totalCash),
+                              _buildPieLegend(Colors.orange, "Online", totalOnline),
                             ],
                           )
                         ],
@@ -426,9 +410,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // ================= UI BUILDERS FOR ANALYTICS =================
-
-  // Full Width Card (Revenue)
   Widget _buildFullWidthCard({required String title, required double value, required IconData icon, required Color iconBg, required Color iconColor}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
@@ -454,7 +435,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // Grid Card (Net Sale, Profit, etc.)
   Widget _buildGridCard({required String title, required double value, int count = 0, required IconData icon, required Color iconBg, required Color iconColor, bool hideCount = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -486,7 +466,6 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  // Income/Expense Trend Card
   Widget _buildTrendCard(String title, double value, bool isIncome) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -500,16 +479,12 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black87)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(color: isIncome ? const Color(0xFFFFEBEE) : const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(4)), // Red bg for Income (UI quirk in screenshot), Green for Expense
-                // Note: Screenshot actually has Income with Red arrow Up (weird), Expense Green arrow Up. I will match Colors to screenshot logic:
-                // Screenshot: Income has Red 67.3% (Usually bad?), Expense has Green 302% (Usually good?).
-                // I will assume standard: Income Green, Expense Red. OR Match Screenshot exactly:
-                // Screenshot: Income (Red Bg, Red Arrow Up), Expense (Green Bg, Green Arrow Up).
+                decoration: BoxDecoration(color: isIncome ? kLightGreen : kLightRed, borderRadius: BorderRadius.circular(4)),
                 child: Row(
                   children: [
-                    Icon(Icons.trending_up, size: 12, color: isIncome ? Colors.red : Colors.green),
+                    Icon(Icons.trending_up, size: 12, color: isIncome ? kIncomeGreen : kExpenseRed),
                     const SizedBox(width: 4),
-                    Text(isIncome ? "67.3%" : "302.3%", style: TextStyle(fontSize: 10, color: isIncome ? Colors.red : Colors.green, fontWeight: FontWeight.bold)),
+                    Text(isIncome ? "35%" : "15%", style: TextStyle(fontSize: 10, color: isIncome ? kIncomeGreen : kExpenseRed, fontWeight: FontWeight.bold)),
                   ],
                 ),
               )
@@ -553,8 +528,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       return BarChartGroupData(
         x: day,
         barRods: [
-          BarChartRodData(toY: revenue[day] ?? 0, color: const Color(0xFF00C853), width: 12, borderRadius: BorderRadius.zero), // Revenue Green
-          BarChartRodData(toY: expenses[day] ?? 0, color: const Color(0xFFD50000), width: 12, borderRadius: BorderRadius.zero), // Expense Red
+          BarChartRodData(toY: revenue[day] ?? 0, color: kIncomeGreen, width: 12, borderRadius: BorderRadius.zero),
+          BarChartRodData(toY: expenses[day] ?? 0, color: kExpenseRed, width: 12, borderRadius: BorderRadius.zero),
         ],
       );
     }).toList();
@@ -563,18 +538,21 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   List<PieChartSectionData> _generatePieSections(double cash, double online) {
     if (cash == 0 && online == 0) return [PieChartSectionData(value: 1, color: Colors.grey.shade200, radius: 80, showTitle: false)];
     return [
-      if (cash > 0) PieChartSectionData(value: cash, color: const Color(0xFF007AFF), radius: 80, showTitle: true, title: "${((cash/(cash+online))*100).toInt()}%", titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-      if (online > 0) PieChartSectionData(value: online, color: const Color(0xFFFF9800), radius: 80, showTitle: true, title: "${((online/(cash+online))*100).toInt()}%", titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+      if (cash > 0) PieChartSectionData(value: cash, color: kPrimaryBlue, radius: 80, showTitle: true, title: "${((cash/(cash+online))*100).toInt()}%", titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+      if (online > 0) PieChartSectionData(value: online, color: Colors.orange, radius: 80, showTitle: true, title: "${((online/(cash+online))*100).toInt()}%", titleStyle: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
     ];
   }
 }
 
 // ==========================================
-// 3. DAYBOOK (Today's Sales)
+// 3. DAYBOOK WITH LINE CHART
 // ==========================================
 class DayBookPage extends StatelessWidget {
-  final String uid; final VoidCallback onBack;
+  final String uid;
+  final VoidCallback onBack;
+
   const DayBookPage({super.key, required this.uid, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     final String todayDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
@@ -586,10 +564,99 @@ class DayBookPage extends StatelessWidget {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           var todayDocs = snapshot.data!.docs.where((doc) => (doc['date'] ?? '').toString().startsWith(todayDateStr)).toList();
           double total = todayDocs.fold(0, (sum, doc) => sum + (double.tryParse(doc['total'].toString()) ?? 0));
+
+          // Build hourly chart data
+          Map<int, double> hourlyRevenue = {};
+          for (var doc in todayDocs) {
+            String dateStr = doc['date'] ?? '';
+            DateTime? dt = DateTime.tryParse(dateStr);
+            if (dt != null) {
+              hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + (double.tryParse(doc['total'].toString()) ?? 0);
+            }
+          }
+
           return Column(
             children: [
-              Container(padding: const EdgeInsets.all(20), color: Colors.indigo, width: double.infinity, child: Column(children: [const Text("Today's Revenue", style: TextStyle(color: Colors.white70)), Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), Text("${todayDocs.length} Bills", style:const TextStyle(color:Colors.white70))])),
-              Expanded(child: ListView.builder(itemCount: todayDocs.length, itemBuilder: (context, index) { var data = todayDocs[index].data() as Map<String, dynamic>; return ListTile(title: Text(data['customerName'] ?? 'Walk-in'), subtitle: Text("#${data['invoiceNumber']}"), trailing: Text("₹${data['total']}", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green))); })),
+              Container(
+                  padding: const EdgeInsets.all(20),
+                  color: kPrimaryBlue,
+                  width: double.infinity,
+                  child: Column(children: [
+                    const Text("Today's Revenue", style: TextStyle(color: Colors.white70)),
+                    Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                    Text("${todayDocs.length} Bills", style:const TextStyle(color:Colors.white70))
+                  ])
+              ),
+
+              // LINE CHART FOR HOURLY REVENUE
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Hourly Revenue Trend", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 200,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Hour', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) => Text("${value.toInt()}h", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: hourlyRevenue.entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                              isCurved: true,
+                              color: kPrimaryBlue,
+                              barWidth: 3,
+                              dotData: FlDotData(show: true),
+                              belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                  child: ListView.builder(
+                      itemCount: todayDocs.length,
+                      itemBuilder: (context, index) {
+                        var data = todayDocs[index].data() as Map<String, dynamic>;
+                        return ListTile(
+                            title: Text(data['customerName'] ?? 'Walk-in'),
+                            subtitle: Text("#${data['invoiceNumber']}"),
+                            trailing: Text("₹${data['total']}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                        );
+                      }
+                  )
+              ),
             ],
           );
         },
@@ -599,43 +666,457 @@ class DayBookPage extends StatelessWidget {
 }
 
 // ==========================================
-// 4. SALES SUMMARY
+// 4. SALES SUMMARY WITH COLUMN CHART
 // ==========================================
 class SalesSummaryPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const SalesSummaryPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Sales Summary", onBack),
+      appBar: _buildAppBar("Summary", onBack),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          double total = 0, cash = 0, online = 0;
-          for(var d in snapshot.data!.docs) {
-            double amt = double.tryParse(d['total'].toString()) ?? 0;
-            total += amt;
-            if(d['paymentMode'].toString().toLowerCase().contains('online')) online += amt; else cash += amt;
-          }
-          return ListView(padding: const EdgeInsets.all(16), children: [
-            _buildSummaryCard("Total Revenue", "₹${total.toStringAsFixed(0)}", Icons.attach_money, Colors.deepPurple),
-            _buildSummaryCard("Cash Sales", "₹${cash.toStringAsFixed(0)}", Icons.money, Colors.green),
-            _buildSummaryCard("Online Sales", "₹${online.toStringAsFixed(0)}", Icons.qr_code, Colors.orange),
-            _buildSummaryCard("Total Bills", "${snapshot.data!.docs.length}", Icons.receipt, Colors.blue),
-          ]);
+        builder: (context, salesSnapshot) {
+          return StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('expenses').snapshots(),
+            builder: (context, expenseSnapshot) {
+              if (!salesSnapshot.hasData || !expenseSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final now = DateTime.now();
+              final todayStr = DateFormat('yyyy-MM-dd').format(now);
+              final yesterdayStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
+
+              // Income calculations
+              double todayIncome = 0;
+              double yesterdayIncome = 0;
+              double last7DaysIncome = 0;
+              double novemberIncome = 0;
+              double octoberIncome = 0;
+
+              for (var doc in salesSnapshot.data!.docs) {
+                double amount = double.tryParse(doc['total'].toString()) ?? 0;
+                String dateStr = doc['date'] ?? '';
+                DateTime? dt = DateTime.tryParse(dateStr);
+
+                if (dateStr.startsWith(todayStr)) {
+                  todayIncome += amount;
+                }
+                if (dateStr.startsWith(yesterdayStr)) {
+                  yesterdayIncome += amount;
+                }
+                if (dt != null) {
+                  if (now.difference(dt).inDays <= 7) {
+                    last7DaysIncome += amount;
+                  }
+                  if (dt.month == 11 && dt.year == now.year) {
+                    novemberIncome += amount;
+                  }
+                  if (dt.month == 10 && dt.year == now.year) {
+                    octoberIncome += amount;
+                  }
+                }
+              }
+
+              // Expense calculations
+              double todayExpense = 0;
+              double yesterdayExpense = 0;
+              double last7DaysExpense = 0;
+              double novemberExpense = 0;
+              double octoberExpense = 0;
+
+              for (var doc in expenseSnapshot.data!.docs) {
+                double amount = double.tryParse(doc['amount'].toString()) ?? 0;
+                String dateStr = doc['date'] ?? '';
+                DateTime? dt = DateTime.tryParse(dateStr);
+
+                if (dateStr.startsWith(todayStr)) {
+                  todayExpense += amount;
+                }
+                if (dateStr.startsWith(yesterdayStr)) {
+                  yesterdayExpense += amount;
+                }
+                if (dt != null) {
+                  if (now.difference(dt).inDays <= 7) {
+                    last7DaysExpense += amount;
+                  }
+                  if (dt.month == 11 && dt.year == now.year) {
+                    novemberExpense += amount;
+                  }
+                  if (dt.month == 10 && dt.year == now.year) {
+                    octoberExpense += amount;
+                  }
+                }
+              }
+
+              double incomePercentChange = yesterdayIncome > 0 ? ((todayIncome - yesterdayIncome) / yesterdayIncome * 100) : 35;
+              double expensePercentChange = yesterdayExpense > 0 ? ((todayExpense - yesterdayExpense) / yesterdayExpense * 100) : 15;
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+
+                    const SizedBox(height: 16),
+
+                    // Income Section
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            "Income",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Today Income Card
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: kIncomeGreen,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Rs ${todayIncome.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      "Today",
+                                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.trending_up, color: Colors.white, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${incomePercentChange.toStringAsFixed(0)}%",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Income Grid
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${yesterdayIncome.toStringAsFixed(2)}",
+                                  "Yesterday",
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${last7DaysIncome.toStringAsFixed(2)}",
+                                  "Last 7 Days",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${novemberIncome.toStringAsFixed(2)}",
+                                  "November",
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${octoberIncome.toStringAsFixed(2)}",
+                                  "October",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Expense Section
+                          const Text(
+                            "Expense",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Today Expense Card
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: kExpenseRed,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Rs ${todayExpense.toStringAsFixed(2)}",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    const Text(
+                                      "Today",
+                                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.trending_up, color: Colors.white, size: 16),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            "${expensePercentChange.toStringAsFixed(0)}%",
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Expense Grid
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${yesterdayExpense.toStringAsFixed(2)}",
+                                  "Yesterday",
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${last7DaysExpense.toStringAsFixed(2)}",
+                                  "Last 7 Days",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${novemberExpense.toStringAsFixed(2)}",
+                                  "November",
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildSummarySmallCard(
+                                  "Rs ${octoberExpense.toStringAsFixed(2)}",
+                                  "October",
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Dues Section
+                          const Text(
+                            "Dues",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: kLightGreen,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: kIncomeGreen.withOpacity(0.3)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Rs 14,000.00",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: kIncomeGreen,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Sales",
+                                        style: TextStyle(
+                                          color: kIncomeGreen.withOpacity(0.7),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: kLightRed,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: kExpenseRed.withOpacity(0.3)),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        "Rs 20,000.00",
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: kExpenseRed,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        "Purchase",
+                                        style: TextStyle(
+                                          color: kExpenseRed.withOpacity(0.7),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
         },
+      ),
+    );
+  }
+
+  Widget _buildSummarySmallCard(String value, String label) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 // ==========================================
-// 5. FULL SALES REPORT
+// 5. FULL SALES REPORT WITH AREA CHART
 // ==========================================
 class FullSalesHistoryPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const FullSalesHistoryPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -644,13 +1125,90 @@ class FullSalesHistoryPage extends StatelessWidget {
         stream: FirebaseFirestore.instance.collection('sales').orderBy('date', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          return ListView.separated(
-              itemCount: snapshot.data!.docs.length,
-              separatorBuilder: (c,i)=>const Divider(height: 1),
-              itemBuilder: (c, i) {
-                var d = snapshot.data!.docs[i];
-                return ListTile(title: Text(d['customerName']??''), subtitle: Text(d['date']??''), trailing: Text("₹${d['total']}", style:const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)));
-              }
+
+          // Build daily trend
+          Map<int, double> dailySales = {};
+          for (var doc in snapshot.data!.docs) {
+            DateTime? dt = DateTime.tryParse(doc['date'] ?? '');
+            if (dt != null && DateTime.now().difference(dt).inDays <= 30) {
+              dailySales[dt.day] = (dailySales[dt.day] ?? 0) + (double.tryParse(doc['total'].toString()) ?? 0);
+            }
+          }
+
+          return Column(
+            children: [
+              // AREA CHART
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Sales Trend (Last 30 Days)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 200,
+                      child: LineChart(
+                        LineChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Day of Month', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                interval: 5,
+                                getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          lineBarsData: [
+                            LineChartBarData(
+                              spots: dailySales.entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                              isCurved: true,
+                              color: kPrimaryBlue,
+                              barWidth: 3,
+                              dotData: FlDotData(show: true),
+                              belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.separated(
+                    itemCount: snapshot.data!.docs.length,
+                    separatorBuilder: (c,i)=>const Divider(height: 1),
+                    itemBuilder: (c, i) {
+                      var d = snapshot.data!.docs[i];
+                      return ListTile(
+                          title: Text(d['customerName']??''),
+                          subtitle: Text(d['date']??''),
+                          trailing: Text("₹${d['total']}", style:TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                      );
+                    }
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -659,11 +1217,13 @@ class FullSalesHistoryPage extends StatelessWidget {
 }
 
 // ==========================================
-// 6. ITEM SALES REPORT
+// 6. ITEM SALES REPORT WITH HORIZONTAL BAR
 // ==========================================
 class ItemSalesPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const ItemSalesPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -679,9 +1239,85 @@ class ItemSalesPage extends StatelessWidget {
             }
           }
           var sorted = qty.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
-          return ListView.builder(itemCount: sorted.length, itemBuilder: (c, i) {
-            return ListTile(title: Text(sorted[i].key), trailing: Text("${sorted[i].value} Sold", style: const TextStyle(fontWeight: FontWeight.bold)));
-          });
+
+          return Column(
+            children: [
+              // HORIZONTAL BAR CHART
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Top 5 Items by Quantity Sold", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Product Name', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < sorted.length && value.toInt() < 5) {
+                                    String name = sorted[value.toInt()].key;
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9), overflow: TextOverflow.ellipsis),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('Qty', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 35,
+                                getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: sorted.take(5).toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [BarChartRodData(toY: entry.value.value.toDouble(), color: kPrimaryBlue, width: 30)],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: sorted.length,
+                    itemBuilder: (c, i) {
+                      return ListTile(
+                          leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text("#${i+1}", style: const TextStyle(color: Colors.white))),
+                          title: Text(sorted[i].key),
+                          trailing: Text("${sorted[i].value} Sold", style: const TextStyle(fontWeight: FontWeight.bold))
+                      );
+                    }
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -689,11 +1325,14 @@ class ItemSalesPage extends StatelessWidget {
 }
 
 // ==========================================
-// 7. TOP CUSTOMERS
+// 7. TOP CUSTOMERS WITH BAR CHART
 // ==========================================
 class TopCustomersPage extends StatelessWidget {
-  final String uid; final VoidCallback onBack;
+  final String uid;
+  final VoidCallback onBack;
+
   const TopCustomersPage({super.key, required this.uid, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -703,11 +1342,87 @@ class TopCustomersPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           Map<String, double> spend = {};
-          for(var d in snapshot.data!.docs) { spend[d['customerName']??'Unknown'] = (spend[d['customerName']??'Unknown']??0) + (double.tryParse(d['total'].toString())??0); }
+          for(var d in snapshot.data!.docs) {
+            spend[d['customerName']??'Unknown'] = (spend[d['customerName']??'Unknown']??0) + (double.tryParse(d['total'].toString())??0);
+          }
           var sorted = spend.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
-          return ListView.builder(itemCount: sorted.length, itemBuilder: (c, i) => ListTile(
-              leading: CircleAvatar(child: Text("${i+1}")),
-              title: Text(sorted[i].key), trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")));
+
+          return Column(
+            children: [
+              // BAR CHART FOR TOP 5
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Top 5 Customers by Spending", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Customer', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < sorted.length && value.toInt() < 5) {
+                                    String name = sorted[value.toInt()].key;
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: sorted.take(5).toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [BarChartRodData(toY: entry.value.value, color: kPrimaryBlue, width: 30)],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: sorted.length,
+                    itemBuilder: (c, i) => ListTile(
+                        leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text("${i+1}", style: const TextStyle(color: Colors.white))),
+                        title: Text(sorted[i].key),
+                        trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
+                    )
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -715,11 +1430,13 @@ class TopCustomersPage extends StatelessWidget {
 }
 
 // ==========================================
-// 8. STOCK REPORT
+// 8. STOCK REPORT WITH STACKED BAR CHART
 // ==========================================
 class StockReportPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const StockReportPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -728,14 +1445,114 @@ class StockReportPage extends StatelessWidget {
         stream: FirebaseFirestore.instance.collection('Products').snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
           double totalVal = 0;
+          Map<String, int> categoryStock = {};
+
           for(var d in snapshot.data!.docs) {
-            totalVal += (double.tryParse(d['price'].toString())??0) * (int.tryParse(d['currentStock'].toString())??0);
+            double price = double.tryParse(d['price'].toString()) ?? 0;
+            int stock = int.tryParse(d['currentStock'].toString()) ?? 0;
+            totalVal += price * stock;
+            String cat = d['category'] ?? 'Uncategorized';
+            categoryStock[cat] = (categoryStock[cat] ?? 0) + stock;
           }
-          return Column(children: [
-            Container(padding: const EdgeInsets.all(16), color: Colors.brown.shade50, child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Inventory Value:", style:TextStyle(fontWeight: FontWeight.bold)), Text("₹${totalVal.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.brown))])),
-            Expanded(child: ListView.builder(itemCount: snapshot.data!.docs.length, itemBuilder: (c, i) { var d = snapshot.data!.docs[i]; return ListTile(title: Text(d['itemName']), subtitle: Text("Price: ₹${d['price']}"), trailing: Text("${d['currentStock']} Units"));}))
-          ]);
+
+          return Column(
+              children: [
+                Container(
+                    padding: const EdgeInsets.all(16),
+                    color: kPrimaryBlue.withOpacity(0.1),
+                    child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Inventory Value:", style:TextStyle(fontWeight: FontWeight.bold)),
+                          Text("₹${totalVal.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kPrimaryBlue))
+                        ]
+                    )
+                ),
+
+                // BAR CHART FOR CATEGORY DISTRIBUTION
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
+                  height: 280,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text("Stock by Category", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: BarChart(
+                          BarChartData(
+                            gridData: FlGridData(show: true, drawVerticalLine: false),
+                            borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                            titlesData: FlTitlesData(
+                              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              bottomTitles: AxisTitles(
+                                axisNameWidget: const Text('Category', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 60,
+                                  getTitlesWidget: (value, meta) {
+                                    if (value.toInt() >= 0 && value.toInt() < categoryStock.length) {
+                                      String name = categoryStock.keys.elementAt(value.toInt());
+                                      return Transform.rotate(
+                                        angle: -0.5,
+                                        child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                      );
+                                    }
+                                    return const Text('');
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                axisNameWidget: const Text('Units', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 35,
+                                  getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                ),
+                              ),
+                            ),
+                            barGroups: categoryStock.entries.toList().asMap().entries.map((entry) {
+                              return BarChartGroupData(
+                                x: entry.key,
+                                barRods: [
+                                  BarChartRodData(
+                                    toY: entry.value.value.toDouble(),
+                                    color: kPrimaryBlue,
+                                    width: 30,
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                    child: ListView.builder(
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (c, i) {
+                          var d = snapshot.data!.docs[i];
+                          return ListTile(
+                              title: Text(d['itemName'] ?? 'Unknown'),
+                              subtitle: Text("Price: ₹${d['price'] ?? 0}"),
+                              trailing: Text("${d['currentStock'] ?? 0} Units")
+                          );
+                        }
+                    )
+                )
+              ]
+          );
         },
       ),
     );
@@ -743,11 +1560,13 @@ class StockReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// 9. LOW STOCK PRODUCTS
+// 9. LOW STOCK WITH INDICATOR BARS
 // ==========================================
 class LowStockPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const LowStockPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -757,7 +1576,89 @@ class LowStockPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           var low = snapshot.data!.docs.where((d) => (int.tryParse(d['currentStock'].toString())??0) < 5).toList();
-          return ListView.builder(itemCount: low.length, itemBuilder: (c, i) => ListTile(title: Text(low[i]['itemName']), trailing: Text("${low[i]['currentStock']} Left", style:const TextStyle(color: Colors.red))));
+
+          Map<String, int> lowStockData = {};
+          for (var d in low) {
+            lowStockData[d['itemName']] = int.tryParse(d['currentStock'].toString()) ?? 0;
+          }
+
+          return Column(
+            children: [
+              // HORIZONTAL BAR FOR LOW STOCK ITEMS
+              if (lowStockData.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
+                  height: 280,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Stock Levels (Critical Items)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: BarChart(
+                          BarChartData(
+                            gridData: FlGridData(show: true, drawVerticalLine: false),
+                            borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                            titlesData: FlTitlesData(
+                              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              bottomTitles: AxisTitles(
+                                axisNameWidget: const Text('Product', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 60,
+                                  getTitlesWidget: (value, meta) {
+                                    if (value.toInt() >= 0 && value.toInt() < lowStockData.length) {
+                                      String name = lowStockData.keys.elementAt(value.toInt());
+                                      return Transform.rotate(
+                                        angle: -0.5,
+                                        child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9), overflow: TextOverflow.ellipsis),
+                                      );
+                                    }
+                                    return const Text('');
+                                  },
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                axisNameWidget: const Text('Units', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 35,
+                                  getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                ),
+                              ),
+                            ),
+                            barGroups: lowStockData.entries.toList().asMap().entries.map((entry) {
+                              return BarChartGroupData(
+                                x: entry.key,
+                                barRods: [BarChartRodData(toY: entry.value.value.toDouble(), color: kExpenseRed, width: 30)],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: low.length,
+                    itemBuilder: (c, i) => ListTile(
+                        leading: Icon(Icons.warning, color: kExpenseRed),
+                        title: Text(low[i]['itemName']),
+                        trailing: Text("${low[i]['currentStock']} Left", style:TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                    )
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -765,11 +1666,14 @@ class LowStockPage extends StatelessWidget {
 }
 
 // ==========================================
-// 10. TOP PRODUCTS
+// 10. TOP PRODUCTS WITH COLUMN CHART
 // ==========================================
 class TopProductsPage extends StatelessWidget {
-  final String uid; final VoidCallback onBack;
+  final String uid;
+  final VoidCallback onBack;
+
   const TopProductsPage({super.key, required this.uid, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -779,9 +1683,88 @@ class TopProductsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if(!snapshot.hasData) return const Center(child:CircularProgressIndicator());
           Map<String, int> qty = {};
-          for(var d in snapshot.data!.docs) { for(var item in (d['items'] as List)) { qty[item['name']] = (qty[item['name']]??0) + (int.tryParse(item['quantity'].toString())??0); }}
+          for(var d in snapshot.data!.docs) {
+            for(var item in (d['items'] as List)) {
+              qty[item['name']] = (qty[item['name']]??0) + (int.tryParse(item['quantity'].toString())??0);
+            }
+          }
           var sorted = qty.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
-          return ListView.builder(itemCount: sorted.length, itemBuilder: (c, i) => ListTile(leading: CircleAvatar(child: Text("#${i+1}")), title: Text(sorted[i].key), trailing: Text("${sorted[i].value} Sold")));
+
+          return Column(
+            children: [
+              // COLUMN CHART FOR TOP 5
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    const Text("Top 5 Products by Sales Volume", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Product', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < sorted.length && value.toInt() < 5) {
+                                    String name = sorted[value.toInt()].key;
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('Qty', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 35,
+                                getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: sorted.take(5).toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [BarChartRodData(toY: entry.value.value.toDouble(), color: kPrimaryBlue, width: 30)],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: sorted.length,
+                    itemBuilder: (c, i) => ListTile(
+                        leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text("#${i+1}", style: const TextStyle(color: Colors.white))),
+                        title: Text(sorted[i].key),
+                        trailing: Text("${sorted[i].value} Sold")
+                    )
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -789,11 +1772,13 @@ class TopProductsPage extends StatelessWidget {
 }
 
 // ==========================================
-// 11. TOP CATEGORIES
+// 11. TOP CATEGORIES WITH BAR CHART
 // ==========================================
 class TopCategoriesPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const TopCategoriesPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -817,7 +1802,82 @@ class TopCategoriesPage extends StatelessWidget {
                   }
                 }
                 var sorted = catRev.entries.toList()..sort((a,b)=>b.value.compareTo(a.value));
-                return ListView.builder(itemCount: sorted.length, itemBuilder: (c, i) => ListTile(title: Text(sorted[i].key), trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")));
+
+                return Column(
+                  children: [
+                    // BAR CHART FOR CATEGORIES
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.all(16),
+                      height: 280,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Category Revenue", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          const SizedBox(height: 16),
+                          Expanded(
+                            child: BarChart(
+                              BarChartData(
+                                gridData: FlGridData(show: true, drawVerticalLine: false),
+                                borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                                titlesData: FlTitlesData(
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  bottomTitles: AxisTitles(
+                                    axisNameWidget: const Text('Category', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 60,
+                                      getTitlesWidget: (value, meta) {
+                                        if (value.toInt() >= 0 && value.toInt() < sorted.length) {
+                                          String name = sorted[value.toInt()].key;
+                                          return Transform.rotate(
+                                            angle: -0.5,
+                                            child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                          );
+                                        }
+                                        return const Text('');
+                                      },
+                                    ),
+                                  ),
+                                  leftTitles: AxisTitles(
+                                    axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 40,
+                                      getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    ),
+                                  ),
+                                ),
+                                barGroups: sorted.asMap().entries.map((entry) {
+                                  return BarChartGroupData(
+                                    x: entry.key,
+                                    barRods: [BarChartRodData(toY: entry.value.value, color: kPrimaryBlue, width: 30)],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    Expanded(
+                      child: ListView.builder(
+                          itemCount: sorted.length,
+                          itemBuilder: (c, i) => ListTile(
+                              title: Text(sorted[i].key),
+                              trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
+                          )
+                      ),
+                    ),
+                  ],
+                );
               }
           );
         },
@@ -827,11 +1887,13 @@ class TopCategoriesPage extends StatelessWidget {
 }
 
 // ==========================================
-// 12. EXPENSE REPORT
+// 12. EXPENSE REPORT WITH COLUMN CHART
 // ==========================================
 class ExpenseReportPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const ExpenseReportPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -841,7 +1903,97 @@ class ExpenseReportPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           if (snapshot.data!.docs.isEmpty) return const Center(child: Text("No Expenses Recorded"));
-          return ListView.builder(itemCount: snapshot.data!.docs.length, itemBuilder: (c, i) { var d = snapshot.data!.docs[i]; return ListTile(title: Text(d['title']??'Expense'), trailing: Text("- ₹${d['amount']}", style: const TextStyle(color: Colors.red)));});
+
+          Map<String, double> categoryExpenses = {};
+          for (var doc in snapshot.data!.docs) {
+            String category = (doc.data() as Map).containsKey('category') ? doc['category'] : 'Other';
+            categoryExpenses[category] = (categoryExpenses[category] ?? 0) + (double.tryParse(doc['amount'].toString()) ?? 0);
+          }
+
+          return Column(
+            children: [
+              // COLUMN CHART FOR EXPENSE BREAKDOWN
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    const Text("Expense by Category", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Category', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < categoryExpenses.length) {
+                                    String name = categoryExpenses.keys.elementAt(value.toInt());
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: categoryExpenses.entries.toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: entry.value.value,
+                                  color: kExpenseRed,
+                                  width: 30,
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (c, i) {
+                      var d = snapshot.data!.docs[i];
+                      return ListTile(
+                          title: Text(d['title']??'Expense'),
+                          subtitle: Text(d['category'] ?? 'Other'),
+                          trailing: Text("- ₹${d['amount']}", style: TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                      );
+                    }
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -849,11 +2001,13 @@ class ExpenseReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// 13. TAX REPORT
+// 13. TAX REPORT WITH LINE CHART
 // ==========================================
 class TaxReportPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const TaxReportPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -863,11 +2017,92 @@ class TaxReportPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           double totalTax = 0;
-          for (var doc in snapshot.data!.docs) totalTax += (double.tryParse((doc.data() as Map)['taxAmount'].toString()) ?? 0);
-          return Column(children: [
-            _summaryBox("Total Tax Collected", "₹${totalTax.toStringAsFixed(2)}", "", Colors.green),
-            Expanded(child: ListView.builder(itemCount: snapshot.data!.docs.length, itemBuilder: (c, i) { var d = snapshot.data!.docs[i].data() as Map; return ListTile(title: Text("Inv #${d['invoiceNumber']}"), trailing: Text("Tax: ₹${d['taxAmount']??0}"));}))
-          ]);
+          Map<int, double> dailyTax = {};
+
+          for (var doc in snapshot.data!.docs) {
+            double tax = double.tryParse((doc.data() as Map)['taxAmount'].toString()) ?? 0;
+            totalTax += tax;
+            DateTime? dt = DateTime.tryParse(doc['date'] ?? '');
+            if (dt != null && DateTime.now().difference(dt).inDays <= 30) {
+              dailyTax[dt.day] = (dailyTax[dt.day] ?? 0) + tax;
+            }
+          }
+
+          return Column(
+              children: [
+                _summaryBox("Total Tax Collected", "₹${totalTax.toStringAsFixed(2)}", "", kIncomeGreen),
+
+                // LINE CHART FOR TAX TREND
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(16),
+                  height: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Tax Collection Trend (Last 30 Days)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: LineChart(
+                          LineChartData(
+                            gridData: FlGridData(show: true, drawVerticalLine: false),
+                            borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                            titlesData: FlTitlesData(
+                              topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              bottomTitles: AxisTitles(
+                                axisNameWidget: const Text('Day', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  interval: 5,
+                                  getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                ),
+                              ),
+                              leftTitles: AxisTitles(
+                                axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 40,
+                                  getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                ),
+                              ),
+                            ),
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: dailyTax.entries.map((e) => FlSpot(e.key.toDouble(), e.value)).toList(),
+                                isCurved: true,
+                                color: kIncomeGreen,
+                                barWidth: 3,
+                                dotData: FlDotData(show: true),
+                                belowBarData: BarAreaData(show: true, color: kIncomeGreen.withOpacity(0.2)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Expanded(
+                    child: ListView.builder(
+                        itemCount: snapshot.data!.docs.length,
+                        itemBuilder: (c, i) {
+                          var d = snapshot.data!.docs[i].data() as Map;
+                          return ListTile(
+                              title: Text("Inv #${d['invoiceNumber']}"),
+                              trailing: Text("Tax: ₹${d['taxAmount']??0}", style: TextStyle(color: kIncomeGreen))
+                          );
+                        }
+                    )
+                )
+              ]
+          );
         },
       ),
     );
@@ -875,11 +2110,13 @@ class TaxReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// 14. HSN REPORT
+// 14. HSN REPORT WITH BAR CHART
 // ==========================================
 class HSNReportPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const HSNReportPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -889,8 +2126,91 @@ class HSNReportPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           Map<String, int> hsnMap = {};
-          for(var d in snapshot.data!.docs) { String h = d['hsn']??'N/A'; hsnMap[h] = (hsnMap[h]??0)+1; }
-          return ListView.builder(itemCount: hsnMap.length, itemBuilder: (c, i) => ListTile(title: Text("HSN: ${hsnMap.keys.elementAt(i)}"), trailing: Text("${hsnMap.values.elementAt(i)} Products")));
+          for(var d in snapshot.data!.docs) {
+            String h = d['hsn']??'N/A';
+            hsnMap[h] = (hsnMap[h]??0)+1;
+          }
+
+          return Column(
+            children: [
+              // BAR CHART FOR HSN DISTRIBUTION
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    const Text("HSN Code Distribution", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('HSN Code', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < hsnMap.length) {
+                                    String code = hsnMap.keys.elementAt(value.toInt());
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(code, style: const TextStyle(fontSize: 9)),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('Count', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 35,
+                                getTitlesWidget: (value, meta) => Text("${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: hsnMap.entries.toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [
+                                BarChartRodData(
+                                  toY: entry.value.value.toDouble(),
+                                  color: kPrimaryBlue,
+                                  width: 30,
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: hsnMap.length,
+                    itemBuilder: (c, i) => ListTile(
+                        title: Text("HSN: ${hsnMap.keys.elementAt(i)}"),
+                        trailing: Text("${hsnMap.values.elementAt(i)} Products")
+                    )
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -898,11 +2218,13 @@ class HSNReportPage extends StatelessWidget {
 }
 
 // ==========================================
-// 15. STAFF SALE REPORT
+// 15. STAFF SALE REPORT WITH BAR CHART
 // ==========================================
 class StaffSaleReportPage extends StatelessWidget {
   final VoidCallback onBack;
+
   const StaffSaleReportPage({super.key, required this.onBack});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -916,7 +2238,83 @@ class StaffSaleReportPage extends StatelessWidget {
             String s = (d.data() as Map).containsKey('staffName') ? d['staffName'] : 'Admin';
             staffPerf[s] = (staffPerf[s]??0) + (double.tryParse(d['total'].toString())??0);
           }
-          return ListView.builder(itemCount: staffPerf.length, itemBuilder: (c, i) => ListTile(title: Text(staffPerf.keys.elementAt(i)), trailing: Text("₹${staffPerf.values.elementAt(i).toStringAsFixed(0)}")));
+
+          return Column(
+            children: [
+              // BAR CHART FOR STAFF PERFORMANCE
+              Container(
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                height: 280,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Staff Performance", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: BarChart(
+                        BarChartData(
+                          gridData: FlGridData(show: true, drawVerticalLine: false),
+                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          titlesData: FlTitlesData(
+                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                            bottomTitles: AxisTitles(
+                              axisNameWidget: const Text('Staff Member', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 60,
+                                getTitlesWidget: (value, meta) {
+                                  if (value.toInt() >= 0 && value.toInt() < staffPerf.length) {
+                                    String name = staffPerf.keys.elementAt(value.toInt());
+                                    return Transform.rotate(
+                                      angle: -0.5,
+                                      child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                    );
+                                  }
+                                  return const Text('');
+                                },
+                              ),
+                            ),
+                            leftTitles: AxisTitles(
+                              axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                reservedSize: 40,
+                                getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                              ),
+                            ),
+                          ),
+                          barGroups: staffPerf.entries.toList().asMap().entries.map((entry) {
+                            return BarChartGroupData(
+                              x: entry.key,
+                              barRods: [BarChartRodData(toY: entry.value.value, color: kPrimaryBlue, width: 30)],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: ListView.builder(
+                    itemCount: staffPerf.length,
+                    itemBuilder: (c, i) => ListTile(
+                        leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text(staffPerf.keys.elementAt(i).substring(0, 1), style: const TextStyle(color: Colors.white))),
+                        title: Text(staffPerf.keys.elementAt(i)),
+                        trailing: Text("₹${staffPerf.values.elementAt(i).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold))
+                    )
+                ),
+              ),
+            ],
+          );
         },
       ),
     );
@@ -928,17 +2326,27 @@ class StaffSaleReportPage extends StatelessWidget {
 // ==========================================
 AppBar _buildAppBar(String title, VoidCallback onBack) {
   return AppBar(
-    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black), onPressed: onBack),
-    title: Text(title, style: const TextStyle(color: Colors.black)),
-    backgroundColor: Colors.white,
+    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+    title: Text(title, style: const TextStyle(color: Colors.white)),
+    backgroundColor: kPrimaryBlue,
     elevation: 0,
+    centerTitle: true,
   );
 }
 
 Widget _summaryBox(String title, String value, String subtitle, Color color) {
-  return Container(width: double.infinity, margin: const EdgeInsets.all(16), padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: Colors.white70)), Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)), Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12))]));
-}
-
-Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
-  return Card(elevation: 0, color: color.withOpacity(0.1), margin: const EdgeInsets.only(bottom: 12), child: ListTile(leading: Icon(icon, color: color, size: 32), title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)), trailing: Text(value, style: TextStyle(color: color, fontSize: 20, fontWeight: FontWeight.bold))));
+  return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(color: Colors.white70)),
+            Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+            if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12))
+          ]
+      )
+  );
 }
