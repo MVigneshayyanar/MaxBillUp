@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Bill.dart';
+import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/Sales/components//common_widgets.dart';
 
 class QuickSalePage extends StatefulWidget {
@@ -340,6 +341,27 @@ class _QuickSalePageState extends State<QuickSalePage> {
                 });
               },
             );
+          },
+          onQuotation: () {
+            if (_items.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuotationPage(
+                    uid: widget.uid,
+                    userEmail: widget.userEmail,
+                    cartItems: _cartItems,
+                    totalAmount: _total,
+                  ),
+                ),
+              );
+            } else {
+              CommonWidgets.showSnackBar(
+                context,
+                'Cart is empty!',
+                bgColor: const Color(0xFFFF9800),
+              );
+            }
           },
           onBill: () {
             if (_items.isNotEmpty) {

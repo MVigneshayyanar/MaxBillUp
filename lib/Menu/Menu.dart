@@ -3,6 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Sales/Bill.dart'; // Placeholder import if BillPage is in a different file
+import 'package:maxbillup/Sales/QuotationsList.dart';
+import 'package:maxbillup/Menu/CustomerManagement.dart';
+import 'package:maxbillup/models/cart_item.dart';
+
+import 'dart:math'; // Added for PaymentPage random invoice generation
 
 // ==========================================
 // 1. MAIN MENU PAGE (ROUTER)
@@ -80,15 +86,15 @@ class _MenuPageState extends State<MenuPage> {
     switch (_currentView) {
     // Inline Lists
       case 'Quotation':
-        return GenericListPage(title: 'Quotations', collectionPath: 'quotations', uid: widget.uid, onBack: _reset);
+        return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
       case 'BillHistory':
-        return SalesHistoryPage(uid: widget.uid, onBack: _reset);
+        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail!, onBack: _reset);
       case 'CreditNotes':
-        return GenericListPage(title: 'Credit Notes', collectionPath: 'sales', uid: widget.uid, filterField: 'creditNote', filterNotEmpty: true, onBack: _reset);
+        return CreditNotesPage(uid: widget.uid, onBack: _reset);
       case 'Customers':
         return CustomersPage(uid: widget.uid, onBack: _reset);
       case 'CreditDetails':
-        return GenericListPage(title: 'Credits', collectionPath: 'customers', uid: widget.uid, filterField: 'balance', numericFilterGreaterThan: 0, onBack: _reset);
+        return CreditDetailsPage(uid: widget.uid, onBack: _reset);
 
     // Expenses Sub-menu items
       case 'StockPurchase':
@@ -164,20 +170,6 @@ class _MenuPageState extends State<MenuPage> {
                   _buildMenuItem(Icons.badge_outlined, "Staff Management", 'StaffManagement'),
 
                 // Unsettled Orders Button (Admin only)
-                if (isAdmin)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: ElevatedButton(
-                      onPressed: () => displayUnsettledOrders(context, widget.uid),
-                      child: const Text('View Unsettled Orders'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -207,7 +199,7 @@ class _MenuPageState extends State<MenuPage> {
 
   Widget _buildSubMenuItem(String text, String viewKey) {
     return ListTile(
-      title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO(_textColor.red, _textColor.green, _textColor.blue, 0.8))),
+      title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO((_textColor.red * 255.0).round() & 0xff, (_textColor.green * 255.0).round() & 0xff, (_textColor.blue * 255.0).round() & 0xff, 0.8))),
       onTap: () => setState(() => _currentView = viewKey),
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
@@ -217,51 +209,38 @@ class _MenuPageState extends State<MenuPage> {
 
   Future<List<Map<String, dynamic>>> fetchUnsettledOrders(String uid) async {
     final querySnapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
         .collection('savedOrders')
         .get();
 
     return querySnapshot.docs.map((doc) => doc.data()).toList();
   }
 
-  void displayUnsettledOrders(BuildContext context, String uid) async {
-    final unsettledOrders = await fetchUnsettledOrders(uid);
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Unsettled Orders'),
-          content: SizedBox(
-            height: 300,
-            child: ListView.builder(
-              itemCount: unsettledOrders.length,
-              itemBuilder: (context, index) {
-                final order = unsettledOrders[index];
-                return ListTile(
-                  title: Text(order['customerName'] ?? 'Unknown Customer'),
-                  subtitle: Text('Total: ${order['total']}'),
-                );
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
-    );
+
+  void settleBillAndReturn(String billId) async {
+    // Navigate to BillPage
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BillPage(
+          uid: widget.uid,
+          cartItems: const [], // Replace with actual cart items
+          totalAmount: 0.0, // Replace with actual total amount
+          userEmail: widget.userEmail,
+        ),
+      ),
+    ).then((_) {
+      // Return to the current page after settling the bill
+      setState(() {
+        _currentView = null; // Go back to the main menu
+      });
+    });
   }
 }
 
 // ==========================================
 // 2. HELPER WIDGETS (With onBack callback)
 // ==========================================
-
 class GenericListPage extends StatelessWidget {
   final String title;
   final String collectionPath;
@@ -346,8 +325,9 @@ class GenericListPage extends StatelessWidget {
 class SalesHistoryPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
+  final String userEmail;
 
-  const SalesHistoryPage({super.key, required this.uid, required this.onBack});
+  const SalesHistoryPage({super.key, required this.uid, required this.onBack, required this.userEmail});
 
   @override
   State<SalesHistoryPage> createState() => _SalesHistoryPageState();
@@ -539,7 +519,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final timeString = time != null ? DateFormat('dd-MM-yyyy & h:mm a').format(time) : '-';
 
     // Status Logic: Check for a payment mode or 'change' to determine settlement
-    final isSettled = data['paymentMode'] != null || data['change'] != null;
+    // 'sales' collection docs will have paymentMode, 'savedOrders' will not.
+    final isSettled = data['paymentMode'] != null;
 
     return Card(
       elevation: 1,
@@ -587,6 +568,13 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 Text(total, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF007AFF))),
               ],
             ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                const Text('Total : ', style: TextStyle(fontSize: 15, color: Colors.black87)),
+                Text(total, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF007AFF))),
+              ],
+            ),
 
             const SizedBox(height: 8),
 
@@ -610,15 +598,42 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   height: 35,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Logic for Settle Bill (Unsettled) or Receipt (Settled)
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => isSettled
-                              ? SalesDetailPage(documentId: doc.id, initialData: data) // View Receipt
-                              : AddStaffPage(adminUid: widget.uid, onBack: () {}), // Simulate Settle Bill screen (using dummy for now)
-                        ),
-                      );
+                      if (!isSettled) {
+                        // If this is an unsettled (saved) order, extract cart items and total
+                        final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
+                            .map((item) => CartItem(
+                          productId: item['productId'] ?? '',
+                          name: item['name'] ?? '',
+                          price: (item['price'] ?? 0).toDouble(),
+                          quantity: (item['quantity'] ?? 1) is int
+                              ? item['quantity']
+                              : int.tryParse(item['quantity'].toString()) ?? 1,
+                        ))
+                            .toList();
+                        final double totalAmount = (data['total'] ?? 0).toDouble();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BillPage(
+                              uid: widget.uid,
+                              cartItems: cartItems,
+                              totalAmount: totalAmount,
+                              userEmail: widget.userEmail,
+                              savedOrderId: doc.id, // Pass the saved order ID for reference
+                            ),
+                          ),
+                        ).then((_) {
+                          setState(() {}); // Refresh after returning from BillPage
+                        });
+                      } else {
+                        // If settled, show receipt
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data),
+                          ),
+                        );
+                      }
                     },
                     icon: Icon(isSettled ? Icons.receipt : Icons.person_add, size: 16, color: Colors.white),
                     label: Text(
@@ -679,68 +694,287 @@ class SalesDetailPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Details
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDetailRow("Invoice No.", data['invoiceNumber'] ?? '-'),
-                        _buildDetailRow("Issued On", time != null ? DateFormat('dd-MMM-yyyy, hh:mm a').format(time) : '-'),
-                        _buildDetailRow("Customer", data['customerName'] ?? 'Walk-in'),
-                        _buildDetailRow("Phone", data['customerPhone'] ?? '-'),
-                        _buildDetailRow("Created By", data['staffName'] ?? data['staffId'] ?? 'Unknown'),
-                        _buildDetailRow("Payment Mode", data['paymentMode'] ?? 'N/A'),
-                      ],
-                    ),
+                // Header with Invoice Number and Date
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Invoice No. ${data['invoiceNumber'] ?? 'N/A'}',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF007AFF),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Created by ${data['staffName'] ?? 'Admin'}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const Text(
+                                'Issued on :',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              Text(
+                                time != null ? DateFormat('dd MMM yyyy h:mm a').format(time) : 'N/A',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Items Section
-                const Text("Invoice Items", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF007AFF))),
-                const Divider(),
-                ...items.map((item) => _buildItemRow(item)).toList(),
-
-                const SizedBox(height: 20),
-
-                // Summary Totals
-                Card(
-                  elevation: 1,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      children: [
-                        _buildSummaryRow("Sub Total", data['subtotal'] ?? 0.0),
-                        _buildSummaryRow("Discount", data['discount'] ?? 0.0),
-                        _buildSummaryRow("Grand Total", data['total'] ?? 0.0, isTotal: true),
-                        _buildSummaryRow("Cash Received", data['cashReceived'] ?? 0.0),
-                        _buildSummaryRow("Change Given", data['change'] ?? 0.0),
-                      ],
-                    ),
+                // Customer Details
+                const Text(
+                  'Customer Details',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['customerName'] ?? 'A',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Phone Number',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        data['customerPhone'] ?? '-',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 20),
-                // Add action buttons here (e.g., Settle Bill, Return Bill, Print Receipt)
-                // For simplicity, we'll just add one placeholder button.
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Simulating Print Receipt')));
-                    },
-                    icon: const Icon(Icons.print, color: Colors.white),
-                    label: const Text('Print Receipt', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+
+                // Invoice Items
+                const Text(
+                  'Invoice items',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Column(
+                    children: [
+                      // Header row
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Items',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            Text(
+                              'Amount',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Items list
+                      ...items.map((item) => _buildItemRow(item)).toList(),
+                      // Summary section
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Total items : ${items.length}'),
+                                Text('Sub Total : ${(data['subtotal'] ?? 0.0).toStringAsFixed(2)}'),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Total Qty : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}'),
+                                const Text(''),
+                              ],
+                            ),
+                            if (data['paymentMode'] == 'Credit') ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Credit : ${(data['total'] ?? 0.0).toStringAsFixed(2)}'),
+                                  const Text(''),
+                                ],
+                              ),
+                            ],
+                            const Divider(height: 24),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Amount :',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Rs ${(data['total'] ?? 0.0).toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF007AFF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+                // Action buttons (Sale Return, Cancel Bill, Receipt, Edit)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildActionButton(
+                      context,
+                      icon: Icons.shopping_cart_outlined,
+                      label: 'Sale Return',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SaleReturnPage(
+                              documentId: documentId,
+                              invoiceData: data,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.delete_outline,
+                      label: 'Cancel Bill',
+                      color: Colors.red,
+                      onTap: () {
+                        _showCancelBillDialog(context, documentId, data);
+                      },
+                    ),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.receipt_long_outlined,
+                      label: 'Receipt',
+                      onTap: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Printing Receipt...')),
+                        );
+                      },
+                    ),
+                    _buildActionButton(
+                      context,
+                      icon: Icons.edit_outlined,
+                      label: 'Edit',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditBillPage(
+                              documentId: documentId,
+                              invoiceData: data,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
               ],
             ),
           );
@@ -749,14 +983,196 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text("$label:", style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
+  Widget _buildActionButton(BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 32, color: color ?? const Color(0xFF007AFF)),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color ?? Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCancelBillDialog(BuildContext context, String documentId, Map<String, dynamic> data) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Are you sure ?',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Do you want to cancel Invoice No : ${data['invoiceNumber']} .',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            if (data['customerPhone'] != null && (data['total'] as num) > 0) ...[
+              Text(
+                'A Credit Note will be created for customer ${data['customerName'] ?? data['customerPhone']}',
+                style: const TextStyle(fontSize: 14, color: Color(0xFF007AFF)),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                // Show loading
+                Navigator.pop(ctx);
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => const Center(child: CircularProgressIndicator()),
+                );
+
+                // 1. Restore stock for all items
+                final items = (data['items'] as List<dynamic>? ?? []);
+                for (var item in items) {
+                  if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
+                    final productRef = FirebaseFirestore.instance
+                        .collection('Products')
+                        .doc(item['productId']);
+
+                    await FirebaseFirestore.instance.runTransaction((transaction) async {
+                      final productDoc = await transaction.get(productRef);
+                      if (productDoc.exists) {
+                        final currentStock = productDoc.data()?['currentStock'] ?? 0.0;
+                        final quantity = (item['quantity'] ?? 0) is int
+                            ? item['quantity']
+                            : int.tryParse(item['quantity'].toString()) ?? 0;
+                        final newStock = currentStock + quantity;
+                        transaction.update(productRef, {'currentStock': newStock});
+                      }
+                    });
+                  }
+                }
+
+                // 2. Create credit note if customer was involved (for any payment mode)
+                if (data['customerPhone'] != null && (data['total'] as num) > 0) {
+                  // Generate credit note number
+                  final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
+
+                  // Create credit note document
+                  await FirebaseFirestore.instance.collection('creditNotes').add({
+                    'creditNoteNumber': creditNoteNumber,
+                    'invoiceNumber': data['invoiceNumber'],
+                    'customerPhone': data['customerPhone'],
+                    'customerName': data['customerName'] ?? 'Unknown',
+                    'amount': (data['total'] as num).toDouble(),
+                    'items': items.map((item) => {
+                      'name': item['name'],
+                      'quantity': item['quantity'],
+                      'price': item['price'],
+                      'total': (item['price'] ?? 0) * (item['quantity'] ?? 0),
+                    }).toList(),
+                    'timestamp': FieldValue.serverTimestamp(),
+                    'status': 'Available',
+                    'reason': 'Bill Cancelled',
+                    'createdBy': 'Admin',
+                  });
+
+                  // If it was a credit sale, also reverse the balance
+                  if (data['paymentMode'] == 'Credit') {
+                    final customerRef = FirebaseFirestore.instance
+                        .collection('customers')
+                        .doc(data['customerPhone']);
+
+                    await FirebaseFirestore.instance.runTransaction((transaction) async {
+                      final customerDoc = await transaction.get(customerRef);
+                      if (customerDoc.exists) {
+                        final currentBalance = customerDoc.data()?['balance'] ?? 0.0;
+                        final billTotal = (data['total'] as num).toDouble();
+                        final newBalance = currentBalance - billTotal;
+                        transaction.update(customerRef, {'balance': newBalance});
+                      }
+                    });
+                  }
+                }
+
+                // 3. Delete the sales document
+                await FirebaseFirestore.instance
+                    .collection('sales')
+                    .doc(documentId)
+                    .delete();
+
+                if (context.mounted) {
+                  // Close loading dialog
+                  Navigator.pop(context);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        data['customerPhone'] != null
+                            ? 'Bill cancelled. Credit note created for customer. Stock restored.'
+                            : 'Bill cancelled successfully. Stock has been restored.'
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+
+                  // Go back to bill history
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context); // Close loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error cancelling bill: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Cancel Bill', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
     );
@@ -766,50 +1182,379 @@ class SalesDetailPage extends StatelessWidget {
     final name = item['name'] ?? 'Item';
     final price = item['price'] ?? 0;
     final quantity = item['quantity'] ?? 1;
-    final total = (price * quantity) as double? ?? 0.0; // Ensure total is double for fixed decimal
+    final total = (price * quantity) as double? ?? 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200),
+        ),
+      ),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                Text('${quantity} x ₹${price}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              Text(
+                '-0.00',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
           ),
-          Text('₹${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${price.toStringAsFixed(2)} × ${quantity.toStringAsFixed(1)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              Text(
+                '0.00',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                total.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              Text(
+                total.toStringAsFixed(2),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF007AFF),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildSummaryRow(String label, dynamic value, {bool isTotal = false}) {
-    final val = (value as num).toStringAsFixed(2);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+// ==========================================
+// 4. CUSTOMER RELATED PAGES
+// ==========================================
+
+// ==========================================
+// CREDIT NOTES PAGE
+// ==========================================
+class CreditNotesPage extends StatefulWidget {
+  final String uid;
+  final VoidCallback onBack;
+
+  const CreditNotesPage({super.key, required this.uid, required this.onBack});
+
+  @override
+  State<CreditNotesPage> createState() => _CreditNotesPageState();
+}
+
+class _CreditNotesPageState extends State<CreditNotesPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _filterStatus = 'All'; // All, Available, Used
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Credit Notes', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF007AFF),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w500,
-              fontSize: isTotal ? 18 : 16,
-              color: isTotal ? const Color(0xFF007AFF) : Colors.black87,
+          // Search Bar and Filter
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _filterStatus,
+                    underline: const SizedBox(),
+                    items: const [
+                      DropdownMenuItem(value: 'All', child: Text('All')),
+                      DropdownMenuItem(value: 'Available', child: Text('Available')),
+                      DropdownMenuItem(value: 'Used', child: Text('Used')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _filterStatus = value ?? 'All';
+                      });
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          Text(
-            '₹$val',
-            style: TextStyle(
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.w600,
-              fontSize: isTotal ? 18 : 16,
-              color: isTotal ? const Color(0xFF007AFF) : Colors.black,
+
+          // Credit Notes List
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('creditNotes')
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text(
+                          'No credit notes found',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                var creditNotes = snapshot.data!.docs.where((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+
+                  // Filter by status
+                  if (_filterStatus != 'All') {
+                    final status = data['status'] ?? 'Available';
+                    if (status != _filterStatus) return false;
+                  }
+
+                  // Filter by search query
+                  if (_searchQuery.isNotEmpty) {
+                    final creditNoteNumber = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
+                    final invoiceNumber = (data['invoiceNumber'] ?? '').toString().toLowerCase();
+                    final customerName = (data['customerName'] ?? '').toString().toLowerCase();
+                    final customerPhone = (data['customerPhone'] ?? '').toString().toLowerCase();
+
+                    return creditNoteNumber.contains(_searchQuery) ||
+                        invoiceNumber.contains(_searchQuery) ||
+                        customerName.contains(_searchQuery) ||
+                        customerPhone.contains(_searchQuery);
+                  }
+
+                  return true;
+                }).toList();
+
+                if (creditNotes.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'No matching credit notes',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: creditNotes.length,
+                  itemBuilder: (context, index) {
+                    final doc = creditNotes[index];
+                    final data = doc.data() as Map<String, dynamic>;
+                    final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
+                    final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
+                    final amount = (data['amount'] ?? 0.0) as num;
+                    final status = data['status'] ?? 'Available';
+                    final timestamp = data['timestamp'] as Timestamp?;
+                    final dateString = timestamp != null
+                        ? DateFormat('dd-MM-yyyy').format(timestamp.toDate())
+                        : 'N/A';
+
+                    return GestureDetector(
+                      onTap: () {
+                        // Navigate to credit note details
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CreditNoteDetailPage(
+                              documentId: doc.id,
+                              creditNoteData: data,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: status == 'Available'
+                                ? Colors.green.shade200
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Credit Notes : $creditNoteNumber',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF007AFF),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Invoice : $invoiceNumber',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                          color: Color(0xFF007AFF),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: status == 'Available'
+                                          ? Colors.green.shade100
+                                          : Colors.grey.shade200,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      status,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: status == 'Available'
+                                            ? Colors.green.shade800
+                                            : Colors.grey.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Date : $dateString',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Amount : ${amount.toStringAsFixed(1)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF007AFF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -818,10 +1563,844 @@ class SalesDetailPage extends StatelessWidget {
   }
 }
 
-// ... (The rest of the original file, including CustomersPage, StaffManagementList, etc., remains here)
 // ==========================================
-// 4. CUSTOMER RELATED PAGES
+// CREDIT NOTE DETAIL PAGE
 // ==========================================
+class CreditNoteDetailPage extends StatelessWidget {
+  final String documentId;
+  final Map<String, dynamic> creditNoteData;
+
+  const CreditNoteDetailPage({
+    super.key,
+    required this.documentId,
+    required this.creditNoteData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final creditNoteNumber = creditNoteData['creditNoteNumber'] ?? 'N/A';
+    final invoiceNumber = creditNoteData['invoiceNumber'] ?? 'N/A';
+    final customerName = creditNoteData['customerName'] ?? 'Unknown';
+    final amount = (creditNoteData['amount'] ?? 0.0) as num;
+    final status = creditNoteData['status'] ?? 'Available';
+    final timestamp = creditNoteData['timestamp'] as Timestamp?;
+    final items = (creditNoteData['items'] as List<dynamic>? ?? []);
+    final dateString = timestamp != null
+        ? DateFormat('dd MMM yyyy h:mm a').format(timestamp.toDate())
+        : 'N/A';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Credit Note', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF007AFF),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Credit Note No : $creditNoteNumber',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Created by Admin',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Issued on:',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
+                      Text(
+                        dateString,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Invoice Info & Customer Details
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Invoice No : $invoiceNumber',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: status == 'Available'
+                              ? Colors.green.shade100
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          status,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: status == 'Available'
+                                ? Colors.green.shade800
+                                : Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Customer Details',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    customerName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF007AFF),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    creditNoteData['customerPhone'] ?? '',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Items
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Items',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Amount',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...items.map((item) {
+                    final name = item['name'] ?? 'Unknown';
+                    final qty = item['quantity'] ?? 0;
+                    final price = (item['price'] ?? 0).toDouble();
+                    final total = (item['total'] ?? 0).toDouble();
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade200),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const Text(
+                                '- 0.00',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${price.toStringAsFixed(2)} x ${qty.toStringAsFixed(1)}',
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                              const Text(
+                                '0.00',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                total.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                total.toStringAsFixed(2),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF007AFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Items : ${items.length}'),
+                        const Text(''),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Amount :',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Rs ${amount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF007AFF),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Action Buttons
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: status == 'Available'
+                          ? () {
+                              _showRefundDialog(context);
+                            }
+                          : null,
+                      icon: const Icon(Icons.attach_money, color: Colors.white),
+                      label: const Text(
+                        'Refund',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF007AFF),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        disabledBackgroundColor: Colors.grey,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Printing Receipt...')),
+                        );
+                      },
+                      icon: const Icon(Icons.receipt_long, color: Colors.white),
+                      label: const Text(
+                        'Receipt',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF007AFF),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showRefundDialog(BuildContext context) {
+    String selectedMode = 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Are you sure?',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Refund CreditNote ${creditNoteData['creditNoteNumber']}',
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Mode:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => selectedMode = 'Cash'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: selectedMode == 'Cash'
+                                ? const Color(0xFF007AFF)
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: 'Cash',
+                              groupValue: selectedMode,
+                              onChanged: (value) => setState(() => selectedMode = value!),
+                            ),
+                            const Text('Cash'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => selectedMode = 'Online'),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: selectedMode == 'Online'
+                                ? const Color(0xFF007AFF)
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Radio<String>(
+                              value: 'Online',
+                              groupValue: selectedMode,
+                              onChanged: (value) => setState(() => selectedMode = value!),
+                            ),
+                            const Text('Online'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  Navigator.pop(ctx);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => const Center(child: CircularProgressIndicator()),
+                  );
+
+                  // Update credit note status to Used
+                  await FirebaseFirestore.instance
+                      .collection('creditNotes')
+                      .doc(documentId)
+                      .update({
+                    'status': 'Used',
+                    'refundMode': selectedMode,
+                    'refundedAt': FieldValue.serverTimestamp(),
+                  });
+
+                  // NOTE: We do NOT touch customer balance
+                  // Credit notes are separate from balance
+                  // This refund represents giving cash/online payment back to customer
+
+                  if (context.mounted) {
+                    Navigator.pop(context); // Close loading
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Credit note refunded via $selectedMode successfully'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                    Navigator.pop(context); // Go back
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Refund', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// CREDIT DETAILS PAGE
+// ==========================================
+class CreditDetailsPage extends StatefulWidget {
+  final String uid;
+  final VoidCallback onBack;
+
+  const CreditDetailsPage({super.key, required this.uid, required this.onBack});
+
+  @override
+  State<CreditDetailsPage> createState() => _CreditDetailsPageState();
+}
+
+class _CreditDetailsPageState extends State<CreditDetailsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedTab = 'Sales'; // Sales or Purchase
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Credit Details', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF007AFF),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // Tab Selector
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTab = 'Sales'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _selectedTab == 'Sales'
+                            ? const Color(0xFF007AFF)
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Sales',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _selectedTab == 'Sales' ? Colors.white : Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => setState(() => _selectedTab = 'Purchase'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _selectedTab == 'Purchase'
+                            ? const Color(0xFF007AFF)
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'Purchase',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _selectedTab == 'Purchase' ? Colors.white : Colors.black87,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Search Bar
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          ),
+
+          // Content based on selected tab
+          Expanded(
+            child: _selectedTab == 'Sales' ? _buildSalesCreditList() : _buildPurchaseCreditList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesCreditList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('customers')
+          .where('balance', isGreaterThan: 0)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Text(
+              'No sales credits found',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+
+        final customers = snapshot.data!.docs.where((doc) {
+          if (_searchQuery.isEmpty) return true;
+          final data = doc.data() as Map<String, dynamic>;
+          final name = (data['name'] ?? '').toString().toLowerCase();
+          final phone = (data['phone'] ?? '').toString().toLowerCase();
+          return name.contains(_searchQuery) || phone.contains(_searchQuery);
+        }).toList();
+
+        if (customers.isEmpty) {
+          return const Center(
+            child: Text(
+              'No matching customers found',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+
+        // Calculate total
+        double totalCredit = 0;
+        for (var doc in customers) {
+          final data = doc.data() as Map<String, dynamic>;
+          totalCredit += (data['balance'] ?? 0.0) as num;
+        }
+
+        return Column(
+          children: [
+            // Total Credit Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Total Sales Credit : ',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Rs ${totalCredit.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF007AFF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Customer List
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: customers.length,
+                itemBuilder: (context, index) {
+                  final data = customers[index].data() as Map<String, dynamic>;
+                  final name = data['name'] ?? 'Unknown';
+                  final phone = data['phone'] ?? '';
+                  final balance = (data['balance'] ?? 0.0) as num;
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      title: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Phone Number',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            phone,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Text(
+                        balance.toStringAsFixed(2),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      onTap: () {
+                        // Navigate to customer details
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CustomerDetailsPage(
+                              customerId: customers[index].id,
+                              customerData: data,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPurchaseCreditList() {
+    // Placeholder for purchase credits
+    // You can implement this similarly to sales credits if needed
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            'No purchase credits found',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class CustomersPage extends StatefulWidget {
   final String uid; // Kept your uid parameter
@@ -1037,28 +2616,6 @@ class _CustomersPageState extends State<CustomersPage> {
   }
 }
 
-class CustomerDetailsPage extends StatelessWidget {
-  final String customerId;
-  final Map<String, dynamic> customerData;
-
-  const CustomerDetailsPage({super.key, required this.customerId, required this.customerData});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(customerData['name'] ?? 'Customer Details', style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: Text('Details for Customer: ${customerData['name']} (ID: $customerId)'),
-      ),
-    );
-  }
-}
-
 
 // ==========================================
 // 5. STAFF RELATED PAGES
@@ -1268,3 +2825,1951 @@ class _AddStaffPageState extends State<AddStaffPage> {
     );
   }
 }
+
+// ==========================================
+// 6. BILL PAGE (Initiation point for Settle Bill)
+// Note: This class uses the CartItem model and is the 'Sales/Bill.dart' reference
+// ==========================================
+class BillPage extends StatefulWidget {
+  final String uid;
+  final String? userEmail;
+  final List<CartItem> cartItems;
+  final double totalAmount;
+  final String? savedOrderId;
+
+  const BillPage({
+    super.key,
+    required this.uid,
+    this.userEmail,
+    required this.cartItems,
+    required this.totalAmount,
+    this.savedOrderId,
+  });
+
+  @override
+  State<BillPage> createState() => _BillPageState();
+}
+
+class _BillPageState extends State<BillPage> {
+  late String _uid;
+  String? _selectedCustomerPhone;
+  String? _selectedCustomerName;
+  String? _selectedCustomerGST;
+  double _discountAmount = 0.0;
+  String _creditNote = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _uid = widget.uid;
+  }
+
+  double get _finalAmount => widget.totalAmount - _discountAmount;
+
+  void _showCustomerDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _CustomerSelectionDialog(
+        uid: _uid,
+        onCustomerSelected: (phone, name, gst) {
+          setState(() {
+            _selectedCustomerPhone = phone;
+            _selectedCustomerName = name;
+            _selectedCustomerGST = gst;
+          });
+        },
+      ),
+    );
+  }
+
+  void _showDiscountDialog() {
+    final TextEditingController discountController = TextEditingController(
+      text: _discountAmount.toString(),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Discount'),
+        content: TextField(
+          controller: discountController,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Discount Amount',
+            border: OutlineInputBorder(),
+            prefixText: '₹ ',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final discount = double.tryParse(discountController.text) ?? 0.0;
+              setState(() {
+                _discountAmount = discount;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreditNoteDialog() {
+    final TextEditingController noteController = TextEditingController(
+      text: _creditNote,
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Credit Note'),
+        content: TextField(
+          controller: noteController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Credit Note',
+            border: OutlineInputBorder(),
+            hintText: 'Enter note...',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _creditNote = noteController.text;
+              });
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearOrder() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Order'),
+        content: const Text('Are you sure you want to clear this order?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+            },
+            child: const Text(
+              'Clear',
+              style: TextStyle(color: Color(0xFFFF5252)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _proceedToPayment(String paymentMode) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(
+          uid: _uid,
+          userEmail: widget.userEmail,
+          cartItems: widget.cartItems,
+          totalAmount: _finalAmount,
+          paymentMode: paymentMode,
+          customerPhone: _selectedCustomerPhone,
+          customerName: _selectedCustomerName,
+          customerGST: _selectedCustomerGST,
+          discountAmount: _discountAmount,
+          creditNote: _creditNote,
+          savedOrderId: widget.savedOrderId,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2196F3),
+        title: const Text(
+          'Bill Details',
+          style: TextStyle(color: Colors.white),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Add Customer Details Button
+          GestureDetector(
+            onTap: _showCustomerDialog,
+            child: Container(
+              margin: EdgeInsets.all(screenWidth * 0.04),
+              padding: EdgeInsets.symmetric(
+                vertical: screenHeight * 0.02,
+                horizontal: screenWidth * 0.04,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: const Color(0xFF2196F3),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.person_add,
+                    color: Color(0xFF2196F3),
+                    size: 24,
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Text(
+                    _selectedCustomerName ?? 'Add Customer Details',
+                    style: TextStyle(
+                      color: const Color(0xFF2196F3),
+                      fontSize: screenWidth * 0.04,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Items List
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+              itemCount: widget.cartItems.length,
+              itemBuilder: (context, index) {
+                final item = widget.cartItems[index];
+                return Container(
+                  margin: EdgeInsets.only(bottom: screenHeight * 0.015),
+                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            item.name,
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.04,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '- 0.00', // Discount per item - kept as hardcoded placeholder
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.035,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenHeight * 0.008),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '₹${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.035,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          Text(
+                            '0.00', // Tax per item - kept as hardcoded placeholder
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.035,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: screenHeight * 0.008),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '₹${item.total.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.045,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            '₹${item.total.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.045,
+                              color: const Color(0xFF2196F3),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Bottom Section
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Drag Handle
+                Container(
+                  margin: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
+                  width: screenWidth * 0.1,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+                  child: Column(
+                    children: [
+                      // Clear Order and Items Count
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed: _clearOrder,
+                            child: const Text(
+                              'Clear Order',
+                              style: TextStyle(
+                                color: Color(0xFFFF5252),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            'Items Count : ${widget.cartItems.length}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: screenHeight * 0.01),
+
+                      // Amount Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Amount :', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                          Text(
+                            'Rs ${widget.totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: screenHeight * 0.015),
+
+                      // Add Discount Button
+                      GestureDetector(
+                        onTap: _showDiscountDialog,
+                        child: Text(
+                          _discountAmount > 0
+                              ? 'Discount: ₹${_discountAmount.toStringAsFixed(2)}'
+                              : 'Add Discount',
+                          style: const TextStyle(
+                            color: Color(0xFF2196F3),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: screenHeight * 0.01),
+
+                      // Add Credit Note Button
+                      GestureDetector(
+                        onTap: _showCreditNoteDialog,
+                        child: Text(
+                          _creditNote.isNotEmpty
+                              ? 'Note: $_creditNote'
+                              : 'Add Credit Note',
+                          style: const TextStyle(
+                            color: Color(0xFF2196F3),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+
+                      SizedBox(height: screenHeight * 0.015),
+
+                      // Divider
+                      Divider(thickness: 1, color: Colors.grey[300]),
+
+                      SizedBox(height: screenHeight * 0.015),
+
+                      // Total Amount
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total Amount :',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Rs ${_finalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF2196F3),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: screenHeight * 0.02),
+
+                      // Payment Methods
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildPaymentButton(
+                            icon: Icons.money,
+                            label: 'Cash',
+                            onTap: () => _proceedToPayment('Cash'),
+                          ),
+                          _buildPaymentButton(
+                            icon: Icons.credit_card,
+                            label: 'Online',
+                            onTap: () => _proceedToPayment('Online'),
+                          ),
+                          _buildPaymentButton(
+                            icon: Icons.access_time,
+                            label: 'Set\nlater',
+                            onTap: () => _proceedToPayment('Set later'),
+                          ),
+                          _buildPaymentButton(
+                            icon: Icons.note_alt,
+                            label: 'Credit',
+                            onTap: () => _proceedToPayment('Credit'),
+                          ),
+                          _buildPaymentButton(
+                            icon: Icons.call_split,
+                            label: 'Split',
+                            onTap: () => _proceedToPayment('Split'),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: screenHeight * 0.02),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF2196F3), width: 2),
+            ),
+            child: Icon(
+              icon,
+              color: const Color(0xFF2196F3),
+              size: 28,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Customer Selection Dialog
+class _CustomerSelectionDialog extends StatefulWidget {
+  final String uid;
+  final Function(String phone, String name, String? gst) onCustomerSelected;
+
+  const _CustomerSelectionDialog({
+    required this.uid,
+    required this.onCustomerSelected,
+  });
+
+  @override
+  State<_CustomerSelectionDialog> createState() =>
+      _CustomerSelectionDialogState();
+}
+
+class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showAddCustomerDialog() {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+    final TextEditingController gstController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add New Customer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(
+                labelText: 'Phone Number',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: gstController,
+              decoration: const InputDecoration(
+                labelText: 'GST No (Optional)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              final phone = phoneController.text.trim();
+              final gst = gstController.text.trim();
+
+              if (name.isEmpty || phone.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter name and phone number'),
+                    backgroundColor: Color(0xFFFF5252),
+                  ),
+                );
+                return;
+              }
+
+              try {
+                await FirebaseFirestore.instance
+                    .collection('customers')
+                    .doc(phone)
+                    .set({
+                  'name': name,
+                  'phone': phone,
+                  'gst': gst.isEmpty ? null : gst,
+                  'balance': 0.0,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  widget.onCustomerSelected(
+                      phone, name, gst.isEmpty ? null : gst);
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error adding customer: $e'),
+                      backgroundColor: const Color(0xFFFF5252),
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2196F3),
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: screenWidth * 0.9,
+        height: screenHeight * 0.7,
+        padding: EdgeInsets.all(screenWidth * 0.04),
+        child: Column(
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Existing Customer',
+                  style: TextStyle(
+                    fontSize: screenWidth * 0.05,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+
+            SizedBox(height: screenHeight * 0.02),
+
+            // Search Bar
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Contact/Name/GST No',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ),
+                SizedBox(width: screenWidth * 0.02),
+                GestureDetector(
+                  onTap: _showAddCustomerDialog,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2196F3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.person_add,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: screenHeight * 0.02),
+
+            // Customer List
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('customers')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return const Center(
+                      child: Text('No customers found'),
+                    );
+                  }
+
+                  final customers = snapshot.data!.docs.where((doc) {
+                    if (_searchQuery.isEmpty) return true;
+
+                    final data = doc.data() as Map<String, dynamic>;
+                    final name = (data['name'] ?? '').toString().toLowerCase();
+                    final phone =
+                    (data['phone'] ?? '').toString().toLowerCase();
+                    final gst = (data['gst'] ?? '').toString().toLowerCase();
+
+                    return name.contains(_searchQuery) ||
+                        phone.contains(_searchQuery) ||
+                        gst.contains(_searchQuery);
+                  }).toList();
+
+                  if (customers.isEmpty) {
+                    return const Center(
+                      child: Text('No matching customers'),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: customers.length,
+                    itemBuilder: (context, index) {
+                      final customerData =
+                      customers[index].data() as Map<String, dynamic>;
+                      final name = customerData['name'] ?? 'Unknown';
+                      final phone = customerData['phone'] ?? '';
+                      final gst = customerData['gst'];
+
+                      return GestureDetector(
+                        onTap: () {
+                          widget.onCustomerSelected(phone, name, gst);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF2196F3),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Phone Number',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    Text(
+                                      phone,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    if (gst != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'GST No:',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                      Text(
+                                        gst,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Current Bal:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  Text(
+                                    (customerData['balance'] ?? 0.0).toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+// ==========================================
+// SALE RETURN PAGE
+// ==========================================
+class SaleReturnPage extends StatefulWidget {
+  final String documentId;
+  final Map<String, dynamic> invoiceData;
+
+  const SaleReturnPage({
+    super.key,
+    required this.documentId,
+    required this.invoiceData,
+  });
+
+  @override
+  State<SaleReturnPage> createState() => _SaleReturnPageState();
+}
+
+class _SaleReturnPageState extends State<SaleReturnPage> {
+  Map<int, int> returnQuantities = {}; // index -> quantity to return
+  String returnMode = 'CreditNote';
+
+  double get totalReturnAmount {
+    double total = 0;
+    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    returnQuantities.forEach((index, qty) {
+      if (index < items.length) {
+        final item = items[index];
+        final price = (item['price'] ?? 0).toDouble();
+        total += price * qty;
+      }
+    });
+    return total;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    final discount = (widget.invoiceData['discount'] ?? 0).toDouble();
+    final tax = (widget.invoiceData['tax'] ?? 0).toDouble();
+    final total = (widget.invoiceData['total'] ?? 0).toDouble();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Sale Return', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF007AFF),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Invoice details header
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Invoice No. ${widget.invoiceData['invoiceNumber']}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text('Discount : ${discount.toStringAsFixed(1)}'),
+                      Text('Tax : ${tax.toStringAsFixed(1)}'),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('Items : ${items.length}'),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Total : ${total.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Items list
+            Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Items',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...List.generate(items.length, (index) {
+                    final item = items[index];
+                    final name = item['name'] ?? '';
+                    final qty = (item['quantity'] ?? 0) is int
+                        ? item['quantity']
+                        : int.tryParse(item['quantity'].toString()) ?? 0;
+                    final price = (item['price'] ?? 0).toDouble();
+                    final discount = (item['discount'] ?? 0).toDouble();
+                    final itemTotal = price * qty;
+                    final returnQty = returnQuantities[index] ?? 0;
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey.shade200),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Text('Available qty : ${qty.toStringAsFixed(2)}'),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Qty : ${qty.toStringAsFixed(2)}'),
+                                  Text('Price : ${price.toStringAsFixed(2)}'),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text('Discount : ${discount.toStringAsFixed(2)}'),
+                                  Text(
+                                    'Total : ${itemTotal.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Return Qty :',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: returnQty > 0
+                                        ? () {
+                                            setState(() {
+                                              returnQuantities[index] = returnQty - 1;
+                                              if (returnQuantities[index]! <= 0) {
+                                                returnQuantities.remove(index);
+                                              }
+                                            });
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.remove_circle_outline),
+                                    color: const Color(0xFF007AFF),
+                                  ),
+                                  Container(
+                                    width: 60,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 8, horizontal: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      returnQty.toString(),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: returnQty < qty
+                                        ? () {
+                                            setState(() {
+                                              returnQuantities[index] = returnQty + 1;
+                                            });
+                                          }
+                                        : null,
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    color: const Color(0xFF007AFF),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
+            // Summary
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Amount :'),
+                      Text(
+                        'Rs ${totalReturnAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total GST :'),
+                      Text('Rs ${(totalReturnAmount * 0).toStringAsFixed(1)}'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Total Amount :',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Rs ${totalReturnAmount.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Return mode
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Text(
+                    'Return Mode :',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: returnMode,
+                          isExpanded: true,
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'CreditNote',
+                              child: Text('CreditNote'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'Cash',
+                              child: Text('Cash'),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              returnMode = value ?? 'CreditNote';
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Save button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: returnQuantities.isEmpty
+                      ? null
+                      : () => _processSaleReturn(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF007AFF),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    disabledBackgroundColor: Colors.grey,
+                  ),
+                  child: const Text(
+                    'Save Credit Note',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _processSaleReturn() async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+
+      // 1. Restore stock for returned items
+      for (var entry in returnQuantities.entries) {
+        final index = entry.key;
+        final returnQty = entry.value;
+
+        if (index < items.length) {
+          final item = items[index];
+          if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
+            final productRef = FirebaseFirestore.instance
+                .collection('Products')
+                .doc(item['productId']);
+
+            await FirebaseFirestore.instance.runTransaction((transaction) async {
+              final productDoc = await transaction.get(productRef);
+              if (productDoc.exists) {
+                final currentStock = productDoc.data()?['currentStock'] ?? 0.0;
+                final newStock = currentStock + returnQty;
+                transaction.update(productRef, {'currentStock': newStock});
+              }
+            });
+          }
+        }
+      }
+
+      // 2. Create credit note if mode is CreditNote
+      if (returnMode == 'CreditNote' && widget.invoiceData['customerPhone'] != null) {
+        // Generate credit note number
+        final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
+
+        // Create credit note document
+        await FirebaseFirestore.instance.collection('creditNotes').add({
+          'creditNoteNumber': creditNoteNumber,
+          'invoiceNumber': widget.invoiceData['invoiceNumber'],
+          'customerPhone': widget.invoiceData['customerPhone'],
+          'customerName': widget.invoiceData['customerName'] ?? 'Unknown',
+          'amount': totalReturnAmount,
+          'items': returnQuantities.entries.map((entry) {
+            final item = items[entry.key];
+            return {
+              'name': item['name'],
+              'quantity': entry.value,
+              'price': item['price'],
+              'total': (item['price'] ?? 0) * entry.value,
+            };
+          }).toList(),
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'Available',
+          'reason': 'Sale Return',
+          'createdBy': 'Admin',
+        });
+
+        // NOTE: We do NOT add to customer balance here
+        // Customer can only use the credit note when making a new purchase
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              returnMode == 'CreditNote'
+                  ? 'Credit note created successfully for customer'
+                  : 'Sale return processed successfully'
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context); // Go back
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing return: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}
+
+// ==========================================
+// EDIT BILL PAGE
+// ==========================================
+class EditBillPage extends StatefulWidget {
+  final String documentId;
+  final Map<String, dynamic> invoiceData;
+
+  const EditBillPage({
+    super.key,
+    required this.documentId,
+    required this.invoiceData,
+  });
+
+  @override
+  State<EditBillPage> createState() => _EditBillPageState();
+}
+
+class _EditBillPageState extends State<EditBillPage> {
+  late TextEditingController _discountController;
+  late TextEditingController _creditNoteController;
+  late String _selectedPaymentMode;
+  late String? _selectedCustomerPhone;
+  late String? _selectedCustomerName;
+  late double _creditAmount;
+
+  @override
+  void initState() {
+    super.initState();
+    _discountController = TextEditingController(
+      text: (widget.invoiceData['discount'] ?? 0).toString(),
+    );
+    _creditNoteController = TextEditingController(
+      text: widget.invoiceData['creditNote'] ?? '',
+    );
+    _selectedPaymentMode = widget.invoiceData['paymentMode'] ?? 'Cash';
+    _selectedCustomerPhone = widget.invoiceData['customerPhone'];
+    _selectedCustomerName = widget.invoiceData['customerName'];
+    _creditAmount = _selectedPaymentMode == 'Credit'
+        ? (widget.invoiceData['total'] ?? 0).toDouble()
+        : 0.0;
+  }
+
+  @override
+  void dispose() {
+    _discountController.dispose();
+    _creditNoteController.dispose();
+    super.dispose();
+  }
+
+  double get subtotal {
+    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    return items.fold(0.0, (sum, item) {
+      final price = (item['price'] ?? 0).toDouble();
+      final qty = (item['quantity'] ?? 0) is int
+          ? item['quantity']
+          : int.tryParse(item['quantity'].toString()) ?? 0;
+      return sum + (price * qty);
+    });
+  }
+
+  double get total {
+    final discount = double.tryParse(_discountController.text) ?? 0;
+    return subtotal - discount;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    final time = widget.invoiceData['timestamp'] != null
+        ? (widget.invoiceData['timestamp'] as Timestamp).toDate()
+        : null;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      appBar: AppBar(
+        title: const Text('Edit', style: TextStyle(color: Colors.white)),
+        backgroundColor: const Color(0xFF007AFF),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Invoice No. ${widget.invoiceData['invoiceNumber'] ?? 'N/A'}',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Created by ${widget.invoiceData['staffName'] ?? 'Admin'}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Issued on :',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      Text(
+                        time != null ? DateFormat('dd MMM yyyy h:mm a').format(time) : 'N/A',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Customer Details
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Customer Details',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Remove customer
+                      setState(() {
+                        _selectedCustomerPhone = null;
+                        _selectedCustomerName = null;
+                      });
+                    },
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedCustomerName ?? 'A',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text('Phone Number', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    _selectedCustomerPhone ?? '',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+
+            // Invoice Items
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: const Text(
+                'Invoice items',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Items', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text('Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  ...items.map((item) {
+                    final name = item['name'] ?? '';
+                    final price = (item['price'] ?? 0).toDouble();
+                    final qty = (item['quantity'] ?? 0) is int
+                        ? item['quantity']
+                        : int.tryParse(item['quantity'].toString()) ?? 0;
+                    final itemTotal = price * qty;
+
+                    return Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600))),
+                              const Text('-0.00', style: TextStyle(color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('${price.toStringAsFixed(2)} × ${qty.toStringAsFixed(1)}'),
+                              const Text('0.00', style: TextStyle(color: Colors.grey)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(itemTotal.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                itemTotal.toStringAsFixed(2),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF007AFF)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  // Add More button (placeholder)
+                  GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Add items feature coming soon')),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, color: Color(0xFF007AFF)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Add More',
+                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Summary section
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total items : ${items.length}'),
+                            Text('Sub Total : Rs ${subtotal.toStringAsFixed(2)}'),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Add Discount
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Add Discount'),
+                                content: TextField(
+                                  controller: _discountController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Discount Amount',
+                                    prefixText: '₹ ',
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {});
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text('Apply'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Add Discount',
+                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        // Add Credit Note
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Add Credit Note'),
+                                content: TextField(
+                                  controller: _creditNoteController,
+                                  maxLines: 3,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Credit Note',
+                                    hintText: 'Enter note...',
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      setState(() {});
+                                      Navigator.pop(context);
+                                    },
+                                    child: const Text('Save'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Add Credit Note',
+                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16),
+                          ),
+                        ),
+                        const Divider(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total Amount :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(
+                              'Rs ${total.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF007AFF),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Payment Mode
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Payment Mode :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildPaymentModeButton('Cash'),
+                      _buildPaymentModeButton('Online'),
+                      _buildPaymentModeButton('Set Later'),
+                      _buildPaymentModeButton('Split'),
+                      _buildPaymentModeButton('Credit'),
+                    ],
+                  ),
+                  if (_selectedPaymentMode == 'Credit') ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const Text('Credit : ', style: TextStyle(fontSize: 16)),
+                        Text(
+                          'Rs ${total.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF007AFF)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Update button
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _updateBill,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    'Update',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentModeButton(String mode) {
+    final isSelected = _selectedPaymentMode == mode;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMode = mode;
+          if (mode == 'Credit') {
+            _creditAmount = total;
+          } else {
+            _creditAmount = 0.0;
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF007AFF) : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade300,
+          ),
+        ),
+        child: Text(
+          mode,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateBill() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final discount = double.tryParse(_discountController.text) ?? 0;
+      final oldPaymentMode = widget.invoiceData['paymentMode'];
+      final oldTotal = (widget.invoiceData['total'] ?? 0).toDouble();
+
+      // Update bill in Firestore
+      await FirebaseFirestore.instance
+          .collection('sales')
+          .doc(widget.documentId)
+          .update({
+        'discount': discount,
+        'total': total,
+        'creditNote': _creditNoteController.text,
+        'paymentMode': _selectedPaymentMode,
+        'customerPhone': _selectedCustomerPhone,
+        'customerName': _selectedCustomerName,
+      });
+
+      // Update customer credit if payment mode changed
+      if (_selectedCustomerPhone != null) {
+        final customerRef = FirebaseFirestore.instance
+            .collection('customers')
+            .doc(_selectedCustomerPhone);
+
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final customerDoc = await transaction.get(customerRef);
+          if (customerDoc.exists) {
+            double currentBalance = customerDoc.data()?['balance'] ?? 0.0;
+
+            // Remove old credit
+            if (oldPaymentMode == 'Credit') {
+              currentBalance -= oldTotal;
+            }
+
+            // Add new credit
+            if (_selectedPaymentMode == 'Credit') {
+              currentBalance += total;
+            }
+
+            transaction.update(customerRef, {'balance': currentBalance});
+          }
+        });
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bill updated successfully'), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context); // Go back
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating bill: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+}
+
+// ==========================================

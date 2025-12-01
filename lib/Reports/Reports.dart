@@ -556,27 +556,46 @@ class DayBookPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final String todayDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     return Scaffold(
       appBar: _buildAppBar("DayBook", onBack),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('sales').snapshots(),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-          var todayDocs = snapshot.data!.docs.where((doc) => (doc['date'] ?? '').toString().startsWith(todayDateStr)).toList();
-          double total = todayDocs.fold(0, (sum, doc) => sum + (double.tryParse(doc['total'].toString()) ?? 0));
 
-          // Build hourly chart data
+          final allDocs = snapshot.data!.docs;
+
+          // 1. Filter documents for today (Safely checking for 'date' field)
+          var todayDocs = allDocs.where((doc) {
+            // Safely retrieve data map and access 'date' field
+            final data = doc.data() as Map<String, dynamic>;
+            final docDate = data['date']?.toString() ?? '';
+            return docDate.startsWith(todayDateStr);
+          }).toList();
+
+          // 2. Safely calculate total revenue
+          double total = todayDocs.fold(0, (sum, doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            // Safely parse 'total' field, defaulting to 0 if null or non-numeric
+            return sum + (double.tryParse(data['total']?.toString() ?? '0') ?? 0);
+          });
+
+          // 3. Build hourly chart data (Safely checking for 'date' and 'total')
           Map<int, double> hourlyRevenue = {};
           for (var doc in todayDocs) {
-            String dateStr = doc['date'] ?? '';
+            final data = doc.data() as Map<String, dynamic>;
+            String dateStr = data['date']?.toString() ?? '';
             DateTime? dt = DateTime.tryParse(dateStr);
             if (dt != null) {
-              hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + (double.tryParse(doc['total'].toString()) ?? 0);
+              double saleTotal = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+              hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + saleTotal;
             }
           }
 
           return Column(
             children: [
+              // --- HEADER REVENUE CARD ---
               Container(
                   padding: const EdgeInsets.all(20),
                   color: kPrimaryBlue,
@@ -587,8 +606,9 @@ class DayBookPage extends StatelessWidget {
                     Text("${todayDocs.length} Bills", style:const TextStyle(color:Colors.white70))
                   ])
               ),
+              // --- END HEADER ---
 
-              // LINE CHART FOR HOURLY REVENUE
+              // --- LINE CHART FOR HOURLY REVENUE ---
               Container(
                 padding: const EdgeInsets.all(16),
                 margin: const EdgeInsets.all(16),
@@ -606,8 +626,10 @@ class DayBookPage extends StatelessWidget {
                       height: 200,
                       child: LineChart(
                         LineChartData(
+                          minX: 0,
+                          maxX: 23,
                           gridData: FlGridData(show: true, drawVerticalLine: false),
-                          borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                          borderData: FlBorderData(show: true, border: Border(bottom: BorderSide(color: Colors.grey.shade400), left: BorderSide(color: Colors.grey.shade400), right: BorderSide.none, top: BorderSide.none)),
                           titlesData: FlTitlesData(
                             topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                             rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -615,6 +637,7 @@ class DayBookPage extends StatelessWidget {
                               axisNameWidget: const Text('Hour', style: TextStyle(fontSize: 10, color: Colors.grey)),
                               sideTitles: SideTitles(
                                 showTitles: true,
+                                interval: 4,
                                 getTitlesWidget: (value, meta) => Text("${value.toInt()}h", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                               ),
                             ),
@@ -643,16 +666,21 @@ class DayBookPage extends StatelessWidget {
                   ],
                 ),
               ),
+              // --- END CHART ---
 
+              // --- LIST OF TODAY'S BILLS ---
               Expanded(
                   child: ListView.builder(
                       itemCount: todayDocs.length,
                       itemBuilder: (context, index) {
-                        var data = todayDocs[index].data() as Map<String, dynamic>;
+                        var docData = todayDocs[index].data() as Map<String, dynamic>;
+                        // Safely access fields in the list view
+                        double saleTotal = double.tryParse(docData['total']?.toString() ?? '0') ?? 0;
+
                         return ListTile(
-                            title: Text(data['customerName'] ?? 'Walk-in'),
-                            subtitle: Text("#${data['invoiceNumber']}"),
-                            trailing: Text("₹${data['total']}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                            title: Text(docData['customerName'] ?? 'Walk-in'),
+                            subtitle: Text("#${docData['invoiceNumber'] ?? 'N/A'}"),
+                            trailing: Text("₹${saleTotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
                         );
                       }
                   )

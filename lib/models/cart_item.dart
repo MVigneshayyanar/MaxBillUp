@@ -13,4 +13,3 @@ class CartItem {
 
   double get total => price * quantity;
 }
-

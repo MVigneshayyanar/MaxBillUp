@@ -23,6 +23,7 @@ class CommonWidgets {
     required VoidCallback onSaveOrder,
     required VoidCallback onBill,
     required double totalBill,
+    VoidCallback? onQuotation,
   }) {
     return Container(
       color: Colors.white,
@@ -34,9 +35,18 @@ class CommonWidgets {
             onSaveOrder,
           ),
           const SizedBox(width: 12),
+          if (onQuotation != null) ...[
+            _buildIconButton(
+              Icons.description_outlined,
+              onQuotation,
+            ),
+            const SizedBox(width: 12),
+          ],
           _buildIconButton(
             Icons.print,
-                () {},
+            () {
+              showSnackBar(context, 'Print functionality coming soon');
+            },
           ),
           const Spacer(),
           GestureDetector(
@@ -49,7 +59,7 @@ class CommonWidgets {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withValues(alpha: 0.3),
+                    color: const Color(0xFF2196F3).withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -96,7 +106,7 @@ class CommonWidgets {
           border: Border.all(color: const Color(0xFF2196F3), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
+              color: Colors.black.withOpacity(0.1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -144,9 +154,8 @@ class CommonWidgets {
                   if (value.length >= 10) {
                     setDialogState(() => isLoading = true);
 
+                    // Fetch customer data from the root 'customers' collection (Updated)
                     final doc = await FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(uid)
                         .collection('customers')
                         .doc(value)
                         .get();
@@ -211,6 +220,24 @@ class CommonWidgets {
     );
   }
 
+  // Helper function to fetch staff name
+  static Future<String?> _fetchStaffName(String uid) async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+      if (doc.exists) {
+        final data = doc.data();
+        // Safely access the 'name' field and cast it.
+        return data?['name'] as String?;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('Error fetching staff name: $e');
+      return null;
+    }
+  }
+
+  // UPDATED FUNCTION: Saves customer to root, adds staff name/ID, and adds business location
   static Future<void> _saveOrderToFirebase({
     required String uid,
     required String phone,
@@ -220,19 +247,22 @@ class CommonWidgets {
     required BuildContext context,
   }) async {
     try {
-      // Save customer
+      // 1. Fetch Staff Name
+      final staffName = await _fetchStaffName(uid);
+
+      // 2. Save customer to the ROOT 'customers' collection (Removed user sub-collection)
       await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
           .collection('customers')
           .doc(phone)
           .set({
         'name': name,
         'phone': phone,
+        // Assuming Tirunelveli is the fixed location/business ID for this run
+        'businessLocation': 'Tirunelveli',
         'lastUpdated': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // Save order
+      // 3. Prepare items list
       final items = cartItems
           .map((item) => {
         'productId': item.productId,
@@ -243,6 +273,7 @@ class CommonWidgets {
       })
           .toList();
 
+      // 4. Save order to 'savedOrders' collection
       await FirebaseFirestore.instance
           .collection('savedOrders')
           .add({
@@ -251,6 +282,11 @@ class CommonWidgets {
         'items': items,
         'total': totalBill,
         'timestamp': FieldValue.serverTimestamp(),
+        // ADDED STAFF ID AND NAME
+        'staffId': uid,
+        'staffName': staffName ?? 'Unknown Staff',
+        // ADDED BUSINESS LOCATION
+        'businessLocation': 'Tirunelveli',
       });
 
       if (context.mounted) {
@@ -265,4 +301,3 @@ class CommonWidgets {
     }
   }
 }
-
