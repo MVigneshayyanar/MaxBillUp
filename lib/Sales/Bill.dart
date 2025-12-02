@@ -1446,7 +1446,12 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             ),
           ),
               (Route<dynamic> route) => route.isFirst,
-        );
+        ).then((_) {
+          // Pop back to the screen before BillPage with success result
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context, true);
+          }
+        });
       }
 
     } catch (e) {
@@ -1953,7 +1958,7 @@ class _PaymentPageState extends State<PaymentPage> {
         // Close loading dialog
         Navigator.pop(context);
 
-        // Navigate to Invoice page
+        // Navigate to Invoice page and pop all intermediate screens with success result
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -1975,7 +1980,16 @@ class _PaymentPageState extends State<PaymentPage> {
               customerPhone: widget.customerPhone,
             ),
           ),
-        );
+        ).then((_) {
+          // When InvoicePage is popped, return true to indicate success
+          // This pops BillPage and PaymentPage with result true
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context, true); // Pop PaymentPage with result
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context, true); // Pop BillPage with result
+            }
+          }
+        });
       }
     } catch (e) {
       if (mounted) {

@@ -195,7 +195,7 @@ class QuotationDetailPage extends StatelessWidget {
     );
   }
 
-  void _generateInvoice(BuildContext context) {
+  void _generateInvoice(BuildContext context) async {
     // Convert quotation items to CartItems
     final items = quotationData['items'] as List<dynamic>? ?? [];
     final cartItems = items.map((item) {
@@ -210,8 +210,8 @@ class QuotationDetailPage extends StatelessWidget {
     final total = (quotationData['total'] ?? 0.0).toDouble();
     final discount = (quotationData['discount'] ?? 0.0).toDouble();
 
-    // Navigate to Bill Page
-    Navigator.push(
+    // Navigate to Bill Page and wait for result
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => BillPage(
@@ -226,13 +226,38 @@ class QuotationDetailPage extends StatelessWidget {
           quotationId: quotationId,
         ),
       ),
-    ).then((_) {
-      // After billing, update quotation status to settled
-      FirebaseFirestore.instance
-          .collection('quotations')
-          .doc(quotationId)
-          .update({'status': 'settled'});
-    });
+    );
+
+    // Only update quotation status if invoice was actually created
+    if (result == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('quotations')
+            .doc(quotationId)
+            .update({
+          'status': 'settled',
+          'settledAt': FieldValue.serverTimestamp(),
+        });
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Quotation settled successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating quotation: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 }
 

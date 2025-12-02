@@ -7,6 +7,11 @@ import 'package:maxbillup/Sales/Bill.dart'; // Placeholder import if BillPage is
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/Stocks/StockPurchase.dart';
+import 'package:maxbillup/Stocks/ExpenseCategories.dart';
+import 'package:maxbillup/Stocks/Expenses.dart';
+
+
 
 import 'dart:math'; // Added for PaymentPage random invoice generation
 
@@ -98,13 +103,11 @@ class _MenuPageState extends State<MenuPage> {
 
     // Expenses Sub-menu items
       case 'StockPurchase':
-        return GenericListPage(title: 'Stock Purchases', collectionPath: 'stockPurchases', uid: widget.uid, onBack: _reset);
+        return StockPurchasePage(uid: widget.uid, onBack: _reset);
       case 'Expenses':
-        return GenericListPage(title: 'Expenses', collectionPath: 'expenses', uid: widget.uid, onBack: _reset);
-      case 'OtherExpenses':
-        return GenericListPage(title: 'Other Expenses', collectionPath: 'otherExpenses', uid: widget.uid, onBack: _reset);
+        return ExpensesPage(uid: widget.uid, onBack: _reset);
       case 'ExpenseCategories':
-        return GenericListPage(title: 'Expense Categories', collectionPath: 'expenseCategories', uid: widget.uid, onBack: _reset);
+        return ExpenseCategoriesPage(uid: widget.uid, onBack: _reset);
 
     // Staff
       case 'StaffManagement':
@@ -158,7 +161,6 @@ class _MenuPageState extends State<MenuPage> {
                     children: [
                       _buildSubMenuItem("Stock Purchase", 'StockPurchase'),
                       _buildSubMenuItem("Expenses", 'Expenses'),
-                      _buildSubMenuItem("Other Expenses", 'OtherExpenses'),
                       _buildSubMenuItem("Expense Category", 'ExpenseCategories'),
                     ],
                   ),
@@ -2384,20 +2386,1078 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   }
 
   Widget _buildPurchaseCreditList() {
-    // Placeholder for purchase credits
-    // You can implement this similarly to sales credits if needed
-    return const Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(
-            'No purchase credits found',
-            style: TextStyle(fontSize: 16, color: Colors.grey),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('purchaseCreditNotes')
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No purchase credits found',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final purchaseCreditNotes = snapshot.data!.docs.where((doc) {
+          if (_searchQuery.isEmpty) return true;
+          final data = doc.data() as Map<String, dynamic>;
+          final creditNoteNumber = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
+          final supplierName = (data['supplierName'] ?? '').toString().toLowerCase();
+          final supplierPhone = (data['supplierPhone'] ?? '').toString().toLowerCase();
+
+          return creditNoteNumber.contains(_searchQuery) ||
+              supplierName.contains(_searchQuery) ||
+              supplierPhone.contains(_searchQuery);
+        }).toList();
+
+        if (purchaseCreditNotes.isEmpty) {
+          return const Center(
+            child: Text(
+              'No matching purchase credits',
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          );
+        }
+
+        // Calculate total
+        double totalCredit = 0;
+        for (var doc in purchaseCreditNotes) {
+          final data = doc.data() as Map<String, dynamic>;
+          totalCredit += (data['amount'] ?? 0.0) as num;
+        }
+
+        return Column(
+          children: [
+            // Total Credit Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.white,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Total Purchase Credit : ',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    'Rs ${totalCredit.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF007AFF),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Purchase Credit Notes List
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: purchaseCreditNotes.length,
+                itemBuilder: (context, index) {
+                  final data = purchaseCreditNotes[index].data() as Map<String, dynamic>;
+                  final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
+                  final supplierName = data['supplierName'] ?? 'Unknown Supplier';
+                  final supplierPhone = data['supplierPhone'] ?? '';
+                  final amount = (data['amount'] ?? 0.0) as num;
+                  final status = data['status'] ?? 'Available';
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: status == 'Available'
+                            ? Colors.green.shade200
+                            : Colors.grey.shade300,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      title: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Credit Note: $creditNoteNumber',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF007AFF),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  supplierName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: status == 'Available'
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: status == 'Available'
+                                    ? Colors.green.shade800
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          const Text(
+                            'Phone Number',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          Text(
+                            supplierPhone,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Rs ${amount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF007AFF),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      onTap: () {
+                        // Navigate to purchase credit note details
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PurchaseCreditNoteDetailPage(
+                              documentId: purchaseCreditNotes[index].id,
+                              creditNoteData: data,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ==========================================
+// PURCHASE CREDIT NOTE DETAIL PAGE
+// ==========================================
+class PurchaseCreditNoteDetailPage extends StatelessWidget {
+  final String documentId;
+  final Map<String, dynamic> creditNoteData;
+
+  const PurchaseCreditNoteDetailPage({
+    super.key,
+    required this.documentId,
+    required this.creditNoteData,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('purchaseCreditNotes')
+          .doc(documentId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Color(0xFFF5F5F5),
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(
+            backgroundColor: const Color(0xFFF5F5F5),
+            appBar: AppBar(
+              title: const Text('Purchase Credit Note',
+                  style: TextStyle(color: Colors.white)),
+              backgroundColor: const Color(0xFF007AFF),
+            ),
+            body: const Center(child: Text('Credit note not found')),
+          );
+        }
+
+        // Get real-time data from Firestore
+        final liveData = snapshot.data!.data() as Map<String, dynamic>;
+        final creditNoteNumber = liveData['creditNoteNumber'] ?? 'N/A';
+        final purchaseNumber = liveData['purchaseNumber'] ?? 'N/A';
+        final supplierName = liveData['supplierName'] ?? 'Unknown Supplier';
+        final supplierPhone = liveData['supplierPhone'] ?? '';
+        final amount = (liveData['amount'] ?? 0.0) as num;
+        final paidAmount = (liveData['paidAmount'] ?? 0.0) as num;
+        final remainingAmount = amount - paidAmount;
+        final status = liveData['status'] ?? 'Available';
+        final timestamp = liveData['timestamp'] as Timestamp?;
+        final items = (liveData['items'] as List<dynamic>? ?? []);
+        final dateString = timestamp != null
+            ? DateFormat('dd MMM yyyy h:mm a').format(timestamp.toDate())
+            : 'N/A';
+
+        return Scaffold(
+          backgroundColor: const Color(0xFFF5F5F5),
+          appBar: AppBar(
+            title: const Text('Purchase Credit Note',
+                style: TextStyle(color: Colors.white)),
+            backgroundColor: const Color(0xFF007AFF),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            centerTitle: true,
           ),
-        ],
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  color: Colors.white,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Credit Note No : $creditNoteNumber',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF007AFF),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Created by Admin',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          const Text(
+                            'Issued on:',
+                            style: TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          Text(
+                            dateString,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Purchase Info & Supplier Details
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Purchase No : $purchaseNumber',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: status == 'Available'
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              status,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: status == 'Available'
+                                    ? Colors.green.shade800
+                                    : Colors.grey.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const Divider(height: 1),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Supplier Details',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        supplierName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF007AFF),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        supplierPhone,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Items
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            topRight: Radius.circular(12),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Items',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Amount',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ...items.map((item) {
+                        final name = item['name'] ?? 'Unknown';
+                        final qty = item['quantity'] ?? 0;
+                        final price = (item['price'] ?? 0).toDouble();
+                        final total = (item['total'] ?? 0).toDouble();
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: Colors.grey.shade200),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const Text(
+                                    '- 0.00',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${price.toStringAsFixed(2)} x ${qty.toStringAsFixed(1)}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                  const Text(
+                                    '0.00',
+                                    style: TextStyle(color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    total.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    total.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF007AFF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total Items : ${items.length}'),
+                            const Text(''),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total Amount :',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Rs ${amount.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF007AFF),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (paidAmount > 0) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Paid Amount :',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Rs ${paidAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                            if (remainingAmount > 0) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Remaining :',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Rs ${remainingAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Payment History Section
+                StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('purchaseCreditNotes')
+                      .doc(documentId)
+                      .collection('paymentHistory')
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, historySnapshot) {
+                    if (!historySnapshot.hasData ||
+                        historySnapshot.data!.docs.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade100,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(12),
+                                topRight: Radius.circular(12),
+                              ),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.history,
+                                    color: Color(0xFF007AFF), size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Payment History',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...historySnapshot.data!.docs.map((paymentDoc) {
+                            final paymentData =
+                            paymentDoc.data() as Map<String, dynamic>;
+                            final payAmount =
+                            (paymentData['amount'] ?? 0.0) as num;
+                            final payMode =
+                                paymentData['paymentMode'] ?? 'Cash';
+                            final payTimestamp =
+                            paymentData['timestamp'] as Timestamp?;
+                            final payDateString = payTimestamp != null
+                                ? DateFormat('dd MMM yyyy, h:mm a')
+                                .format(payTimestamp.toDate())
+                                : 'N/A';
+
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom:
+                                  BorderSide(color: Colors.grey.shade200),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      payMode == 'Cash'
+                                          ? Icons.money
+                                          : payMode == 'Online' ||
+                                          payMode == 'UPI'
+                                          ? Icons.credit_card
+                                          : Icons.account_balance,
+                                      color: Colors.green,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Rs ${payAmount.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          payDateString,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF007AFF)
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      payMode,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF007AFF),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+
+                // Action Buttons
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: remainingAmount > 0
+                              ? () {
+                            _showPurchaseRefundDialog(
+                                context, documentId, liveData);
+                          }
+                              : null,
+                          icon: const Icon(Icons.attach_money,
+                              color: Colors.white),
+                          label: Text(
+                            remainingAmount > 0 ? 'Pay' : 'Paid',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007AFF),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            disabledBackgroundColor: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Printing Receipt...')),
+                            );
+                          },
+                          icon: const Icon(Icons.receipt_long,
+                              color: Colors.white),
+                          label: const Text(
+                            'Receipt',
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF007AFF),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showPurchaseRefundDialog(BuildContext context, String documentId,
+      Map<String, dynamic> creditNoteData) {
+    final TextEditingController amountController = TextEditingController();
+    String selectedMode = 'Cash';
+
+    final totalAmount = (creditNoteData['amount'] ?? 0.0) as num;
+    final paidAmount = (creditNoteData['paidAmount'] ?? 0.0) as num;
+    final remainingAmount = totalAmount - paidAmount;
+
+    // Set default to remaining amount
+    amountController.text = remainingAmount.toStringAsFixed(2);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Settle Payment',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Credit Note: ${creditNoteData['creditNoteNumber']}',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                _buildInfoRow(
+                    'Total Amount', 'Rs ${totalAmount.toStringAsFixed(2)}'),
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                    'Already Paid', 'Rs ${paidAmount.toStringAsFixed(2)}',
+                    valueColor: Colors.green),
+                const SizedBox(height: 8),
+                _buildInfoRow(
+                    'Remaining', 'Rs ${remainingAmount.toStringAsFixed(2)}',
+                    valueColor: const Color(0xFF007AFF), isBold: true),
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: amountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Payment Amount',
+                    prefixText: 'Rs ',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    helperText:
+                    'Enter amount to pay (max: ${remainingAmount.toStringAsFixed(2)})',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Payment Mode:',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: ['Cash', 'Online', 'UPI', 'Card', 'Bank Transfer']
+                      .map((mode) {
+                    final isSelected = selectedMode == mode;
+                    return GestureDetector(
+                      onTap: () => setState(() => selectedMode = mode),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF007AFF)
+                              : Colors.white,
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF007AFF)
+                                : Colors.grey.shade300,
+                            width: 2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          mode,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : Colors.black87,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final paymentAmount =
+                    double.tryParse(amountController.text) ?? 0.0;
+
+                if (paymentAmount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please enter a valid amount')),
+                  );
+                  return;
+                }
+
+                if (paymentAmount > remainingAmount) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                        content: Text(
+                            'Amount cannot exceed remaining balance (Rs ${remainingAmount.toStringAsFixed(2)})')),
+                  );
+                  return;
+                }
+
+                // 1. Close the Input Dialog FIRST
+                Navigator.pop(ctx);
+
+                // 2. Show Loading Indicator
+                
+
+                try {
+                  // Calculate new paid amount and status
+                  final newPaidAmount = paidAmount + paymentAmount;
+                  final newStatus =
+                  newPaidAmount >= totalAmount ? 'Paid' : 'Partially Paid';
+
+                  // Update purchase credit note
+                  await FirebaseFirestore.instance
+                      .collection('purchaseCreditNotes')
+                      .doc(documentId)
+                      .update({
+                    'paidAmount': newPaidAmount,
+                    'status': newStatus,
+                    'lastPaymentDate': FieldValue.serverTimestamp(),
+                  });
+
+                  // Add payment history entry
+                  await FirebaseFirestore.instance
+                      .collection('purchaseCreditNotes')
+                      .doc(documentId)
+                      .collection('paymentHistory')
+                      .add({
+                    'amount': paymentAmount,
+                    'paymentMode': selectedMode,
+                    'timestamp': FieldValue.serverTimestamp(),
+                    'paidBy': 'Admin',
+                    'remainingAfterPayment': totalAmount - newPaidAmount,
+                  });
+
+                  // Update supplier balance if applicable
+                  final supplierPhone = creditNoteData['supplierPhone'] ?? '';
+                  if (supplierPhone.isNotEmpty) {
+                    final supplierRef = FirebaseFirestore.instance
+                        .collection('suppliers')
+                        .doc(supplierPhone);
+
+                    await FirebaseFirestore.instance
+                        .runTransaction((transaction) async {
+                      final supplierDoc = await transaction.get(supplierRef);
+                      if (supplierDoc.exists) {
+                        final currentBalance =
+                            supplierDoc.data()?['creditBalance'] ?? 0.0;
+                        final newBalance = currentBalance - paymentAmount;
+                        transaction.update(supplierRef, {
+                          'creditBalance': newBalance > 0 ? newBalance : 0,
+                          'lastUpdated': FieldValue.serverTimestamp(),
+                        });
+                      }
+                    });
+                  }
+
+                  // 3. Close the Loading Indicator
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+
+                    // Show success message
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(newStatus == 'Paid'
+                            ? '✓ Payment settled successfully! Credit note fully paid.'
+                            : '✓ Payment of Rs ${paymentAmount.toStringAsFixed(2)} recorded.'),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  // If error, Close Loading Indicator
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error processing payment: $e'),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF007AFF),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Pay Now', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value,
+      {Color? valueColor, bool isBold = false}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            color: valueColor ?? Colors.black87,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }
