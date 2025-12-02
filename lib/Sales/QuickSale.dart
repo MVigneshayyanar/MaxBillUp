@@ -170,216 +170,225 @@ class _QuickSalePageState extends State<QuickSalePage> {
             ),
           ),
         ),
-        Container(
-          color: Colors.white,
-          height: 225,
-          child: _items.isEmpty
-              ? const Center(
+        Expanded(
+          child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.shopping_cart_outlined,
-                  size: 48,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'No items added',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          )
-              : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: _items.length,
-            itemBuilder: (context, idx) {
-              final item = _items[idx];
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity.toStringAsFixed(1)}',
-                        style: const TextStyle(fontSize: 16, color: Colors.black87),
-                      ),
-                    ),
-                    Text(
-                      '+₹${item.total.toStringAsFixed(1)}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF4CAF50),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: () => _removeItem(idx),
-                      child: const Icon(Icons.edit, size: 20, color: Color(0xFF2196F3)),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: _items.isEmpty ? null : _clearOrder,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _items.isEmpty ? Colors.grey[300] : const Color(0xFFFF5252),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    'Clear Order',
-                    style: TextStyle(
-                      color: _items.isEmpty ? Colors.grey[600] : Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${_items.length} Items',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  _numBtn('7'),
-                  const SizedBox(width: 8),
-                  _numBtn('8'),
-                  const SizedBox(width: 8),
-                  _numBtn('9'),
-                  const SizedBox(width: 8),
-                  _actBtn(Icons.backspace_outlined, _handleBackspace),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _numBtn('4'),
-                  const SizedBox(width: 8),
-                  _numBtn('5'),
-                  const SizedBox(width: 8),
-                  _numBtn('6'),
-                  const SizedBox(width: 8),
-                  _opBtn('×', _handleMultiply),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
+                Container(
+                  color: Colors.white,
+                  height: 200,
+                  child: _items.isEmpty
+                      ? const Center(
                     child: Column(
-                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Row(
-                          children: [
-                            _numBtn('1'),
-                            const SizedBox(width: 8),
-                            _numBtn('2'),
-                            const SizedBox(width: 8),
-                            _numBtn('3'),
-                          ],
+                        Icon(
+                          Icons.shopping_cart_outlined,
+                          size: 48,
+                          color: Colors.grey,
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _numBtn('0'),
-                            const SizedBox(width: 8),
-                            _numBtn('00'),
-                            const SizedBox(width: 8),
-                            _numBtn('•'),
-                          ],
+                        SizedBox(height: 8),
+                        Text(
+                          'No items added',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
                         ),
                       ],
                     ),
+                  )
+                      : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _items.length,
+                    itemBuilder: (context, idx) {
+                      final item = _items[idx];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity.toStringAsFixed(1)}',
+                                style: const TextStyle(fontSize: 16, color: Colors.black87),
+                              ),
+                            ),
+                            Text(
+                              '+₹${item.total.toStringAsFixed(1)}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Color(0xFF4CAF50),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () => _removeItem(idx),
+                              child: const Icon(Icons.edit, size: 20, color: Color(0xFF2196F3)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                  const SizedBox(width: 8),
-                  _addBtn(),
-                ],
-              ),
-            ],
+                ),
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _items.isEmpty ? null : _clearOrder,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _items.isEmpty ? Colors.grey[300] : const Color(0xFFFF5252),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Clear Order',
+                            style: TextStyle(
+                              color: _items.isEmpty ? Colors.grey[600] : Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_items.length} Items',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          _numBtn('7'),
+                          const SizedBox(width: 8),
+                          _numBtn('8'),
+                          const SizedBox(width: 8),
+                          _numBtn('9'),
+                          const SizedBox(width: 8),
+                          _actBtn(Icons.backspace_outlined, _handleBackspace),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _numBtn('4'),
+                          const SizedBox(width: 8),
+                          _numBtn('5'),
+                          const SizedBox(width: 8),
+                          _numBtn('6'),
+                          const SizedBox(width: 8),
+                          _opBtn('×', _handleMultiply),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    _numBtn('1'),
+                                    const SizedBox(width: 8),
+                                    _numBtn('2'),
+                                    const SizedBox(width: 8),
+                                    _numBtn('3'),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    _numBtn('0'),
+                                    const SizedBox(width: 8),
+                                    _numBtn('00'),
+                                    const SizedBox(width: 8),
+                                    _numBtn('•'),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _addBtn(),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                CommonWidgets.buildActionButtons(
+                  context: context,
+                  onSaveOrder: () {
+                    CommonWidgets.showSaveOrderDialog(
+                      context: context,
+                      uid: widget.uid,
+                      cartItems: _cartItems,
+                      totalBill: _total,
+                      onSuccess: () {
+                        setState(() {
+                          _items.clear();
+                          _input = '';
+                          _counter = 1;
+                        });
+                      },
+                    );
+                  },
+                  onQuotation: () {
+                    if (_items.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => QuotationPage(
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            cartItems: _cartItems,
+                            totalAmount: _total,
+                          ),
+                        ),
+                      );
+                    } else {
+                      CommonWidgets.showSnackBar(
+                        context,
+                        'Cart is empty!',
+                        bgColor: const Color(0xFFFF9800),
+                      );
+                    }
+                  },
+                  onBill: () {
+                    if (_items.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BillPage(
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            cartItems: _cartItems,
+                            totalAmount: _total,
+                            savedOrderId: widget.savedOrderId,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  totalBill: _total,
+                ),
+              ],
+            ),
           ),
-        ),
-        CommonWidgets.buildActionButtons(
-          context: context,
-          onSaveOrder: () {
-            CommonWidgets.showSaveOrderDialog(
-              context: context,
-              uid: widget.uid,
-              cartItems: _cartItems,
-              totalBill: _total,
-              onSuccess: () {
-                setState(() {
-                  _items.clear();
-                  _input = '';
-                  _counter = 1;
-                });
-              },
-            );
-          },
-          onQuotation: () {
-            if (_items.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => QuotationPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cartItems,
-                    totalAmount: _total,
-                  ),
-                ),
-              );
-            } else {
-              CommonWidgets.showSnackBar(
-                context,
-                'Cart is empty!',
-                bgColor: const Color(0xFFFF9800),
-              );
-            }
-          },
-          onBill: () {
-            if (_items.isNotEmpty) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => BillPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cartItems,
-                    totalAmount: _total,
-                    savedOrderId: widget.savedOrderId,
-                  ),
-                ),
-              );
-            }
-          },
-          totalBill: _total,
         ),
       ],
     );

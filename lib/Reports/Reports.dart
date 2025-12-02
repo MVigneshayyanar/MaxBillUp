@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 // ==========================================
 // COLOR CONSTANTS
@@ -29,24 +30,191 @@ class ReportsPage extends StatefulWidget {
 
 class _ReportsPageState extends State<ReportsPage> {
   String? _currentView;
+  Map<String, dynamic> _permissions = {};
+  bool _isLoading = true;
+  String _role = 'staff';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    final userData = await PermissionHelper.getUserPermissions(widget.uid);
+    if (mounted) {
+      setState(() {
+        _permissions = userData['permissions'] as Map<String, dynamic>;
+        _role = userData['role'] as String;
+        _isLoading = false;
+      });
+    }
+  }
+
+  bool _hasPermission(String permission) {
+    return _permissions[permission] == true;
+  }
+
+  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
   @override
   Widget build(BuildContext context) {
+    // Permission checks for navigation
     switch (_currentView) {
-      case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
-      case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
-      case 'Summary': return SalesSummaryPage(onBack: _reset);
-      case 'SalesReport': return FullSalesHistoryPage(onBack: _reset);
-      case 'ExpenseReport': return ExpenseReportPage(onBack: _reset);
-      case 'TopProducts': return TopProductsPage(uid: widget.uid, onBack: _reset);
-      case 'LowStock': return LowStockPage(onBack: _reset);
-      case 'ItemSales': return ItemSalesPage(onBack: _reset);
-      case 'HSNReport': return HSNReportPage(onBack: _reset);
-      case 'TopCategories': return TopCategoriesPage(onBack: _reset);
-      case 'TopCustomers': return TopCustomersPage(uid: widget.uid, onBack: _reset);
-      case 'StockReport': return StockReportPage(onBack: _reset);
-      case 'StaffReport': return StaffSaleReportPage(onBack: _reset);
-      case 'TaxReport': return TaxReportPage(onBack: _reset);
+      case 'Analytics':
+        if (!_hasPermission('analytics') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return AnalyticsPage(uid: widget.uid, onBack: _reset);
+
+      case 'DayBook':
+        if (!_hasPermission('daybook') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return DayBookPage(uid: widget.uid, onBack: _reset);
+
+      case 'Summary':
+        if (!_hasPermission('salesSummary') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return SalesSummaryPage(onBack: _reset);
+
+      case 'SalesReport':
+        if (!_hasPermission('salesReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return FullSalesHistoryPage(onBack: _reset);
+
+      case 'ExpenseReport':
+        if (!_hasPermission('expensesReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return ExpenseReportPage(onBack: _reset);
+
+      case 'TopProducts':
+        if (!_hasPermission('topProducts') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return TopProductsPage(uid: widget.uid, onBack: _reset);
+
+      case 'LowStock':
+        if (!_hasPermission('lowStockProduct') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return LowStockPage(onBack: _reset);
+
+      case 'ItemSales':
+        if (!_hasPermission('itemSalesReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return ItemSalesPage(onBack: _reset);
+
+      case 'HSNReport':
+        if (!_hasPermission('hsnReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return HSNReportPage(onBack: _reset);
+
+      case 'TopCategories':
+        if (!_hasPermission('topCategory') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return TopCategoriesPage(onBack: _reset);
+
+      case 'TopCustomers':
+        if (!_hasPermission('topCustomer') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return TopCustomersPage(uid: widget.uid, onBack: _reset);
+
+      case 'StockReport':
+        if (!_hasPermission('stockReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return StockReportPage(onBack: _reset);
+
+      case 'StaffReport':
+        if (!_hasPermission('staffSalesReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return StaffSaleReportPage(onBack: _reset);
+
+      case 'TaxReport':
+        if (!_hasPermission('taxReport') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return TaxReportPage(onBack: _reset);
+    }
+
+    // Show loading indicator while checking permissions
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: kBackgroundGrey,
+        appBar: AppBar(
+          title: const Text("Reports", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: kPrimaryBlue,
+          elevation: 0,
+          centerTitle: true,
+          automaticallyImplyLeading: false,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
@@ -61,27 +229,85 @@ class _ReportsPageState extends State<ReportsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _sectionHeader("Analytics & Overview"),
-          _tile("Analytics", Icons.bar_chart, kPrimaryBlue, 'Analytics'),
-          _tile("DayBook (Today)", Icons.today, kPrimaryBlue, 'DayBook'),
-          _tile("Sales Summary", Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
+          // Analytics & Overview Section
+          if (_hasPermission('analytics') || _hasPermission('daybook') || _hasPermission('salesSummary') || isAdmin) ...[
+            _sectionHeader("Analytics & Overview"),
+            if (_hasPermission('analytics') || isAdmin)
+              _tile("Analytics", Icons.bar_chart, kPrimaryBlue, 'Analytics'),
+            if (_hasPermission('daybook') || isAdmin)
+              _tile("DayBook (Today)", Icons.today, kPrimaryBlue, 'DayBook'),
+            if (_hasPermission('salesSummary') || isAdmin)
+              _tile("Sales Summary", Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
+          ],
 
-          _sectionHeader("Sales & Transactions"),
-          _tile("Sales Report", Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
-          _tile("Item Sales Report", Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
-          _tile("Top Customers", Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
+          // Sales & Transactions Section
+          if (_hasPermission('salesReport') || _hasPermission('itemSalesReport') || _hasPermission('topCustomer') || isAdmin) ...[
+            _sectionHeader("Sales & Transactions"),
+            if (_hasPermission('salesReport') || isAdmin)
+              _tile("Sales Report", Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
+            if (_hasPermission('itemSalesReport') || isAdmin)
+              _tile("Item Sales Report", Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
+            if (_hasPermission('topCustomer') || isAdmin)
+              _tile("Top Customers", Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
+          ],
 
-          _sectionHeader("Inventory & Products"),
-          _tile("Stock Report", Icons.inventory, kPrimaryBlue, 'StockReport'),
-          _tile("Low Stock Products", Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
-          _tile("Top Products", Icons.star_border, kPrimaryBlue, 'TopProducts'),
-          _tile("Top Categories", Icons.folder_open, kPrimaryBlue, 'TopCategories'),
+          // Inventory & Products Section
+          if (_hasPermission('stockReport') || _hasPermission('lowStockProduct') || _hasPermission('topProducts') || _hasPermission('topCategory') || isAdmin) ...[
+            _sectionHeader("Inventory & Products"),
+            if (_hasPermission('stockReport') || isAdmin)
+              _tile("Stock Report", Icons.inventory, kPrimaryBlue, 'StockReport'),
+            if (_hasPermission('lowStockProduct') || isAdmin)
+              _tile("Low Stock Products", Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
+            if (_hasPermission('topProducts') || isAdmin)
+              _tile("Top Products", Icons.star_border, kPrimaryBlue, 'TopProducts'),
+            if (_hasPermission('topCategory') || isAdmin)
+              _tile("Top Categories", Icons.folder_open, kPrimaryBlue, 'TopCategories'),
+          ],
 
-          _sectionHeader("Financials & Tax"),
-          _tile("Expense Report", Icons.money_off, kExpenseRed, 'ExpenseReport'),
-          _tile("Tax Report", Icons.percent, kIncomeGreen, 'TaxReport'),
-          _tile("HSN Report", Icons.description, kPrimaryBlue, 'HSNReport'),
-          _tile("Staff Sale Report", Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
+          // Financials & Tax Section
+          if (_hasPermission('expensesReport') || _hasPermission('taxReport') || _hasPermission('hsnReport') || _hasPermission('staffSalesReport') || isAdmin) ...[
+            _sectionHeader("Financials & Tax"),
+            if (_hasPermission('expensesReport') || isAdmin)
+              _tile("Expense Report", Icons.money_off, kExpenseRed, 'ExpenseReport'),
+            if (_hasPermission('taxReport') || isAdmin)
+              _tile("Tax Report", Icons.percent, kIncomeGreen, 'TaxReport'),
+            if (_hasPermission('hsnReport') || isAdmin)
+              _tile("HSN Report", Icons.description, kPrimaryBlue, 'HSNReport'),
+            if (_hasPermission('staffSalesReport') || isAdmin)
+              _tile("Staff Sale Report", Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
+          ],
+
+          // No permissions message
+          if (!isAdmin && !_hasAnyReportPermission())
+            Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.lock_outline, size: 48, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No Report Access',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'You don\'t have permission to view any reports. Contact your administrator.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
       bottomNavigationBar: CommonBottomNav(
@@ -91,6 +317,23 @@ class _ReportsPageState extends State<ReportsPage> {
         screenWidth: MediaQuery.of(context).size.width,
       ),
     );
+  }
+
+  bool _hasAnyReportPermission() {
+    return _hasPermission('analytics') ||
+        _hasPermission('daybook') ||
+        _hasPermission('salesSummary') ||
+        _hasPermission('salesReport') ||
+        _hasPermission('itemSalesReport') ||
+        _hasPermission('topCustomer') ||
+        _hasPermission('stockReport') ||
+        _hasPermission('lowStockProduct') ||
+        _hasPermission('topProducts') ||
+        _hasPermission('topCategory') ||
+        _hasPermission('expensesReport') ||
+        _hasPermission('taxReport') ||
+        _hasPermission('hsnReport') ||
+        _hasPermission('staffSalesReport');
   }
 
   void _reset() => setState(() => _currentView = null);

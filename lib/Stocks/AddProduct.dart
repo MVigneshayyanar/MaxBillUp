@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Sales/BarcodeScanner.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -45,6 +46,21 @@ class _AddProductPageState extends State<AddProductPage> {
   void initState() {
     super.initState();
     _selectedCategory = widget.preSelectedCategory;
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final userData = await PermissionHelper.getUserPermissions(widget.uid);
+    final role = userData['role'] as String;
+    final permissions = userData['permissions'] as Map<String, dynamic>;
+
+    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+    final hasPermission = permissions['addProduct'] == true;
+
+    if (!hasPermission && !isAdmin && mounted) {
+      Navigator.pop(context);
+      await PermissionHelper.showPermissionDeniedDialog(context);
+    }
   }
 
   @override

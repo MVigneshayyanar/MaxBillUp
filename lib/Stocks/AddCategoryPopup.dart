@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 class AddCategoryPopup extends StatefulWidget {
   final String uid;
@@ -18,6 +19,26 @@ class AddCategoryPopup extends StatefulWidget {
 class _AddCategoryPopupState extends State<AddCategoryPopup> {
   final TextEditingController _categoryController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermission();
+  }
+
+  Future<void> _checkPermission() async {
+    final userData = await PermissionHelper.getUserPermissions(widget.uid);
+    final role = userData['role'] as String;
+    final permissions = userData['permissions'] as Map<String, dynamic>;
+
+    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+    final hasPermission = permissions['addCategory'] == true;
+
+    if (!hasPermission && !isAdmin && mounted) {
+      Navigator.pop(context);
+      await PermissionHelper.showPermissionDeniedDialog(context);
+    }
+  }
 
   @override
   void dispose() {

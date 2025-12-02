@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 class ProductsPage extends StatefulWidget {
   final String uid;
@@ -26,6 +27,11 @@ class _ProductsPageState extends State<ProductsPage> {
 
   late String _uid;
 
+  // Permission state
+  Map<String, dynamic> _permissions = {};
+  String _role = 'staff';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +41,25 @@ class _ProductsPageState extends State<ProductsPage> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+    _loadPermissions();
   }
+
+  Future<void> _loadPermissions() async {
+    final userData = await PermissionHelper.getUserPermissions(_uid);
+    if (mounted) {
+      setState(() {
+        _permissions = userData['permissions'] as Map<String, dynamic>;
+        _role = userData['role'] as String;
+        _isLoading = false;
+      });
+    }
+  }
+
+  bool _hasPermission(String permission) {
+    return _permissions[permission] == true;
+  }
+
+  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
   @override
   void dispose() {
@@ -292,19 +316,27 @@ class _ProductsPageState extends State<ProductsPage> {
                 _buildActionButton(Icons.swap_vert, const Color(0xFF2196F3), _showSortMenu),
                 const SizedBox(width: 8),
                 _buildActionButton(Icons.tune, const Color(0xFF2196F3), _showFilterMenu),
-                const SizedBox(width: 8),
-                _buildActionButton(
-                  Icons.add_circle,
-                  const Color(0xFF4CAF50),
-                      () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
-                      ),
-                    );
-                  },
-                ),
+                // Add Product button - only visible if user has permission
+                if (_hasPermission('addProduct') || isAdmin) ...[
+                  const SizedBox(width: 8),
+                  _buildActionButton(
+                    Icons.add_circle,
+                    const Color(0xFF4CAF50),
+                    () async {
+                      // Double check permission before navigation
+                      if (!_hasPermission('addProduct') && !isAdmin) {
+                        await PermissionHelper.showPermissionDeniedDialog(context);
+                        return;
+                      }
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),

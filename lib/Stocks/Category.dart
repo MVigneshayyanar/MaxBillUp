@@ -4,6 +4,7 @@ import 'package:maxbillup/Stocks/Products.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/Stocks/AddCategoryPopup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 class CategoryPage extends StatefulWidget {
   final String uid;
@@ -27,6 +28,11 @@ class _CategoryPageState extends State<CategoryPage> {
   late String _uid;
   String? _userEmail;
 
+  // Permission state
+  Map<String, dynamic> _permissions = {};
+  String _role = 'staff';
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
@@ -39,7 +45,26 @@ class _CategoryPageState extends State<CategoryPage> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+
+    _loadPermissions();
   }
+
+  Future<void> _loadPermissions() async {
+    final userData = await PermissionHelper.getUserPermissions(_uid);
+    if (mounted) {
+      setState(() {
+        _permissions = userData['permissions'] as Map<String, dynamic>;
+        _role = userData['role'] as String;
+        _isLoading = false;
+      });
+    }
+  }
+
+  bool _hasPermission(String permission) {
+    return _permissions[permission] == true;
+  }
+
+  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
   @override
   void dispose() {
@@ -85,14 +110,15 @@ class _CategoryPageState extends State<CategoryPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Add Category button
-                IconButton(
-                  onPressed: () {
-                    _showAddCategoryDialog(context);
-                  },
-                  icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50), size: 32),
-                  tooltip: 'Add Category',
-                ),
+                // Add Category button - with permission check
+                if (_hasPermission('addCategory') || isAdmin)
+                  IconButton(
+                    onPressed: () {
+                      _showAddCategoryDialog(context);
+                    },
+                    icon: const Icon(Icons.add_circle, color: Color(0xFF4CAF50), size: 32),
+                    tooltip: 'Add Category',
+                  ),
               ],
             ),
           ),
@@ -527,6 +553,12 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   void _showAddCategoryDialog(BuildContext context) {
+    // Check permission before showing dialog
+    if (!_hasPermission('addCategory') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AddCategoryPopup(

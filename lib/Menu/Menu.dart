@@ -10,8 +10,8 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
-
-
+import 'package:maxbillup/Settings/StaffManagement.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
 
 import 'dart:math'; // Added for PaymentPage random invoice generation
 
@@ -36,6 +36,7 @@ class _MenuPageState extends State<MenuPage> {
   String _businessName = "Loading...";
   String _email = "";
   String _role = "staff";
+  Map<String, dynamic> _permissions = {};
 
   // Stream Subscription
   StreamSubscription<DocumentSnapshot>? _userSubscription;
@@ -50,6 +51,17 @@ class _MenuPageState extends State<MenuPage> {
     super.initState();
     _email = widget.userEmail ?? "maestromindssdg@gmail.com";
     _startFastUserDataListener();
+    _loadPermissions();
+  }
+
+  void _loadPermissions() async {
+    final userData = await PermissionHelper.getUserPermissions(widget.uid);
+    if (mounted) {
+      setState(() {
+        _permissions = userData['permissions'] as Map<String, dynamic>;
+        _role = userData['role'] as String;
+      });
+    }
   }
 
   void _startFastUserDataListener() {
@@ -81,6 +93,10 @@ class _MenuPageState extends State<MenuPage> {
 
   void _reset() => setState(() => _currentView = null);
 
+  bool _hasPermission(String permission) {
+    return _permissions[permission] == true;
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
@@ -91,29 +107,96 @@ class _MenuPageState extends State<MenuPage> {
     switch (_currentView) {
     // Inline Lists
       case 'Quotation':
+        if (!_hasPermission('quotation') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+
       case 'BillHistory':
+        if (!_hasPermission('billHistory') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail!, onBack: _reset);
+
       case 'CreditNotes':
+        if (!_hasPermission('creditNotes') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return CreditNotesPage(uid: widget.uid, onBack: _reset);
+
       case 'Customers':
+        if (!_hasPermission('customerManagement') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return CustomersPage(uid: widget.uid, onBack: _reset);
+
       case 'CreditDetails':
+        if (!_hasPermission('creditDetails') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return CreditDetailsPage(uid: widget.uid, onBack: _reset);
 
     // Expenses Sub-menu items
       case 'StockPurchase':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return StockPurchasePage(uid: widget.uid, onBack: _reset);
+
       case 'Expenses':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return ExpensesPage(uid: widget.uid, onBack: _reset);
+
       case 'ExpenseCategories':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
         return ExpenseCategoriesPage(uid: widget.uid, onBack: _reset);
 
-    // Staff
+      // Staff Management
       case 'StaffManagement':
-        return StaffManagementList(adminUid: widget.uid, onBack: _reset, onAddStaff: () => setState(() => _currentView = 'AddStaff'));
-      case 'AddStaff':
-        return AddStaffPage(adminUid: widget.uid, onBack: () => setState(() => _currentView = 'StaffManagement'));
+        if (!_hasPermission('staffManagement') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
     }
 
     // ------------------------------------------
@@ -143,35 +226,48 @@ class _MenuPageState extends State<MenuPage> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
-                _buildMenuItem(Icons.assignment_outlined, "Quotation", 'Quotation'),
-                _buildMenuItem(Icons.receipt_long_outlined, "Bill History", 'BillHistory'),
-                _buildMenuItem(Icons.description_outlined, "Credit Notes", 'CreditNotes'),
-                _buildMenuItem(Icons.group_outlined, "Customer Management", 'Customers'),
+                // Quotation
+                if (_hasPermission('quotation') || isAdmin)
+                  _buildMenuItem(Icons.assignment_outlined, "Quotation", 'Quotation'),
+
+                // Bill History
+                if (_hasPermission('billHistory') || isAdmin)
+                  _buildMenuItem(Icons.receipt_long_outlined, "Bill History", 'BillHistory'),
+
+                // Credit Notes
+                if (_hasPermission('creditNotes') || isAdmin)
+                  _buildMenuItem(Icons.description_outlined, "Credit Notes", 'CreditNotes'),
+
+                // Customer Management
+                if (_hasPermission('customerManagement') || isAdmin)
+                  _buildMenuItem(Icons.group_outlined, "Customer Management", 'Customers'),
 
                 // Expenses Expansion
-                Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    leading: Icon(Icons.account_balance_wallet_outlined, color: _iconColor),
-                    title: Text("Expenses", style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
-                    iconColor: _iconColor,
-                    collapsedIconColor: _iconColor,
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 24),
-                    childrenPadding: const EdgeInsets.only(left: 72),
-                    children: [
-                      _buildSubMenuItem("Stock Purchase", 'StockPurchase'),
-                      _buildSubMenuItem("Expenses", 'Expenses'),
-                      _buildSubMenuItem("Expense Category", 'ExpenseCategories'),
-                    ],
+                if (_hasPermission('expenses') || isAdmin)
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      leading: Icon(Icons.account_balance_wallet_outlined, color: _iconColor),
+                      title: Text("Expenses", style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
+                      iconColor: _iconColor,
+                      collapsedIconColor: _iconColor,
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 24),
+                      childrenPadding: const EdgeInsets.only(left: 72),
+                      children: [
+                        _buildSubMenuItem("Stock Purchase", 'StockPurchase'),
+                        _buildSubMenuItem("Expenses", 'Expenses'),
+                        _buildSubMenuItem("Expense Category", 'ExpenseCategories'),
+                      ],
+                    ),
                   ),
-                ),
 
-                _buildMenuItem(Icons.request_quote_outlined, "Credit Details", 'CreditDetails'),
+                // Credit Details
+                if (_hasPermission('creditDetails') || isAdmin)
+                  _buildMenuItem(Icons.request_quote_outlined, "Credit Details", 'CreditDetails'),
 
-                if (isAdmin)
+                // Staff Management
+                if (isAdmin || _hasPermission('staffManagement'))
                   _buildMenuItem(Icons.badge_outlined, "Staff Management", 'StaffManagement'),
-
-                // Unsettled Orders Button (Admin only)
               ],
             ),
           ),
@@ -3348,7 +3444,7 @@ class PurchaseCreditNoteDetailPage extends StatelessWidget {
                 Navigator.pop(ctx);
 
                 // 2. Show Loading Indicator
-                
+
 
                 try {
                   // Calculate new paid amount and status
