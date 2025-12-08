@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class CommonWidgets {
   // Show snackbar message
@@ -154,14 +155,17 @@ class CommonWidgets {
                   if (value.length >= 10) {
                     setDialogState(() => isLoading = true);
 
-                    // Fetch customer data from the root 'customers' collection (Updated)
-                    final doc = await FirebaseFirestore.instance
-                        .collection('customers')
-                        .doc(value)
-                        .get();
+                    // Fetch customer data from store-scoped customers collection
+                    try {
+                      final collection = await FirestoreService().getStoreCollection('customers');
+                      final doc = await collection.doc(value).get();
 
-                    if (doc.exists) {
-                      nameCtrl.text = doc.data()?['name'] ?? '';
+                      if (doc.exists) {
+                        final data = doc.data() as Map<String, dynamic>?;
+                        nameCtrl.text = data?['name'] ?? '';
+                      }
+                    } catch (e) {
+                      debugPrint('Error fetching customer: $e');
                     }
 
                     setDialogState(() => isLoading = false);
@@ -237,7 +241,7 @@ class CommonWidgets {
     }
   }
 
-  // UPDATED FUNCTION: Saves customer to root, adds staff name/ID, and adds business location
+  // UPDATED FUNCTION: Saves customer to store-scoped collection, adds staff name/ID, and adds business location
   static Future<void> _saveOrderToFirebase({
     required String uid,
     required String phone,
@@ -250,17 +254,12 @@ class CommonWidgets {
       // 1. Fetch Staff Name
       final staffName = await _fetchStaffName(uid);
 
-      // 2. Save customer to the ROOT 'customers' collection (Removed user sub-collection)
-      await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(phone)
-          .set({
+      // 2. Save customer to the store-scoped 'customers' collection
+      await FirestoreService().setDocument('customers', phone, {
         'name': name,
         'phone': phone,
-        // Assuming Tirunelveli is the fixed location/business ID for this run
-        'businessLocation': 'Tirunelveli',
         'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      });
 
       // 3. Prepare items list
       final items = cartItems
@@ -274,9 +273,7 @@ class CommonWidgets {
           .toList();
 
       // 4. Save order to 'savedOrders' collection
-      await FirebaseFirestore.instance
-          .collection('savedOrders')
-          .add({
+      await FirestoreService().addDocument('savedOrders', {
         'customerName': name,
         'customerPhone': phone,
         'items': items,
@@ -285,8 +282,6 @@ class CommonWidgets {
         // ADDED STAFF ID AND NAME
         'staffId': uid,
         'staffName': staffName ?? 'Unknown Staff',
-        // ADDED BUSINESS LOCATION
-        'businessLocation': 'Tirunelveli',
       });
 
       if (context.mounted) {

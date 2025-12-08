@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'dart:math';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class QuotationPage extends StatefulWidget {
   final String uid;
@@ -138,7 +139,7 @@ class _QuotationPageState extends State<QuotationPage> {
       };
 
       // Save quotation to Firestore
-      await FirebaseFirestore.instance.collection('quotations').add(quotationData);
+      await FirestoreService().addDocument('quotations', quotationData);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -501,41 +502,47 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             ),
             const SizedBox(height: 16),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('customers')
-                    .orderBy('name')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+              child: FutureBuilder<CollectionReference>(
+                future: FirestoreService().getStoreCollection('customers'),
+                builder: (context, collectionSnapshot) {
+                  if (!collectionSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text('No customers found'));
-                  }
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: collectionSnapshot.data!.orderBy('name').snapshots(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  final customers = snapshot.data!.docs.where((doc) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = (data['name'] ?? '').toString().toLowerCase();
-                    final phone = (data['phone'] ?? '').toString().toLowerCase();
-                    return name.contains(_searchQuery) || phone.contains(_searchQuery);
-                  }).toList();
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text('No customers found'));
+                      }
 
-                  return ListView.builder(
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) {
-                      final data = customers[index].data() as Map<String, dynamic>;
-                      final name = data['name'] ?? 'Unknown';
-                      final phone = data['phone'] ?? '';
-                      final gst = data['gst'];
+                      final customers = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['name'] ?? '').toString().toLowerCase();
+                        final phone = (data['phone'] ?? '').toString().toLowerCase();
+                        return name.contains(_searchQuery) || phone.contains(_searchQuery);
+                      }).toList();
 
-                      return ListTile(
-                        title: Text(name),
-                        subtitle: Text(phone),
-                        onTap: () {
-                          widget.onCustomerSelected(phone, name, gst);
-                          Navigator.pop(context);
+                      return ListView.builder(
+                        itemCount: customers.length,
+                        itemBuilder: (context, index) {
+                          final data = customers[index].data() as Map<String, dynamic>;
+                          final name = data['name'] ?? 'Unknown';
+                          final phone = data['phone'] ?? '';
+                          final gst = data['gst'];
+
+                          return ListTile(
+                            title: Text(name),
+                            subtitle: Text(phone),
+                            onTap: () {
+                              widget.onCustomerSelected(phone, name, gst);
+                              Navigator.pop(context);
+                            },
+                          );
                         },
                       );
                     },

@@ -4,6 +4,7 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // ==========================================
 // COLOR CONSTANTS
@@ -378,6 +379,7 @@ class AnalyticsPage extends StatefulWidget {
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
   String _selectedDuration = 'Last 7 Days';
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
@@ -393,12 +395,24 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, salesSnap) {
+      body: FutureBuilder<List<CollectionReference>>(
+        future: Future.wait([
+          _firestoreService.getStoreCollection('sales'),
+          _firestoreService.getStoreCollection('expenses'),
+        ]),
+        builder: (context, collectionsSnapshot) {
+          if (!collectionsSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final salesCollection = collectionsSnapshot.data![0];
+          final expensesCollection = collectionsSnapshot.data![1];
+
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('expenses').snapshots(),
-            builder: (context, expenseSnap) {
+            stream: salesCollection.snapshots(),
+            builder: (context, salesSnap) {
+              return StreamBuilder<QuerySnapshot>(
+                stream: expensesCollection.snapshots(),
+                builder: (context, expenseSnap) {
               if (!salesSnap.hasData || !expenseSnap.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -649,6 +663,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             },
           );
         },
+      );
+        },
       ),
     );
   }
@@ -793,8 +809,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 class DayBookPage extends StatelessWidget {
   final String uid;
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const DayBookPage({super.key, required this.uid, required this.onBack});
+  DayBookPage({super.key, required this.uid, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
@@ -802,9 +819,15 @@ class DayBookPage extends StatelessWidget {
 
     return Scaffold(
       appBar: _buildAppBar("DayBook", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           final allDocs = snapshot.data!.docs;
@@ -931,6 +954,8 @@ class DayBookPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -941,19 +966,32 @@ class DayBookPage extends StatelessWidget {
 // ==========================================
 class SalesSummaryPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const SalesSummaryPage({super.key, required this.onBack});
+  SalesSummaryPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Summary", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, salesSnapshot) {
+      body: FutureBuilder<List<CollectionReference>>(
+        future: Future.wait([
+          _firestoreService.getStoreCollection('sales'),
+          _firestoreService.getStoreCollection('expenses'),
+        ]),
+        builder: (context, collectionsSnapshot) {
+          if (!collectionsSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final salesCollection = collectionsSnapshot.data![0];
+          final expensesCollection = collectionsSnapshot.data![1];
+
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('expenses').snapshots(),
-            builder: (context, expenseSnapshot) {
+            stream: salesCollection.snapshots(),
+            builder: (context, salesSnapshot) {
+              return StreamBuilder<QuerySnapshot>(
+                stream: expensesCollection.snapshots(),
+                builder: (context, expenseSnapshot) {
               if (!salesSnapshot.hasData || !expenseSnapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
@@ -1343,6 +1381,8 @@ class SalesSummaryPage extends StatelessWidget {
             },
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1385,16 +1425,23 @@ class SalesSummaryPage extends StatelessWidget {
 // ==========================================
 class FullSalesHistoryPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const FullSalesHistoryPage({super.key, required this.onBack});
+  FullSalesHistoryPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("All Sales Report", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').orderBy('date', descending: true).snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.orderBy('date', descending: true).snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           // Build daily trend
@@ -1482,6 +1529,8 @@ class FullSalesHistoryPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1492,16 +1541,23 @@ class FullSalesHistoryPage extends StatelessWidget {
 // ==========================================
 class ItemSalesPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const ItemSalesPage({super.key, required this.onBack});
+  ItemSalesPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Item Sales", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if(!snapshot.hasData) return const Center(child:CircularProgressIndicator());
           Map<String, int> qty = {};
           for(var d in snapshot.data!.docs) {
@@ -1590,6 +1646,8 @@ class ItemSalesPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1601,16 +1659,23 @@ class ItemSalesPage extends StatelessWidget {
 class TopCustomersPage extends StatelessWidget {
   final String uid;
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const TopCustomersPage({super.key, required this.uid, required this.onBack});
+  TopCustomersPage({super.key, required this.uid, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Top Customers", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           Map<String, double> spend = {};
           for(var d in snapshot.data!.docs) {
@@ -1695,6 +1760,8 @@ class TopCustomersPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1705,16 +1772,23 @@ class TopCustomersPage extends StatelessWidget {
 // ==========================================
 class StockReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const StockReportPage({super.key, required this.onBack});
+  StockReportPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Stock Report", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Products').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('Products'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
           double totalVal = 0;
@@ -1825,6 +1899,8 @@ class StockReportPage extends StatelessWidget {
               ]
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1835,16 +1911,23 @@ class StockReportPage extends StatelessWidget {
 // ==========================================
 class LowStockPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const LowStockPage({super.key, required this.onBack});
+  LowStockPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Low Stock", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Products').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('Products'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           var low = snapshot.data!.docs.where((d) => (int.tryParse(d['currentStock'].toString())??0) < 5).toList();
 
@@ -1931,6 +2014,8 @@ class LowStockPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -1942,16 +2027,23 @@ class LowStockPage extends StatelessWidget {
 class TopProductsPage extends StatelessWidget {
   final String uid;
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const TopProductsPage({super.key, required this.uid, required this.onBack});
+  TopProductsPage({super.key, required this.uid, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Top Products", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if(!snapshot.hasData) return const Center(child:CircularProgressIndicator());
           Map<String, int> qty = {};
           for(var d in snapshot.data!.docs) {
@@ -2037,6 +2129,8 @@ class TopProductsPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -2047,23 +2141,36 @@ class TopProductsPage extends StatelessWidget {
 // ==========================================
 class TopCategoriesPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const TopCategoriesPage({super.key, required this.onBack});
+  TopCategoriesPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Top Categories", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Products').snapshots(),
-        builder: (context, productSnap) {
-          if (!productSnap.hasData) return const Center(child: CircularProgressIndicator());
-          Map<String, String> prodCat = {};
-          for (var doc in productSnap.data!.docs) prodCat[doc['itemName']] = doc['category'] ?? 'Uncategorised';
+      body: FutureBuilder<List<CollectionReference>>(
+        future: Future.wait([
+          _firestoreService.getStoreCollection('Products'),
+          _firestoreService.getStoreCollection('sales'),
+        ]),
+        builder: (context, collectionsSnapshot) {
+          if (!collectionsSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final productsCollection = collectionsSnapshot.data![0];
+          final salesCollection = collectionsSnapshot.data![1];
 
           return StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-              builder: (context, salesSnap) {
+            stream: productsCollection.snapshots(),
+            builder: (context, productSnap) {
+              if (!productSnap.hasData) return const Center(child: CircularProgressIndicator());
+              Map<String, String> prodCat = {};
+              for (var doc in productSnap.data!.docs) prodCat[doc['itemName']] = doc['category'] ?? 'Uncategorised';
+
+              return StreamBuilder<QuerySnapshot>(
+                  stream: salesCollection.snapshots(),
+                  builder: (context, salesSnap) {
                 if (!salesSnap.hasData) return const Center(child: CircularProgressIndicator());
                 Map<String, double> catRev = {};
                 for (var doc in salesSnap.data!.docs) {
@@ -2152,6 +2259,8 @@ class TopCategoriesPage extends StatelessWidget {
               }
           );
         },
+      );
+        },
       ),
     );
   }
@@ -2162,16 +2271,23 @@ class TopCategoriesPage extends StatelessWidget {
 // ==========================================
 class ExpenseReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const ExpenseReportPage({super.key, required this.onBack});
+  ExpenseReportPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Expense Report", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('expenses').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('expenses'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           if (snapshot.data!.docs.isEmpty) return const Center(child: Text("No Expenses Recorded"));
 
@@ -2266,6 +2382,8 @@ class ExpenseReportPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -2276,16 +2394,23 @@ class ExpenseReportPage extends StatelessWidget {
 // ==========================================
 class TaxReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const TaxReportPage({super.key, required this.onBack});
+  TaxReportPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Tax Report", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           double totalTax = 0;
           Map<int, double> dailyTax = {};
@@ -2375,6 +2500,8 @@ class TaxReportPage extends StatelessWidget {
               ]
           );
         },
+      );
+        },
       ),
     );
   }
@@ -2385,16 +2512,23 @@ class TaxReportPage extends StatelessWidget {
 // ==========================================
 class HSNReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const HSNReportPage({super.key, required this.onBack});
+  HSNReportPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("HSN Report", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('Products').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('Products'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           Map<String, int> hsnMap = {};
           for(var d in snapshot.data!.docs) {
@@ -2483,6 +2617,8 @@ class HSNReportPage extends StatelessWidget {
             ],
           );
         },
+      );
+        },
       ),
     );
   }
@@ -2493,16 +2629,23 @@ class HSNReportPage extends StatelessWidget {
 // ==========================================
 class StaffSaleReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const StaffSaleReportPage({super.key, required this.onBack});
+  StaffSaleReportPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: _buildAppBar("Staff Sales", onBack),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('sales').snapshots(),
-        builder: (context, snapshot) {
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection('sales'),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           Map<String, double> staffPerf = {};
           for(var d in snapshot.data!.docs) {
@@ -2586,6 +2729,8 @@ class StaffSaleReportPage extends StatelessWidget {
               ),
             ],
           );
+        },
+      );
         },
       ),
     );

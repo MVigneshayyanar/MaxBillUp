@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Sales/BarcodeScanner.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -521,12 +522,27 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildCategoryDropdown() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('categories')
-          .snapshots(),
-      builder: (context, snapshot) {
-        List<String> categories = ['UnCategorised'];
+    return FutureBuilder<Stream<QuerySnapshot>>(
+      future: FirestoreService().getCollectionStream('categories'),
+      builder: (context, streamSnapshot) {
+        if (!streamSnapshot.hasData) {
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0F0F0),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              'Category',
+              style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            ),
+          );
+        }
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: streamSnapshot.data,
+          builder: (context, snapshot) {
+            List<String> categories = ['UnCategorised'];
 
         if (snapshot.hasData) {
           final fetchedCategories = snapshot.data!.docs
@@ -578,6 +594,8 @@ class _AddProductPageState extends State<AddProductPage> {
               },
             ),
           ),
+        );
+          },
         );
       },
     );
@@ -694,10 +712,7 @@ class _AddProductPageState extends State<AddProductPage> {
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-
-      await FirebaseFirestore.instance
-          .collection('Products')
-          .add(productData);
+      await FirestoreService().addDocument('Products', productData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

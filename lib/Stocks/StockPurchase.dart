@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class StockPurchasePage extends StatefulWidget {
   final String uid;
@@ -326,7 +327,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           : _invoiceNumberController.text;
 
       // Save the stock purchase
-      await FirebaseFirestore.instance.collection('stockPurchases').add({
+      await FirestoreService().addDocument('stockPurchases', {
         'supplierName': _supplierNameController.text,
         'supplierPhone': _supplierPhoneController.text,
         'invoiceNumber': invoiceNumber,
@@ -341,7 +342,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       if (_paymentMode == 'Credit') {
         final creditNoteNumber = 'PCN${DateTime.now().millisecondsSinceEpoch}';
 
-        await FirebaseFirestore.instance.collection('purchaseCreditNotes').add({
+        await FirestoreService().addDocument('purchaseCreditNotes', {
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': invoiceNumber,
           'purchaseNumber': invoiceNumber, // For consistency with detail page

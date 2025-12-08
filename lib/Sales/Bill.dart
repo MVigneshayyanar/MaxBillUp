@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'dart:math';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // ==========================================
 // 1. BILL PAGE (Main State Widget)
@@ -63,7 +64,20 @@ class _BillPageState extends State<BillPage> {
     }
   }
 
-  double get _finalAmount => widget.totalAmount - _discountAmount - _totalCreditNotesAmount;
+  double get _finalAmount {
+    final amountAfterDiscount = widget.totalAmount - _discountAmount;
+    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount
+        ? amountAfterDiscount
+        : _totalCreditNotesAmount;
+    return amountAfterDiscount - creditToApply;
+  }
+
+  double get _actualCreditUsed {
+    final amountAfterDiscount = widget.totalAmount - _discountAmount;
+    return _totalCreditNotesAmount > amountAfterDiscount
+        ? amountAfterDiscount
+        : _totalCreditNotesAmount;
+  }
 
   void _showCustomerDialog() {
     showDialog(
@@ -209,78 +223,104 @@ class _BillPageState extends State<BillPage> {
           content: SizedBox(
             width: double.maxFinite,
             height: 400,
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('creditNotes')
-                  .where('customerPhone', isEqualTo: _selectedCustomerPhone)
-                  .where('status', isEqualTo: 'Available')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: FirestoreService().getCollectionStream('creditNotes'),
+              builder: (context, futureSnapshot) {
+                if (!futureSnapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No available credit notes',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                return StreamBuilder<QuerySnapshot>(
+                  stream: futureSnapshot.data!,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                final creditNotes = snapshot.data!.docs;
-
-                return ListView.builder(
-                  itemCount: creditNotes.length,
-                  itemBuilder: (context, index) {
-                    final doc = creditNotes[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
-                    final amount = (data['amount'] ?? 0.0) as num;
-                    final isSelected = _selectedCreditNotes.any((cn) => cn['id'] == doc.id);
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: CheckboxListTile(
-                        title: Text(
-                          'Credit Note: $creditNoteNumber',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF007AFF),
-                          ),
+                    if (!snapshot.hasData) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'No available credit notes',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
                         ),
-                        subtitle: Text(
-                          'Amount: Rs ${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 14),
+                      );
+                    }
+
+                    // Filter credit notes for this customer with Available status
+                    final creditNotes = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      return data['customerPhone'] == _selectedCustomerPhone &&
+                             data['status'] == 'Available';
+                    }).toList();
+
+                    if (creditNotes.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'No available credit notes',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
                         ),
-                        value: isSelected,
-                        onChanged: (bool? value) {
-                          setDialogState(() {
-                            if (value == true) {
-                              _selectedCreditNotes.add({
-                                'id': doc.id,
-                                'creditNoteNumber': creditNoteNumber,
-                                'amount': amount.toDouble(),
-                                'data': data,
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: creditNotes.length,
+                      itemBuilder: (context, index) {
+                        final doc = creditNotes[index];
+                        final data = doc.data() as Map<String, dynamic>;
+                        final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
+                        final amount = (data['amount'] ?? 0.0) as num;
+                        final isSelected = _selectedCreditNotes.any((cn) => cn['id'] == doc.id);
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: CheckboxListTile(
+                            title: Text(
+                              'Credit Note: $creditNoteNumber',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF007AFF),
+                              ),
+                            ),
+                            subtitle: Text(
+                              'Amount: Rs ${amount.toStringAsFixed(2)}',
+                              style: const TextStyle(fontSize: 14),
+                            ),
+                            value: isSelected,
+                            onChanged: (bool? value) {
+                              setDialogState(() {
+                                if (value == true) {
+                                  _selectedCreditNotes.add({
+                                    'id': doc.id,
+                                    'creditNoteNumber': creditNoteNumber,
+                                    'amount': amount.toDouble(),
+                                    'data': data,
+                                  });
+                                } else {
+                                  _selectedCreditNotes.removeWhere((cn) => cn['id'] == doc.id);
+                                }
+                                _totalCreditNotesAmount = _selectedCreditNotes.fold(
+                                  0.0,
+                                  (sum, cn) => sum + (cn['amount'] as double),
+                                );
                               });
-                            } else {
-                              _selectedCreditNotes.removeWhere((cn) => cn['id'] == doc.id);
-                            }
-                            _totalCreditNotesAmount = _selectedCreditNotes.fold(
-                              0.0,
-                              (sum, cn) => sum + (cn['amount'] as double),
-                            );
-                          });
-                        },
-                      ),
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -301,18 +341,36 @@ class _BillPageState extends State<BillPage> {
             ),
             ElevatedButton(
               onPressed: () {
+                final amountAfterDiscount = widget.totalAmount - _discountAmount;
+
                 setState(() {
                   // Credit notes already updated in dialog state
                 });
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      '${_selectedCreditNotes.length} credit note(s) applied: Rs ${_totalCreditNotesAmount.toStringAsFixed(2)}',
+
+                // Show warning if credit notes exceed bill amount
+                if (_totalCreditNotesAmount > amountAfterDiscount) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Credit notes applied: Rs ${_totalCreditNotesAmount.toStringAsFixed(2)}\n'
+                        'Bill amount: Rs ${amountAfterDiscount.toStringAsFixed(2)}\n'
+                        'Only Rs ${amountAfterDiscount.toStringAsFixed(2)} will be used. Remaining credit will stay available.',
+                      ),
+                      backgroundColor: Colors.orange,
+                      duration: const Duration(seconds: 5),
                     ),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${_selectedCreditNotes.length} credit note(s) applied: Rs ${_totalCreditNotesAmount.toStringAsFixed(2)}',
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
@@ -617,17 +675,34 @@ class _BillPageState extends State<BillPage> {
                       // Use Credit Notes Button
                       GestureDetector(
                         onTap: _showCreditNotesDialog,
-                        child: Text(
-                          _selectedCreditNotes.isNotEmpty
-                              ? 'Credit Notes Applied: ${_selectedCreditNotes.length} (₹${_totalCreditNotesAmount.toStringAsFixed(2)})'
-                              : 'Use Credit Notes',
-                          style: TextStyle(
-                            color: _selectedCreditNotes.isNotEmpty
-                                ? Colors.green
-                                : const Color(0xFF2196F3),
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedCreditNotes.isNotEmpty
+                                  ? 'Credit Notes Applied: ${_selectedCreditNotes.length} (₹${_actualCreditUsed.toStringAsFixed(2)})'
+                                  : 'Use Credit Notes',
+                              style: TextStyle(
+                                color: _selectedCreditNotes.isNotEmpty
+                                    ? Colors.green
+                                    : const Color(0xFF2196F3),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (_selectedCreditNotes.isNotEmpty && _totalCreditNotesAmount > _actualCreditUsed)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '(₹${(_totalCreditNotesAmount - _actualCreditUsed).toStringAsFixed(2)} excess - will remain available)',
+                                  style: const TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 12,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
 
@@ -860,15 +935,14 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               }
 
               try {
-                // Customer record is saved directly to the root 'customers' collection
-                await FirebaseFirestore.instance
-                    .collection('customers')
-                    .doc(phone)
-                    .set({
+                // Save customer to store-scoped collection
+                await FirestoreService().setDocument('customers', phone, {
                   'name': name,
                   'phone': phone,
                   'gst': gst.isEmpty ? null : gst,
                   'balance': 0.0,
+                  'totalSales': 0.0,
+                  'timestamp': FieldValue.serverTimestamp(),
                   'lastUpdated': FieldValue.serverTimestamp(),
                 });
 
@@ -971,33 +1045,38 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 
             // Customer List
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('customers')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+              child: FutureBuilder<Stream<QuerySnapshot>>(
+                future: FirestoreService().getCollectionStream('customers'),
+                builder: (context, streamSnapshot) {
+                  if (!streamSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text('No customers found'),
-                    );
-                  }
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: streamSnapshot.data,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  final customers = snapshot.data!.docs.where((doc) {
-                    if (_searchQuery.isEmpty) return true;
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text('No customers found'),
+                        );
+                      }
 
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = (data['name'] ?? '').toString().toLowerCase();
-                    final phone =
-                    (data['phone'] ?? '').toString().toLowerCase();
-                    final gst = (data['gst'] ?? '').toString().toLowerCase();
+                      final customers = snapshot.data!.docs.where((doc) {
+                        if (_searchQuery.isEmpty) return true;
 
-                    return name.contains(_searchQuery) ||
-                        phone.contains(_searchQuery) ||
-                        gst.contains(_searchQuery);
+                        final data = doc.data() as Map<String, dynamic>;
+                        final name = (data['name'] ?? '').toString().toLowerCase();
+                        final phone =
+                        (data['phone'] ?? '').toString().toLowerCase();
+                        final gst = (data['gst'] ?? '').toString().toLowerCase();
+
+                        return name.contains(_searchQuery) ||
+                            phone.contains(_searchQuery) ||
+                            gst.contains(_searchQuery);
                   }).toList();
 
                   if (customers.isEmpty) {
@@ -1103,9 +1182,11 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                       );
                     },
                   );
-                },
-              ),
-            ),
+                    }, // Close StreamBuilder builder
+                  ); // Close StreamBuilder
+                }, // Close FutureBuilder builder
+              ), // Close FutureBuilder
+            ), // Close Expanded
           ],
         ),
       ),
@@ -1218,20 +1299,20 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
-    final customerRef = FirebaseFirestore.instance.collection('customers').doc(phone);
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
 
     // Get customer name
     String customerName = 'Unknown Customer';
     final customerDoc = await customerRef.get();
     if (customerDoc.exists) {
-      customerName = customerDoc.data()?['name'] as String? ?? 'Unknown Customer';
+      customerName = (customerDoc.data() as Map<String, dynamic>?)?['name'] as String? ?? 'Unknown Customer';
     }
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final customerDoc = await transaction.get(customerRef);
 
       if (customerDoc.exists) {
-        final currentBalance = customerDoc.data()?['balance'] as double? ?? 0.0;
+        final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0;
         final newBalance = currentBalance + amount;
         transaction.update(customerRef, {
           'balance': newBalance,
@@ -1245,7 +1326,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     final businessLocation = await _fetchBusinessLocation(widget.uid);
 
     // Add detailed credit transaction record
-    await FirebaseFirestore.instance.collection('credits').add({
+    await FirestoreService().addDocument('credits', {
       'customerId': phone,
       'customerName': customerName,
       'amount': amount,
@@ -1273,13 +1354,13 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     try {
       // Iterate through each cart item and reduce stock
       for (var cartItem in widget.cartItems) {
-        final productRef = FirebaseFirestore.instance.collection('Products').doc(cartItem.productId);
+        final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
 
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final productDoc = await transaction.get(productRef);
 
           if (productDoc.exists) {
-            final productData = productDoc.data();
+            final productData = productDoc.data() as Map<String, dynamic>?;
             final stockEnabled = productData?['stockEnabled'] as bool? ?? false;
 
             // Only update stock if stock tracking is enabled for this product
@@ -1305,10 +1386,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     try {
       // Mark all selected credit notes as "Used"
       for (var creditNote in selectedCreditNotes) {
-        await FirebaseFirestore.instance
-            .collection('creditNotes')
-            .doc(creditNote['id'])
-            .update({
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
           'status': 'Used',
           'usedInInvoice': invoiceNumber,
           'usedAt': FieldValue.serverTimestamp(),
@@ -1402,7 +1480,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       };
 
       // 5. Save sale and handle cleanup
-      await FirebaseFirestore.instance.collection('sales').add(saleData);
+      await FirestoreService().addDocument('sales', saleData);
 
       // 6. Update product stock
       await _updateProductStock();
@@ -1413,17 +1491,22 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       }
 
       if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('savedOrders').doc(widget.savedOrderId).delete();
+        final savedOrderRef = await FirestoreService().getDocumentReference('savedOrders', widget.savedOrderId!);
+        await savedOrderRef.delete();
       }
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
+
+        // Pop BillPage with success result first
+        Navigator.pop(context, true);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Sale Completed (Split)')),
         );
 
         // Navigate to Invoice page
-        Navigator.pushAndRemoveUntil(
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => InvoicePage(
@@ -1445,13 +1528,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               customerPhone: widget.customerPhone,
             ),
           ),
-              (Route<dynamic> route) => route.isFirst,
-        ).then((_) {
-          // Pop back to the screen before BillPage with success result
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context, true);
-          }
-        });
+        );
       }
 
     } catch (e) {
@@ -1698,20 +1775,20 @@ class _PaymentPageState extends State<PaymentPage> {
 
   // Helper method for Credit Payment: Update customer's credit balance
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
-    final customerRef = FirebaseFirestore.instance.collection('customers').doc(phone);
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
 
     // Get customer name
     String customerName = 'Unknown Customer';
     final customerDoc = await customerRef.get();
     if (customerDoc.exists) {
-      customerName = customerDoc.data()?['name'] as String? ?? 'Unknown Customer';
+      customerName = (customerDoc.data() as Map<String, dynamic>?)?['name'] as String? ?? 'Unknown Customer';
     }
 
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final customerDoc = await transaction.get(customerRef);
 
       if (customerDoc.exists) {
-        final currentBalance = customerDoc.data()?['balance'] as double? ?? 0.0;
+        final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0;
         final newBalance = currentBalance + amount;
         transaction.update(customerRef, {
           'balance': newBalance,
@@ -1725,7 +1802,7 @@ class _PaymentPageState extends State<PaymentPage> {
     final businessLocation = await _fetchBusinessLocation(widget.uid);
 
     // Add detailed credit transaction record
-    await FirebaseFirestore.instance.collection('credits').add({
+    await FirestoreService().addDocument('credits', {
       'customerId': phone,
       'customerName': customerName,
       'amount': amount,
@@ -1753,13 +1830,13 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       // Iterate through each cart item and reduce stock
       for (var cartItem in widget.cartItems) {
-        final productRef = FirebaseFirestore.instance.collection('Products').doc(cartItem.productId);
+        final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
 
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final productDoc = await transaction.get(productRef);
 
           if (productDoc.exists) {
-            final productData = productDoc.data();
+            final productData = productDoc.data() as Map<String, dynamic>?;
             final stockEnabled = productData?['stockEnabled'] as bool? ?? false;
 
             // Only update stock if stock tracking is enabled for this product
@@ -1784,10 +1861,7 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       // Mark all selected credit notes as "Used"
       for (var creditNote in selectedCreditNotes) {
-        await FirebaseFirestore.instance
-            .collection('creditNotes')
-            .doc(creditNote['id'])
-            .update({
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
           'status': 'Used',
           'usedInInvoice': invoiceNumber,
           'usedAt': FieldValue.serverTimestamp(),
@@ -1829,7 +1903,7 @@ class _PaymentPageState extends State<PaymentPage> {
       });
 
       if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('savedOrders').doc(widget.savedOrderId).delete();
+        await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
       }
 
       if (mounted) {
@@ -1939,7 +2013,7 @@ class _PaymentPageState extends State<PaymentPage> {
       }
 
       // 5. Save sale to Firestore
-      await FirebaseFirestore.instance.collection('sales').add(saleData);
+      await FirestoreService().addDocument('sales', saleData);
 
       // 6. Update product stock
       await _updateProductStock();
@@ -1951,15 +2025,18 @@ class _PaymentPageState extends State<PaymentPage> {
 
       // 8. Delete saved order if applicable (Settle Order Logic)
       if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('savedOrders').doc(widget.savedOrderId).delete();
+        await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
       }
 
       if (mounted) {
         // Close loading dialog
         Navigator.pop(context);
 
-        // Navigate to Invoice page and pop all intermediate screens with success result
-        Navigator.pushReplacement(
+        // Pop BillPage with success result first
+        Navigator.pop(context, true);
+
+        // Navigate to Invoice page
+        Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => InvoicePage(
@@ -1980,16 +2057,7 @@ class _PaymentPageState extends State<PaymentPage> {
               customerPhone: widget.customerPhone,
             ),
           ),
-        ).then((_) {
-          // When InvoicePage is popped, return true to indicate success
-          // This pops BillPage and PaymentPage with result true
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context, true); // Pop PaymentPage with result
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context, true); // Pop BillPage with result
-            }
-          }
-        });
+        );
       }
     } catch (e) {
       if (mounted) {

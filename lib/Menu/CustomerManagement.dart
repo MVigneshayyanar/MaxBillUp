@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Required for Date Formatting
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -43,7 +44,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             onPressed: () async {
               try {
                 // Delete from Firestore
-                await FirebaseFirestore.instance.collection('customers').doc(widget.customerId).delete();
+                await FirestoreService().deleteDocument('customers', widget.customerId);
                 if (mounted) {
                   Navigator.pop(ctx); // Close Dialog
                   Navigator.pop(context); // Go back to List Page
@@ -84,7 +85,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () async {
-              await FirebaseFirestore.instance.collection('customers').doc(widget.customerId).update({
+              await FirestoreService().updateDocument('customers', widget.customerId, {
                 'name': nameController.text.trim(),
                 'gst': gstController.text.trim().isEmpty ? null : gstController.text.trim(),
               });
@@ -354,20 +355,27 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   // ---------------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance.collection('customers').doc(widget.customerId).snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-          if (!snapshot.data!.exists) return const Scaffold(body: Center(child: Text("Customer not found")));
+    return FutureBuilder<DocumentReference>(
+      future: FirestoreService().getDocumentReference('customers', widget.customerId),
+      builder: (context, docRefSnapshot) {
+        if (!docRefSnapshot.hasData) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
-          var data = snapshot.data!.data() as Map<String, dynamic>;
-          double balance = (data['balance'] ?? 0).toDouble();
-          double totalSales = (data['totalSales'] ?? 0).toDouble();
+        return StreamBuilder<DocumentSnapshot>(
+          stream: docRefSnapshot.data!.snapshots(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+            if (!snapshot.data!.exists) return const Scaffold(body: Center(child: Text("Customer not found")));
 
-          return Scaffold(
-            backgroundColor: const Color(0xFF2196F3),
-            appBar: AppBar(
-              title: const Text('Customer Details', style: TextStyle(color: Colors.white)),
+            var data = snapshot.data!.data() as Map<String, dynamic>;
+            double balance = (data['balance'] ?? 0).toDouble();
+            double totalSales = (data['totalSales'] ?? 0).toDouble();
+
+            return Scaffold(
+              backgroundColor: const Color(0xFF2196F3),
+              appBar: AppBar(
+                title: const Text('Customer Details', style: TextStyle(color: Colors.white)),
               backgroundColor: const Color(0xFF2196F3),
               elevation: 0,
               centerTitle: true,
@@ -599,10 +607,12 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 ],
               ),
             ),
-          );
-        }
-    );
-  }
+          ); // Close Scaffold
+          }, // Close StreamBuilder builder
+        ); // Close StreamBuilder
+      }, // Close FutureBuilder builder
+    ); // Close FutureBuilder - close return statement
+  } // Close build method
 
   // --- UPDATED NAVIGATION LOGIC ---
   Widget _buildMenuItem(String title, BuildContext context) {
@@ -1076,11 +1086,11 @@ class CustomerBillsPage extends StatelessWidget {
                 ),
               );
             },
-          );
-        },
-      ),
-    );
-  }
+          ); // Close ListView
+        }, // Close StreamBuilder builder
+      ), // Close StreamBuilder (body parameter)
+    ); // Close Scaffold
+  } // Close build method
 
   Color _getPaymentModeColor(String mode) {
     switch (mode.toLowerCase()) {
@@ -1198,12 +1208,12 @@ class CustomerCreditsPage extends StatelessWidget {
                 },
               );
             },
-          );
-        },
-      ),
-    );
-  }
-}
+          ); // Close ListView
+        }, // Close StreamBuilder builder
+      ), // Close StreamBuilder (body parameter)
+    ); // Close Scaffold
+  } // Close build method
+} // Close CustomerCreditsPage class
 
 // =============================================================================
 // CREDIT DETAILS DIALOG

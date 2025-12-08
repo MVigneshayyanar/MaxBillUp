@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class ProductsPage extends StatefulWidget {
   final String uid;
@@ -32,16 +33,38 @@ class _ProductsPageState extends State<ProductsPage> {
   String _role = 'staff';
   bool _isLoading = true;
 
+  // OPTIMIZATION: Cache the stream to prevent re-fetching on setState
+  Stream<QuerySnapshot>? _productsStream;
+
   @override
   void initState() {
     super.initState();
     _uid = widget.uid;
+
+    // Search listener
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+
+    // Load data once
     _loadPermissions();
+    _initProductsStream();
+  }
+
+  // OPTIMIZATION: Unwrap the Future here so the UI builds faster
+  Future<void> _initProductsStream() async {
+    try {
+      final stream = await FirestoreService().getCollectionStream('Products');
+      if (mounted) {
+        setState(() {
+          _productsStream = stream;
+        });
+      }
+    } catch (e) {
+      print("Error initializing stream: $e");
+    }
   }
 
   Future<void> _loadPermissions() async {
@@ -59,7 +82,8 @@ class _ProductsPageState extends State<ProductsPage> {
     return _permissions[permission] == true;
   }
 
-  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+  bool get isAdmin =>
+      _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
   @override
   void dispose() {
@@ -67,6 +91,7 @@ class _ProductsPageState extends State<ProductsPage> {
     super.dispose();
   }
 
+  // ... (Keep existing Sort/Filter Menu methods identical) ...
   void _showSortMenu() {
     showModalBottomSheet(
       context: context,
@@ -79,10 +104,7 @@ class _ProductsPageState extends State<ProductsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Sort By',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
+            const Text('Sort By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.sort_by_alpha),
@@ -161,10 +183,7 @@ class _ProductsPageState extends State<ProductsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Filter By Stock',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
+            const Text('Filter By Stock', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.select_all),
@@ -298,7 +317,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           color: Colors.grey[400],
                           fontSize: 16,
                         ),
-                        prefixIcon: Icon(
+                        prefixIcon: const Icon(
                           Icons.search,
                           color: Colors.blue,
                           size: 24,
@@ -322,8 +341,7 @@ class _ProductsPageState extends State<ProductsPage> {
                   _buildActionButton(
                     Icons.add_circle,
                     const Color(0xFF4CAF50),
-                    () async {
-                      // Double check permission before navigation
+                        () async {
                       if (!_hasPermission('addProduct') && !isAdmin) {
                         await PermissionHelper.showPermissionDeniedDialog(context);
                         return;
@@ -369,17 +387,16 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Widget _buildProductGrid(double w) {
+    // OPTIMIZATION: Wait for stream init, don't use FutureBuilder here
+    if (_productsStream == null) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Products')
-          .snapshots(),
+      stream: _productsStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              color: Color(0xFF2196F3),
-            ),
-          );
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
         }
 
         if (snapshot.hasError) {
@@ -396,33 +413,19 @@ class _ProductsPageState extends State<ProductsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.inventory_2_outlined,
-                  size: 80,
-                  color: Colors.grey[300],
-                ),
+                Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
                 const SizedBox(height: 16),
-                Text(
-                  'No products yet',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('No products yet',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
-                Text(
-                  'Add your first product to get started',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[400],
-                  ),
-                ),
+                Text('Add your first product to get started',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[400])),
               ],
             ),
           );
         }
 
+        // Filtering happens in memory on the data we received
         final products = _filterAndSortProducts(snapshot.data!.docs);
 
         if (products.isEmpty) {
@@ -430,20 +433,10 @@ class _ProductsPageState extends State<ProductsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.search_off,
-                  size: 80,
-                  color: Colors.grey[300],
-                ),
+                Icon(Icons.search_off, size: 80, color: Colors.grey[300]),
                 const SizedBox(height: 16),
-                Text(
-                  'No products found',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+                Text('No products found',
+                    style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.w500)),
               ],
             ),
           );
@@ -672,10 +665,11 @@ class _ProductsPageState extends State<ProductsPage> {
                       ? currentStock + quantity
                       : currentStock - quantity;
 
-                  await FirebaseFirestore.instance
-                      .collection('Products')
-                      .doc(productId)
-                      .update({'currentStock': newStock});
+                  await FirestoreService().updateDocument(
+                    'Products',
+                    productId,
+                    {'currentStock': newStock},
+                  );
 
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(

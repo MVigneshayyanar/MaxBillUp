@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class QuotationsListPage extends StatelessWidget {
   final String uid;
@@ -31,26 +32,30 @@ class QuotationsListPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('quotations')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<Stream<QuerySnapshot>>(
+        future: FirestoreService().getCollectionStream('quotations'),
+        builder: (context, streamSnapshot) {
+          if (!streamSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                'No quotations found',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
+          return StreamBuilder<QuerySnapshot>(
+            stream: streamSnapshot.data,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          return ListView.builder(
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No quotations found',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
+                );
+              }
+
+              return ListView.builder(
             padding: const EdgeInsets.all(12),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
@@ -160,6 +165,8 @@ class QuotationsListPage extends StatelessWidget {
                   ),
                 ),
               );
+            },
+          );
             },
           );
         },

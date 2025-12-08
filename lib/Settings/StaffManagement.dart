@@ -572,6 +572,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   // Update display name in Firebase Auth
                   await userCredential.user!.updateDisplayName(name);
 
+                  // Get current user's storeId
+                  final currentUserDoc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
+                  final storeId = currentUserDoc.data()?['storeId'];
+
                   // Default permissions based on role
                   Map<String, bool> defaultPermissions = _getDefaultPermissions(selectedRole);
 
@@ -581,6 +585,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     'phone': phone,
                     'email': email,
                     'uid': authUid, // Store UID for reference
+                    'storeId': storeId, // Link staff to store
                     'role': selectedRole,
                     'isActive': true,
                     'permissions': defaultPermissions,

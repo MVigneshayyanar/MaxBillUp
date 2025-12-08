@@ -5,6 +5,7 @@ import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
@@ -34,24 +35,30 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String _query = '';
 
   // 1. Declare the stream variable here
-  late Stream<QuerySnapshot> _productsStream;
+  Stream<QuerySnapshot>? _productsStream;
+  bool _isLoadingStream = true;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text.toLowerCase()));
 
-    // 2. Initialize the stream here (ONCE only)
-    _productsStream = FirebaseFirestore.instance
-        .collection('Products')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+    // 2. Initialize the stream here (ONCE only) - now async
+    _initializeProductsStream();
 
     if (widget.initialCartItems != null) {
       _cart.addAll(widget.initialCartItems!);
     } else if (widget.savedOrderData != null) {
       _loadOrder(widget.savedOrderData!);
     }
+  }
+
+  Future<void> _initializeProductsStream() async {
+    final stream = await FirestoreService().getCollectionStream('Products');
+    setState(() {
+      _productsStream = stream;
+      _isLoadingStream = false;
+    });
   }
 
   @override
@@ -185,8 +192,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   void _searchByBarcode(String barcode) async {
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('Products')
+      final collection = await FirestoreService().getStoreCollection('Products');
+      final snap = await collection
           .where('barcode', isEqualTo: barcode)
           .limit(1)
           .get();
@@ -203,7 +210,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       }
 
       final doc = snap.docs.first;
-      final data = doc.data();
+      final data = doc.data() as Map<String, dynamic>;
       final id = doc.id;
 
       final name = data['itemName'] ?? 'Unnamed';
@@ -430,6 +437,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   Widget _buildGrid(double w, double h) {
+    if (_isLoadingStream || _productsStream == null) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+    }
+
     return StreamBuilder<QuerySnapshot>(
       // 3. Use the variable initialized in initState
       stream: _productsStream,

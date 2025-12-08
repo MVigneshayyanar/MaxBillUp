@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
+import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/printer_service.dart';
+import 'package:printing/printing.dart';
 
 // ==========================================
 // CONSTANTS & STYLES
@@ -103,6 +108,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
       case 'Language':
         return LanguagePage(onBack: _goBack);
+
+      case 'Theme':
+        return ThemePage(onBack: _goBack);
+
+      case 'Help':
+        return HelpPage(onBack: _goBack, onNavigate: _navigateTo);
+
+      case 'FAQs':
+        return FAQsPage(onBack: _goBack);
+
+      case 'UpcomingFeatures':
+        return UpcomingFeaturesPage(onBack: _goBack);
+
+      case 'VideoTutorials':
+        return VideoTutorialsPage(onBack: _goBack);
     }
 
     // ------------------------------------------
@@ -161,14 +181,18 @@ class _SettingsPageState extends State<SettingsPage> {
               icon: Icons.dark_mode_outlined,
               title: "Theme",
               showDivider: false,
-              onTap: () {}, // Simple toggle can remain logic-less for now
+              onTap: () => _navigateTo('Theme'),
             ),
           ]),
 
           const SizedBox(height: 24),
           _buildSectionTitle("Support & Service"),
           _SettingsGroup(children: [
-            _SettingsTile(icon: Icons.help_outline, title: "Help", onTap: () {}),
+            _SettingsTile(
+              icon: Icons.help_outline,
+              title: "Help",
+              onTap: () => _navigateTo('Help'),
+            ),
             _SettingsTile(icon: Icons.storefront_outlined, title: "Market Place", onTap: () {}),
             _SettingsTile(icon: Icons.share_outlined, title: "Refer A Friend", showDivider: false, onTap: () {}),
           ]),
@@ -572,56 +596,311 @@ class PrinterSetupPage extends StatefulWidget {
 }
 
 class _PrinterSetupPageState extends State<PrinterSetupPage> {
+  bool _isScanning = false;
+  List<Printer> _availablePrinters = [];
+  String? _selectedPrinter;
   bool _enableAutoPrint = true;
-  bool _openCashDrawer = false;
-  bool _disconnect = false;
-  bool _autoCut = false;
+  String _printerSize = '80MM (3 inch)';
+  String _fontSize = 'Medium';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedPrinter();
+  }
+
+  Future<void> _loadSavedPrinter() async {
+    final savedPrinter = await PrinterService.getSavedPrinter();
+    if (mounted) {
+      setState(() {
+        _selectedPrinter = savedPrinter;
+      });
+    }
+  }
+
+  Future<void> _scanForPrinters() async {
+    setState(() {
+      _isScanning = true;
+      _availablePrinters = [];
+    });
+
+    try {
+      final printers = await PrinterService.discoverPrinters();
+      if (mounted) {
+        setState(() {
+          _availablePrinters = printers;
+          _isScanning = false;
+        });
+
+        if (printers.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No printers found. Make sure your printer is connected and turned on.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error scanning for printers: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectPrinter(String printerName) async {
+    await PrinterService.saveSelectedPrinter(printerName);
+    setState(() {
+      _selectedPrinter = printerName;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Printer "$printerName" selected successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _disconnectPrinter() async {
+    await PrinterService.clearSavedPrinter();
+    setState(() {
+      _selectedPrinter = null;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Printer disconnected'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Thermal Printer Setup", style: TextStyle(color: Colors.white)),
+        title: const Text("Printer Setup", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _SettingsGroup(children: [
-            _DropdownTile("Printer Size :", "58MM (2 inch)"),
-            _DropdownTile("Printer Mode :", "CONFIG - 1"),
-            _DropdownTile("Font Size :", "Medium", showDivider: false),
-          ]),
+          // Current Printer Status
+          if (_selectedPrinter != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Connected Printer',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _selectedPrinter!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.red),
+                    onPressed: _disconnectPrinter,
+                    tooltip: 'Disconnect',
+                  ),
+                ],
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 32),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'No printer connected. Scan for nearby printers to connect.',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           const SizedBox(height: 24),
-          _SettingsGroup(children: [
-            _SwitchTile("Enable Auto Print :", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)),
-            _SwitchTile("Open Cash Drawer :", _openCashDrawer, (v) => setState(() => _openCashDrawer = v)),
-            _SwitchTile("Disconnect after every print :", _disconnect, (v) => setState(() => _disconnect = v)),
-            _SwitchTile("Auto-Cut after printing :", _autoCut, (v) => setState(() => _autoCut = v), showDivider: false),
-          ]),
-          const SizedBox(height: 24),
-          OutlinedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.print, color: kPrimaryColor),
-            label: const Text("Add Printer", style: TextStyle(color: kPrimaryColor)),
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: kPrimaryColor),
+
+          // Scan for Printers Button
+          ElevatedButton.icon(
+            onPressed: _isScanning ? null : _scanForPrinters,
+            icon: _isScanning
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.search, color: Colors.white),
+            label: Text(
+              _isScanning ? 'Scanning...' : 'Scan for Printers',
+              style: const TextStyle(color: Colors.white, fontSize: 16),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
+
+          const SizedBox(height: 24),
+
+          // Available Printers List
+          if (_availablePrinters.isNotEmpty) ...[
+            const Text(
+              'Available Printers',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            _SettingsGroup(
+              children: _availablePrinters.map((printer) {
+                final isSelected = _selectedPrinter == printer.name;
+                return ListTile(
+                  leading: Icon(
+                    Icons.print,
+                    color: isSelected ? kPrimaryColor : Colors.grey,
+                  ),
+                  title: Text(
+                    printer.name,
+                    style: TextStyle(
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? kPrimaryColor : Colors.black,
+                    ),
+                  ),
+                  subtitle: Text(
+                    printer.isAvailable ? 'Available' : 'Unavailable',
+                    style: TextStyle(
+                      color: printer.isAvailable ? Colors.green : Colors.red,
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: kPrimaryColor)
+                      : null,
+                  onTap: printer.isAvailable
+                      ? () => _selectPrinter(printer.name)
+                      : null,
+                  enabled: printer.isAvailable,
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 24),
+          ],
+
+          // Printer Settings
+          const Text(
+            'Printer Settings',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SettingsGroup(
+            children: [
+              _DropdownTile(
+                'Printer Size',
+                _printerSize,
+                ['58MM (2 inch)', '80MM (3 inch)'],
+                (value) => setState(() => _printerSize = value!),
+              ),
+              _DropdownTile(
+                'Font Size',
+                _fontSize,
+                ['Small', 'Medium', 'Large'],
+                (value) => setState(() => _fontSize = value!),
+                showDivider: false,
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Auto Print Toggle
+          _SettingsGroup(
+            children: [
+              _SwitchTile(
+                'Enable Auto Print',
+                _enableAutoPrint,
+                (v) => setState(() => _enableAutoPrint = v),
+                showDivider: false,
+              ),
+            ],
+          ),
+
           const SizedBox(height: 30),
-          _PrimaryButton(text: "Update", onTap: widget.onBack),
+
+          // Save Button
+          _PrimaryButton(
+            text: 'Save Settings',
+            onTap: widget.onBack,
+          ),
         ],
       ),
     );
   }
 
-  Widget _DropdownTile(String label, String value, {bool showDivider = true}) {
+  Widget _DropdownTile(
+    String label,
+    String value,
+    List<String> options,
+    void Function(String?) onChanged, {
+    bool showDivider = true,
+  }) {
     return Column(
       children: [
         Padding(
@@ -632,12 +911,23 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
               Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(color: kBgColor, borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(
+                  color: kBgColor,
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: value,
-                    items: [DropdownMenuItem(value: value, child: Text(value, style: const TextStyle(fontSize: 14, color: Colors.grey)))],
-                    onChanged: (v) {},
+                    items: options
+                        .map((opt) => DropdownMenuItem(
+                              value: opt,
+                              child: Text(
+                                opt,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: onChanged,
                     isDense: true,
                   ),
                 ),
@@ -823,20 +1113,957 @@ class _LanguagePageState extends State<LanguagePage> {
 // ==========================================
 // 7. BUSINESS DETAILS PAGE
 // ==========================================
-class BusinessDetailsPage extends StatelessWidget {
+class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
   const BusinessDetailsPage({super.key, required this.uid, required this.onBack});
 
   @override
+  State<BusinessDetailsPage> createState() => _BusinessDetailsPageState();
+}
+
+class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
+  Map<String, dynamic> _permissions = {};
+  String _role = 'staff';
+  bool _isLoading = true;
+  String? _storeId;
+
+  // Text controllers for business details
+  final TextEditingController _businessNameController = TextEditingController();
+  final TextEditingController _ownerNameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _gstinController = TextEditingController();
+
+  // Additional fields from Firebase
+  String? _ownerUid;
+  String? _createdAt;
+  String? _updatedAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _businessNameController.dispose();
+    _ownerNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _gstinController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      // Load permissions
+      final userData = await PermissionHelper.getUserPermissions(widget.uid);
+
+      // Load store data
+      final storeId = await FirestoreService().getCurrentStoreId();
+      debugPrint('Loading business details for storeId: $storeId');
+
+      if (storeId != null) {
+        final storeDoc = await FirebaseFirestore.instance
+            .collection('stores')
+            .doc(storeId)
+            .get();
+
+        if (storeDoc.exists) {
+          final storeData = storeDoc.data() as Map<String, dynamic>;
+          debugPrint('Store data loaded: $storeData');
+
+          _businessNameController.text = storeData['businessName'] ?? '';
+          _ownerNameController.text = storeData['ownerName'] ?? '';
+          _phoneController.text = storeData['businessPhone'] ?? storeData['ownerPhone'] ?? '';
+          _emailController.text = storeData['ownerEmail'] ?? '';
+          _addressController.text = storeData['address'] ?? '';
+          _gstinController.text = storeData['gstin'] ?? '';
+
+          // Additional fields
+          _ownerUid = storeData['ownerUid'];
+
+          // Format timestamps
+          if (storeData['createdAt'] != null) {
+            final createdTimestamp = storeData['createdAt'] as Timestamp;
+            _createdAt = DateFormat('dd MMM yyyy, hh:mm a').format(createdTimestamp.toDate());
+          }
+
+          if (storeData['updatedAt'] != null) {
+            final updatedTimestamp = storeData['updatedAt'] as Timestamp;
+            _updatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(updatedTimestamp.toDate());
+          }
+
+          debugPrint('Business Name: ${_businessNameController.text}');
+          debugPrint('Owner Name: ${_ownerNameController.text}');
+          debugPrint('Phone: ${_phoneController.text}');
+          debugPrint('Email: ${_emailController.text}');
+          debugPrint('Created At: $_createdAt');
+          debugPrint('Updated At: $_updatedAt');
+        } else {
+          debugPrint('Store document does not exist for storeId: $storeId');
+        }
+      } else {
+        debugPrint('StoreId is null');
+      }
+
+      if (mounted) {
+        setState(() {
+          _permissions = userData['permissions'] as Map<String, dynamic>;
+          _role = userData['role'] as String;
+          _storeId = storeId;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading business details: $e');
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+
+  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kBgColor,
       appBar: AppBar(
         title: const Text("Business Details", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
       ),
-      body: const Center(child: Text("Edit Business Details Here")),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : !isAdmin
+              ? Center(
+                  child: Container(
+                    margin: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Admin Access Only',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Only administrators can edit business details. Contact your admin for changes.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Info Banner
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Business details are synced from your account',
+                                style: TextStyle(
+                                  color: kPrimaryColor,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Business Information Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.business, color: kPrimaryColor, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Business Information',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            _buildReadOnlyField('Business Name', Icons.store_mall_directory, _businessNameController.text),
+                            const Divider(height: 32),
+                            _buildReadOnlyField('Business Phone', Icons.phone_android, _phoneController.text),
+                            const Divider(height: 32),
+                            _buildReadOnlyField('Store ID', Icons.qr_code, _storeId ?? 'N/A'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Owner Information Card
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade200),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryColor.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(Icons.person, color: kPrimaryColor, size: 20),
+                                ),
+                                const SizedBox(width: 12),
+                                const Text(
+                                  'Owner Information',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            _buildReadOnlyField('Owner Name', Icons.badge, _ownerNameController.text),
+                            const Divider(height: 32),
+                            _buildReadOnlyField('Email Address', Icons.email, _emailController.text),
+                            const Divider(height: 32),
+                            _buildReadOnlyField('Phone Number', Icons.phone, _phoneController.text),
+                            if (_ownerUid != null && _ownerUid!.isNotEmpty) ...[
+                              const Divider(height: 32),
+                              _buildReadOnlyField('Owner UID', Icons.fingerprint, _ownerUid!),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Additional Details Card
+                      if (_addressController.text.isNotEmpty || _gstinController.text.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: kPrimaryColor.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Additional Details',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              if (_addressController.text.isNotEmpty)
+                                _buildReadOnlyField('Business Address', Icons.location_on, _addressController.text),
+                              if (_addressController.text.isNotEmpty && _gstinController.text.isNotEmpty)
+                                const Divider(height: 32),
+                              if (_gstinController.text.isNotEmpty)
+                                _buildReadOnlyField('GST Number', Icons.receipt_long, _gstinController.text),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+
+                      // System Information Card
+                      if (_createdAt != null || _updatedAt != null)
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.access_time, color: Colors.grey, size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'System Information',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              if (_createdAt != null)
+                                _buildReadOnlyField('Account Created', Icons.calendar_today, _createdAt!),
+                              if (_createdAt != null && _updatedAt != null)
+                                const Divider(height: 32),
+                              if (_updatedAt != null)
+                                _buildReadOnlyField('Last Updated', Icons.update, _updatedAt!),
+                            ],
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+    );
+  }
+
+  Widget _buildReadOnlyField(String label, IconData icon, String value) {
+    final isEmpty = value.isEmpty;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isEmpty ? Colors.grey.shade100 : kPrimaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isEmpty ? Colors.grey.shade400 : kPrimaryColor,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                isEmpty ? 'Not provided' : value,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isEmpty ? Colors.grey[400] : Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ==========================================
+// THEME PAGE
+// ==========================================
+class ThemePage extends StatefulWidget {
+  final VoidCallback onBack;
+  const ThemePage({super.key, required this.onBack});
+
+  @override
+  State<ThemePage> createState() => _ThemePageState();
+}
+
+class _ThemePageState extends State<ThemePage> {
+  String _selectedTheme = 'Light Mode'; // Default selection
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Theme", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Pick the look that feels best for your eyes.',
+              style: TextStyle(fontSize: 16, color: Colors.black87),
+            ),
+            const SizedBox(height: 24),
+
+            // Light Mode Option
+            _buildThemeOption(
+              'Light Mode',
+              'Bright and clear for daytime use',
+              _selectedTheme == 'Light Mode',
+              () {
+                setState(() {
+                  _selectedTheme = 'Light Mode';
+                });
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Dark Mode Option
+            _buildThemeOption(
+              'Dark Mode',
+              'Easy on the eyes in low light',
+              _selectedTheme == 'Dark Mode',
+              () {
+                setState(() {
+                  _selectedTheme = 'Dark Mode';
+                });
+              },
+            ),
+
+            const Spacer(),
+
+            // Update Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // TODO: Save theme preference
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Theme updated to $_selectedTheme'),
+                      backgroundColor: kPrimaryColor,
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Update',
+                  style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption(String title, String subtitle, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? kPrimaryColor : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? kPrimaryColor : Colors.grey.shade400,
+                  width: 2,
+                ),
+                color: isSelected ? kPrimaryColor : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : null,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// HELP PAGE
+// ==========================================
+class HelpPage extends StatelessWidget {
+  final VoidCallback onBack;
+  final Function(String) onNavigate;
+
+  const HelpPage({super.key, required this.onBack, required this.onNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Help", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: onBack,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildHelpTile(
+            'FAQs',
+            Icons.question_answer_outlined,
+            () => onNavigate('FAQs'),
+          ),
+          const SizedBox(height: 12),
+          _buildHelpTile(
+            'Upcoming Features',
+            Icons.update_outlined,
+            () => onNavigate('UpcomingFeatures'),
+          ),
+          const SizedBox(height: 12),
+          _buildHelpTile(
+            'Video Tutorials',
+            Icons.play_circle_outline,
+            () => onNavigate('VideoTutorials'),
+          ),
+          const SizedBox(height: 12),
+          _buildHelpTile(
+            'Chat Support',
+            Icons.chat_outlined,
+            () {
+              // TODO: Implement WhatsApp chat support
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Opening chat support...')),
+              );
+            },
+            showWhatsAppIcon: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHelpTile(String title, IconData icon, VoidCallback onTap, {bool showWhatsAppIcon = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: Colors.black87, size: 24),
+        title: Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+            if (showWhatsAppIcon) ...[
+              const SizedBox(width: 8),
+              const Icon(Icons.whatshot, color: Color(0xFF25D366), size: 20),
+            ],
+          ],
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// FAQs PAGE
+// ==========================================
+class FAQsPage extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const FAQsPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("FAQs", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: onBack,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildFAQCategory(
+            context,
+            'How to Connect Thermal Printer',
+            'Printer Setup',
+          ),
+          const SizedBox(height: 12),
+          _buildFAQCategory(
+            context,
+            'Sale / Billing',
+            'Billing Tutorial',
+          ),
+          const SizedBox(height: 12),
+          _buildFAQCategory(
+            context,
+            'Inventory / Stock',
+            'Stock Management',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFAQCategory(BuildContext context, String title, String subtitle) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+        onTap: () {
+          // Navigate to detailed FAQ page
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Opening $title')),
+          );
+        },
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// UPCOMING FEATURES PAGE
+// ==========================================
+class UpcomingFeaturesPage extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const UpcomingFeaturesPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Upcoming Features", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: onBack,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildFeatureCard(
+            'Multi-Store Management',
+            'Manage multiple store locations from one dashboard',
+            Icons.store,
+            'Coming Q1 2026',
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureCard(
+            'Advanced Analytics',
+            'Detailed insights and predictive analytics',
+            Icons.analytics,
+            'Coming Q2 2026',
+          ),
+          const SizedBox(height: 12),
+          _buildFeatureCard(
+            'Barcode Scanner',
+            'Fast product scanning for quick checkouts',
+            Icons.qr_code_scanner,
+            'Coming Q1 2026',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(String title, String description, IconData icon, String timeline) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: kPrimaryColor, size: 24),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      timeline,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            description,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// VIDEO TUTORIALS PAGE
+// ==========================================
+class VideoTutorialsPage extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const VideoTutorialsPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Video Tutorials", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: onBack,
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildVideoTile(
+            context,
+            'How to Create a Bill',
+            'Learn how to create and manage bills efficiently',
+            Icons.receipt_long,
+          ),
+          const SizedBox(height: 12),
+          _buildVideoTile(
+            context,
+            'How to Add Products',
+            'Step-by-step guide to adding products to inventory',
+            Icons.add_shopping_cart,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoTile(BuildContext context, String title, String description, IconData icon) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Icon(Icons.play_circle_filled, color: Colors.red, size: 24),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          description,
+          style: const TextStyle(fontSize: 13, color: Colors.grey),
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+        onTap: () {
+          // TODO: Open video player or YouTube link
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Opening video: $title')),
+          );
+        },
+        contentPadding: const EdgeInsets.all(12),
+      ),
     );
   }
 }

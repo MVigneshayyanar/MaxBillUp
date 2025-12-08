@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class QuotationDetailPage extends StatelessWidget {
   final String uid;
@@ -231,10 +232,7 @@ class QuotationDetailPage extends StatelessWidget {
     // Only update quotation status if invoice was actually created
     if (result == true) {
       try {
-        await FirebaseFirestore.instance
-            .collection('quotations')
-            .doc(quotationId)
-            .update({
+        await FirestoreService().updateDocument('quotations', quotationId, {
           'status': 'settled',
           'settledAt': FieldValue.serverTimestamp(),
         });
@@ -246,6 +244,9 @@ class QuotationDetailPage extends StatelessWidget {
               backgroundColor: Colors.green,
             ),
           );
+          
+          // Pop back to quotation list so it refreshes with updated status
+          Navigator.pop(context);
         }
       } catch (e) {
         if (context.mounted) {

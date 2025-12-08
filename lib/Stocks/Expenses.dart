@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class ExpensesPage extends StatefulWidget {
   final String uid;
@@ -346,7 +347,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       final referenceNumber = 'EXP${DateTime.now().millisecondsSinceEpoch}';
 
       // Save the expense
-      await FirebaseFirestore.instance.collection('expenses').add({
+      await FirestoreService().addDocument('expenses', {
         'title': _titleController.text,
         'amount': amount,
         'category': _selectedCategory,
@@ -361,7 +362,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       if (_paymentMode == 'Credit') {
         final creditNoteNumber = 'ECN${DateTime.now().millisecondsSinceEpoch}';
 
-        await FirebaseFirestore.instance.collection('purchaseCreditNotes').add({
+        await FirestoreService().addDocument('purchaseCreditNotes', {
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': referenceNumber,
           'purchaseNumber': referenceNumber,

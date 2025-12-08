@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class SaleAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String uid;
@@ -86,27 +87,35 @@ class _SaleAppBarState extends State<SaleAppBar> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .collection('Products')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                    return _buildTab('Products ($productCount)', 0);
+                FutureBuilder<Stream<QuerySnapshot>>(
+                  future: FirestoreService().getCollectionStream('Products'),
+                  builder: (context, streamSnapshot) {
+                    if (!streamSnapshot.hasData) {
+                      return _buildTab('Products (0)', 0);
+                    }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: streamSnapshot.data,
+                      builder: (context, snapshot) {
+                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                        return _buildTab('Products ($productCount)', 0);
+                      },
+                    );
                   },
                 ),
                 const SizedBox(width: 8),
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(uid)
-                      .collection('categories')
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                    return _buildTab('Category ($categoryCount)', 1);
+                FutureBuilder<Stream<QuerySnapshot>>(
+                  future: FirestoreService().getCollectionStream('categories'),
+                  builder: (context, streamSnapshot) {
+                    if (!streamSnapshot.hasData) {
+                      return _buildTab('Category (0)', 1);
+                    }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: streamSnapshot.data,
+                      builder: (context, snapshot) {
+                        final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                        return _buildTab('Category ($categoryCount)', 1);
+                      },
+                    );
                   },
                 ),
               ],

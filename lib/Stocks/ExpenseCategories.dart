@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class ExpenseCategoriesPage extends StatefulWidget {
   final String uid;
@@ -296,7 +297,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
 
                 try {
-                  await FirebaseFirestore.instance.collection('expenseCategories').add({
+                  await FirestoreService().addDocument('expenseCategories', {
                     'name': nameController.text,
                     'description': descriptionController.text,
                     'timestamp': Timestamp.now(),

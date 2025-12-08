@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class AddCategoryPopup extends StatefulWidget {
   final String uid;
@@ -60,8 +61,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
     });
 
     try {
-      final categoriesCollection = FirebaseFirestore.instance
-          .collection('categories');
+      final categoriesCollection = await FirestoreService().getStoreCollection('categories');
 
       // Check if category already exists
       final existingCategory = await categoriesCollection
@@ -79,7 +79,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
       }
 
       // Add new category
-      await categoriesCollection.add({
+      await FirestoreService().addDocument('categories', {
         'name': categoryName,
         'createdAt': FieldValue.serverTimestamp(),
         'ownerUid': widget.uid,

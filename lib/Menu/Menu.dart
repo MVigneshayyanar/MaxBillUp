@@ -12,6 +12,8 @@ import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/printer_service.dart';
 
 import 'dart:math'; // Added for PaymentPage random invoice generation
 
@@ -306,11 +308,10 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   Future<List<Map<String, dynamic>>> fetchUnsettledOrders(String uid) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('savedOrders')
-        .get();
+    final collection = await FirestoreService().getStoreCollection('savedOrders');
+    final querySnapshot = await collection.get();
 
-    return querySnapshot.docs.map((doc) => doc.data()).toList();
+    return querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
   }
 
 
@@ -347,8 +348,9 @@ class GenericListPage extends StatelessWidget {
   final bool filterNotEmpty;
   final num? numericFilterGreaterThan;
   final VoidCallback onBack; // Changed from Navigator
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const GenericListPage({
+  GenericListPage({
     super.key,
     required this.title,
     required this.collectionPath,
@@ -361,15 +363,6 @@ class GenericListPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Query collectionRef = FirebaseFirestore.instance.collection(collectionPath);
-    if (filterNotEmpty && filterField != null) {
-      collectionRef = collectionRef.where(filterField!, isNotEqualTo: null);
-    }
-    if (numericFilterGreaterThan != null && filterField != null) {
-      collectionRef = collectionRef.where(filterField!, isGreaterThan: numericFilterGreaterThan);
-    }
-    collectionRef = collectionRef.orderBy('timestamp', descending: true);
-
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(color: Colors.white)),
@@ -377,17 +370,33 @@ class GenericListPage extends StatelessWidget {
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
         centerTitle: true,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: collectionRef.snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text('No $title found'));
+      body: FutureBuilder<CollectionReference>(
+        future: _firestoreService.getStoreCollection(collectionPath),
+        builder: (context, collectionSnapshot) {
+          if (!collectionSnapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              final doc = snapshot.data!.docs[index];
+          Query collectionRef = collectionSnapshot.data!;
+          if (filterNotEmpty && filterField != null) {
+            collectionRef = collectionRef.where(filterField!, isNotEqualTo: null);
+          }
+          if (numericFilterGreaterThan != null && filterField != null) {
+            collectionRef = collectionRef.where(filterField!, isGreaterThan: numericFilterGreaterThan);
+          }
+          collectionRef = collectionRef.orderBy('timestamp', descending: true);
+
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionRef.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text('No $title found'));
+
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: snapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final doc = snapshot.data!.docs[index];
               final data = doc.data() as Map<String, dynamic>;
               final subtitle = data.containsKey('total') ? 'Total: ₹${data['total']}' : (data.containsKey('phone') ? data['phone'] : '');
               return Card(
@@ -402,6 +411,8 @@ class GenericListPage extends StatelessWidget {
               );
             },
           );
+        },
+      );
         },
       ),
     );
@@ -432,62 +443,75 @@ class SalesHistoryPage extends StatefulWidget {
 }
 
 class _SalesHistoryPageState extends State<SalesHistoryPage> {
-  late final Stream<List<QueryDocumentSnapshot>> _combinedStream;
+  Stream<List<QueryDocumentSnapshot>>? _combinedStream;
+  StreamController<List<QueryDocumentSnapshot>>? _controller;
+  StreamSubscription? _salesSub;
+  StreamSubscription? _savedOrdersSub;
 
   @override
   void initState() {
     super.initState();
-    _combinedStream = _createCombinedStream();
+    _initializeCombinedStream();
   }
 
-  Stream<List<QueryDocumentSnapshot>> _createCombinedStream() {
-    final salesStream = FirebaseFirestore.instance.collection('sales').snapshots();
-    final savedOrdersStream = FirebaseFirestore.instance
-        .collection('savedOrders')
-        .snapshots();
+  @override
+  void dispose() {
+    _salesSub?.cancel();
+    _savedOrdersSub?.cancel();
+    _controller?.close();
+    super.dispose();
+  }
 
-    late StreamController<List<QueryDocumentSnapshot>> controller;
-    StreamSubscription? salesSub;
-    StreamSubscription? savedOrdersSub;
-    List<QueryDocumentSnapshot> salesDocs = [];
-    List<QueryDocumentSnapshot> savedOrdersDocs = [];
+  Future<void> _initializeCombinedStream() async {
+    try {
+      final salesStream = await FirestoreService().getCollectionStream('sales');
+      final savedOrdersStream = await FirestoreService().getCollectionStream('savedOrders');
 
-    void updateController() {
-      final allDocs = [...salesDocs, ...savedOrdersDocs];
-      allDocs.sort((a, b) {
-        final dataA = a.data() as Map<String, dynamic>? ?? {};
-        final dataB = b.data() as Map<String, dynamic>? ?? {};
-        final tsA = dataA['timestamp'] as Timestamp?;
-        final tsB = dataB['timestamp'] as Timestamp?;
-        if (tsA == null && tsB == null) return 0;
-        if (tsA == null) return 1;
-        if (tsB == null) return -1;
-        return tsB.compareTo(tsA); // descending
+      List<QueryDocumentSnapshot> salesDocs = [];
+      List<QueryDocumentSnapshot> savedOrdersDocs = [];
+
+      void updateController() {
+        final allDocs = [...salesDocs, ...savedOrdersDocs];
+        allDocs.sort((a, b) {
+          final dataA = a.data() as Map<String, dynamic>? ?? {};
+          final dataB = b.data() as Map<String, dynamic>? ?? {};
+          final tsA = dataA['timestamp'] as Timestamp?;
+          final tsB = dataB['timestamp'] as Timestamp?;
+          if (tsA == null && tsB == null) return 0;
+          if (tsA == null) return 1;
+          if (tsB == null) return -1;
+          return tsB.compareTo(tsA); // descending
+        });
+        if (_controller != null && !_controller!.isClosed) {
+          _controller!.add(allDocs);
+        }
+      }
+
+      _controller = StreamController<List<QueryDocumentSnapshot>>.broadcast();
+
+      _salesSub = salesStream.listen((snapshot) {
+        salesDocs = snapshot.docs;
+        updateController();
       });
-      if (!controller.isClosed) {
-        controller.add(allDocs);
+
+      _savedOrdersSub = savedOrdersStream.listen((snapshot) {
+        savedOrdersDocs = snapshot.docs;
+        updateController();
+      });
+
+      if (mounted) {
+        setState(() {
+          _combinedStream = _controller!.stream;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error initializing bill history stream: $e');
+      if (mounted) {
+        setState(() {
+          _combinedStream = Stream.value([]);
+        });
       }
     }
-
-    controller = StreamController<List<QueryDocumentSnapshot>>(
-      onListen: () {
-        salesSub = salesStream.listen((snapshot) {
-          salesDocs = snapshot.docs;
-          updateController();
-        });
-
-        savedOrdersSub = savedOrdersStream.listen((snapshot) {
-          savedOrdersDocs = snapshot.docs;
-          updateController();
-        });
-      },
-      onCancel: () {
-        salesSub?.cancel();
-        savedOrdersSub?.cancel();
-      },
-    );
-
-    return controller.stream;
   }
 
   @override
@@ -543,13 +567,15 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           ),
 
           Expanded(
-            child: StreamBuilder<List<QueryDocumentSnapshot>>(
-              stream: _combinedStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No bills found'));
+            child: _combinedStream == null
+                ? const Center(child: CircularProgressIndicator())
+                : StreamBuilder<List<QueryDocumentSnapshot>>(
+                    stream: _combinedStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                      if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No bills found'));
 
-                // 2. Group bills by date
+                      // 2. Group bills by date
                 final groupedData = _groupBillsByDate(snapshot.data!);
                 final sortedDates = groupedData.keys.toList()..sort((a, b) => b.compareTo(a));
 
@@ -578,8 +604,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     );
                   },
                 );
-              },
-            ),
+                    },
+                  ),
           ),
         ],
       ),
@@ -772,19 +798,26 @@ class SalesDetailPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
-      body: StreamBuilder<DocumentSnapshot>(
-        // Use documentId to fetch the latest state of the bill
-        stream: FirebaseFirestore.instance.collection('sales').doc(documentId).snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: FutureBuilder<DocumentReference>(
+        future: FirestoreService().getDocumentReference('sales', documentId),
+        builder: (context, docRefSnapshot) {
+          if (!docRefSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text('Bill not found or deleted.'));
-          }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
+          return StreamBuilder<DocumentSnapshot>(
+            // Use documentId to fetch the latest state of the bill
+            stream: docRefSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return const Center(child: Text('Bill not found or deleted.'));
+              }
+
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
           final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
 
           return SingleChildScrollView(
@@ -1048,11 +1081,7 @@ class SalesDetailPage extends StatelessWidget {
                       context,
                       icon: Icons.receipt_long_outlined,
                       label: 'Receipt',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Printing Receipt...')),
-                        );
-                      },
+                      onTap: () => _printInvoiceReceipt(context, documentId, data),
                     ),
                     _buildActionButton(
                       context,
@@ -1075,10 +1104,80 @@ class SalesDetailPage extends StatelessWidget {
                 const SizedBox(height: 20),
               ],
             ),
-          );
-        },
-      ),
-    );
+          ); // Close SingleChildScrollView
+            }, // Close StreamBuilder builder
+          ); // Close StreamBuilder
+        }, // Close FutureBuilder builder
+      ), // Close FutureBuilder
+    ); // Close Scaffold
+  } // Close build method
+
+  Future<void> _printInvoiceReceipt(BuildContext context, String documentId, Map<String, dynamic> data) async {
+    try {
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preparing print...')),
+      );
+
+      // Get store details
+      final storeId = await FirestoreService().getCurrentStoreId();
+      String? businessName;
+      String? businessPhone;
+      String? businessAddress;
+      String? gstin;
+
+      if (storeId != null) {
+        final storeDoc = await FirebaseFirestore.instance
+            .collection('stores')
+            .doc(storeId)
+            .get();
+        if (storeDoc.exists) {
+          final storeData = storeDoc.data() as Map<String, dynamic>;
+          businessName = storeData['businessName'];
+          businessPhone = storeData['businessPhone'] ?? storeData['ownerPhone'];
+          businessAddress = storeData['address'];
+          gstin = storeData['gstin'];
+        }
+      }
+
+      // Prepare invoice data
+      final items = (data['items'] as List<dynamic>? ?? [])
+          .map((item) => {
+                'name': item['name'] ?? '',
+                'quantity': item['quantity'] ?? 0,
+                'price': (item['price'] ?? 0).toDouble(),
+              })
+          .toList();
+
+      // Call printer service
+      await PrinterService.printInvoice(
+        invoiceNumber: data['invoiceNumber'] ?? 'N/A',
+        customerName: data['customerName'] ?? 'Walk-in Customer',
+        customerPhone: data['customerPhone'] ?? '',
+        items: items,
+        subtotal: (data['subtotal'] ?? 0).toDouble(),
+        discount: (data['discount'] ?? 0).toDouble(),
+        tax: (data['tax'] ?? 0).toDouble(),
+        total: (data['total'] ?? 0).toDouble(),
+        paymentMode: data['paymentMode'] ?? 'Cash',
+        businessName: businessName,
+        businessPhone: businessPhone,
+        businessAddress: businessAddress,
+        gstin: gstin,
+        timestamp: data['timestamp'] != null
+            ? (data['timestamp'] as Timestamp).toDate()
+            : null,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Print failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildActionButton(BuildContext context, {
@@ -1167,16 +1266,16 @@ class SalesDetailPage extends StatelessWidget {
 
                 // 1. Restore stock for all items
                 final items = (data['items'] as List<dynamic>? ?? []);
+                final productsCollection = await FirestoreService().getStoreCollection('Products');
                 for (var item in items) {
                   if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
-                    final productRef = FirebaseFirestore.instance
-                        .collection('Products')
-                        .doc(item['productId']);
+                    final productRef = productsCollection.doc(item['productId']);
 
                     await FirebaseFirestore.instance.runTransaction((transaction) async {
                       final productDoc = await transaction.get(productRef);
                       if (productDoc.exists) {
-                        final currentStock = productDoc.data()?['currentStock'] ?? 0.0;
+                        final productData = productDoc.data() as Map<String, dynamic>?;
+                        final currentStock = productData?['currentStock'] ?? 0.0;
                         final quantity = (item['quantity'] ?? 0) is int
                             ? item['quantity']
                             : int.tryParse(item['quantity'].toString()) ?? 0;
@@ -1193,7 +1292,7 @@ class SalesDetailPage extends StatelessWidget {
                   final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
 
                   // Create credit note document
-                  await FirebaseFirestore.instance.collection('creditNotes').add({
+                  await FirestoreService().addDocument('creditNotes', {
                     'creditNoteNumber': creditNoteNumber,
                     'invoiceNumber': data['invoiceNumber'],
                     'customerPhone': data['customerPhone'],
@@ -1213,14 +1312,14 @@ class SalesDetailPage extends StatelessWidget {
 
                   // If it was a credit sale, also reverse the balance
                   if (data['paymentMode'] == 'Credit') {
-                    final customerRef = FirebaseFirestore.instance
-                        .collection('customers')
-                        .doc(data['customerPhone']);
+                    final customersCollection = await FirestoreService().getStoreCollection('customers');
+                    final customerRef = customersCollection.doc(data['customerPhone']);
 
                     await FirebaseFirestore.instance.runTransaction((transaction) async {
                       final customerDoc = await transaction.get(customerRef);
                       if (customerDoc.exists) {
-                        final currentBalance = customerDoc.data()?['balance'] ?? 0.0;
+                        final customerData = customerDoc.data() as Map<String, dynamic>?;
+                        final currentBalance = customerData?['balance'] ?? 0.0;
                         final billTotal = (data['total'] as num).toDouble();
                         final newBalance = currentBalance - billTotal;
                         transaction.update(customerRef, {'balance': newBalance});
@@ -1230,10 +1329,7 @@ class SalesDetailPage extends StatelessWidget {
                 }
 
                 // 3. Delete the sales document
-                await FirebaseFirestore.instance
-                    .collection('sales')
-                    .doc(documentId)
-                    .delete();
+                await FirestoreService().deleteDocument('sales', documentId);
 
                 if (context.mounted) {
                   // Close loading dialog
@@ -1358,9 +1454,9 @@ class SalesDetailPage extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
+    ); // Close Container
+  } // Close _buildItemRow method
+} // Close BillHistoryPage class
 
 // ==========================================
 // 4. CUSTOMER RELATED PAGES
@@ -1465,12 +1561,17 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
 
           // Credit Notes List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('creditNotes')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
+            child: FutureBuilder<CollectionReference>(
+              future: FirestoreService().getStoreCollection('creditNotes'),
+              builder: (context, collectionSnapshot) {
+                if (!collectionSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                return StreamBuilder<QuerySnapshot>(
+                  stream: collectionSnapshot.data!
+                      .orderBy('timestamp', descending: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
@@ -1652,6 +1753,8 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                     );
                   },
                 );
+              },
+            );
               },
             ),
           ),
@@ -2005,11 +2108,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Printing Receipt...')),
-                        );
-                      },
+                      onPressed: () => _printCreditNote(context),
                       icon: const Icon(Icons.receipt_long, color: Colors.white),
                       label: const Text(
                         'Receipt',
@@ -2031,6 +2130,64 @@ class CreditNoteDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _printCreditNote(BuildContext context) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preparing print...')),
+      );
+
+      // Get store details
+      final storeId = await FirestoreService().getCurrentStoreId();
+      String? businessName;
+      String? businessPhone;
+
+      if (storeId != null) {
+        final storeDoc = await FirebaseFirestore.instance
+            .collection('stores')
+            .doc(storeId)
+            .get();
+        if (storeDoc.exists) {
+          final storeData = storeDoc.data() as Map<String, dynamic>;
+          businessName = storeData['businessName'];
+          businessPhone = storeData['businessPhone'] ?? storeData['ownerPhone'];
+        }
+      }
+
+      // Extract data from creditNoteData
+      final cnNumber = creditNoteData['creditNoteNumber'] ?? 'N/A';
+      final invNumber = creditNoteData['invoiceNumber'] ?? 'N/A';
+      final custName = creditNoteData['customerName'] ?? 'Unknown';
+      final custPhone = creditNoteData['customerPhone'] ?? '';
+      final cnAmount = (creditNoteData['amount'] ?? 0.0) as num;
+      final cnItems = (creditNoteData['items'] as List<dynamic>? ?? []);
+      final cnTimestamp = creditNoteData['timestamp'] as Timestamp?;
+
+      // Call printer service
+      await PrinterService.printCreditNote(
+        creditNoteNumber: cnNumber,
+        invoiceNumber: invNumber,
+        customerName: custName,
+        customerPhone: custPhone,
+        items: cnItems.map((item) => {
+          'name': item['name'] ?? '',
+          'quantity': item['quantity'] ?? 0,
+          'price': (item['price'] ?? 0).toDouble(),
+          'total': (item['total'] ?? 0).toDouble(),
+        }).toList(),
+        amount: cnAmount.toDouble(),
+        businessName: businessName,
+        businessPhone: businessPhone,
+        timestamp: cnTimestamp?.toDate(),
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Print failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showRefundDialog(BuildContext context) {
@@ -2139,10 +2296,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                   );
 
                   // Update credit note status to Used
-                  await FirebaseFirestore.instance
-                      .collection('creditNotes')
-                      .doc(documentId)
-                      .update({
+                  await FirestoreService().updateDocument('creditNotes', documentId, {
                     'status': 'Used',
                     'refundMode': selectedMode,
                     'refundedAt': FieldValue.serverTimestamp(),
@@ -2323,12 +2477,17 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   }
 
   Widget _buildSalesCreditList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('customers')
-          .where('balance', isGreaterThan: 0)
-          .snapshots(),
-      builder: (context, snapshot) {
+    return FutureBuilder<CollectionReference>(
+      future: FirestoreService().getStoreCollection('customers'),
+      builder: (context, collectionSnapshot) {
+        if (!collectionSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return StreamBuilder<QuerySnapshot>(
+          stream: collectionSnapshot.data!
+              .where('balance', isGreaterThan: 0)
+              .snapshots(),
+          builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -2479,15 +2638,22 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         );
       },
     );
+      },
+    );
   }
 
   Widget _buildPurchaseCreditList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('purchaseCreditNotes')
-          .orderBy('timestamp', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
+    return FutureBuilder<CollectionReference>(
+      future: FirestoreService().getStoreCollection('purchaseCreditNotes'),
+      builder: (context, collectionSnapshot) {
+        if (!collectionSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return StreamBuilder<QuerySnapshot>(
+          stream: collectionSnapshot.data!
+              .orderBy('timestamp', descending: true)
+              .snapshots(),
+          builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
@@ -2703,13 +2869,15 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         );
       },
     );
+      },
+    );
   }
 }
 
 // ==========================================
 // PURCHASE CREDIT NOTE DETAIL PAGE
 // ==========================================
-class PurchaseCreditNoteDetailPage extends StatelessWidget {
+class PurchaseCreditNoteDetailPage extends StatefulWidget {
   final String documentId;
   final Map<String, dynamic> creditNoteData;
 
@@ -2720,12 +2888,37 @@ class PurchaseCreditNoteDetailPage extends StatelessWidget {
   });
 
   @override
+  State<PurchaseCreditNoteDetailPage> createState() => _PurchaseCreditNoteDetailPageState();
+}
+
+class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailPage> {
+  Stream<DocumentSnapshot>? _documentStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeStream();
+  }
+
+  Future<void> _initializeStream() async {
+    final collection = await FirestoreService().getStoreCollection('purchaseCreditNotes');
+    if (mounted) {
+      setState(() {
+        _documentStream = collection.doc(widget.documentId).snapshots();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_documentStream == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('purchaseCreditNotes')
-          .doc(documentId)
-          .snapshots(),
+      stream: _documentStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -3103,14 +3296,19 @@ class PurchaseCreditNoteDetailPage extends StatelessWidget {
                 ),
 
                 // Payment History Section
-                StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('purchaseCreditNotes')
-                      .doc(documentId)
-                      .collection('paymentHistory')
-                      .orderBy('timestamp', descending: true)
-                      .snapshots(),
-                  builder: (context, historySnapshot) {
+                FutureBuilder<CollectionReference>(
+                  future: FirestoreService().getStoreCollection('purchaseCreditNotes'),
+                  builder: (context, collSnapshot) {
+                    if (!collSnapshot.hasData) {
+                      return const SizedBox.shrink();
+                    }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: collSnapshot.data!
+                          .doc(widget.documentId)
+                          .collection('paymentHistory')
+                          .orderBy('timestamp', descending: true)
+                          .snapshots(),
+                      builder: (context, historySnapshot) {
                     if (!historySnapshot.hasData ||
                         historySnapshot.data!.docs.isEmpty) {
                       return const SizedBox.shrink();
@@ -3241,6 +3439,8 @@ class PurchaseCreditNoteDetailPage extends StatelessWidget {
                       ),
                     );
                   },
+                );
+                  },
                 ),
                 const SizedBox(height: 16),
 
@@ -3255,7 +3455,7 @@ class PurchaseCreditNoteDetailPage extends StatelessWidget {
                           onPressed: remainingAmount > 0
                               ? () {
                             _showPurchaseRefundDialog(
-                                context, documentId, liveData);
+                                context, widget.documentId, liveData);
                           }
                               : null,
                           icon: const Icon(Icons.attach_money,
@@ -3618,7 +3818,7 @@ class _CustomersPageState extends State<CustomersPage> {
               }
 
               // Save to Firestore with initial 0 balance and 0 total sales
-              await FirebaseFirestore.instance.collection('customers').doc(phone).set({
+              await FirestoreService().setDocument('customers', phone, {
                 'name': name,
                 'phone': phone,
                 'gst': gst.isEmpty ? null : gst,
@@ -3679,11 +3879,18 @@ class _CustomersPageState extends State<CustomersPage> {
 
           // 2. Customer List
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('customers').orderBy('timestamp', descending: true).snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No customers found'));
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: FirestoreService().getCollectionStream('customers'),
+              builder: (context, streamSnapshot) {
+                if (!streamSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: streamSnapshot.data,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No customers found'));
 
                 final docs = snapshot.data!.docs.where((d) {
                   if (_searchQuery.isEmpty) return true;
@@ -3760,17 +3967,19 @@ class _CustomersPageState extends State<CustomersPage> {
                           ),
                         ),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+                    ); // Close Card
+                  }, // Close ListView itemBuilder
+                ); // Close ListView
+                  }, // Close StreamBuilder builder
+                ); // Close StreamBuilder
+              }, // Close FutureBuilder builder
+            ), // Close FutureBuilder
+          ), // Close Expanded widget
+          ], // Close Column children
+        ), // Close Column widget (body parameter)
+    ); // Close Scaffold
+  } // Close build method
+} // Close CustomersPage class
 
 
 // ==========================================
@@ -3781,8 +3990,9 @@ class StaffManagementList extends StatelessWidget {
   final String adminUid;
   final VoidCallback onBack;
   final VoidCallback onAddStaff;
+  final FirestoreService _firestoreService = FirestoreService();
 
-  const StaffManagementList({super.key, required this.adminUid, required this.onBack, required this.onAddStaff});
+  StaffManagementList({super.key, required this.adminUid, required this.onBack, required this.onAddStaff});
 
   @override
   Widget build(BuildContext context) {
@@ -3810,9 +4020,20 @@ class StaffManagementList extends StatelessWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('users').snapshots(),
-              builder: (context, snapshot) {
+            child: FutureBuilder<String?>(
+              future: _firestoreService.getCurrentStoreId(),
+              builder: (context, storeIdSnapshot) {
+                if (!storeIdSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final storeId = storeIdSnapshot.data;
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('users')
+                      .where('storeId', isEqualTo: storeId)
+                      .snapshots(),
+                  builder: (context, snapshot) {
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
                 return ListView.separated(
@@ -3852,6 +4073,8 @@ class StaffManagementList extends StatelessWidget {
                     );
                   },
                 );
+              },
+            );
               },
             ),
           ),
@@ -3897,12 +4120,16 @@ class _AddStaffPageState extends State<AddStaffPage> {
   Future<void> _saveStaff() async {
     if(!_formKey.currentState!.validate()) return;
     try {
+      // Get current user's storeId
+      final storeId = await FirestoreService().getCurrentStoreId();
+
       await FirebaseFirestore.instance.collection('users').add({
         'name': _nameController.text,
         'email': _emailController.text,
         'role': _selectedRole,
         'status': 'Active',
         'parentAdmin': widget.adminUid,
+        'storeId': storeId,
         'createdAt': FieldValue.serverTimestamp(),
         'permissions': permissions,
       });
@@ -4627,10 +4854,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               }
 
               try {
-                await FirebaseFirestore.instance
-                    .collection('customers')
-                    .doc(phone)
-                    .set({
+                await FirestoreService().setDocument('customers', phone, {
                   'name': name,
                   'phone': phone,
                   'gst': gst.isEmpty ? null : gst,
@@ -5290,14 +5514,12 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         if (index < items.length) {
           final item = items[index];
           if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
-            final productRef = FirebaseFirestore.instance
-                .collection('Products')
-                .doc(item['productId']);
+            final productRef = await FirestoreService().getDocumentReference('Products', item['productId']);
 
             await FirebaseFirestore.instance.runTransaction((transaction) async {
               final productDoc = await transaction.get(productRef);
               if (productDoc.exists) {
-                final currentStock = productDoc.data()?['currentStock'] ?? 0.0;
+                final currentStock = (productDoc.data() as Map<String, dynamic>?)?['currentStock'] ?? 0.0;
                 final newStock = currentStock + returnQty;
                 transaction.update(productRef, {'currentStock': newStock});
               }
@@ -5312,7 +5534,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
 
         // Create credit note document
-        await FirebaseFirestore.instance.collection('creditNotes').add({
+        await FirestoreService().addDocument('creditNotes', {
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': widget.invoiceData['invoiceNumber'],
           'customerPhone': widget.invoiceData['customerPhone'],
