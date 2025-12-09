@@ -45,6 +45,10 @@ dependencies:
   printing: ^5.13.2
   path_provider: ^2.1.4
   shared_preferences: ^2.3.3
+  permission_handler: ^12.0.1
+  flutter_blue_plus: ^1.32.12
+  charset_converter: ^2.1.2
+  share_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:

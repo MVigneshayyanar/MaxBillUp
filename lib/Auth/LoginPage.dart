@@ -18,8 +18,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _otpCtrl = TextEditingController();
   final _auth = FirebaseAuth.instance;
 
   // false = Gmail tab active, true = Staff (email/password) tab active
@@ -27,18 +25,10 @@ class _LoginPageState extends State<LoginPage> {
   bool _hidePass = true;
   bool _loading = false;
 
-  // OTP variables (kept for future use if needed)
-  bool _otpSent = false;
-  String _verifyId = '';
-  int? _resendToken;
-  final String _countryCode = '+91';
-
   @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
-    _phoneCtrl.dispose();
-    _otpCtrl.dispose();
     super.dispose();
   }
 
@@ -63,11 +53,11 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // --- UPDATED GOOGLE LOGIN LOGIC ---
+  // --- GOOGLE LOGIN LOGIC (Business Owner) ---
   Future<void> _googleLogin() async {
     setState(() => _loading = true);
     try {
-      // 1. Force account selection to ensure fresh login intent
+      // 1. Force account selection
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
 
@@ -75,22 +65,22 @@ class _LoginPageState extends State<LoginPage> {
 
       if (gUser == null) {
         if (mounted) setState(() => _loading = false);
-        return; // User cancelled the picker
+        return; // User cancelled
       }
 
-      // 2. Get credentials from Google
+      // 2. Get credentials
       final GoogleSignInAuthentication gAuth = await gUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: gAuth.accessToken,
         idToken: gAuth.idToken,
       );
 
-      // 3. Sign in to Firebase Auth (Creates auth record if new)
+      // 3. Sign in to Firebase
       final userCred = await _auth.signInWithCredential(credential);
       final user = userCred.user;
 
       if (user != null) {
-        // 4. Check if Business Data exists in Firestore
+        // 4. Check if Business Data exists
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -100,11 +90,11 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _loading = false);
 
         if (userDoc.exists) {
-          // Case A: Existing User -> Go to App
+          // Existing Owner -> Go to App
           _showMsg('Welcome back!');
           _navigate(user.uid, user.email);
         } else {
-          // Case B: New User (or Incomplete Setup) -> Go to Business Details
+          // New Owner -> Setup Profile
           _showMsg('Please complete your business profile.');
           Navigator.pushReplacement(
             context,
@@ -112,16 +102,11 @@ class _LoginPageState extends State<LoginPage> {
               builder: (context) => BusinessDetailsPage(
                 uid: user.uid,
                 email: user.email,
-                displayName: user.displayName, // Pass name to pre-fill
+                displayName: user.displayName,
               ),
             ),
           );
         }
-      } else {
-        throw FirebaseAuthException(
-            code: 'user-null',
-            message: 'Sign in succeeded but user is null'
-        );
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) setState(() => _loading = false);
@@ -132,6 +117,7 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  // --- STAFF LOGIN LOGIC (Enforces Verification & Approval) ---
   Future<void> _emailLogin() async {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
@@ -148,14 +134,57 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => _loading = true);
 
     try {
+      // 1. Attempt Sign In
       final cred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: pass,
       );
 
-      if (cred.user != null) {
-        // Staff login usually implies existing setup, but you could add a doc check here too if needed
-        _navigate(cred.user!.uid, cred.user!.email);
+      final user = cred.user;
+
+      if (user != null) {
+        // 2. Refresh user to ensure emailVerified status is fresh
+        await user.reload();
+
+        // 3. Check Email Verification
+        if (!user.emailVerified) {
+          await _auth.signOut();
+          _showMsg('Please verify your email address first. Check your inbox.');
+          setState(() => _loading = false);
+          return;
+        }
+
+        // 4. Fetch User Document from Firestore
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (userDoc.exists) {
+          final userData = userDoc.data()!;
+          final bool isActive = userData['isActive'] ?? false;
+          final bool dbEmailVerified = userData['isEmailVerified'] ?? false;
+
+          // 5. Update Firestore if email is verified but DB says false (Syncs with Admin UI)
+          if (!dbEmailVerified) {
+            await userDoc.reference.update({'isEmailVerified': true});
+          }
+
+          // 6. Check Admin Approval (isActive)
+          if (!isActive) {
+            await _auth.signOut();
+            _showMsg('Email Verified! Waiting for Admin to approve your access.');
+            setState(() => _loading = false);
+            return;
+          }
+
+          // 7. Success - Access Granted
+          _navigate(user.uid, user.email);
+        } else {
+          // Fallback if user auth exists but no firestore doc (unlikely for added staff)
+          await _auth.signOut();
+          _showMsg('Account configuration error. Contact Admin.');
+        }
       }
     } on FirebaseAuthException catch (e) {
       String msg = 'Login failed';
@@ -163,6 +192,8 @@ class _LoginPageState extends State<LoginPage> {
       if (e.code == 'wrong-password') msg = 'Incorrect password.';
       if (e.code == 'invalid-credential') msg = 'Invalid credentials.';
       _showMsg(msg);
+    } catch (e) {
+      _showMsg('Error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -217,7 +248,6 @@ class _LoginPageState extends State<LoginPage> {
     children: [
       const Text('Welcome to',
           style: TextStyle(fontSize: 28, color: Colors.black87)),
-      const SizedBox(height: 16),
       const SizedBox(height: 12),
       Padding(
         padding: const EdgeInsets.only(top: 0),
@@ -227,7 +257,6 @@ class _LoginPageState extends State<LoginPage> {
           height: 50,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
-            // Fallback if logo asset is missing
             return const Text("MAXBILLUP", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF00B8FF)));
           },
         ),
@@ -246,8 +275,6 @@ class _LoginPageState extends State<LoginPage> {
     child: GestureDetector(
       onTap: () => setState(() {
         _isStaff = !_isStaff;
-        _otpSent = false;
-        // Clear errors/loading state when switching tabs
         _loading = false;
       }),
       child: Container(
@@ -450,17 +477,13 @@ class _LoginPageState extends State<LoginPage> {
   );
 }
 
-// Custom painter to draw a Google 'G' like logo (fallback if asset missing)
 class GoogleGPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
-
     final strokeWidth = size.width * 0.22;
-
     final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
-
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
@@ -468,16 +491,13 @@ class GoogleGPainter extends CustomPainter {
 
     const double startAngle = -3.14 / 4;
     final double sweep = 3.14 * 1.6;
-    // red
+
     paint.color = const Color(0xFFEA4335);
     canvas.drawArc(rect, startAngle, sweep * 0.23, false, paint);
-    // yellow
     paint.color = const Color(0xFFFBBC05);
     canvas.drawArc(rect, startAngle + sweep * 0.23, sweep * 0.23, false, paint);
-    // green
     paint.color = const Color(0xFF34A853);
     canvas.drawArc(rect, startAngle + sweep * 0.46, sweep * 0.23, false, paint);
-    // blue
     paint.color = const Color(0xFF4285F4);
     canvas.drawArc(rect, startAngle + sweep * 0.69, sweep * 0.31, false, paint);
 

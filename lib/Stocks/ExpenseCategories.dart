@@ -16,10 +16,14 @@ class ExpenseCategoriesPage extends StatefulWidget {
 class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  late Future<Stream<QuerySnapshot>> _categoriesStreamFuture;
 
   @override
   void initState() {
     super.initState();
+    // Optimization: Initialize stream once
+    _categoriesStreamFuture = FirestoreService().getCollectionStream('expenseCategories');
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -94,153 +98,163 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
 
           // List of Categories
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('expenseCategories')
-                  .orderBy('name')
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: _categoriesStreamFuture,
+              builder: (context, futureSnapshot) {
+                if (futureSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.category_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No categories found',
+                if (!futureSnapshot.hasData) {
+                  return const Center(child: Text("Unable to load categories"));
+                }
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: futureSnapshot.data!,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.category_outlined, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'No categories found',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final categories = snapshot.data!.docs.where((doc) {
+                      if (_searchQuery.isEmpty) return true;
+                      final data = doc.data() as Map<String, dynamic>;
+                      final name = (data['name'] ?? '').toString().toLowerCase();
+                      final description = (data['description'] ?? '').toString().toLowerCase();
+                      return name.contains(_searchQuery) || description.contains(_searchQuery);
+                    }).toList();
+
+                    if (categories.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No matching categories found',
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                      ],
-                    ),
-                  );
-                }
+                      );
+                    }
 
-                final categories = snapshot.data!.docs.where((doc) {
-                  if (_searchQuery.isEmpty) return true;
-                  final data = doc.data() as Map<String, dynamic>;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  final description = (data['description'] ?? '').toString().toLowerCase();
-                  return name.contains(_searchQuery) || description.contains(_searchQuery);
-                }).toList();
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final data = categories[index].data() as Map<String, dynamic>;
+                        final name = data['name'] ?? 'Unnamed Category';
+                        final description = data['description'] ?? '';
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        final date = timestamp?.toDate();
+                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
-                if (categories.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No matching categories found',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: categories.length,
-                  itemBuilder: (context, index) {
-                    final data = categories[index].data() as Map<String, dynamic>;
-                    final name = data['name'] ?? 'Unnamed Category';
-                    final description = data['description'] ?? '';
-                    final timestamp = data['timestamp'] as Timestamp?;
-                    final date = timestamp?.toDate();
-                    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        leading: Container(
-                          width: 48,
-                          height: 48,
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF007AFF).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.category,
-                            color: Color(0xFF007AFF),
-                            size: 24,
-                          ),
-                        ),
-                        title: Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (description.isNotEmpty) ...[
-                              const SizedBox(height: 4),
-                              Text(
-                                description,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
                               ),
                             ],
-                            const SizedBox(height: 4),
-                            Text(
-                              'Created: $dateString',
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.category,
+                                color: Color(0xFF007AFF),
+                                size: 24,
+                              ),
+                            ),
+                            title: Text(
+                              name,
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
-                          ],
-                        ),
-                        trailing: PopupMenuButton<String>(
-                          onSelected: (value) {
-                            if (value == 'edit') {
-                              _showEditCategoryDialog(context, categories[index].id, data);
-                            } else if (value == 'delete') {
-                              _showDeleteConfirmation(context, categories[index].id, name);
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            const PopupMenuItem<String>(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, size: 20, color: Colors.black87),
-                                  SizedBox(width: 8),
-                                  Text('Edit'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    description,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
-                              ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Created: $dateString',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, size: 20, color: Colors.red),
-                                  SizedBox(width: 8),
-                                  Text('Delete', style: TextStyle(color: Colors.red)),
-                                ],
-                              ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  _showEditCategoryDialog(context, categories[index].id, data);
+                                } else if (value == 'delete') {
+                                  _showDeleteConfirmation(context, categories[index].id, name);
+                                }
+                              },
+                              itemBuilder: (BuildContext context) => [
+                                const PopupMenuItem<String>(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 20, color: Colors.black87),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.delete, size: 20, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -374,10 +388,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
 
                 try {
-                  await FirebaseFirestore.instance
-                      .collection('expenseCategories')
-                      .doc(categoryId)
-                      .update({
+                  await FirestoreService().updateDocument('expenseCategories', categoryId, {
                     'name': nameController.text,
                     'description': descriptionController.text,
                   });
@@ -422,10 +433,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await FirebaseFirestore.instance
-                      .collection('expenseCategories')
-                      .doc(categoryId)
-                      .delete();
+                  await FirestoreService().deleteDocument('expenseCategories', categoryId);
 
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -452,4 +460,3 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
     );
   }
 }
-

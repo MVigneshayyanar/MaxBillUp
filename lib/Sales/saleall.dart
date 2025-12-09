@@ -33,17 +33,22 @@ class _SaleAllPageState extends State<SaleAllPage> {
   final _searchCtrl = TextEditingController();
   final List<CartItem> _cart = [];
   String _query = '';
+  String? _selectedUnit;
 
   // 1. Declare the stream variable here
   Stream<QuerySnapshot>? _productsStream;
   bool _isLoadingStream = true;
+
+  // 2. Add a list of units for filtering
+  final List<String> _units = [];
+  bool _isLoadingUnits = true;
 
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text.toLowerCase()));
 
-    // 2. Initialize the stream here (ONCE only) - now async
+    // 3. Initialize the stream here (ONCE only) - now async
     _initializeProductsStream();
 
     if (widget.initialCartItems != null) {
@@ -59,6 +64,33 @@ class _SaleAllPageState extends State<SaleAllPage> {
       _productsStream = stream;
       _isLoadingStream = false;
     });
+
+    // 4. Load the units for filtering
+    _loadUnits();
+  }
+
+  Future<void> _loadUnits() async {
+    try {
+      final collection = await FirestoreService().getStoreCollection('Products');
+      final snap = await collection.get();
+
+      final unitsSet = <String>{};
+      for (var doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final unit = data['stockUnit'] ?? 'box';
+        unitsSet.add(unit);
+      }
+
+      setState(() {
+        _units.addAll(unitsSet);
+        _isLoadingUnits = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingUnits = false;
+      });
+      CommonWidgets.showSnackBar(context, 'Error loading units: $e', bgColor: const Color(0xFFFF5252));
+    }
   }
 
   @override
@@ -375,7 +407,41 @@ class _SaleAllPageState extends State<SaleAllPage> {
         Expanded(
           child: Container(
             color: const Color(0xFFF5F5F5),
-            child: _buildGrid(w, h),
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.fromLTRB(w * 0.04, w * 0.01, w * 0.04, 0),
+                  child: SizedBox(
+                    height: w * 0.12,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        FilterChip(
+                          label: const Text('All'),
+                          selected: _selectedUnit == null,
+                          onSelected: (_) {
+                            setState(() => _selectedUnit = null);
+                          },
+                        ),
+                        ..._units.map((unit) => Padding(
+                          padding: EdgeInsets.only(left: w * 0.02),
+                          child: FilterChip(
+                            label: Text(unit),
+                            selected: _selectedUnit == unit,
+                            onSelected: (_) {
+                              setState(() => _selectedUnit = unit);
+                            },
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: _buildGrid(w, h),
+                ),
+              ],
+            ),
           ),
         ),
         CommonWidgets.buildActionButtons(
@@ -475,7 +541,16 @@ class _SaleAllPageState extends State<SaleAllPage> {
           return name.contains(_query) || barcode.contains(_query);
         }).toList();
 
-        if (filtered.isEmpty) {
+        // 5. Apply the unit filter
+        final unitFiltered = _selectedUnit == null
+            ? filtered
+            : filtered.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final unit = data['stockUnit'] ?? 'box';
+          return unit == _selectedUnit;
+        }).toList();
+
+        if (unitFiltered.isEmpty) {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -495,9 +570,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
             mainAxisSpacing: w * 0.03,
             childAspectRatio: 1.5,
           ),
-          itemCount: filtered.length,
+          itemCount: unitFiltered.length,
           itemBuilder: (ctx, idx) {
-            final doc = filtered[idx];
+            final doc = unitFiltered[idx];
             final data = doc.data() as Map<String, dynamic>;
             final id = doc.id;
 
@@ -608,3 +683,4 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
+

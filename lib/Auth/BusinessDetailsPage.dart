@@ -21,10 +21,13 @@ class BusinessDetailsPage extends StatefulWidget {
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
+
+  // Controllers
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _businessNameCtrl = TextEditingController();
   final _businessPhoneCtrl = TextEditingController();
+  final _gstinCtrl = TextEditingController(); // Added GSTIN Controller
 
   bool _loading = false;
 
@@ -43,6 +46,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _phoneCtrl.dispose();
     _businessNameCtrl.dispose();
     _businessPhoneCtrl.dispose();
+    _gstinCtrl.dispose();
     super.dispose();
   }
 
@@ -93,6 +97,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'ownerPhone': _phoneCtrl.text.trim(),
         'businessName': _businessNameCtrl.text.trim(),
         'businessPhone': _businessPhoneCtrl.text.trim(),
+        'gstin': _gstinCtrl.text.trim(), // Save GSTIN (Optional)
         'ownerEmail': widget.email,
         'ownerUid': widget.uid,
         'createdAt': FieldValue.serverTimestamp(),
@@ -109,7 +114,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'storeId': storeId,
-        'role': 'admin',
+        'role': 'admin', // First user is Admin
+        'isActive': true,
+        'isEmailVerified': true,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -240,6 +247,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 20),
+
+                _label('GSTIN (Optional)'),
+                _buildTextField(
+                  controller: _gstinCtrl,
+                  hint: 'Enter GSTIN number',
+                  validator: (v) => null, // Optional
+                ),
                 const SizedBox(height: 40),
 
                 // Submit Button
@@ -257,21 +272,21 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                     ),
                     child: _loading
                         ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
+                      height: 24,
+                      width: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
+                    )
                         : const Text(
-                            'Complete Registration',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                      'Complete Registration',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -360,4 +375,3 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     );
   }
 }
-

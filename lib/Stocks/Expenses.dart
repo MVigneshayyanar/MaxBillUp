@@ -18,9 +18,15 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Optimization: Store the future to prevent re-fetching on every setState
+  late Future<Stream<QuerySnapshot>> _expensesStreamFuture;
+
   @override
   void initState() {
     super.initState();
+    // Initialize the stream future once
+    _expensesStreamFuture = FirestoreService().getCollectionStream('expenses');
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -128,127 +134,153 @@ class _ExpensesPageState extends State<ExpensesPage> {
             ),
           ),
 
+          // Search Bar (Optional addition based on your controller usage)
+          if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search expenses...',
+                  prefixIcon: const Icon(Icons.search),
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+
           // List of Expenses
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('expenses')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: _expensesStreamFuture,
+              builder: (context, futureSnapshot) {
+                if (futureSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No expenses found',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
+                if (!futureSnapshot.hasData) {
+                  return const Center(child: Text("Unable to load expenses"));
                 }
 
-                final expenses = snapshot.data!.docs.where((doc) {
-                  if (_searchQuery.isEmpty) return true;
-                  final data = doc.data() as Map<String, dynamic>;
-                  final title = (data['title'] ?? '').toString().toLowerCase();
-                  final category = (data['category'] ?? '').toString().toLowerCase();
-                  return title.contains(_searchQuery) || category.contains(_searchQuery);
-                }).toList();
+                return StreamBuilder<QuerySnapshot>(
+                  stream: futureSnapshot.data!,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (expenses.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No matching expenses found',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: expenses.length,
-                  itemBuilder: (context, index) {
-                    final data = expenses[index].data() as Map<String, dynamic>;
-                    final title = data['title'] ?? 'Expense';
-                    final category = data['category'] ?? 'Uncategorized';
-                    final amount = (data['amount'] ?? 0.0) as num;
-                    final timestamp = data['timestamp'] as Timestamp?;
-                    final date = timestamp?.toDate();
-                    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 8),
+                            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
                             Text(
-                              'Category: $category',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              dateString,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              'No expenses found',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
                             ),
                           ],
                         ),
-                        trailing: Text(
-                          '₹${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFEF4444),
-                          ),
+                      );
+                    }
+
+                    final expenses = snapshot.data!.docs.where((doc) {
+                      if (_searchQuery.isEmpty) return true;
+                      final data = doc.data() as Map<String, dynamic>;
+                      final title = (data['title'] ?? '').toString().toLowerCase();
+                      final category = (data['category'] ?? '').toString().toLowerCase();
+                      return title.contains(_searchQuery) || category.contains(_searchQuery);
+                    }).toList();
+
+                    if (expenses.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No matching expenses found',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ExpenseDetailsPage(
-                                expenseId: expenses[index].id,
-                                expenseData: data,
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: expenses.length,
+                      itemBuilder: (context, index) {
+                        final data = expenses[index].data() as Map<String, dynamic>;
+                        final title = data['title'] ?? 'Expense';
+                        final category = data['category'] ?? 'Uncategorized';
+                        final amount = (data['amount'] ?? 0.0) as num;
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        final date = timestamp?.toDate();
+                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Category: $category',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dateString,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              '₹${amount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEF4444),
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ExpenseDetailsPage(
+                                    expenseId: expenses[index].id,
+                                    expenseData: data,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 );
@@ -289,22 +321,29 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   }
 
   Future<void> _loadCategories() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('expenseCategories')
-        .get();
+    try {
+      final stream = await FirestoreService().getCollectionStream('expenseCategories');
+      // We only take the first snapshot to populate the list initially
+      final snapshot = await stream.first;
 
-    if (mounted) {
-      setState(() {
-        _categories = snapshot.docs
-            .map((doc) => (doc.data()['name'] ?? 'General').toString())
-            .toList();
-        if (_categories.isEmpty) {
-          _categories = ['General'];
-        }
-        if (!_categories.contains(_selectedCategory)) {
-          _selectedCategory = _categories.first;
-        }
-      });
+      if (mounted) {
+        setState(() {
+          _categories = snapshot.docs
+              .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return (data['name'] ?? 'General').toString();
+          })
+              .toList();
+          if (_categories.isEmpty) {
+            _categories = ['General'];
+          }
+          if (!_categories.contains(_selectedCategory)) {
+            _selectedCategory = _categories.first;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading categories: $e");
     }
   }
 
@@ -383,9 +422,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              _paymentMode == 'Credit'
-                  ? 'Expense saved and credit note created'
-                  : 'Expense saved successfully'
+                _paymentMode == 'Credit'
+                    ? 'Expense saved and credit note created'
+                    : 'Expense saved successfully'
             ),
           ),
         );
@@ -534,14 +573,14 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
                     : const Text(
-                        'Save Expense',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                  'Save Expense',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -551,11 +590,11 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   }
 
   Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-  }) {
+      String label,
+      TextEditingController controller, {
+        TextInputType keyboardType = TextInputType.text,
+        int maxLines = 1,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -685,4 +724,3 @@ class ExpenseDetailsPage extends StatelessWidget {
     );
   }
 }
-

@@ -18,9 +18,15 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Store the future to prevent re-fetching on every setState
+  late Future<Stream<QuerySnapshot>> _purchasesStreamFuture;
+
   @override
   void initState() {
     super.initState();
+    // Initialize the stream future once
+    _purchasesStreamFuture = FirestoreService().getCollectionStream('stockPurchases');
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -131,126 +137,135 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
 
           // List of Stock Purchases
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('stockPurchases')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: _purchasesStreamFuture,
+              builder: (context, futureSnapshot) {
+                if (futureSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No stock purchases found',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
+                if (!futureSnapshot.hasData) {
+                  return const Center(child: Text("Unable to load stock purchases"));
                 }
 
-                final purchases = snapshot.data!.docs.where((doc) {
-                  if (_searchQuery.isEmpty) return true;
-                  final data = doc.data() as Map<String, dynamic>;
-                  final supplierName = (data['supplierName'] ?? '').toString().toLowerCase();
-                  final invoiceNumber = (data['invoiceNumber'] ?? '').toString().toLowerCase();
-                  return supplierName.contains(_searchQuery) || invoiceNumber.contains(_searchQuery);
-                }).toList();
+                return StreamBuilder<QuerySnapshot>(
+                  stream: futureSnapshot.data!,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                if (purchases.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No matching purchases found',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: purchases.length,
-                  itemBuilder: (context, index) {
-                    final data = purchases[index].data() as Map<String, dynamic>;
-                    final supplierName = data['supplierName'] ?? 'Unknown Supplier';
-                    final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
-                    final amount = (data['totalAmount'] ?? 0.0) as num;
-                    final timestamp = data['timestamp'] as Timestamp?;
-                    final date = timestamp?.toDate();
-                    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(
-                          supplierName,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const SizedBox(height: 8),
+                            Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
                             Text(
-                              'Invoice: $invoiceNumber',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black54,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              dateString,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
+                              'No stock purchases found',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
                             ),
                           ],
                         ),
-                        trailing: Text(
-                          '₹${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF007AFF),
-                          ),
+                      );
+                    }
+
+                    final purchases = snapshot.data!.docs.where((doc) {
+                      if (_searchQuery.isEmpty) return true;
+                      final data = doc.data() as Map<String, dynamic>;
+                      final supplierName = (data['supplierName'] ?? '').toString().toLowerCase();
+                      final invoiceNumber = (data['invoiceNumber'] ?? '').toString().toLowerCase();
+                      return supplierName.contains(_searchQuery) || invoiceNumber.contains(_searchQuery);
+                    }).toList();
+
+                    if (purchases.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No matching purchases found',
+                          style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                        onTap: () {
-                          // Navigate to purchase details
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => StockPurchaseDetailsPage(
-                                purchaseId: purchases[index].id,
-                                purchaseData: data,
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: purchases.length,
+                      itemBuilder: (context, index) {
+                        final data = purchases[index].data() as Map<String, dynamic>;
+                        final supplierName = data['supplierName'] ?? 'Unknown Supplier';
+                        final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
+                        final amount = (data['totalAmount'] ?? 0.0) as num;
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        final date = timestamp?.toDate();
+                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Text(
+                              supplierName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
-                          );
-                        },
-                      ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Invoice: $invoiceNumber',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  dateString,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              '₹${amount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF007AFF),
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => StockPurchaseDetailsPage(
+                                    purchaseId: purchases[index].id,
+                                    purchaseData: data,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        );
+                      },
                     );
                   },
                 );

@@ -32,9 +32,9 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _hsnController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
+  TextEditingController _unitController = TextEditingController();
 
   String? _selectedCategory;
-  String? _selectedStockUnit;
   bool _moreDetailsExpanded = false;
   bool _stockEnabled = false;
 
@@ -43,11 +43,34 @@ class _AddProductPageState extends State<AddProductPage> {
   bool _tax12Enabled = false;
   bool _tax15Enabled = false;
 
+  List<String> units = [];
+  String? _selectedStockUnit;
+  Stream<List<String>>? _unitsStream;
+
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.preSelectedCategory;
     _checkPermission();
+    _fetchUnits();
+  }
+
+  void _fetchUnits() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    setState(() {
+      _unitsStream = FirestoreService().storeCollection.doc(storeId)
+          .collection('units')
+          .snapshots()
+          .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
+    });
+  }
+
+  Future<void> _addUnitToBackend(String unit) async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    await FirestoreService().storeCollection.doc(storeId)
+        .collection('units').doc(unit).set({'createdAt': FieldValue.serverTimestamp()});
   }
 
   Future<void> _checkPermission() async {
@@ -352,7 +375,87 @@ class _AddProductPageState extends State<AddProductPage> {
                         const SizedBox(height: 16),
 
                         // Stock Unit Dropdown
-                        _buildStockUnitDropdown(),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: StreamBuilder<List<String>>(
+                                stream: _unitsStream,
+                                builder: (context, snapshot) {
+                                  // Always start with the default 5 units
+                                  final defaultUnits = ['Piece', 'Kg', 'Liter', 'Box', 'Meter'];
+                                  final backendUnits = snapshot.data ?? [];
+                                  // Merge, keeping only unique values
+                                  final availableUnits = [
+                                    ...defaultUnits,
+                                    ...backendUnits.where((u) => !defaultUnits.contains(u)),
+                                  ];
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: DropdownButtonFormField<String>(
+                                          value: _selectedStockUnit,
+                                          items: availableUnits.map((unit) => DropdownMenuItem(
+                                            value: unit,
+                                            child: Text(unit),
+                                          )).toList(),
+                                          onChanged: (value) {
+                                            setState(() {
+                                              _selectedStockUnit = value;
+                                            });
+                                          },
+                                          decoration: InputDecoration(
+                                            labelText: 'Unit',
+                                            border: OutlineInputBorder(),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.add),
+                                        tooltip: 'Add new unit',
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (context) => AlertDialog(
+                                              title: const Text('Add New Unit'),
+                                              content: TextField(
+                                                controller: _unitController,
+                                                decoration: const InputDecoration(
+                                                  labelText: 'Unit Name',
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(context),
+                                                  child: const Text('Cancel'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: () async {
+                                                    final newUnit = _unitController.text.trim();
+                                                    if (newUnit.isNotEmpty && !availableUnits.contains(newUnit)) {
+                                                      await _addUnitToBackend(newUnit);
+                                                      setState(() {
+                                                        _selectedStockUnit = newUnit;
+                                                      });
+                                                    }
+                                                    _unitController.clear();
+                                                    Navigator.pop(context);
+                                                  },
+                                                  child: const Text('Add'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 20),
 
                         // Tax Section
@@ -737,4 +840,3 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 }
-

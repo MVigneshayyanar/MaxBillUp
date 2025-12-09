@@ -17,10 +17,12 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  late Future<Stream<QuerySnapshot>> _streamFuture;
 
   @override
   void initState() {
     super.initState();
+    _streamFuture = FirestoreService().getCollectionStream('otherExpenses');
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -130,62 +132,70 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
 
           // List of Other Expenses
           Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('otherExpenses')
-                  .orderBy('timestamp', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+            child: FutureBuilder<Stream<QuerySnapshot>>(
+              future: _streamFuture,
+              builder: (context, futureSnapshot) {
+                if (futureSnapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No other expenses found',
+                if (!futureSnapshot.hasData) {
+                  return const Center(child: Text("Unable to load expenses"));
+                }
+
+                return StreamBuilder<QuerySnapshot>(
+                  stream: futureSnapshot.data!,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(
+                              'No other expenses found',
+                              style: TextStyle(fontSize: 16, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final expenses = snapshot.data!.docs.where((doc) {
+                      if (_searchQuery.isEmpty) return true;
+                      final data = doc.data() as Map<String, dynamic>;
+                      final title = (data['title'] ?? '').toString().toLowerCase();
+                      final description = (data['description'] ?? '').toString().toLowerCase();
+                      return title.contains(_searchQuery) || description.contains(_searchQuery);
+                    }).toList();
+
+                    if (expenses.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          'No matching expenses found',
                           style: TextStyle(fontSize: 16, color: Colors.grey),
                         ),
-                      ],
-                    ),
-                  );
-                }
+                      );
+                    }
 
-                final expenses = snapshot.data!.docs.where((doc) {
-                  if (_searchQuery.isEmpty) return true;
-                  final data = doc.data() as Map<String, dynamic>;
-                  final title = (data['title'] ?? '').toString().toLowerCase();
-                  final description = (data['description'] ?? '').toString().toLowerCase();
-                  return title.contains(_searchQuery) || description.contains(_searchQuery);
-                }).toList();
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: expenses.length,
+                      itemBuilder: (context, index) {
+                        final data = expenses[index].data() as Map<String, dynamic>;
+                        final title = data['title'] ?? 'Other Expense';
+                        final description = data['description'] ?? '';
+                        final amount = (data['amount'] ?? 0.0) as num;
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        final date = timestamp?.toDate();
+                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
-                if (expenses.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No matching expenses found',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: expenses.length,
-                  itemBuilder: (context, index) {
-                    final data = expenses[index].data() as Map<String, dynamic>;
-                    final title = data['title'] ?? 'Other Expense';
-                    final description = data['description'] ?? '';
-                    final amount = (data['amount'] ?? 0.0) as num;
-                    final timestamp = data['timestamp'] as Timestamp?;
-                    final date = timestamp?.toDate();
-                    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
-
-                    return Container(
+                        return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -198,61 +208,63 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                           ),
                         ],
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(16),
-                        title: Text(
-                          title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (description.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                description,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black54,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                            const SizedBox(height: 4),
-                            Text(
-                              dateString,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(16),
+                            title: Text(
+                              title,
                               style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
                               ),
                             ),
-                          ],
-                        ),
-                        trailing: Text(
-                          '₹${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFEF4444),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    description,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.black54,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                                const SizedBox(height: 4),
+                                Text(
+                                  dateString,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing: Text(
+                              '₹${amount.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFEF4444),
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OtherExpenseDetailsPage(
+                                    expenseId: expenses[index].id,
+                                    expenseData: data,
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => OtherExpenseDetailsPage(
-                                expenseId: expenses[index].id,
-                                expenseData: data,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                        );
+                      },
                     );
                   },
                 );
@@ -446,14 +458,14 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                )
                     : const Text(
-                        'Save Expense',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                  'Save Expense',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -463,11 +475,11 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
   }
 
   Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-  }) {
+      String label,
+      TextEditingController controller, {
+        TextInputType keyboardType = TextInputType.text,
+        int maxLines = 1,
+      }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -595,4 +607,3 @@ class OtherExpenseDetailsPage extends StatelessWidget {
     );
   }
 }
-

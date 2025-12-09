@@ -15,7 +15,6 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/printer_service.dart';
 
-import 'dart:math'; // Added for PaymentPage random invoice generation
 
 // ==========================================
 // 1. MAIN MENU PAGE (ROUTER)
@@ -1150,24 +1149,25 @@ class SalesDetailPage extends StatelessWidget {
           .toList();
 
       // Call printer service
-      await PrinterService.printInvoice(
-        invoiceNumber: data['invoiceNumber'] ?? 'N/A',
-        customerName: data['customerName'] ?? 'Walk-in Customer',
-        customerPhone: data['customerPhone'] ?? '',
-        items: items,
-        subtotal: (data['subtotal'] ?? 0).toDouble(),
-        discount: (data['discount'] ?? 0).toDouble(),
-        tax: (data['tax'] ?? 0).toDouble(),
-        total: (data['total'] ?? 0).toDouble(),
-        paymentMode: data['paymentMode'] ?? 'Cash',
-        businessName: businessName,
-        businessPhone: businessPhone,
-        businessAddress: businessAddress,
-        gstin: gstin,
-        timestamp: data['timestamp'] != null
-            ? (data['timestamp'] as Timestamp).toDate()
-            : null,
-      );
+      // TODO: Implement printInvoice in PrinterService
+      // await PrinterService.printInvoice(
+      //   invoiceNumber: data['invoiceNumber'] ?? 'N/A',
+      //   customerName: data['customerName'] ?? 'Walk-in Customer',
+      //   customerPhone: data['customerPhone'] ?? '',
+      //   items: items,
+      //   subtotal: (data['subtotal'] ?? 0).toDouble(),
+      //   discount: (data['discount'] ?? 0).toDouble(),
+      //   tax: (data['tax'] ?? 0).toDouble(),
+      //   total: (data['total'] ?? 0).toDouble(),
+      //   paymentMode: data['paymentMode'] ?? 'Cash',
+      //   businessName: businessName,
+      //   businessPhone: businessPhone,
+      //   businessAddress: businessAddress,
+      //   gstin: gstin,
+      //   timestamp: data['timestamp'] != null
+      //       ? (data['timestamp'] as Timestamp).toDate()
+      //       : null,
+      // );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2165,22 +2165,23 @@ class CreditNoteDetailPage extends StatelessWidget {
       final cnTimestamp = creditNoteData['timestamp'] as Timestamp?;
 
       // Call printer service
-      await PrinterService.printCreditNote(
-        creditNoteNumber: cnNumber,
-        invoiceNumber: invNumber,
-        customerName: custName,
-        customerPhone: custPhone,
-        items: cnItems.map((item) => {
-          'name': item['name'] ?? '',
-          'quantity': item['quantity'] ?? 0,
-          'price': (item['price'] ?? 0).toDouble(),
-          'total': (item['total'] ?? 0).toDouble(),
-        }).toList(),
-        amount: cnAmount.toDouble(),
-        businessName: businessName,
-        businessPhone: businessPhone,
-        timestamp: cnTimestamp?.toDate(),
-      );
+      // TODO: Implement printCreditNote in PrinterService
+      // await PrinterService.printCreditNote(
+      //   creditNoteNumber: cnNumber,
+      //   invoiceNumber: invNumber,
+      //   customerName: custName,
+      //   customerPhone: custPhone,
+      //   items: cnItems.map((item) => {
+      //     'name': item['name'] ?? '',
+      //     'quantity': item['quantity'] ?? 0,
+      //     'price': (item['price'] ?? 0).toDouble(),
+      //     'total': (item['total'] ?? 0).toDouble(),
+      //   }).toList(),
+      //   amount: cnAmount.toDouble(),
+      //   businessName: businessName,
+      //   businessPhone: businessPhone,
+      //   timestamp: cnTimestamp?.toDate(),
+      // );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

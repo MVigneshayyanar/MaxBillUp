@@ -4,20 +4,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
-import 'package:maxbillup/utils/permission_helper.dart';
-import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/printer_service.dart';
-import 'package:printing/printing.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // For Bluetooth device discovery
+import 'package:permission_handler/permission_handler.dart'; // Needed for permissions
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ==========================================
 // CONSTANTS & STYLES
 // ==========================================
-const Color kPrimaryColor = Color(0xFF007AFF); // iOS Blue
-const Color kBgColor = Color(0xFFF2F2F7); // iOS Light Gray
+const Color kPrimaryColor = Color(0xFF007AFF);
+const Color kBgColor = Color(0xFFF2F2F7);
 const Color kDangerColor = Color(0xFFFF3B30);
 
 // ==========================================
-// 1. MAIN SETTINGS PAGE (ROUTER)
+// 1. MAIN SETTINGS PAGE
 // ==========================================
 
 class SettingsPage extends StatefulWidget {
@@ -31,11 +31,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  // Navigation State
   String? _currentView;
-  final List<String> _viewHistory = []; // To handle nested "Back" navigation
-
-  // User Data
+  final List<String> _viewHistory = [];
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
 
@@ -59,7 +56,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // Navigation Helpers
   void _navigateTo(String view) {
     setState(() {
       if (_currentView != null) _viewHistory.add(_currentView!);
@@ -81,53 +77,33 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // ------------------------------------------
-    // CONDITIONAL RENDERING SWITCH
-    // ------------------------------------------
     switch (_currentView) {
       case 'BusinessDetails':
         return BusinessDetailsPage(uid: widget.uid, onBack: _goBack);
-
       case 'ReceiptSettings':
-        return ReceiptSettingsPage(
-          onBack: _goBack,
-          onNavigate: _navigateTo, // Pass navigator to allow nesting
-        );
-
+        return ReceiptSettingsPage(onBack: _goBack, onNavigate: _navigateTo);
       case 'ReceiptCustomization':
         return ReceiptCustomizationPage(onBack: _goBack);
-
       case 'TaxSettings':
         return TaxSettingsPage(onBack: _goBack);
-
       case 'PrinterSetup':
         return PrinterSetupPage(onBack: _goBack);
-
       case 'FeatureSettings':
         return FeatureSettingsPage(onBack: _goBack);
-
       case 'Language':
         return LanguagePage(onBack: _goBack);
-
       case 'Theme':
         return ThemePage(onBack: _goBack);
-
       case 'Help':
         return HelpPage(onBack: _goBack, onNavigate: _navigateTo);
-
       case 'FAQs':
         return FAQsPage(onBack: _goBack);
-
       case 'UpcomingFeatures':
         return UpcomingFeaturesPage(onBack: _goBack);
-
       case 'VideoTutorials':
         return VideoTutorialsPage(onBack: _goBack);
     }
 
-    // ------------------------------------------
-    // DEFAULT VIEW (MAIN SETTINGS LIST)
-    // ------------------------------------------
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
@@ -135,7 +111,7 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: kBgColor,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Hide back button on root
+        automaticallyImplyLeading: false,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -144,59 +120,23 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           _buildProfileCard(),
           const SizedBox(height: 24),
-
           _buildSectionTitle("App Settings"),
           _SettingsGroup(children: [
-            _SettingsTile(
-              icon: Icons.store_mall_directory_outlined,
-              title: "Business Details",
-              onTap: () => _navigateTo('BusinessDetails'),
-            ),
-            _SettingsTile(
-              icon: Icons.receipt_long_outlined,
-              title: "Receipt",
-              onTap: () => _navigateTo('ReceiptSettings'),
-            ),
-            _SettingsTile(
-              icon: Icons.percent_outlined,
-              title: "TAX / WAT",
-              onTap: () => _navigateTo('TaxSettings'),
-            ),
-            _SettingsTile(
-              icon: Icons.print_outlined,
-              title: "Printer Setup",
-              onTap: () => _navigateTo('PrinterSetup'),
-            ),
-            _SettingsTile(
-              icon: Icons.tune_outlined,
-              title: "Feature Settings",
-              onTap: () => _navigateTo('FeatureSettings'),
-            ),
-            _SettingsTile(
-              icon: Icons.language_outlined,
-              title: "Languages",
-              onTap: () => _navigateTo('Language'),
-            ),
-            _SettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: "Theme",
-              showDivider: false,
-              onTap: () => _navigateTo('Theme'),
-            ),
+            _SettingsTile(icon: Icons.store_mall_directory_outlined, title: "Business Details", onTap: () => _navigateTo('BusinessDetails')),
+            _SettingsTile(icon: Icons.receipt_long_outlined, title: "Receipt", onTap: () => _navigateTo('ReceiptSettings')),
+            _SettingsTile(icon: Icons.percent_outlined, title: "TAX / WAT", onTap: () => _navigateTo('TaxSettings')),
+            _SettingsTile(icon: Icons.print_outlined, title: "Printer Setup", onTap: () => _navigateTo('PrinterSetup')),
+            _SettingsTile(icon: Icons.tune_outlined, title: "Feature Settings", onTap: () => _navigateTo('FeatureSettings')),
+            _SettingsTile(icon: Icons.language_outlined, title: "Languages", onTap: () => _navigateTo('Language')),
+            _SettingsTile(icon: Icons.dark_mode_outlined, title: "Theme", showDivider: false, onTap: () => _navigateTo('Theme')),
           ]),
-
           const SizedBox(height: 24),
           _buildSectionTitle("Support & Service"),
           _SettingsGroup(children: [
-            _SettingsTile(
-              icon: Icons.help_outline,
-              title: "Help",
-              onTap: () => _navigateTo('Help'),
-            ),
+            _SettingsTile(icon: Icons.help_outline, title: "Help", onTap: () => _navigateTo('Help')),
             _SettingsTile(icon: Icons.storefront_outlined, title: "Market Place", onTap: () {}),
             _SettingsTile(icon: Icons.share_outlined, title: "Refer A Friend", showDivider: false, onTap: () {}),
           ]),
-
           const SizedBox(height: 24),
           const Center(child: Text('v .5167', style: TextStyle(color: Colors.grey, fontSize: 13))),
           const SizedBox(height: 16),
@@ -240,7 +180,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
             child: Text(role, style: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w600)),
           ),
         ],
@@ -255,7 +195,6 @@ class _SettingsPageState extends State<SettingsPage> {
         onPressed: () async {
           await FirebaseAuth.instance.signOut();
           if (!mounted) return;
-          // Logout essentially leaves this entire screen structure, so Navigator is correct here
           Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (r) => false);
         },
         style: OutlinedButton.styleFrom(
@@ -276,12 +215,514 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 // ==========================================
-// 2. RECEIPT SETTINGS PAGES
+// 4. PRINTER SETUP PAGE (BLUETOOTH)
+// ==========================================
+
+class PrinterSetupPage extends StatefulWidget {
+  final VoidCallback onBack;
+  const PrinterSetupPage({super.key, required this.onBack});
+
+  @override
+  State<PrinterSetupPage> createState() => _PrinterSetupPageState();
+}
+
+class _PrinterSetupPageState extends State<PrinterSetupPage> {
+  bool _isLoading = false;
+  bool _isScanning = false;
+  List<BluetoothDevice> _bondedDevices = [];
+  List<BluetoothDevice> _scannedDevices = [];
+  BluetoothDevice? _selectedDevice;
+  bool _enableAutoPrint = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPrinter();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enableAutoPrint = prefs.getBool('enable_auto_print') ?? true;
+    final savedDeviceId = prefs.getString('selected_printer_id');
+
+    setState(() {
+      _enableAutoPrint = enableAutoPrint;
+    });
+
+    if (savedDeviceId != null) {
+      // Try to find the saved device
+      _findSavedDevice(savedDeviceId);
+    }
+  }
+
+  Future<void> _findSavedDevice(String deviceId) async {
+    try {
+      final devices = await FlutterBluePlus.bondedDevices;
+      final device = devices.firstWhere(
+        (d) => d.remoteId.toString() == deviceId,
+        orElse: () => devices.first,
+      );
+
+      if (mounted) {
+        setState(() {
+          _selectedDevice = device;
+        });
+      }
+    } catch (e) {
+      // Device not found
+    }
+  }
+
+  Future<void> _initPrinter() async {
+    // Check if Bluetooth is on
+    try {
+      final adapterState = await FlutterBluePlus.adapterState.first;
+      if (adapterState != BluetoothAdapterState.on) {
+        _showBluetoothDialog();
+        return;
+      }
+    } catch (e) {
+      // Bluetooth not available
+    }
+
+    // Request permissions
+    final permissionStatus = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+
+    if (permissionStatus[Permission.bluetoothScan]?.isGranted == true) {
+      _getBondedDevices();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bluetooth permissions are required"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _showBluetoothDialog() async {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Enable Bluetooth"),
+        content: const Text("Bluetooth is required to connect to printers. Would you like to enable it?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await FlutterBluePlus.turnOn();
+                await Future.delayed(const Duration(seconds: 2));
+                _getBondedDevices();
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Please enable Bluetooth manually from Settings")),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            child: const Text("Enable"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _getBondedDevices() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final devices = await FlutterBluePlus.bondedDevices;
+      if (mounted) {
+        setState(() {
+          _bondedDevices = devices;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error getting devices: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _scanForDevices() async {
+    // Check Bluetooth is on
+    try {
+      final adapterState = await FlutterBluePlus.adapterState.first;
+      if (adapterState != BluetoothAdapterState.on) {
+        _showBluetoothDialog();
+        return;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Bluetooth not available"), backgroundColor: Colors.red),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _isScanning = true;
+      _scannedDevices.clear();
+    });
+
+    try {
+      // Start scanning
+      await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
+
+      // Listen to scan results
+      final subscription = FlutterBluePlus.scanResults.listen((results) {
+        final devices = results.map((r) => r.device).toList();
+        if (mounted) {
+          setState(() {
+            _scannedDevices = devices;
+          });
+        }
+      });
+
+      // Wait for scan to complete
+      await Future.delayed(const Duration(seconds: 10));
+      await subscription.cancel();
+      await FlutterBluePlus.stopScan();
+
+      if (mounted) {
+        setState(() => _isScanning = false);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isScanning = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Scan error: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectDevice(BluetoothDevice device) async {
+    setState(() => _isLoading = true);
+
+    try {
+      // Save the device to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('selected_printer_id', device.remoteId.toString());
+      await prefs.setString('selected_printer_name', device.platformName);
+
+      if (mounted) {
+        setState(() {
+          _selectedDevice = device;
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Printer '${device.platformName}' selected successfully"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error selecting printer: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeDevice() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('selected_printer_id');
+    await prefs.remove('selected_printer_name');
+
+    if (mounted) {
+      setState(() {
+        _selectedDevice = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Printer removed"), backgroundColor: Colors.orange),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Printer Setup", style: TextStyle(color: Colors.white)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
+        ),
+        actions: [
+          if (_isScanning)
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: _getBondedDevices,
+            ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          // SELECTED PRINTER CARD
+          if (_selectedDevice != null)
+            Container(
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 30),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Selected Printer",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        Text(
+                          _selectedDevice!.platformName.isEmpty
+                            ? "Unknown Device"
+                            : _selectedDevice!.platformName,
+                          style: const TextStyle(fontSize: 13, color: Colors.black87),
+                        ),
+                        Text(
+                          _selectedDevice!.remoteId.toString(),
+                          style: const TextStyle(fontSize: 11, color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _removeDevice,
+                    child: const Text("Remove", style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              ),
+            ),
+
+          // SCAN BUTTON
+          ElevatedButton.icon(
+            onPressed: _isScanning ? null : _scanForDevices,
+            icon: Icon(_isScanning ? Icons.hourglass_empty : Icons.bluetooth_searching),
+            label: Text(_isScanning ? "Scanning..." : "Scan for Devices"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // BONDED DEVICES SECTION
+          if (_bondedDevices.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.link, size: 18, color: Colors.grey),
+                const SizedBox(width: 8),
+                const Text(
+                  "Paired Devices",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: _bondedDevices.map((device) {
+                  final isSelected = _selectedDevice?.remoteId.toString() == device.remoteId.toString();
+                  final deviceName = device.platformName.isEmpty ? "Unknown Device" : device.platformName;
+
+                  return ListTile(
+                    leading: Icon(
+                      Icons.print,
+                      color: isSelected ? kPrimaryColor : Colors.grey,
+                    ),
+                    title: Text(
+                      deviceName,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: Text(device.remoteId.toString()),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : ElevatedButton(
+                            onPressed: () => _selectDevice(device),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            child: const Text("Select"),
+                          ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // SCANNED DEVICES SECTION
+          if (_scannedDevices.isNotEmpty) ...[
+            Row(
+              children: [
+                const Icon(Icons.bluetooth, size: 18, color: Colors.grey),
+                const SizedBox(width: 8),
+                const Text(
+                  "Nearby Devices",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            const Text(
+              "Note: You may need to pair these devices first",
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: _scannedDevices.where((d) {
+                  // Only show devices not already in bonded list
+                  return !_bondedDevices.any((bd) => bd.remoteId == d.remoteId);
+                }).map((device) {
+                  final isSelected = _selectedDevice?.remoteId.toString() == device.remoteId.toString();
+                  final deviceName = device.platformName.isEmpty ? "Unknown Device" : device.platformName;
+
+                  return ListTile(
+                    leading: Icon(
+                      Icons.bluetooth,
+                      color: isSelected ? kPrimaryColor : Colors.grey,
+                    ),
+                    title: Text(
+                      deviceName,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    subtitle: Text(device.remoteId.toString()),
+                    trailing: isSelected
+                        ? const Icon(Icons.check_circle, color: Colors.green)
+                        : ElevatedButton(
+                            onPressed: () => _selectDevice(device),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kPrimaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            ),
+                            child: const Text("Select"),
+                          ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // EMPTY STATE
+          if (!_isLoading && !_isScanning && _bondedDevices.isEmpty && _scannedDevices.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Icon(Icons.bluetooth_disabled, size: 64, color: Colors.grey[400]),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "No Bluetooth devices found",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Please pair your printer in Android Settings\nor tap 'Scan for Devices' to find nearby printers",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // LOADING STATE
+          if (_isLoading && !_isScanning)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+
+          // AUTO PRINT SETTINGS
+          _SettingsGroup(children: [
+            _SwitchTile("Enable Auto Print", _enableAutoPrint, (v) async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('enable_auto_print', v);
+              setState(() => _enableAutoPrint = v);
+            }),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// OTHER SETTINGS PAGES
 // ==========================================
 
 class ReceiptSettingsPage extends StatelessWidget {
   final VoidCallback onBack;
-  final Function(String) onNavigate; // To navigate deeper
+  final Function(String) onNavigate;
 
   const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate});
 
@@ -304,14 +745,14 @@ class ReceiptSettingsPage extends StatelessWidget {
               subtitle: "Customize the 58mm and 80mm receipt",
               icon: Icons.print,
               showDivider: true,
-              onTap: () => onNavigate('PrinterSetup'), // Navigate Deeper
+              onTap: () => onNavigate('PrinterSetup'),
             ),
             _SettingsTile(
               title: "A4 Size / PDF",
               subtitle: "Customize the A4 Size",
               icon: Icons.picture_as_pdf,
               showDivider: false,
-              onTap: () => onNavigate('ReceiptCustomization'), // Navigate Deeper
+              onTap: () => onNavigate('ReceiptCustomization'),
             ),
           ]),
         ],
@@ -412,10 +853,6 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     );
   }
 }
-
-// ==========================================
-// 3. TAX / WAT SETTINGS PAGE
-// ==========================================
 
 class TaxSettingsPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -537,7 +974,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       children: [
         ListTile(
           leading: CircleAvatar(
-            backgroundColor: kPrimaryColor.withOpacity(0.1),
+            backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
             child: Text("${tax['val']}%", style: const TextStyle(fontSize: 11, color: kPrimaryColor, fontWeight: FontWeight.bold)),
           ),
           title: Text(tax['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -567,7 +1004,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       children: [
         ListTile(
           leading: CircleAvatar(
-            backgroundColor: kPrimaryColor.withOpacity(0.1),
+            backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
             child: Text("${tax['val']}%", style: const TextStyle(fontSize: 11, color: kPrimaryColor, fontWeight: FontWeight.bold)),
           ),
           title: Text(tax['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -582,368 +1019,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     );
   }
 }
-
-// ==========================================
-// 4. PRINTER SETUP PAGE
-// ==========================================
-
-class PrinterSetupPage extends StatefulWidget {
-  final VoidCallback onBack;
-  const PrinterSetupPage({super.key, required this.onBack});
-
-  @override
-  State<PrinterSetupPage> createState() => _PrinterSetupPageState();
-}
-
-class _PrinterSetupPageState extends State<PrinterSetupPage> {
-  bool _isScanning = false;
-  List<Printer> _availablePrinters = [];
-  String? _selectedPrinter;
-  bool _enableAutoPrint = true;
-  String _printerSize = '80MM (3 inch)';
-  String _fontSize = 'Medium';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedPrinter();
-  }
-
-  Future<void> _loadSavedPrinter() async {
-    final savedPrinter = await PrinterService.getSavedPrinter();
-    if (mounted) {
-      setState(() {
-        _selectedPrinter = savedPrinter;
-      });
-    }
-  }
-
-  Future<void> _scanForPrinters() async {
-    setState(() {
-      _isScanning = true;
-      _availablePrinters = [];
-    });
-
-    try {
-      final printers = await PrinterService.discoverPrinters();
-      if (mounted) {
-        setState(() {
-          _availablePrinters = printers;
-          _isScanning = false;
-        });
-
-        if (printers.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No printers found. Make sure your printer is connected and turned on.'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error scanning for printers: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _selectPrinter(String printerName) async {
-    await PrinterService.saveSelectedPrinter(printerName);
-    setState(() {
-      _selectedPrinter = printerName;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Printer "$printerName" selected successfully'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
-  Future<void> _disconnectPrinter() async {
-    await PrinterService.clearSavedPrinter();
-    setState(() {
-      _selectedPrinter = null;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Printer disconnected'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Printer Setup", style: TextStyle(color: Colors.white)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Current Printer Status
-          if (_selectedPrinter != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Connected Printer',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _selectedPrinter!,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade900,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: _disconnectPrinter,
-                    tooltip: 'Disconnect',
-                  ),
-                ],
-              ),
-            )
-          else
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange.shade700, size: 32),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text(
-                      'No printer connected. Scan for nearby printers to connect.',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 24),
-
-          // Scan for Printers Button
-          ElevatedButton.icon(
-            onPressed: _isScanning ? null : _scanForPrinters,
-            icon: _isScanning
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.search, color: Colors.white),
-            label: Text(
-              _isScanning ? 'Scanning...' : 'Scan for Printers',
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Available Printers List
-          if (_availablePrinters.isNotEmpty) ...[
-            const Text(
-              'Available Printers',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SettingsGroup(
-              children: _availablePrinters.map((printer) {
-                final isSelected = _selectedPrinter == printer.name;
-                return ListTile(
-                  leading: Icon(
-                    Icons.print,
-                    color: isSelected ? kPrimaryColor : Colors.grey,
-                  ),
-                  title: Text(
-                    printer.name,
-                    style: TextStyle(
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? kPrimaryColor : Colors.black,
-                    ),
-                  ),
-                  subtitle: Text(
-                    printer.isAvailable ? 'Available' : 'Unavailable',
-                    style: TextStyle(
-                      color: printer.isAvailable ? Colors.green : Colors.red,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: kPrimaryColor)
-                      : null,
-                  onTap: printer.isAvailable
-                      ? () => _selectPrinter(printer.name)
-                      : null,
-                  enabled: printer.isAvailable,
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Printer Settings
-          const Text(
-            'Printer Settings',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _SettingsGroup(
-            children: [
-              _DropdownTile(
-                'Printer Size',
-                _printerSize,
-                ['58MM (2 inch)', '80MM (3 inch)'],
-                (value) => setState(() => _printerSize = value!),
-              ),
-              _DropdownTile(
-                'Font Size',
-                _fontSize,
-                ['Small', 'Medium', 'Large'],
-                (value) => setState(() => _fontSize = value!),
-                showDivider: false,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Auto Print Toggle
-          _SettingsGroup(
-            children: [
-              _SwitchTile(
-                'Enable Auto Print',
-                _enableAutoPrint,
-                (v) => setState(() => _enableAutoPrint = v),
-                showDivider: false,
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 30),
-
-          // Save Button
-          _PrimaryButton(
-            text: 'Save Settings',
-            onTap: widget.onBack,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _DropdownTile(
-    String label,
-    String value,
-    List<String> options,
-    void Function(String?) onChanged, {
-    bool showDivider = true,
-  }) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: kBgColor,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: value,
-                    items: options
-                        .map((opt) => DropdownMenuItem(
-                              value: opt,
-                              child: Text(
-                                opt,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: onChanged,
-                    isDense: true,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (showDivider) const Divider(height: 1, indent: 16),
-      ],
-    );
-  }
-}
-
-// ==========================================
-// 5. FEATURE SETTINGS PAGE
-// ==========================================
 
 class FeatureSettingsPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -1012,10 +1087,6 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   }
 }
 
-// ==========================================
-// 6. LANGUAGE PAGE
-// ==========================================
-
 class LanguagePage extends StatefulWidget {
   final VoidCallback onBack;
   const LanguagePage({super.key, required this.onBack});
@@ -1067,7 +1138,7 @@ class _LanguagePageState extends State<LanguagePage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : Colors.white,
+                  color: isSelected ? kPrimaryColor.withValues(alpha: 0.1) : Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? kPrimaryColor : Colors.grey.shade300,
@@ -1110,12 +1181,10 @@ class _LanguagePageState extends State<LanguagePage> {
   }
 }
 
-// ==========================================
-// 7. BUSINESS DETAILS PAGE
-// ==========================================
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
+
   const BusinessDetailsPage({super.key, required this.uid, required this.onBack});
 
   @override
@@ -1123,23 +1192,20 @@ class BusinessDetailsPage extends StatefulWidget {
 }
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
-  Map<String, dynamic> _permissions = {};
-  String _role = 'staff';
   bool _isLoading = true;
+  String _role = 'staff';
   String? _storeId;
 
-  // Text controllers for business details
-  final TextEditingController _businessNameController = TextEditingController();
-  final TextEditingController _ownerNameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _gstinController = TextEditingController();
-
-  // Additional fields from Firebase
-  String? _ownerUid;
-  String? _createdAt;
-  String? _updatedAt;
+  String _businessName = '';
+  String _ownerName = '';
+  String _businessPhone = '';
+  String _ownerPhone = '';
+  String _email = '';
+  String _address = '';
+  String _gstin = '';
+  String _ownerUid = '';
+  String _createdAt = '';
+  String _updatedAt = '';
 
   @override
   void initState() {
@@ -1147,96 +1213,66 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _loadData();
   }
 
-  @override
-  void dispose() {
-    _businessNameController.dispose();
-    _ownerNameController.dispose();
-    _phoneController.dispose();
-    _emailController.dispose();
-    _addressController.dispose();
-    _gstinController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadData() async {
     try {
-      // Load permissions
-      final userData = await PermissionHelper.getUserPermissions(widget.uid);
+      final firestore = FirebaseFirestore.instance;
+      final userDoc = await firestore.collection('users').doc(widget.uid).get();
 
-      // Load store data
-      final storeId = await FirestoreService().getCurrentStoreId();
-      debugPrint('Loading business details for storeId: $storeId');
+      if (!userDoc.exists) throw Exception("User not found");
+
+      final userData = userDoc.data()!;
+      final role = userData['role'] ?? 'staff';
+      final storeIdInt = userData['storeId'];
+      final storeId = storeIdInt?.toString();
 
       if (storeId != null) {
-        final storeDoc = await FirebaseFirestore.instance
-            .collection('stores')
-            .doc(storeId)
-            .get();
-
+        final storeDoc = await firestore.collection('store').doc(storeId).get();
         if (storeDoc.exists) {
-          final storeData = storeDoc.data() as Map<String, dynamic>;
-          debugPrint('Store data loaded: $storeData');
-
-          _businessNameController.text = storeData['businessName'] ?? '';
-          _ownerNameController.text = storeData['ownerName'] ?? '';
-          _phoneController.text = storeData['businessPhone'] ?? storeData['ownerPhone'] ?? '';
-          _emailController.text = storeData['ownerEmail'] ?? '';
-          _addressController.text = storeData['address'] ?? '';
-          _gstinController.text = storeData['gstin'] ?? '';
-
-          // Additional fields
-          _ownerUid = storeData['ownerUid'];
-
-          // Format timestamps
-          if (storeData['createdAt'] != null) {
-            final createdTimestamp = storeData['createdAt'] as Timestamp;
-            _createdAt = DateFormat('dd MMM yyyy, hh:mm a').format(createdTimestamp.toDate());
-          }
-
-          if (storeData['updatedAt'] != null) {
-            final updatedTimestamp = storeData['updatedAt'] as Timestamp;
-            _updatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(updatedTimestamp.toDate());
-          }
-
-          debugPrint('Business Name: ${_businessNameController.text}');
-          debugPrint('Owner Name: ${_ownerNameController.text}');
-          debugPrint('Phone: ${_phoneController.text}');
-          debugPrint('Email: ${_emailController.text}');
-          debugPrint('Created At: $_createdAt');
-          debugPrint('Updated At: $_updatedAt');
-        } else {
-          debugPrint('Store document does not exist for storeId: $storeId');
+          final storeData = storeDoc.data()!;
+          setState(() {
+            _businessName = storeData['businessName'] ?? '';
+            _ownerName = storeData['ownerName'] ?? '';
+            _businessPhone = storeData['businessPhone'] ?? '';
+            _ownerPhone = storeData['ownerPhone'] ?? '';
+            _email = storeData['ownerEmail'] ?? '';
+            _address = storeData['address'] ?? '';
+            _gstin = storeData['gstin'] ?? '';
+            _ownerUid = storeData['ownerUid'] ?? '';
+            if (storeData['createdAt'] != null) {
+              final ts = storeData['createdAt'] as Timestamp;
+              _createdAt = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
+            }
+            if (storeData['updatedAt'] != null) {
+              final ts = storeData['updatedAt'] as Timestamp;
+              _updatedAt = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
+            }
+          });
         }
-      } else {
-        debugPrint('StoreId is null');
       }
 
       if (mounted) {
         setState(() {
-          _permissions = userData['permissions'] as Map<String, dynamic>;
-          _role = userData['role'] as String;
+          _role = role;
           _storeId = storeId;
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error loading business details: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-
-  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+  bool get isAdmin => _role.toLowerCase().contains('admin') || _role.toLowerCase().contains('manager');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Business Details", style: TextStyle(color: Colors.white)),
+        title: const Text("Business Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
@@ -1245,321 +1281,124 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : !isAdmin
-              ? Center(
-                  child: Container(
-                    margin: const EdgeInsets.all(20),
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Admin Access Only',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Only administrators can edit business details. Contact your admin for changes.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                        ),
-                      ],
+          ? _buildAccessDenied()
+          : SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Business details are synced from your account',
+                      style: TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Info Banner
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: kPrimaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                'Business details are synced from your account',
-                                style: TextStyle(
-                                  color: kPrimaryColor,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Business Information Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: kPrimaryColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.business, color: kPrimaryColor, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Business Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            _buildReadOnlyField('Business Name', Icons.store_mall_directory, _businessNameController.text),
-                            const Divider(height: 32),
-                            _buildReadOnlyField('Business Phone', Icons.phone_android, _phoneController.text),
-                            const Divider(height: 32),
-                            _buildReadOnlyField('Store ID', Icons.qr_code, _storeId ?? 'N/A'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Owner Information Card
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: kPrimaryColor.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.person, color: kPrimaryColor, size: 20),
-                                ),
-                                const SizedBox(width: 12),
-                                const Text(
-                                  'Owner Information',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            _buildReadOnlyField('Owner Name', Icons.badge, _ownerNameController.text),
-                            const Divider(height: 32),
-                            _buildReadOnlyField('Email Address', Icons.email, _emailController.text),
-                            const Divider(height: 32),
-                            _buildReadOnlyField('Phone Number', Icons.phone, _phoneController.text),
-                            if (_ownerUid != null && _ownerUid!.isNotEmpty) ...[
-                              const Divider(height: 32),
-                              _buildReadOnlyField('Owner UID', Icons.fingerprint, _ownerUid!),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Additional Details Card
-                      if (_addressController.text.isNotEmpty || _gstinController.text.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: kPrimaryColor.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'Additional Details',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              if (_addressController.text.isNotEmpty)
-                                _buildReadOnlyField('Business Address', Icons.location_on, _addressController.text),
-                              if (_addressController.text.isNotEmpty && _gstinController.text.isNotEmpty)
-                                const Divider(height: 32),
-                              if (_gstinController.text.isNotEmpty)
-                                _buildReadOnlyField('GST Number', Icons.receipt_long, _gstinController.text),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-
-                      // System Information Card
-                      if (_createdAt != null || _updatedAt != null)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade200),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.access_time, color: Colors.grey, size: 20),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Text(
-                                    'System Information',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              if (_createdAt != null)
-                                _buildReadOnlyField('Account Created', Icons.calendar_today, _createdAt!),
-                              if (_createdAt != null && _updatedAt != null)
-                                const Divider(height: 32),
-                              if (_updatedAt != null)
-                                _buildReadOnlyField('Last Updated', Icons.update, _updatedAt!),
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader('Business Information', Icons.business),
+                  const SizedBox(height: 20),
+                  _buildReadOnlyField('Business Name', Icons.store_mall_directory, _businessName),
+                  const Divider(height: 32),
+                  _buildReadOnlyField('Business Phone', Icons.phone_android, _businessPhone),
+                  const Divider(height: 32),
+                  _buildReadOnlyField('Store ID', Icons.qr_code, _storeId ?? 'N/A'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader('Owner Information', Icons.person),
+                  const SizedBox(height: 20),
+                  _buildReadOnlyField('Owner Name', Icons.badge, _ownerName),
+                  const Divider(height: 32),
+                  _buildReadOnlyField('Email Address', Icons.email, _email),
+                  const Divider(height: 32),
+                  _buildReadOnlyField('Personal Phone', Icons.phone, _ownerPhone),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_address.isNotEmpty || _gstin.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader('Additional Details', Icons.info_outline),
+                    const SizedBox(height: 20),
+                    if (_address.isNotEmpty) _buildReadOnlyField('Business Address', Icons.location_on, _address),
+                    if (_address.isNotEmpty && _gstin.isNotEmpty) const Divider(height: 32),
+                    if (_gstin.isNotEmpty) _buildReadOnlyField('GST Number', Icons.receipt_long, _gstin),
+                  ],
                 ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccessDenied() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 24),
+          const Text('Restricted Access', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: kPrimaryColor, size: 20),
+        const SizedBox(width: 12),
+        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      ],
     );
   }
 
   Widget _buildReadOnlyField(String label, IconData icon, String value) {
     final isEmpty = value.isEmpty;
-
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isEmpty ? Colors.grey.shade100 : kPrimaryColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isEmpty ? Colors.grey.shade400 : kPrimaryColor,
-          ),
-        ),
+        Icon(icon, size: 20, color: isEmpty ? Colors.grey.shade400 : kPrimaryColor),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                isEmpty ? 'Not provided' : value,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isEmpty ? Colors.grey[400] : Colors.black87,
-                  fontWeight: FontWeight.w600,
-                  height: 1.4,
-                ),
-              ),
+              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(isEmpty ? 'Not provided' : value, style: TextStyle(fontSize: 15, color: isEmpty ? Colors.grey[400] : Colors.black87, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -1568,9 +1407,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 }
 
-// ==========================================
-// THEME PAGE
-// ==========================================
 class ThemePage extends StatefulWidget {
   final VoidCallback onBack;
   const ThemePage({super.key, required this.onBack});
@@ -1580,7 +1416,7 @@ class ThemePage extends StatefulWidget {
 }
 
 class _ThemePageState extends State<ThemePage> {
-  String _selectedTheme = 'Light Mode'; // Default selection
+  String _selectedTheme = 'Light Mode';
 
   @override
   Widget build(BuildContext context) {
@@ -1597,68 +1433,21 @@ class _ThemePageState extends State<ThemePage> {
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Pick the look that feels best for your eyes.',
-              style: TextStyle(fontSize: 16, color: Colors.black87),
-            ),
-            const SizedBox(height: 24),
-
-            // Light Mode Option
-            _buildThemeOption(
-              'Light Mode',
-              'Bright and clear for daytime use',
-              _selectedTheme == 'Light Mode',
-              () {
-                setState(() {
-                  _selectedTheme = 'Light Mode';
-                });
-              },
-            ),
+            _buildThemeOption('Light Mode', 'Bright and clear', _selectedTheme == 'Light Mode', () => setState(() => _selectedTheme = 'Light Mode')),
             const SizedBox(height: 16),
-
-            // Dark Mode Option
-            _buildThemeOption(
-              'Dark Mode',
-              'Easy on the eyes in low light',
-              _selectedTheme == 'Dark Mode',
-              () {
-                setState(() {
-                  _selectedTheme = 'Dark Mode';
-                });
-              },
-            ),
-
+            _buildThemeOption('Dark Mode', 'Easy on the eyes', _selectedTheme == 'Dark Mode', () => setState(() => _selectedTheme = 'Dark Mode')),
             const Spacer(),
-
-            // Update Button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  // TODO: Save theme preference
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Theme updated to $_selectedTheme'),
-                      backgroundColor: kPrimaryColor,
-                    ),
-                  );
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Theme updated to $_selectedTheme'), backgroundColor: kPrimaryColor));
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kPrimaryColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Update',
-                  style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
+                child: const Text('Update', style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ),
-            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -1673,51 +1462,12 @@ class _ThemePageState extends State<ThemePage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? kPrimaryColor : Colors.grey.shade300,
-            width: isSelected ? 2 : 1,
-          ),
+          border: Border.all(color: isSelected ? kPrimaryColor : Colors.grey.shade300, width: isSelected ? 2 : 1),
         ),
         child: Row(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? kPrimaryColor : Colors.grey.shade400,
-                  width: 2,
-                ),
-                color: isSelected ? kPrimaryColor : Colors.transparent,
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
-            ),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.grey))])),
+            if(isSelected) const Icon(Icons.check, color: kPrimaryColor)
           ],
         ),
       ),
@@ -1725,9 +1475,6 @@ class _ThemePageState extends State<ThemePage> {
   }
 }
 
-// ==========================================
-// HELP PAGE
-// ==========================================
 class HelpPage extends StatelessWidget {
   final VoidCallback onBack;
   final Function(String) onNavigate;
@@ -1741,335 +1488,78 @@ class HelpPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Help", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBack,
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _buildHelpTile(
-            'FAQs',
-            Icons.question_answer_outlined,
-            () => onNavigate('FAQs'),
-          ),
+          _buildHelpTile('FAQs', Icons.question_answer_outlined, () => onNavigate('FAQs')),
           const SizedBox(height: 12),
-          _buildHelpTile(
-            'Upcoming Features',
-            Icons.update_outlined,
-            () => onNavigate('UpcomingFeatures'),
-          ),
+          _buildHelpTile('Upcoming Features', Icons.update_outlined, () => onNavigate('UpcomingFeatures')),
           const SizedBox(height: 12),
-          _buildHelpTile(
-            'Video Tutorials',
-            Icons.play_circle_outline,
-            () => onNavigate('VideoTutorials'),
-          ),
-          const SizedBox(height: 12),
-          _buildHelpTile(
-            'Chat Support',
-            Icons.chat_outlined,
-            () {
-              // TODO: Implement WhatsApp chat support
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Opening chat support...')),
-              );
-            },
-            showWhatsAppIcon: true,
-          ),
+          _buildHelpTile('Video Tutorials', Icons.play_circle_outline, () => onNavigate('VideoTutorials')),
         ],
       ),
     );
   }
 
-  Widget _buildHelpTile(String title, IconData icon, VoidCallback onTap, {bool showWhatsAppIcon = false}) {
+  Widget _buildHelpTile(String title, IconData icon, VoidCallback onTap) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: ListTile(
-        leading: Icon(icon, color: Colors.black87, size: 24),
-        title: Row(
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            if (showWhatsAppIcon) ...[
-              const SizedBox(width: 8),
-              const Icon(Icons.whatshot, color: Color(0xFF25D366), size: 20),
-            ],
-          ],
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+        leading: Icon(icon, color: Colors.black87),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
     );
   }
 }
 
-// ==========================================
-// FAQs PAGE
-// ==========================================
 class FAQsPage extends StatelessWidget {
   final VoidCallback onBack;
-
   const FAQsPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("FAQs", style: TextStyle(color: Colors.white)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBack,
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildFAQCategory(
-            context,
-            'How to Connect Thermal Printer',
-            'Printer Setup',
-          ),
-          const SizedBox(height: 12),
-          _buildFAQCategory(
-            context,
-            'Sale / Billing',
-            'Billing Tutorial',
-          ),
-          const SizedBox(height: 12),
-          _buildFAQCategory(
-            context,
-            'Inventory / Stock',
-            'Stock Management',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAQCategory(BuildContext context, String title, String subtitle) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-        onTap: () {
-          // Navigate to detailed FAQ page
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening $title')),
-          );
-        },
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
+      appBar: AppBar(title: const Text("FAQs", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      body: const Center(child: Text("FAQs Content Here")),
     );
   }
 }
 
-// ==========================================
-// UPCOMING FEATURES PAGE
-// ==========================================
 class UpcomingFeaturesPage extends StatelessWidget {
   final VoidCallback onBack;
-
   const UpcomingFeaturesPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Upcoming Features", style: TextStyle(color: Colors.white)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBack,
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildFeatureCard(
-            'Multi-Store Management',
-            'Manage multiple store locations from one dashboard',
-            Icons.store,
-            'Coming Q1 2026',
-          ),
-          const SizedBox(height: 12),
-          _buildFeatureCard(
-            'Advanced Analytics',
-            'Detailed insights and predictive analytics',
-            Icons.analytics,
-            'Coming Q2 2026',
-          ),
-          const SizedBox(height: 12),
-          _buildFeatureCard(
-            'Barcode Scanner',
-            'Fast product scanning for quick checkouts',
-            Icons.qr_code_scanner,
-            'Coming Q1 2026',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureCard(String title, String description, IconData icon, String timeline) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: kPrimaryColor, size: 24),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      timeline,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            description,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[700],
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text("Upcoming Features", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      body: const Center(child: Text("Features Content Here")),
     );
   }
 }
 
-// ==========================================
-// VIDEO TUTORIALS PAGE
-// ==========================================
 class VideoTutorialsPage extends StatelessWidget {
   final VoidCallback onBack;
-
   const VideoTutorialsPage({super.key, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Video Tutorials", style: TextStyle(color: Colors.white)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBack,
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildVideoTile(
-            context,
-            'How to Create a Bill',
-            'Learn how to create and manage bills efficiently',
-            Icons.receipt_long,
-          ),
-          const SizedBox(height: 12),
-          _buildVideoTile(
-            context,
-            'How to Add Products',
-            'Step-by-step guide to adding products to inventory',
-            Icons.add_shopping_cart,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVideoTile(BuildContext context, String title, String description, IconData icon) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Icon(Icons.play_circle_filled, color: Colors.red, size: 24),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(
-          description,
-          style: const TextStyle(fontSize: 13, color: Colors.grey),
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
-        onTap: () {
-          // TODO: Open video player or YouTube link
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Opening video: $title')),
-          );
-        },
-        contentPadding: const EdgeInsets.all(12),
-      ),
+      appBar: AppBar(title: const Text("Video Tutorials", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      body: const Center(child: Text("Videos Content Here")),
     );
   }
 }
 
 // ==========================================
-// HELPER WIDGETS (UI COMPONENTS)
+// HELPER WIDGETS
 // ==========================================
 
 class _SettingsGroup extends StatelessWidget {

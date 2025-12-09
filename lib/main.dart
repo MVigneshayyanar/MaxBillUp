@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'Auth/SplashPage.dart';
 import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
@@ -44,6 +46,7 @@ class _SplashGateState extends State<SplashGate> {
   @override
   void initState() {
     super.initState();
+    _requestBluetoothPermissions();
     Future.delayed(const Duration(milliseconds: 1500), () async {
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
@@ -64,6 +67,32 @@ class _SplashGateState extends State<SplashGate> {
         );
       }
     });
+  }
+
+  /// Request Bluetooth and location permissions for printer connectivity
+  /// Auto-enables Bluetooth if user allows permission
+  Future<void> _requestBluetoothPermissions() async {
+    try {
+      // Request Bluetooth permissions (Android 12+)
+      final bluetoothStatus = await Permission.bluetooth.request();
+      final scanStatus = await Permission.bluetoothScan.request();
+      final connectStatus = await Permission.bluetoothConnect.request();
+
+      // Request location permission (required for Bluetooth scanning on Android)
+      await Permission.location.request();
+
+      // If all permissions granted, enable Bluetooth
+      if (bluetoothStatus.isGranted && scanStatus.isGranted && connectStatus.isGranted) {
+        try {
+          await FlutterBluePlus.turnOn();
+          print('Bluetooth enabled successfully');
+        } catch (e) {
+          print('Error enabling Bluetooth: $e');
+        }
+      }
+    } catch (e) {
+      print('Error requesting Bluetooth permissions: $e');
+    }
   }
 
   @override

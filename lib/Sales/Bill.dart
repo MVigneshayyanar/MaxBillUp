@@ -1051,142 +1051,132 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   if (!streamSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
                   return StreamBuilder<QuerySnapshot>(
                     stream: streamSnapshot.data,
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
                       }
-
                       if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                         return const Center(
                           child: Text('No customers found'),
                         );
                       }
-
                       final customers = snapshot.data!.docs.where((doc) {
                         if (_searchQuery.isEmpty) return true;
-
                         final data = doc.data() as Map<String, dynamic>;
                         final name = (data['name'] ?? '').toString().toLowerCase();
-                        final phone =
-                        (data['phone'] ?? '').toString().toLowerCase();
+                        final phone = (data['phone'] ?? '').toString().toLowerCase();
                         final gst = (data['gst'] ?? '').toString().toLowerCase();
-
                         return name.contains(_searchQuery) ||
                             phone.contains(_searchQuery) ||
                             gst.contains(_searchQuery);
-                  }).toList();
-
-                  if (customers.isEmpty) {
-                    return const Center(
-                      child: Text('No matching customers'),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) {
-                      final customerData =
-                      customers[index].data() as Map<String, dynamic>;
-                      final name = customerData['name'] ?? 'Unknown';
-                      final phone = customerData['phone'] ?? '';
-                      final gst = customerData['gst'];
-                      final balance = customerData['balance'] ?? 0.0; // Retrieve balance
-
-                      return GestureDetector(
-                        onTap: () {
-                          widget.onCustomerSelected(phone, name, gst);
-                          Navigator.pop(context); // Close the dialog
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2196F3),
-                                      ),
+                      }).toList();
+                      if (customers.isEmpty) {
+                        return const Center(
+                          child: Text('No matching customers'),
+                        );
+                      }
+                      return ListView.builder(
+                        itemCount: customers.length,
+                        itemBuilder: (context, index) {
+                          final customerData = customers[index].data() as Map<String, dynamic>;
+                          final name = customerData['name'] ?? 'Unknown';
+                          final phone = customerData['phone'] ?? '';
+                          final gst = customerData['gst'];
+                          final balance = customerData['balance'] ?? 0.0;
+                          return GestureDetector(
+                            onTap: () {
+                              widget.onCustomerSelected(phone, name, gst);
+                              Navigator.pop(context); // Close the dialog
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF5F5F5),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF2196F3),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Phone Number',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                        Text(
+                                          phone,
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        if (gst != null) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'GST No:',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          Text(
+                                            gst,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Phone Number',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    Text(
-                                      phone,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    if (gst != null) ...[
-                                      const SizedBox(height: 4),
+                                  ),
+                                  // Balance display column
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
                                       Text(
-                                        'GST No:',
+                                        'Current Bal:',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: Colors.grey[600],
                                         ),
                                       ),
                                       Text(
-                                        gst,
+                                        balance.toStringAsFixed(2),
                                         style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ],
-                                  ],
-                                ),
-                              ),
-                              // Balance display column
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Current Bal:',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  Text(
-                                    balance.toStringAsFixed(2),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
+                            ),
+                          );
+                        },
                       );
                     },
                   );
-                    }, // Close StreamBuilder builder
-                  ); // Close StreamBuilder
-                }, // Close FutureBuilder builder
-              ), // Close FutureBuilder
-            ), // Close Expanded
+                },
+              ),
+            ),
           ],
         ),
       ),
@@ -1274,12 +1264,14 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     super.dispose();
   }
 
-  // --- Firestore Helpers (Duplicated from PaymentPage, simplified for single file context) ---
+  // --- Firestore Helpers (fetches user name from users/{uid}) ---
   Future<String?> _fetchStaffName(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      // Fetch user document from users/{uid}
+      final doc = await FirestoreService().usersCollection.doc(uid).get();
       if (doc.exists) {
-        return doc.data()?['name'] as String?;
+        final data = doc.data() as Map<String, dynamic>?;
+        return data?['name'] as String?;
       }
       return null;
     } catch (e) {
@@ -1290,8 +1282,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
   Future<String?> _fetchBusinessLocation(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final data = doc.data();
+      final doc = await FirestoreService().getDocument('users', uid);
+      final data = doc.data() as Map<String, dynamic>?;
       return data?['businessName'] as String? ?? data?['location'] as String?;
     } catch (e) {
       return 'Tirunelveli';
@@ -1748,9 +1740,9 @@ class _PaymentPageState extends State<PaymentPage> {
   // FETCH STAFF NAME FUNCTION
   Future<String?> _fetchStaffName(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirestoreService().usersCollection.doc(uid).get();
       if (doc.exists) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>?;
         return data?['name'] as String?;
       }
     } catch (e) {
@@ -1762,15 +1754,35 @@ class _PaymentPageState extends State<PaymentPage> {
   // FETCH BUSINESS LOCATION FUNCTION
   Future<String?> _fetchBusinessLocation(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirestoreService().getDocument('users', uid);
       if (doc.exists) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>?;
         return data?['businessName'] as String? ?? data?['location'] as String?;
       }
     } catch (e) {
       debugPrint('Error fetching business location: $e');
     }
     return 'Tirunelveli';
+  }
+
+  // --- Firestore Helper: fetch businessName and location from /store/{storeId} ---
+  Future<Map<String, String?>> _fetchBusinessDetails() async {
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return {'businessName': null, 'location': null};
+      final doc = await FirestoreService().storeCollection.doc(storeId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        return {
+          'businessName': data?['businessName'] as String?,
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String?
+        };
+      }
+      return {'businessName': null, 'location': null};
+    } catch (e) {
+      debugPrint('Error fetching business details: $e');
+      return {'businessName': null, 'location': null};
+    }
   }
 
   // Helper method for Credit Payment: Update customer's credit balance
@@ -2284,3 +2296,4 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 }
+

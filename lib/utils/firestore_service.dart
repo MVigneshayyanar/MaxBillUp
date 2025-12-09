@@ -18,20 +18,101 @@ class FirestoreService {
     // Return cached value if available
     if (_cachedStoreId != null) return _cachedStoreId;
 
-    final uid = _auth.currentUser?.uid;
+    final user = _auth.currentUser;
+    final uid = user?.uid;
+    final email = user?.email;
     if (uid == null) return null;
 
     try {
+      // 1) Try users collection first (user doc is the preferred place to store mapping)
       final userDoc = await _firestore.collection('users').doc(uid).get();
       if (userDoc.exists) {
-        final storeId = userDoc.data()?['storeId'];
+        final data = userDoc.data();
+        final storeIdFromUser = data?['storeId'];
+        if (storeIdFromUser != null && storeIdFromUser.toString().isNotEmpty) {
+          _cachedStoreId = storeIdFromUser.toString();
+          return _cachedStoreId;
+        }
+        // also accept alternative field names if present
+        final storeDocId = data?['storeDocId'];
+        if (storeDocId != null && storeDocId.toString().isNotEmpty) {
+          _cachedStoreId = storeDocId.toString();
+          return _cachedStoreId;
+        }
+      }
+
+      // 2) Fallback: search store collection by ownerUid
+      final byUid = await _firestore
+          .collection('store')
+          .where('ownerUid', isEqualTo: uid)
+          .limit(1)
+          .get();
+      if (byUid.docs.isNotEmpty) {
+        final doc = byUid.docs.first;
+        final data = doc.data();
+        // prefer explicit storeId field, otherwise use document id
+        final storeId = data['storeId'] ?? doc.id;
         _cachedStoreId = storeId?.toString();
         return _cachedStoreId;
       }
+
+      // 3) Fallback: search store collection by ownerEmail (if email available)
+      if (email != null && email.isNotEmpty) {
+        final byEmail = await _firestore
+            .collection('store')
+            .where('ownerEmail', isEqualTo: email)
+            .limit(1)
+            .get();
+        if (byEmail.docs.isNotEmpty) {
+          final doc = byEmail.docs.first;
+          final data = doc.data();
+          final storeId = data['storeId'] ?? doc.id;
+          _cachedStoreId = storeId?.toString();
+          return _cachedStoreId;
+        }
+      }
+    } catch (e, st) {
+      // keep debug-friendly logging but avoid throwing from helper
+      print('Error getting store ID: $e\n$st');
+    }
+
+    return null;
+  }
+
+  /// Get the whole store document (document from `store` collection)
+  /// Returns null if not found.
+  Future<DocumentSnapshot?> getCurrentStoreDoc() async {
+    final storeId = await getCurrentStoreId();
+    if (storeId == null) return null;
+
+    try {
+      // Try to find a document with a storeId field equal to storeId
+      final byField = await _firestore
+          .collection('store')
+          .where('storeId', isEqualTo: storeId)
+          .limit(1)
+          .get();
+      if (byField.docs.isNotEmpty) return byField.docs.first;
+
+      // Fallback: treat storeId as document id
+      final doc = await _firestore.collection('store').doc(storeId).get();
+      if (doc.exists) return doc;
     } catch (e) {
-      print('Error getting store ID: $e');
+      print('Error getting store document: $e');
     }
     return null;
+  }
+
+  /// Associate the currently signed-in user with a storeId in `users` collection.
+  /// This writes to users/{uid}.storeId so subsequent calls to getCurrentStoreId are fast.
+  Future<void> setUserStoreId(String storeId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('No authenticated user');
+    await _firestore.collection('users').doc(uid).set({
+      'storeId': storeId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    _cachedStoreId = storeId;
   }
 
   /// Clear cached store ID (call on logout)
@@ -96,10 +177,97 @@ class FirestoreService {
     return collection;
   }
 
+  /// Batch write operations to a store-scoped collection
+  Future<void> writeBatch(String collectionName, List<Map<String, dynamic>> operations) async {
+    final collection = await getStoreCollection(collectionName);
+    final batch = _firestore.batch();
+
+    for (var op in operations) {
+      final docId = op['docId'] as String;
+      final data = op['data'] as Map<String, dynamic>;
+      final type = op['type'] as String? ?? 'set'; // 'set', 'update', 'delete'
+
+      final docRef = collection.doc(docId);
+      switch (type) {
+        case 'set':
+          batch.set(docRef, data);
+          break;
+        case 'update':
+          batch.update(docRef, data);
+          break;
+        case 'delete':
+          batch.delete(docRef);
+          break;
+      }
+    }
+
+    await batch.commit();
+  }
+
+  /// Run a transaction on store-scoped data
+  Future<T> runTransaction<T>(String collectionName, Future<T> Function(Transaction) transactionHandler) async {
+    return _firestore.runTransaction((transaction) => transactionHandler(transaction));
+  }
+
+  /// Get all documents from a store-scoped collection
+  Future<List<DocumentSnapshot>> getAllDocuments(String collectionName) async {
+    final collection = await getStoreCollection(collectionName);
+    final snapshot = await collection.get();
+    return snapshot.docs;
+  }
+
+  /// Query documents with where clause
+  Future<List<DocumentSnapshot>> queryDocuments(
+    String collectionName,
+    String field,
+    dynamic value,
+  ) async {
+    final collection = await getStoreCollection(collectionName);
+    final snapshot = await collection.where(field, isEqualTo: value).get();
+    return snapshot.docs;
+  }
+
+  /// Query documents with multiple where clauses
+  Future<List<DocumentSnapshot>> queryDocumentsMultiple(
+    String collectionName,
+    List<Map<String, dynamic>> whereConditions,
+  ) async {
+    var query = await getStoreCollection(collectionName) as Query;
+
+    for (var condition in whereConditions) {
+      final field = condition['field'] as String;
+      final value = condition['value'];
+      final operator = condition['operator'] as String? ?? 'isEqualTo';
+
+      switch (operator) {
+        case 'isEqualTo':
+          query = query.where(field, isEqualTo: value);
+          break;
+        case 'isLessThan':
+          query = query.where(field, isLessThan: value);
+          break;
+        case 'isLessThanOrEqualTo':
+          query = query.where(field, isLessThanOrEqualTo: value);
+          break;
+        case 'isGreaterThan':
+          query = query.where(field, isGreaterThan: value);
+          break;
+        case 'isGreaterThanOrEqualTo':
+          query = query.where(field, isGreaterThanOrEqualTo: value);
+          break;
+        case 'arrayContains':
+          query = query.where(field, arrayContains: value);
+          break;
+      }
+    }
+
+    final snapshot = await query.get();
+    return snapshot.docs;
+  }
+
   // Direct access to users collection (not store-scoped)
   CollectionReference get usersCollection => _firestore.collection('users');
 
   // Direct access to store collection (not store-scoped)
   CollectionReference get storeCollection => _firestore.collection('store');
 }
-

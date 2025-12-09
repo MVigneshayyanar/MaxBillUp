@@ -177,7 +177,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
               children: [
                 Container(
                   color: Colors.white,
-                  height: 200,
+                  height: 225,
                   child: _items.isEmpty
                       ? const Center(
                     child: Column(
