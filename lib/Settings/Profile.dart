@@ -4,29 +4,30 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // For Bluetooth device discovery
-import 'package:permission_handler/permission_handler.dart'; // Needed for permissions
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 
 // ==========================================
-// CONSTANTS & STYLES
+// CONSTANTS & STYLES (MATCHED TO UI IMAGE)
 // ==========================================
-const Color kPrimaryColor = Color(0xFF007AFF);
-const Color kBgColor = Color(0xFFF2F2F7);
+const Color kPrimaryColor = Color(0xFF007AFF); // Vibrant Blue from Header/Buttons
+const Color kBgColor = Color(0xFFF5F7FA);     // Cool Light Grey Background
+const Color kSurfaceColor = Colors.white;     // Card/Container White
+const Color kInputFillColor = Color(0xFFF2F4F7); // Light Grey for TextFields
 const Color kDangerColor = Color(0xFFFF3B30);
+const Color kTextPrimary = Color(0xFF1D1D1D); // Dark text
+const Color kTextSecondary = Color(0xFF8A8A8E); // Grey text
 
 // ==========================================
 // 1. MAIN SETTINGS PAGE
 // ==========================================
-
 class SettingsPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
-
   const SettingsPage({super.key, required this.uid, this.userEmail});
-
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
@@ -46,11 +47,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _fetchUserData() async {
     try {
-      // Load user document
       final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
       final userData = userDoc.exists ? userDoc.data() : null;
-
-      // Load store document via FirestoreService (store-scoped)
       final storeDoc = await FirestoreService().getCurrentStoreDoc();
       final storeData = (storeDoc != null && storeDoc.exists) ? (storeDoc.data() as Map<String, dynamic>?) : null;
 
@@ -117,11 +115,12 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Settings", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-        backgroundColor: kBgColor,
+        title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        backgroundColor: kPrimaryColor, // Matches the blue header in image
         elevation: 0,
         centerTitle: true,
         automaticallyImplyLeading: false,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -164,7 +163,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildProfileCard() {
-    // Prefer store-scoped businessName/plan if available, otherwise fall back to user doc
     final name = _storeData?['businessName'] ?? _userData?['businessName'] ?? _userData?['name'] ?? 'User';
     final email = _userData?['email'] ?? widget.userEmail ?? '';
     final role = _userData?['role'] ?? 'Administrator';
@@ -173,13 +171,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           CircleAvatar(
             radius: 26,
-            backgroundColor: Colors.grey[200],
-            child: Text(name.isNotEmpty ? name[0].toUpperCase() : "U", style: const TextStyle(fontWeight: FontWeight.bold)),
+            backgroundColor: kBgColor,
+            child: Text(name.isNotEmpty ? name[0].toUpperCase() : "U", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -188,12 +186,12 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Row(
                   children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kTextPrimary)),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: Colors.orange.shade100,
+                        color: Colors.orange.shade50,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -204,11 +202,11 @@ class _SettingsPageState extends State<SettingsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(plan, style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.w600)),
-                              if (expiry != null) Text(
-                                // show a short expiry string
-                                _formatExpiry(expiry.toString()),
-                                style: TextStyle(fontSize: 10, color: Colors.orange.shade700),
-                              ),
+                              if (expiry != null)
+                                Text(
+                                  _formatExpiry(expiry.toString()),
+                                  style: TextStyle(fontSize: 10, color: Colors.orange.shade700),
+                                ),
                             ],
                           ),
                         ],
@@ -216,10 +214,13 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: plan == 'Max' ? null : () {
-                    // Navigate to the subscription/plan page; pass current plan (prefer store-scoped)
+                const SizedBox(height: 4),
+                Text(email, style: const TextStyle(fontSize: 13, color: kTextSecondary)),
+                const SizedBox(height: 4),
+                InkWell(
+                  onTap: plan == 'Max'
+                      ? null
+                      : () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -230,17 +231,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     );
                   },
-                  style: TextButton.styleFrom(minimumSize: Size(0, 28), padding: const EdgeInsets.symmetric(horizontal: 10)),
-                  child: const Text('Upgrade', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: const Text('Upgrade Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kPrimaryColor)),
                 ),
-                Text(email, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary)),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text(role, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
+            decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text(role, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kPrimaryColor)),
           ),
         ],
       ),
@@ -262,14 +261,14 @@ class _SettingsPageState extends State<SettingsPage> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           backgroundColor: Colors.white,
         ),
-        child: const Text("logout", style: TextStyle(color: kDangerColor, fontSize: 16)),
+        child: const Text("Logout", style: TextStyle(color: kDangerColor, fontSize: 16)),
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) => Padding(
     padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+    child: Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14, fontWeight: FontWeight.w500)),
   );
 
   String _formatExpiry(String iso) {
@@ -285,11 +284,9 @@ class _SettingsPageState extends State<SettingsPage> {
 // ==========================================
 // 4. PRINTER SETUP PAGE (BLUETOOTH)
 // ==========================================
-
 class PrinterSetupPage extends StatefulWidget {
   final VoidCallback onBack;
   const PrinterSetupPage({super.key, required this.onBack});
-
   @override
   State<PrinterSetupPage> createState() => _PrinterSetupPageState();
 }
@@ -313,13 +310,11 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     final prefs = await SharedPreferences.getInstance();
     final enableAutoPrint = prefs.getBool('enable_auto_print') ?? true;
     final savedDeviceId = prefs.getString('selected_printer_id');
-
     setState(() {
       _enableAutoPrint = enableAutoPrint;
     });
 
     if (savedDeviceId != null) {
-      // Try to find the saved device
       _findSavedDevice(savedDeviceId);
     }
   }
@@ -328,10 +323,9 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     try {
       final devices = await FlutterBluePlus.bondedDevices;
       final device = devices.firstWhere(
-        (d) => d.remoteId.toString() == deviceId,
+            (d) => d.remoteId.toString() == deviceId,
         orElse: () => devices.first,
       );
-
       if (mounted) {
         setState(() {
           _selectedDevice = device;
@@ -343,7 +337,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   }
 
   Future<void> _initPrinter() async {
-    // Check if Bluetooth is on
     try {
       final adapterState = await FlutterBluePlus.adapterState.first;
       if (adapterState != BluetoothAdapterState.on) {
@@ -354,7 +347,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       // Bluetooth not available
     }
 
-    // Request permissions
     final permissionStatus = await [
       Permission.bluetooth,
       Permission.bluetoothScan,
@@ -375,7 +367,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 
   Future<void> _showBluetoothDialog() async {
     if (!mounted) return;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -411,7 +402,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 
   Future<void> _getBondedDevices() async {
     setState(() => _isLoading = true);
-
     try {
       final devices = await FlutterBluePlus.bondedDevices;
       if (mounted) {
@@ -431,7 +421,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   }
 
   Future<void> _scanForDevices() async {
-    // Check Bluetooth is on
     try {
       final adapterState = await FlutterBluePlus.adapterState.first;
       if (adapterState != BluetoothAdapterState.on) {
@@ -453,10 +442,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     });
 
     try {
-      // Start scanning
       await FlutterBluePlus.startScan(timeout: const Duration(seconds: 10));
-
-      // Listen to scan results
       final subscription = FlutterBluePlus.scanResults.listen((results) {
         final devices = results.map((r) => r.device).toList();
         if (mounted) {
@@ -466,7 +452,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
         }
       });
 
-      // Wait for scan to complete
       await Future.delayed(const Duration(seconds: 10));
       await subscription.cancel();
       await FlutterBluePlus.stopScan();
@@ -486,9 +471,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 
   Future<void> _selectDevice(BluetoothDevice device) async {
     setState(() => _isLoading = true);
-
     try {
-      // Save the device to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_printer_id', device.remoteId.toString());
       await prefs.setString('selected_printer_name', device.platformName);
@@ -498,7 +481,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           _selectedDevice = device;
           _isLoading = false;
         });
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Printer '${device.platformName}' selected successfully"),
@@ -520,12 +502,10 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('selected_printer_id');
     await prefs.remove('selected_printer_name');
-
     if (mounted) {
       setState(() {
         _selectedDevice = null;
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Printer removed"), backgroundColor: Colors.orange),
       );
@@ -534,11 +514,10 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Printer Setup", style: TextStyle(color: Colors.white)),
+        title: const Text("Printer Setup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -564,7 +543,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // SELECTED PRINTER CARD
           if (_selectedDevice != null)
             Container(
               padding: const EdgeInsets.all(16),
@@ -587,9 +565,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         Text(
-                          _selectedDevice!.platformName.isEmpty
-                            ? "Unknown Device"
-                            : _selectedDevice!.platformName,
+                          _selectedDevice!.platformName.isEmpty ? "Unknown Device" : _selectedDevice!.platformName,
                           style: const TextStyle(fontSize: 13, color: Colors.black87),
                         ),
                         Text(
@@ -606,8 +582,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                 ],
               ),
             ),
-
-          // SCAN BUTTON
           ElevatedButton.icon(
             onPressed: _isScanning ? null : _scanForDevices,
             icon: Icon(_isScanning ? Icons.hourglass_empty : Icons.bluetooth_searching),
@@ -619,10 +593,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // BONDED DEVICES SECTION
           if (_bondedDevices.isNotEmpty) ...[
             Row(
               children: [
@@ -644,7 +615,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                 children: _bondedDevices.map((device) {
                   final isSelected = _selectedDevice?.remoteId.toString() == device.remoteId.toString();
                   final deviceName = device.platformName.isEmpty ? "Unknown Device" : device.platformName;
-
                   return ListTile(
                     leading: Icon(
                       Icons.print,
@@ -660,22 +630,20 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                     trailing: isSelected
                         ? const Icon(Icons.check_circle, color: Colors.green)
                         : ElevatedButton(
-                            onPressed: () => _selectDevice(device),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kPrimaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            ),
-                            child: const Text("Select"),
-                          ),
+                      onPressed: () => _selectDevice(device),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      child: const Text("Select"),
+                    ),
                   );
                 }).toList(),
               ),
             ),
             const SizedBox(height: 16),
           ],
-
-          // SCANNED DEVICES SECTION
           if (_scannedDevices.isNotEmpty) ...[
             Row(
               children: [
@@ -699,12 +667,10 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
               ),
               child: Column(
                 children: _scannedDevices.where((d) {
-                  // Only show devices not already in bonded list
                   return !_bondedDevices.any((bd) => bd.remoteId == d.remoteId);
                 }).map((device) {
                   final isSelected = _selectedDevice?.remoteId.toString() == device.remoteId.toString();
                   final deviceName = device.platformName.isEmpty ? "Unknown Device" : device.platformName;
-
                   return ListTile(
                     leading: Icon(
                       Icons.bluetooth,
@@ -720,22 +686,20 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                     trailing: isSelected
                         ? const Icon(Icons.check_circle, color: Colors.green)
                         : ElevatedButton(
-                            onPressed: () => _selectDevice(device),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kPrimaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            ),
-                            child: const Text("Select"),
-                          ),
+                      onPressed: () => _selectDevice(device),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                      child: const Text("Select"),
+                    ),
                   );
                 }).toList(),
               ),
             ),
             const SizedBox(height: 16),
           ],
-
-          // EMPTY STATE
           if (!_isLoading && !_isScanning && _bondedDevices.isEmpty && _scannedDevices.isEmpty)
             Center(
               child: Padding(
@@ -758,8 +722,6 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                 ),
               ),
             ),
-
-          // LOADING STATE
           if (_isLoading && !_isScanning)
             const Center(
               child: Padding(
@@ -767,10 +729,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                 child: CircularProgressIndicator(),
               ),
             ),
-
           const SizedBox(height: 24),
-
-          // AUTO PRINT SETTINGS
           _SettingsGroup(children: [
             _SwitchTile("Enable Auto Print", _enableAutoPrint, (v) async {
               final prefs = await SharedPreferences.getInstance();
@@ -787,19 +746,16 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 // ==========================================
 // OTHER SETTINGS PAGES
 // ==========================================
-
 class ReceiptSettingsPage extends StatelessWidget {
   final VoidCallback onBack;
   final Function(String) onNavigate;
-
   const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Receipt Settings", style: TextStyle(color: Colors.white)),
+        title: const Text("Receipt Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -832,7 +788,6 @@ class ReceiptSettingsPage extends StatelessWidget {
 class ReceiptCustomizationPage extends StatefulWidget {
   final VoidCallback onBack;
   const ReceiptCustomizationPage({super.key, required this.onBack});
-
   @override
   State<ReceiptCustomizationPage> createState() => _ReceiptCustomizationPageState();
 }
@@ -848,7 +803,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Receipt Settings", style: TextStyle(color: Colors.white)),
+        title: const Text("Receipt Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -868,11 +823,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           ], isExpanded: false),
           const SizedBox(height: 16),
           _buildExpansionSection("Invoice Footer", [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Text("Footer Description:", style: TextStyle(fontSize: 13, color: Colors.black54)),
                   SizedBox(height: 8),
                   _SimpleTextField(hint: "Bill Description"),
@@ -886,11 +841,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           ]),
           const SizedBox(height: 16),
           _buildExpansionSection("Quotation footer setup", [
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: const [
                   Text("Quotation Description", style: TextStyle(fontSize: 13, color: Colors.black54)),
                   SizedBox(height: 8),
                   _SimpleTextField(hint: "", maxLines: 3),
@@ -925,7 +880,6 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 class TaxSettingsPage extends StatefulWidget {
   final VoidCallback onBack;
   const TaxSettingsPage({super.key, required this.onBack});
-
   @override
   State<TaxSettingsPage> createState() => _TaxSettingsPageState();
 }
@@ -950,7 +904,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Tax Settings", style: TextStyle(color: Colors.white)),
+        title: const Text("Tax Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -962,7 +916,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Container(
               height: 40,
-              decoration: BoxDecoration(color: kBgColor, borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: kInputFillColor, borderRadius: BorderRadius.circular(8)),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(8)),
@@ -1023,7 +977,9 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     ),
                     const SizedBox(height: 24),
                     _SettingsGroup(children: _taxes.map((t) => _TaxSwitchTile(t, (v) {
-                      setState(() { t['active'] = v; });
+                      setState(() {
+                        t['active'] = v;
+                      });
                     })).toList()),
                     const SizedBox(height: 30),
                     _PrimaryButton(text: "Update", onTap: widget.onBack),
@@ -1037,12 +993,12 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     );
   }
 
-  Widget _TaxListTile(Map<String, dynamic> tax) {
+  Widget _TaxListTile(Map tax) {
     return Column(
       children: [
         ListTile(
           leading: CircleAvatar(
-            backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
+            backgroundColor: kPrimaryColor.withOpacity(0.1),
             child: Text("${tax['val']}%", style: const TextStyle(fontSize: 11, color: kPrimaryColor, fontWeight: FontWeight.bold)),
           ),
           title: Text(tax['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -1067,12 +1023,12 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     );
   }
 
-  Widget _TaxSwitchTile(Map<String, dynamic> tax, Function(bool) onChanged) {
+  Widget _TaxSwitchTile(Map tax, Function(bool) onChanged) {
     return Column(
       children: [
         ListTile(
           leading: CircleAvatar(
-            backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
+            backgroundColor: kPrimaryColor.withOpacity(0.1),
             child: Text("${tax['val']}%", style: const TextStyle(fontSize: 11, color: kPrimaryColor, fontWeight: FontWeight.bold)),
           ),
           title: Text(tax['name'], style: const TextStyle(fontWeight: FontWeight.w500)),
@@ -1091,7 +1047,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 class FeatureSettingsPage extends StatefulWidget {
   final VoidCallback onBack;
   const FeatureSettingsPage({super.key, required this.onBack});
-
   @override
   State<FeatureSettingsPage> createState() => _FeatureSettingsPageState();
 }
@@ -1106,7 +1061,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Feature Settings", style: TextStyle(color: Colors.white)),
+        title: const Text("Feature Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -1158,14 +1113,12 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 class LanguagePage extends StatefulWidget {
   final VoidCallback onBack;
   const LanguagePage({super.key, required this.onBack});
-
   @override
   State<LanguagePage> createState() => _LanguagePageState();
 }
 
 class _LanguagePageState extends State<LanguagePage> {
   String _selectedLang = 'English';
-
   final List<Map<String, String>> _langs = [
     {'name': 'English', 'native': '', 'tag': ''},
     {'name': 'Français', 'native': 'French', 'tag': ''},
@@ -1183,7 +1136,7 @@ class _LanguagePageState extends State<LanguagePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Choose Language", style: TextStyle(color: Colors.white)),
+        title: const Text("Choose Language", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         iconTheme: const IconThemeData(color: Colors.white),
@@ -1206,11 +1159,11 @@ class _LanguagePageState extends State<LanguagePage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? kPrimaryColor.withValues(alpha: 0.1) : Colors.white,
+                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : kInputFillColor,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: isSelected ? kPrimaryColor : Colors.grey.shade300,
-                    width: isSelected ? 1.5 : 1,
+                    color: isSelected ? kPrimaryColor : Colors.transparent,
+                    width: 1.5,
                   ),
                 ),
                 child: Stack(
@@ -1220,15 +1173,13 @@ class _LanguagePageState extends State<LanguagePage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(lang['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-                        if (lang['native']!.isNotEmpty)
-                          Text(lang['native']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                        if (lang['native']!.isNotEmpty) Text(lang['native']!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                     if (isSelected)
                       const Positioned(right: 0, top: 0, child: Icon(Icons.radio_button_checked, color: kPrimaryColor, size: 20))
                     else
-                      Positioned(right: 0, top: 0, child: Icon(Icons.radio_button_off, color: Colors.grey.shade300, size: 20)),
-
+                      Positioned(right: 0, top: 0, child: Icon(Icons.radio_button_off, color: Colors.grey.shade400, size: 20)),
                     if (lang['tag'] == 'Beta')
                       Positioned(
                           right: 0,
@@ -1252,9 +1203,7 @@ class _LanguagePageState extends State<LanguagePage> {
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
-
   const BusinessDetailsPage({super.key, required this.uid, required this.onBack});
-
   @override
   State<BusinessDetailsPage> createState() => _BusinessDetailsPageState();
 }
@@ -1263,7 +1212,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   bool _isLoading = true;
   String _role = 'staff';
   String? _storeId;
-
   String _businessName = '';
   String _ownerName = '';
   String _businessPhone = '';
@@ -1285,9 +1233,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     try {
       final firestore = FirebaseFirestore.instance;
       final userDoc = await firestore.collection('users').doc(widget.uid).get();
-
       if (!userDoc.exists) throw Exception("User not found");
-
       final userData = userDoc.data()!;
       final role = userData['role'] ?? 'staff';
       final storeIdInt = userData['storeId'];
@@ -1358,9 +1304,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha: 0.1),
+                color: kPrimaryColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3)),
+                border: Border.all(color: kPrimaryColor.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -1451,7 +1397,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-              Text(isEmpty ? 'Not provided' : value, style: TextStyle(fontSize: 15, color: isEmpty ? Colors.grey[400] : Colors.black87, fontWeight: FontWeight.w600)),
+              Text(isEmpty ? 'Not provided' : value,
+                  style: TextStyle(fontSize: 15, color: isEmpty ? Colors.grey[400] : Colors.black87, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -1463,7 +1410,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 class ThemePage extends StatefulWidget {
   final VoidCallback onBack;
   const ThemePage({super.key, required this.onBack});
-
   @override
   State<ThemePage> createState() => _ThemePageState();
 }
@@ -1476,7 +1422,7 @@ class _ThemePageState extends State<ThemePage> {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Theme", style: TextStyle(color: Colors.white)),
+        title: const Text("Theme", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -1519,8 +1465,12 @@ class _ThemePageState extends State<ThemePage> {
         ),
         child: Row(
           children: [
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)), Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.grey))])),
-            if(isSelected) const Icon(Icons.check, color: kPrimaryColor)
+            Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(subtitle, style: const TextStyle(fontSize: 14, color: Colors.grey))
+                ])),
+            if (isSelected) const Icon(Icons.check, color: kPrimaryColor)
           ],
         ),
       ),
@@ -1531,15 +1481,13 @@ class _ThemePageState extends State<ThemePage> {
 class HelpPage extends StatelessWidget {
   final VoidCallback onBack;
   final Function(String) onNavigate;
-
   const HelpPage({super.key, required this.onBack, required this.onNavigate});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Help", style: TextStyle(color: Colors.white)),
+        title: const Text("Help", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
       ),
@@ -1572,12 +1520,11 @@ class HelpPage extends StatelessWidget {
 class FAQsPage extends StatelessWidget {
   final VoidCallback onBack;
   const FAQsPage({super.key, required this.onBack});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("FAQs", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      appBar: AppBar(title: const Text("FAQs", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
       body: const Center(child: Text("FAQs Content Here")),
     );
   }
@@ -1586,12 +1533,11 @@ class FAQsPage extends StatelessWidget {
 class UpcomingFeaturesPage extends StatelessWidget {
   final VoidCallback onBack;
   const UpcomingFeaturesPage({super.key, required this.onBack});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("Upcoming Features", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      appBar: AppBar(title: const Text("Upcoming Features", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
       body: const Center(child: Text("Features Content Here")),
     );
   }
@@ -1600,12 +1546,11 @@ class UpcomingFeaturesPage extends StatelessWidget {
 class VideoTutorialsPage extends StatelessWidget {
   final VoidCallback onBack;
   const VideoTutorialsPage({super.key, required this.onBack});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("Video Tutorials", style: TextStyle(color: Colors.white)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+      appBar: AppBar(title: const Text("Video Tutorials", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
       body: const Center(child: Text("Videos Content Here")),
     );
   }
@@ -1614,7 +1559,6 @@ class VideoTutorialsPage extends StatelessWidget {
 // ==========================================
 // HELPER WIDGETS
 // ==========================================
-
 class _SettingsGroup extends StatelessWidget {
   final List<Widget> children;
   const _SettingsGroup({required this.children});
@@ -1633,9 +1577,7 @@ class _SettingsTile extends StatelessWidget {
   final String? subtitle;
   final VoidCallback onTap;
   final bool showDivider;
-
   const _SettingsTile({this.icon, required this.title, required this.onTap, this.showDivider = true, this.subtitle});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1661,9 +1603,7 @@ class _SwitchTile extends StatelessWidget {
   final Function(bool) onChanged;
   final bool showDivider;
   final bool hasInfo;
-
   const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.hasInfo = false});
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1692,10 +1632,19 @@ class _SimpleTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: kBgColor, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: kInputFillColor,
+        borderRadius: BorderRadius.circular(8), // Matches input field radius from image
+      ),
       child: TextField(
         maxLines: maxLines,
-        decoration: InputDecoration(hintText: hint, border: InputBorder.none, contentPadding: const EdgeInsets.all(12), isDense: true),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          isDense: true,
+        ),
       ),
     );
   }
@@ -1709,7 +1658,10 @@ class _SimpleDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+      decoration: BoxDecoration(
+        color: kInputFillColor, // Matches input style
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
@@ -1736,10 +1688,10 @@ class _PrimaryButton extends StatelessWidget {
           backgroundColor: kPrimaryColor,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 0,
         ),
         child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
 }
-
