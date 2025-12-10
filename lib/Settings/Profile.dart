@@ -4,10 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
-import 'package:maxbillup/utils/printer_service.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart'; // For Bluetooth device discovery
 import 'package:permission_handler/permission_handler.dart'; // Needed for permissions
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // ==========================================
 // CONSTANTS & STYLES
@@ -34,6 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
   String? _currentView;
   final List<String> _viewHistory = [];
   Map<String, dynamic>? _userData;
+  Map<String, dynamic>? _storeData;
   bool _isLoading = true;
 
   @override
@@ -44,10 +46,18 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _fetchUserData() async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
+      // Load user document
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
+      final userData = userDoc.exists ? userDoc.data() : null;
+
+      // Load store document via FirestoreService (store-scoped)
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      final storeData = (storeDoc != null && storeDoc.exists) ? (storeDoc.data() as Map<String, dynamic>?) : null;
+
       if (mounted) {
         setState(() {
-          _userData = doc.data();
+          _userData = userData;
+          _storeData = storeData;
           _isLoading = false;
         });
       }
@@ -154,13 +164,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildProfileCard() {
-    final name = _userData?['businessName'] ?? _userData?['name'] ?? 'User';
+    // Prefer store-scoped businessName/plan if available, otherwise fall back to user doc
+    final name = _storeData?['businessName'] ?? _userData?['businessName'] ?? _userData?['name'] ?? 'User';
     final email = _userData?['email'] ?? widget.userEmail ?? '';
     final role = _userData?['role'] ?? 'Administrator';
+    final plan = _storeData?['plan'] ?? _userData?['plan'] ?? 'Free';
+    final expiry = _storeData?['subscriptionExpiryDate'] ?? _userData?['subscriptionExpiryDate'];
 
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
           CircleAvatar(
@@ -173,15 +186,61 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text(email, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                Row(
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.workspace_premium, size: 10, color: Colors.orange.shade800),
+                          const SizedBox(width: 4),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(plan, style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.w600)),
+                              if (expiry != null) Text(
+                                // show a short expiry string
+                                _formatExpiry(expiry.toString()),
+                                style: TextStyle(fontSize: 10, color: Colors.orange.shade700),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: plan == 'Max' ? null : () {
+                    // Navigate to the subscription/plan page; pass current plan (prefer store-scoped)
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SubscriptionPlanPage(
+                          uid: _userData?['uid'] ?? widget.uid,
+                          currentPlan: plan,
+                        ),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(minimumSize: Size(0, 28), padding: const EdgeInsets.symmetric(horizontal: 10)),
+                  child: const Text('Upgrade', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+                Text(email, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.secondary)),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-            child: Text(role, style: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w600)),
+            child: Text(role, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
           ),
         ],
       ),
@@ -212,6 +271,15 @@ class _SettingsPageState extends State<SettingsPage> {
     padding: const EdgeInsets.only(bottom: 8, left: 4),
     child: Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
   );
+
+  String _formatExpiry(String iso) {
+    try {
+      final dt = DateTime.parse(iso);
+      return DateFormat('dd MMM yyyy').format(dt);
+    } catch (_) {
+      return iso;
+    }
+  }
 }
 
 // ==========================================
@@ -1342,21 +1410,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            if (_address.isNotEmpty || _gstin.isNotEmpty)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Additional Details', Icons.info_outline),
-                    const SizedBox(height: 20),
-                    if (_address.isNotEmpty) _buildReadOnlyField('Business Address', Icons.location_on, _address),
-                    if (_address.isNotEmpty && _gstin.isNotEmpty) const Divider(height: 32),
-                    if (_gstin.isNotEmpty) _buildReadOnlyField('GST Number', Icons.receipt_long, _gstin),
-                  ],
-                ),
-              ),
           ],
         ),
       ),
@@ -1689,3 +1742,4 @@ class _PrimaryButton extends StatelessWidget {
     );
   }
 }
+

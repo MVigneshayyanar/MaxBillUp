@@ -49,12 +49,16 @@ dependencies:
   flutter_blue_plus: ^1.32.12
   charset_converter: ^2.1.2
   share_plus: ^10.1.2
+  provider: ^6.0.0
+  razorpay_flutter: ^1.4.0
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_native_splash: ^2.3.10
+  flutter_launcher_icons: ^0.13.1
 
 flutter_native_splash:
   color: "#ffffff"
@@ -63,6 +67,12 @@ flutter_native_splash:
   ios: true
   android_gravity: center
   ios_content_mode: scaleAspectFit
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_logo.jpg"
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -89,3 +99,4 @@ flutter:
   assets:
     - assets/logo.png
     - assets/google.png
+    - assets/app_logo.jpg

@@ -401,6 +401,7 @@ class _BillPageState extends State<BillPage> {
             creditNote: _creditNote,
             savedOrderId: widget.savedOrderId,
             selectedCreditNotes: _selectedCreditNotes,
+            quotationId: widget.quotationId,
           ),
         ),
       );
@@ -424,6 +425,7 @@ class _BillPageState extends State<BillPage> {
           creditNote: _creditNote,
           savedOrderId: widget.savedOrderId,
           selectedCreditNotes: _selectedCreditNotes,
+          quotationId: widget.quotationId,
         ),
       ),
     );
@@ -1199,6 +1201,7 @@ class SplitPaymentPage extends StatefulWidget {
   final String creditNote;
   final String? savedOrderId;
   final List<Map<String, dynamic>> selectedCreditNotes;
+  final String? quotationId;
 
   const SplitPaymentPage({
     super.key,
@@ -1213,6 +1216,7 @@ class SplitPaymentPage extends StatefulWidget {
     required this.creditNote,
     this.savedOrderId,
     this.selectedCreditNotes = const [],
+    this.quotationId,
   });
 
   @override
@@ -1487,6 +1491,19 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         await savedOrderRef.delete();
       }
 
+      // 8. Update quotation status if this bill came from a quotation
+      if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+        try {
+          await FirestoreService().updateDocument('quotations', widget.quotationId!, {
+            'status': 'settled',
+            'billed': true,
+            'settledAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint('Error updating quotation status: $e');
+        }
+      }
+
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
@@ -1655,6 +1672,7 @@ class PaymentPage extends StatefulWidget {
   final String creditNote;
   final String? savedOrderId;
   final List<Map<String, dynamic>> selectedCreditNotes;
+  final String? quotationId;
 
   const PaymentPage({
     super.key,
@@ -1670,6 +1688,7 @@ class PaymentPage extends StatefulWidget {
     required this.creditNote,
     this.savedOrderId,
     this.selectedCreditNotes = const [],
+    this.quotationId,
   });
 
   @override
@@ -2038,6 +2057,19 @@ class _PaymentPageState extends State<PaymentPage> {
       // 8. Delete saved order if applicable (Settle Order Logic)
       if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
         await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
+      }
+
+      // 9. Update quotation status if this bill came from a quotation
+      if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+        try {
+          await FirestoreService().updateDocument('quotations', widget.quotationId!, {
+            'status': 'settled',
+            'billed': true,
+            'settledAt': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          debugPrint('Error updating quotation status: $e');
+        }
       }
 
       if (mounted) {

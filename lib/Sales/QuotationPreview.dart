@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart' show Color;
+
+// local primary color used in this file
+const Color _primaryColor = Color(0xFF2196F3);
 
 class QuotationPreviewPage extends StatelessWidget {
   final String uid;
@@ -13,6 +19,7 @@ class QuotationPreviewPage extends StatelessWidget {
   final String? customerName;
   final String? customerPhone;
   final String? staffName;
+  final String? quotationDocId; // store doc id of the created quotation
 
   const QuotationPreviewPage({
     super.key,
@@ -26,6 +33,7 @@ class QuotationPreviewPage extends StatelessWidget {
     this.customerName,
     this.customerPhone,
     this.staffName,
+    this.quotationDocId,
   });
 
   @override
@@ -410,9 +418,39 @@ class QuotationPreviewPage extends StatelessWidget {
               ),
             ),
           ),
+
+          // Mark as Billed Button (visible when quotationDocId is provided)
+          if (quotationDocId != null)
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 30),
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  try {
+                    // update the quotation status to 'billed' and set billedAt
+                    await FirestoreService().updateDocument('quotations', quotationDocId!, {
+                      'status': 'billed',
+                      'billed': true,
+                      'billedAt': FieldValue.serverTimestamp(),
+                    });
+
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quotation marked as billed')));
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error marking billed: $e')));
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.check_circle_outline),
+                label: const Text('Mark as Billed', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              ),
+            ),
         ],
       ),
     );
   }
 }
-

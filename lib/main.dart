@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:flutter/services.dart';
 import 'Auth/SplashPage.dart';
 import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'BillUP',
+      title: 'MAXmybill',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B8FF)),
         useMaterial3: true,
@@ -31,6 +32,22 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const SplashGate(),
+      builder: (context, child) {
+        // Lock screen orientation to portrait
+        return OrientationBuilder(
+          builder: (context, orientation) {
+            if (orientation != Orientation.portrait) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.portraitUp,
+                  DeviceOrientation.portraitDown,
+                ]);
+              });
+            }
+            return child!;
+          },
+        );
+      },
     );
   }
 }

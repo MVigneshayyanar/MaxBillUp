@@ -31,6 +31,10 @@ class QuotationDetailPage extends StatelessWidget {
     final items = quotationData['items'] as List<dynamic>? ?? [];
     final total = (quotationData['total'] ?? 0.0).toDouble();
     final status = quotationData['status'] ?? 'active';
+    final billed = quotationData['billed'] ?? false;
+
+    // Check if quotation is still active (not yet billed/settled)
+    final isActive = status == 'active' && billed != true;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2196F3),
@@ -136,7 +140,7 @@ class QuotationDetailPage extends StatelessWidget {
                       const SizedBox(height: 20),
 
                       // Generate Invoice Button
-                      if (status == 'active')
+                      if (isActive)
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -175,7 +179,7 @@ class QuotationDetailPage extends StatelessWidget {
                               Icon(Icons.check_circle, color: Colors.grey),
                               SizedBox(width: 8),
                               Text(
-                                'Invoice Already Generated',
+                                'Quotation Settled',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey,
@@ -234,6 +238,7 @@ class QuotationDetailPage extends StatelessWidget {
       try {
         await FirestoreService().updateDocument('quotations', quotationId, {
           'status': 'settled',
+          'billed': true,
           'settledAt': FieldValue.serverTimestamp(),
         });
 

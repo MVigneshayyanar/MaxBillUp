@@ -138,13 +138,21 @@ class _QuotationPageState extends State<QuotationPage> {
         'status': 'active',
       };
 
-      // Save quotation to Firestore
-      await FirestoreService().addDocument('quotations', quotationData);
+      // Save quotation to Firestore and capture document reference
+      final docRef = await FirestoreService().addDocument('quotations', quotationData);
+
+      // write the generated doc id back into the document as `quotationId` for easier lookups
+      try {
+        await FirestoreService().updateDocument('quotations', docRef.id, {'quotationId': docRef.id});
+      } catch (e) {
+        // ignore: avoid_print
+        print('Unable to write quotationId back to doc: $e');
+      }
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        // Navigate to Quotation Preview
+        // Navigate to Quotation Preview and pass quotation document id so it can be updated when billed
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -159,6 +167,7 @@ class _QuotationPageState extends State<QuotationPage> {
               customerName: _selectedCustomerName,
               customerPhone: _selectedCustomerPhone,
               staffName: staffName,
+              quotationDocId: docRef.id, // <-- pass the created doc id
             ),
           ),
         );
@@ -178,9 +187,10 @@ class _QuotationPageState extends State<QuotationPage> {
 
   Future<String?> _fetchStaffName(String uid) async {
     try {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final doc = await FirestoreService().getDocument('users', uid);
       if (doc.exists) {
-        return doc.data()?['name'] as String?;
+        final data = doc.data() as Map<String, dynamic>?;
+        return data?['name'] as String?;
       }
       return null;
     } catch (e) {
@@ -556,4 +566,3 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
     );
   }
 }
-

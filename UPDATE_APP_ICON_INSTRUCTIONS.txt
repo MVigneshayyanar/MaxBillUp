@@ -1,0 +1,21 @@
+# To update the app icon for Android, replace all ic_launcher.png files in the following directories with your app_logo.jpg (renamed to ic_launcher.png):
+# - android/app/src/main/res/mipmap-hdpi/
+# - android/app/src/main/res/mipmap-mdpi/
+# - android/app/src/main/res/mipmap-xhdpi/
+# - android/app/src/main/res/mipmap-xxhdpi/
+# - android/app/src/main/res/mipmap-xxxhdpi/
+#
+# For iOS, update the icon in ios/Runner/Assets.xcassets/AppIcon.appiconset/.
+#
+# You can use the flutter_launcher_icons package for automated multi-platform icon generation.
+#
+# Example pubspec.yaml config:
+# flutter_icons:
+#   android: true
+#   ios: true
+#   image_path: "assets/app_logo.jpg"
+#   remove_alpha_ios: true
+#
+# Then run:
+# flutter pub run flutter_launcher_icons:main
+
