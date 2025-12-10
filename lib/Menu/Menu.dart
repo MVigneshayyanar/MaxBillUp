@@ -11,9 +11,14 @@ import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart';
+import 'package:maxbillup/Reports/Reports.dart';
+import 'package:maxbillup/Stocks/Stock.dart';
+import 'package:maxbillup/Settings/Profile.dart'; // For SettingsPage
 import 'package:maxbillup/utils/permission_helper.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/printer_service.dart';
+import 'package:maxbillup/Sales/NewSale.dart';
 
 
 // ==========================================
@@ -106,6 +111,10 @@ class _MenuPageState extends State<MenuPage> {
     // CONDITIONAL RENDERING SWITCH
     // ------------------------------------------
     switch (_currentView) {
+    // New Sale
+      case 'NewSale':
+        return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+
     // Inline Lists
       case 'Quotation':
         if (!_hasPermission('quotation') && !isAdmin) {
@@ -190,14 +199,370 @@ class _MenuPageState extends State<MenuPage> {
 
       // Staff Management
       case 'StaffManagement':
-        if (!_hasPermission('staffManagement') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+        // Check plan access first
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessStaffManagement(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('staffManagement') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+          },
+        );
+
+      // ==========================================
+      // REPORTS SECTION
+      // ==========================================
+
+      case 'Analytics':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('analytics') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return AnalyticsPage(uid: widget.uid, onBack: _reset);
+          },
+        );
+
+      case 'DayBook':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('daybook') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return DayBookPage(uid: widget.uid, onBack: _reset);
+          },
+        );
+
+      case 'Summary':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('salesSummary') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return SalesSummaryPage(onBack: _reset);
+          },
+        );
+
+      case 'SalesReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('salesReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return FullSalesHistoryPage(onBack: _reset);
+          },
+        );
+
+      case 'ItemSales':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('itemSalesReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return ItemSalesPage(onBack: _reset);
+          },
+        );
+
+      case 'TopCustomers':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('topCustomer') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return TopCustomersPage(uid: widget.uid, onBack: _reset);
+          },
+        );
+
+      case 'StockReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('stockReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return StockReportPage(onBack: _reset);
+          },
+        );
+
+      case 'LowStock':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('lowStockProduct') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return LowStockPage(onBack: _reset);
+          },
+        );
+
+      case 'TopProducts':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('topProducts') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return TopProductsPage(uid: widget.uid, onBack: _reset);
+          },
+        );
+
+      case 'TopCategories':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('topCategory') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return TopCategoriesPage(onBack: _reset);
+          },
+        );
+
+      case 'ExpenseReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('expensesReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return ExpenseReportPage(onBack: _reset);
+          },
+        );
+
+      case 'TaxReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('taxReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return TaxReportPage(onBack: _reset);
+          },
+        );
+
+      case 'HSNReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('hsnReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return HSNReportPage(onBack: _reset);
+          },
+        );
+
+      case 'StaffReport':
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessReports(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('staffSalesReport') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return StaffSaleReportPage(onBack: _reset);
+          },
+        );
+
+      // ==========================================
+      // STOCK PAGE (moved from bottom nav)
+      // ==========================================
+
+      case 'Stock':
+        return StockPage(uid: widget.uid, userEmail: widget.userEmail);
+
+      // ==========================================
+      // SETTINGS PAGE (moved from bottom nav)
+      // ==========================================
+
+      case 'Settings':
+        return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
     }
 
     // ------------------------------------------
@@ -215,8 +580,33 @@ class _MenuPageState extends State<MenuPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_businessName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(_businessName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.add_shopping_cart, size: 18, color: Colors.white),
+                      label: const Text('New Sale', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
                 Text(_email, style: const TextStyle(color: Colors.white, fontSize: 14)),
               ],
             ),
@@ -269,17 +659,73 @@ class _MenuPageState extends State<MenuPage> {
                 // Staff Management
                 if (isAdmin || _hasPermission('staffManagement'))
                   _buildMenuItem(Icons.badge_outlined, "Staff Management", 'StaffManagement'),
+
+                // Stock (moved from bottom nav - placed above Reports)
+                _buildMenuItem(Icons.inventory_2_outlined, "Stock", 'Stock'),
+
+                // Reports Expansion (moved from bottom nav)
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    leading: Icon(Icons.bar_chart_outlined, color: _iconColor),
+                    title: Text("Reports", style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
+                    iconColor: _iconColor,
+                    collapsedIconColor: _iconColor,
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 24),
+                    childrenPadding: const EdgeInsets.only(left: 72),
+                    children: [
+                      // Analytics & Overview
+                      if (_hasPermission('analytics') || isAdmin)
+                        _buildSubMenuItem("Analytics", 'Analytics'),
+                      if (_hasPermission('daybook') || isAdmin)
+                        _buildSubMenuItem("DayBook", 'DayBook'),
+                      if (_hasPermission('salesSummary') || isAdmin)
+                        _buildSubMenuItem("Sales Summary", 'Summary'),
+
+                      // Sales & Transactions
+                      if (_hasPermission('salesReport') || isAdmin)
+                        _buildSubMenuItem("Sales Report", 'SalesReport'),
+                      if (_hasPermission('itemSalesReport') || isAdmin)
+                        _buildSubMenuItem("Item Sales Report", 'ItemSales'),
+                      if (_hasPermission('topCustomer') || isAdmin)
+                        _buildSubMenuItem("Top Customers", 'TopCustomers'),
+
+                      // Inventory & Products
+                      if (_hasPermission('stockReport') || isAdmin)
+                        _buildSubMenuItem("Stock Report", 'StockReport'),
+                      if (_hasPermission('lowStockProduct') || isAdmin)
+                        _buildSubMenuItem("Low Stock Products", 'LowStock'),
+                      if (_hasPermission('topProducts') || isAdmin)
+                        _buildSubMenuItem("Top Products", 'TopProducts'),
+                      if (_hasPermission('topCategory') || isAdmin)
+                        _buildSubMenuItem("Top Categories", 'TopCategories'),
+
+                      // Financials & Tax
+                      if (_hasPermission('expensesReport') || isAdmin)
+                        _buildSubMenuItem("Expense Report", 'ExpenseReport'),
+                      if (_hasPermission('taxReport') || isAdmin)
+                        _buildSubMenuItem("Tax Report", 'TaxReport'),
+                      if (_hasPermission('hsnReport') || isAdmin)
+                        _buildSubMenuItem("HSN Report", 'HSNReport'),
+                      if (_hasPermission('staffSalesReport') || isAdmin)
+                        _buildSubMenuItem("Staff Sale Report", 'StaffReport'),
+                    ],
+                  ),
+                ),
+
+                // Settings (moved from bottom nav - placed below Reports)
+                _buildMenuItem(Icons.settings_outlined, "Settings", 'Settings'),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: widget.uid,
-        userEmail: widget.userEmail,
-        currentIndex: 0,
-        screenWidth: MediaQuery.of(context).size.width,
-      ),
+      // bottomNavigationBar: CommonBottomNav(
+      //   uid: widget.uid,
+      //   userEmail: widget.userEmail,
+      //   currentIndex: 0,
+      //   screenWidth: MediaQuery.of(context).size.width,
+      // ),
     );
   }
 
@@ -291,18 +737,549 @@ class _MenuPageState extends State<MenuPage> {
         title: Text(text, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: _textColor)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 24),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-        onTap: () => setState(() => _currentView = viewKey),
+        onTap: () {
+          // Navigate to the page in full screen
+          _navigateToPage(viewKey);
+        },
       ),
     );
   }
 
   Widget _buildSubMenuItem(String text, String viewKey) {
     return ListTile(
-      title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO((_textColor.red * 255.0).round() & 0xff, (_textColor.green * 255.0).round() & 0xff, (_textColor.blue * 255.0).round() & 0xff, 0.8))),
-      onTap: () => setState(() => _currentView = viewKey),
+      title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO((_textColor.r * 255.0).round() & 0xff, (_textColor.g * 255.0).round() & 0xff, (_textColor.b * 255.0).round() & 0xff, 0.8))),
+      onTap: () {
+        // Navigate to the page in full screen
+        _navigateToPage(viewKey);
+      },
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
       contentPadding: EdgeInsets.zero,
+    );
+  }
+
+  void _navigateToPage(String viewKey) {
+    Widget? page = _getPageForView(viewKey);
+    if (page != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => page),
+      );
+    }
+  }
+
+  Widget? _getPageForView(String viewKey) {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    switch (viewKey) {
+      case 'NewSale':
+        return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+
+      case 'Quotation':
+        if (!_hasPermission('quotation') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context));
+
+      case 'BillHistory':
+        if (!_hasPermission('billHistory') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail!, onBack: () => Navigator.pop(context));
+
+      case 'CreditNotes':
+        if (!_hasPermission('creditNotes') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return CreditNotesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'Customers':
+        if (!_hasPermission('customerManagement') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return CustomersPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'CreditDetails':
+        if (!_hasPermission('creditDetails') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return CreditDetailsPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'StockPurchase':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return StockPurchasePage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'Expenses':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return ExpensesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'ExpenseCategories':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return ExpenseCategoriesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
+      case 'StaffManagement':
+        // Staff management requires async checks, handle separately
+        _navigateToStaffManagement();
+        return null;
+
+      case 'Analytics':
+        // Analytics requires async checks, handle separately
+        _navigateToAnalytics();
+        return null;
+
+      case 'DayBook':
+        // DayBook requires async checks, handle separately
+        _navigateToDayBook();
+        return null;
+
+      case 'Summary':
+        // Summary requires async checks, handle separately
+        _navigateToSummary();
+        return null;
+
+      case 'SalesReport':
+        // SalesReport requires async checks, handle separately
+        _navigateToSalesReport();
+        return null;
+
+      case 'ItemSales':
+        // ItemSales requires async checks, handle separately
+        _navigateToItemSales();
+        return null;
+
+      case 'TopCustomers':
+        // TopCustomers requires async checks, handle separately
+        _navigateToTopCustomers();
+        return null;
+
+      case 'StockReport':
+        // StockReport requires async checks, handle separately
+        _navigateToStockReport();
+        return null;
+
+      case 'LowStock':
+        // LowStock requires async checks, handle separately
+        _navigateToLowStock();
+        return null;
+
+      case 'TopProducts':
+        // TopProducts requires async checks, handle separately
+        _navigateToTopProducts();
+        return null;
+
+      case 'TopCategories':
+        // TopCategories requires async checks, handle separately
+        _navigateToTopCategories();
+        return null;
+
+      case 'ExpenseReport':
+        // ExpenseReport requires async checks, handle separately
+        _navigateToExpenseReport();
+        return null;
+
+      case 'TaxReport':
+        // TaxReport requires async checks, handle separately
+        _navigateToTaxReport();
+        return null;
+
+      case 'HSNReport':
+        // HSNReport requires async checks, handle separately
+        _navigateToHSNReport();
+        return null;
+
+      case 'StaffReport':
+        // StaffReport requires async checks, handle separately
+        _navigateToStaffReport();
+        return null;
+
+      case 'Stock':
+        return StockPage(uid: widget.uid, userEmail: widget.userEmail);
+
+      case 'Settings':
+        return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
+
+      default:
+        return null;
+    }
+  }
+
+  void _navigateToStaffManagement() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessStaffManagement();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management');
+      return;
+    }
+
+    if (!_hasPermission('staffManagement') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StaffManagementPage(
+          uid: widget.uid,
+          userEmail: widget.userEmail,
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAnalytics() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('analytics') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AnalyticsPage(
+          uid: widget.uid,
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDayBook() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('daybook') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DayBookPage(
+          uid: widget.uid,
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToSummary() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('salesSummary') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SalesSummaryPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToSalesReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('salesReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullSalesHistoryPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToItemSales() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('itemSalesReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ItemSalesPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToTopCustomers() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('topCustomers') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TopCustomersPage(
+          uid: widget.uid,
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToStockReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('stockReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StockReportPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToLowStock() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('lowStockProduct') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LowStockPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToTopProducts() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('topProducts') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TopProductsPage(
+          uid: widget.uid,
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToTopCategories() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('topCategory') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TopCategoriesPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToExpenseReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('expensesReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExpenseReportPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToTaxReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('taxReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TaxReportPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToHSNReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('hsnReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HSNReportPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToStaffReport() async {
+    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+
+    bool canAccess = await PlanPermissionHelper.canAccessReports();
+    if (!canAccess) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      return;
+    }
+
+    if (!_hasPermission('staffSalesReport') && !isAdmin) {
+      PermissionHelper.showPermissionDeniedDialog(context);
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => StaffSaleReportPage(
+          onBack: () => Navigator.pop(context),
+        ),
+      ),
     );
   }
 

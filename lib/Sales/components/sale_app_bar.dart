@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 
 class SaleAppBar extends StatelessWidget {
   final int selectedTabIndex;
   final Function(int) onTabChanged;
   final double screenWidth;
   final double screenHeight;
+  final String uid;
+  final String? userEmail;
 
   const SaleAppBar({
     super.key,
@@ -12,6 +15,8 @@ class SaleAppBar extends StatelessWidget {
     required this.onTabChanged,
     required this.screenWidth,
     required this.screenHeight,
+    required this.uid,
+    this.userEmail,
   });
 
   @override
@@ -25,11 +30,31 @@ class SaleAppBar extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(tabPadding, tabPadding + 30, tabPadding, tabPadding),
         child: Row(
           children: [
+            // Menu Button
+            GestureDetector(
+              onTap: () {
+                Scaffold.of(context).openDrawer();
+              },
+              child: Container(
+                width: screenWidth * 0.12,
+                height: tabHeight,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.menu,
+                  color: const Color(0xFF2196F3),
+                  size: screenWidth * 0.06,
+                ),
+              ),
+            ),
+            SizedBox(width: screenWidth * 0.02),
             _buildTab('Sale / All', 0, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
             _buildTab('Quick Sale', 1, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
-            _buildTab('Saved Orders', 2, screenWidth, tabHeight),
+            _buildTab('Saved ', 2, screenWidth, tabHeight),
           ],
         ),
       ),

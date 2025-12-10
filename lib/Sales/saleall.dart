@@ -273,12 +273,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
       children: [
         Container(
           color: Colors.white,
-          padding: EdgeInsets.fromLTRB(w * 0.04, w *0, w * 0.04, w * 0.04),
+          padding: EdgeInsets.fromLTRB(w * 0.04, w *0, w * 0.04, w * 0.02),
           child: Row(
             children: [
               Expanded(
                 child: Container(
-                  height: h * 0.06,
+                  height: h * 0.05,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(8),
@@ -298,7 +298,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               GestureDetector(
                 onTap: _openScanner,
                 child: Container(
-                  height: h * 0.06,
+                  height: h * 0.05,
                   width: h * 0.06,
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5F5F5),

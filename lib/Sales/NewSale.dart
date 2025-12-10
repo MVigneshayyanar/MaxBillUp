@@ -5,6 +5,7 @@ import 'package:maxbillup/Sales/components/sale_app_bar.dart';
 import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 
 class NewSalePage extends StatefulWidget {
   final String uid;
@@ -82,6 +83,9 @@ class _NewSalePageState extends State<NewSalePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: MenuPage(uid: _uid, userEmail: _userEmail),
+      ),
       body: Column(
         spacing: 0,
         children: [
@@ -91,6 +95,8 @@ class _NewSalePageState extends State<NewSalePage> {
             onTabChanged: _handleTabChange,
             screenWidth: screenWidth,
             screenHeight: screenHeight,
+            uid: _uid,
+            userEmail: _userEmail,
           ),
 
           //
@@ -119,12 +125,12 @@ class _NewSalePageState extends State<NewSalePage> {
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: _uid,
-        userEmail: _userEmail,
-        currentIndex: 2,
-        screenWidth: screenWidth,
-      ),
+      // bottomNavigationBar: CommonBottomNav(
+      //   uid: _uid,
+      //   userEmail: _userEmail,
+      //   currentIndex: 2,
+      //   screenWidth: screenWidth,
+      // ),
     );
   }
 }

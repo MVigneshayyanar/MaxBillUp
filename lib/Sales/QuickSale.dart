@@ -146,6 +146,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Input Display at top
         Container(
           color: Colors.white,
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
@@ -170,6 +171,8 @@ class _QuickSalePageState extends State<QuickSalePage> {
             ),
           ),
         ),
+
+        // Scrollable Items List and Clear Button
         Expanded(
           child: SingleChildScrollView(
             child: Column(
@@ -177,7 +180,10 @@ class _QuickSalePageState extends State<QuickSalePage> {
               children: [
                 Container(
                   color: Colors.white,
-                  height: 225,
+                  constraints: BoxConstraints(
+                    minHeight: 225,
+                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+                  ),
                   child: _items.isEmpty
                       ? const Center(
                     child: Column(
@@ -200,6 +206,8 @@ class _QuickSalePageState extends State<QuickSalePage> {
                     ),
                   )
                       : ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: _items.length,
                     itemBuilder: (context, idx) {
@@ -235,7 +243,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                 ),
                 Container(
                   color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                   child: Row(
                     children: [
                       GestureDetector(
@@ -264,131 +272,135 @@ class _QuickSalePageState extends State<QuickSalePage> {
                     ],
                   ),
                 ),
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          _numBtn('7'),
-                          const SizedBox(width: 8),
-                          _numBtn('8'),
-                          const SizedBox(width: 8),
-                          _numBtn('9'),
-                          const SizedBox(width: 8),
-                          _actBtn(Icons.backspace_outlined, _handleBackspace),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _numBtn('4'),
-                          const SizedBox(width: 8),
-                          _numBtn('5'),
-                          const SizedBox(width: 8),
-                          _numBtn('6'),
-                          const SizedBox(width: 8),
-                          _opBtn('×', _handleMultiply),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    _numBtn('1'),
-                                    const SizedBox(width: 8),
-                                    _numBtn('2'),
-                                    const SizedBox(width: 8),
-                                    _numBtn('3'),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    _numBtn('0'),
-                                    const SizedBox(width: 8),
-                                    _numBtn('00'),
-                                    const SizedBox(width: 8),
-                                    _numBtn('•'),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _addBtn(),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                CommonWidgets.buildActionButtons(
-                  context: context,
-                  onSaveOrder: () {
-                    CommonWidgets.showSaveOrderDialog(
-                      context: context,
-                      uid: widget.uid,
-                      cartItems: _cartItems,
-                      totalBill: _total,
-                      onSuccess: () {
-                        setState(() {
-                          _items.clear();
-                          _input = '';
-                          _counter = 1;
-                        });
-                      },
-                    );
-                  },
-                  onQuotation: () {
-                    if (_items.isNotEmpty) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuotationPage(
-                            uid: widget.uid,
-                            userEmail: widget.userEmail,
-                            cartItems: _cartItems,
-                            totalAmount: _total,
-                          ),
-                        ),
-                      );
-                    } else {
-                      CommonWidgets.showSnackBar(
-                        context,
-                        'Cart is empty!',
-                        bgColor: const Color(0xFFFF9800),
-                      );
-                    }
-                  },
-                  onBill: () {
-                    if (_items.isNotEmpty) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BillPage(
-                            uid: widget.uid,
-                            userEmail: widget.userEmail,
-                            cartItems: _cartItems,
-                            totalAmount: _total,
-                            savedOrderId: widget.savedOrderId,
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  totalBill: _total,
-                ),
               ],
             ),
           ),
+        ),
+
+        // Calculator Keypad at Bottom (Fixed Position)
+        Container(
+          color: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  _numBtn('7'),
+                  const SizedBox(width: 8),
+                  _numBtn('8'),
+                  const SizedBox(width: 8),
+                  _numBtn('9'),
+                  const SizedBox(width: 8),
+                  _actBtn(Icons.backspace_outlined, _handleBackspace),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  _numBtn('4'),
+                  const SizedBox(width: 8),
+                  _numBtn('5'),
+                  const SizedBox(width: 8),
+                  _numBtn('6'),
+                  const SizedBox(width: 8),
+                  _opBtn('×', _handleMultiply),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            _numBtn('1'),
+                            const SizedBox(width: 8),
+                            _numBtn('2'),
+                            const SizedBox(width: 8),
+                            _numBtn('3'),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            _numBtn('0'),
+                            const SizedBox(width: 8),
+                            _numBtn('00'),
+                            const SizedBox(width: 8),
+                            _numBtn('•'),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _addBtn(),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        // Action Buttons at Bottom
+        CommonWidgets.buildActionButtons(
+          context: context,
+          onSaveOrder: () {
+            CommonWidgets.showSaveOrderDialog(
+              context: context,
+              uid: widget.uid,
+              cartItems: _cartItems,
+              totalBill: _total,
+              onSuccess: () {
+                setState(() {
+                  _items.clear();
+                  _input = '';
+                  _counter = 1;
+                });
+              },
+            );
+          },
+          onQuotation: () {
+            if (_items.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => QuotationPage(
+                    uid: widget.uid,
+                    userEmail: widget.userEmail,
+                    cartItems: _cartItems,
+                    totalAmount: _total,
+                  ),
+                ),
+              );
+            } else {
+              CommonWidgets.showSnackBar(
+                context,
+                'Cart is empty!',
+                bgColor: const Color(0xFFFF9800),
+              );
+            }
+          },
+          onBill: () {
+            if (_items.isNotEmpty) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BillPage(
+                    uid: widget.uid,
+                    userEmail: widget.userEmail,
+                    cartItems: _cartItems,
+                    totalAmount: _total,
+                    savedOrderId: widget.savedOrderId,
+                  ),
+                ),
+              );
+            }
+          },
+          totalBill: _total,
         ),
       ],
     );

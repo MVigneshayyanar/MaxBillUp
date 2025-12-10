@@ -153,12 +153,12 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 30),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: widget.uid,
-        userEmail: widget.userEmail,
-        currentIndex: 4,
-        screenWidth: screenWidth,
-      ),
+      // bottomNavigationBar: CommonBottomNav(
+      //   uid: widget.uid,
+      //   userEmail: widget.userEmail,
+      //   currentIndex: 4,
+      //   screenWidth: screenWidth,
+      // ),
     );
   }
 
