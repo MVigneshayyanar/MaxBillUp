@@ -44,7 +44,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Expense Categories', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -86,7 +86,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                     style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF007AFF),
+                    backgroundColor: const Color(0xFF2196F3),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -180,12 +180,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF007AFF).withValues(alpha: 0.1),
+                                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
                                 Icons.category,
-                                color: Color(0xFF007AFF),
+                                color: Color(0xFF2196F3),
                                 size: 24,
                               ),
                             ),
@@ -334,7 +334,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
+                backgroundColor: const Color(0xFF2196F3),
               ),
               child: const Text('Add', style: TextStyle(color: Colors.white)),
             ),
@@ -409,7 +409,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
+                backgroundColor: const Color(0xFF2196F3),
               ),
               child: const Text('Update', style: TextStyle(color: Colors.white)),
             ),

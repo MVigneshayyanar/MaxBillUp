@@ -291,7 +291,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                      decoration: BoxDecoration(
                        gradient: isSelected
                            ? const LinearGradient(
-                               colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+                               colors: [Color(0xFF2196F3), Color(0xFF1565C0)],
                                begin: Alignment.topLeft,
                                end: Alignment.bottomRight,
                              )
@@ -301,14 +301,14 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                        boxShadow: [
                          BoxShadow(
                            color: isSelected
-                               ? const Color(0xFF1976D2).withOpacity(0.3)
+                               ? const Color(0xFF2196F3).withOpacity(0.3)
                                : Colors.black.withOpacity(0.08),
                            blurRadius: isSelected ? 12 : 8,
                            offset: Offset(0, isSelected ? 4 : 2),
                          ),
                        ],
                        border: Border.all(
-                         color: isSelected ? const Color(0xFF1976D2) : Colors.transparent,
+                         color: isSelected ? const Color(0xFF2196F3) : Colors.transparent,
                          width: 2,
                        ),
                      ),
@@ -355,7 +355,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                                style: TextStyle(
                                  fontSize: screenWidth * 0.06,
                                  fontWeight: FontWeight.bold,
-                                 color: isSelected ? Colors.white : const Color(0xFF1976D2),
+                                 color: isSelected ? Colors.white : const Color(0xFF2196F3),
                                ),
                              ),
                              Text(
@@ -387,7 +387,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                  gradient: _selectedPlan == widget.currentPlan
                      ? null
                      : const LinearGradient(
-                         colors: [Color(0xFF1976D2), Color(0xFF1565C0)],
+                         colors: [Color(0xFF2196F3), Color(0xFF1565C0)],
                          begin: Alignment.topLeft,
                          end: Alignment.bottomRight,
                        ),
@@ -396,7 +396,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                      ? null
                      : [
                          BoxShadow(
-                           color: const Color(0xFF1976D2).withOpacity(0.4),
+                           color: const Color(0xFF2196F3).withOpacity(0.4),
                            blurRadius: 12,
                            offset: const Offset(0, 4),
                          ),
@@ -443,7 +443,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
            });
          },
          style: ElevatedButton.styleFrom(
-           backgroundColor: isSelected ? const Color(0xFF1976D2) : const Color(0xFFE0E0E0),
+           backgroundColor: isSelected ? const Color(0xFF2196F3) : const Color(0xFFE0E0E0),
            foregroundColor: isSelected ? Colors.white : const Color(0xFF757575),
            minimumSize: Size(buttonWidth, 45),
            textStyle: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600),
@@ -451,7 +451,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
              borderRadius: BorderRadius.circular(25),
            ),
            elevation: isSelected ? 4 : 0,
-           shadowColor: isSelected ? const Color(0xFF1976D2).withOpacity(0.4) : Colors.transparent,
+           shadowColor: isSelected ? const Color(0xFF2196F3).withOpacity(0.4) : Colors.transparent,
          ),
          child: Text(label),
        ),
@@ -503,8 +503,8 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                _tableCell('Staff', fontSize, cellPadding),
                _tableCell('✗', fontSize, cellPadding, color: Colors.red),
                _tableCell('✗', fontSize, cellPadding, color: Colors.red),
-               _tableCell('3', fontSize, cellPadding, color: const Color(0xFF1976D2)),
-               _tableCell('10', fontSize, cellPadding, color: const Color(0xFF1976D2)),
+               _tableCell('3', fontSize, cellPadding, color: const Color(0xFF2196F3)),
+               _tableCell('10', fontSize, cellPadding, color: const Color(0xFF2196F3)),
              ]),
              TableRow(children: [
                _tableCell('Bill History', fontSize, cellPadding),

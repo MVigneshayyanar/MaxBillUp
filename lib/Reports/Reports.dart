@@ -10,7 +10,7 @@ import 'package:maxbillup/utils/plan_permission_helper.dart';
 // ==========================================
 // COLOR CONSTANTS
 // ==========================================
-const Color kPrimaryBlue = Color(0xFF1976D2);
+const Color kPrimaryBlue = Color(0xFF2196F3);
 const Color kIncomeGreen = Color(0xFF22C55E);
 const Color kExpenseRed = Color(0xFFEF4444);
 const Color kLightGreen = Color(0xFFE8F5E9);

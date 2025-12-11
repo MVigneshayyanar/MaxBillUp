@@ -75,7 +75,7 @@ class QuotationDetailPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Quotation No : 2',
+                                'Quotation',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -114,11 +114,13 @@ class QuotationDetailPage extends StatelessWidget {
                                   color: Colors.black87,
                                 ),
                               ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
+                              const Text(
+                                '',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.black54,
+                                ),
+                              ),
                               const Text(
                                 'Total Amount',
                                 style: TextStyle(

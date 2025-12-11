@@ -128,7 +128,7 @@ class _AddProductPageState extends State<AddProductPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF00B0FF),
+        backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -204,7 +204,7 @@ class _AddProductPageState extends State<AddProductPage> {
                     children: [
                       const Icon(
                         Icons.info,
-                        color: Color(0xFF00B0FF),
+                        color: Color(0xFF2196F3),
                         size: 18,
                       ),
                       const SizedBox(width: 8),
@@ -213,7 +213,7 @@ class _AddProductPageState extends State<AddProductPage> {
                           'Leave field blank for price upon sale.',
                           style: TextStyle(
                             fontSize: 14,
-                            color: const Color(0xFF00B0FF),
+                            color: const Color(0xFF2196F3),
                           ),
                         ),
                       ),
@@ -289,7 +289,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             ElevatedButton(
                               onPressed: _generateProductCode,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B0FF),
+                                backgroundColor: const Color(0xFF2196F3),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
                                   vertical: 18,
@@ -327,7 +327,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 // Implement HSN finder
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00B0FF),
+                                backgroundColor: const Color(0xFF2196F3),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 32,
                                   vertical: 18,
@@ -365,7 +365,7 @@ class _AddProductPageState extends State<AddProductPage> {
                           children: [
                             const Icon(
                               Icons.info,
-                              color: Color(0xFF00B0FF),
+                              color: Color(0xFF2196F3),
                               size: 18,
                             ),
                             const SizedBox(width: 8),
@@ -374,7 +374,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 'For adding barcode by an external barcode reader, tap barcode field & scan the barcode',
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: const Color(0xFF00B0FF),
+                                  color: const Color(0xFF2196F3),
                                   height: 1.4,
                                 ),
                               ),
@@ -531,7 +531,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                   _stockEnabled = value;
                                 });
                               },
-                              activeColor: const Color(0xFF00B0FF),
+                              activeColor: const Color(0xFF2196F3),
                             ),
                           ],
                         ),
@@ -558,7 +558,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: ElevatedButton(
                   onPressed: _saveProduct,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00B0FF),
+                    backgroundColor: const Color(0xFF2196F3),
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -618,7 +618,7 @@ class _AddProductPageState extends State<AddProductPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF00B0FF), width: 1),
+          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
@@ -775,7 +775,7 @@ class _AddProductPageState extends State<AddProductPage> {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: const Color(0xFF00B0FF),
+          activeColor: const Color(0xFF2196F3),
         ),
       ],
     );

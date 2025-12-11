@@ -7,7 +7,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 // ==========================================
 // CONSTANTS & STYLES
 // ==========================================
-const Color kPrimaryColor = Color(0xFF007AFF);
+const Color kPrimaryColor = Color(0xFF2196F3);
 const Color kBackgroundColor = Color(0xFFF2F2F7);
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1C1C1E);

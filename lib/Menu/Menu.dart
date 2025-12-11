@@ -54,7 +54,7 @@ class _MenuPageState extends State<MenuPage> {
   StreamSubscription<DocumentSnapshot>? _userSubscription;
 
   // Colors
-  final Color _headerBlue = const Color(0xFF007AFF);
+  final Color _headerBlue = Colors.blue ;
   final Color _iconColor = const Color(0xFF424242);
   final Color _textColor = const Color(0xFF212121);
 
@@ -1315,7 +1315,7 @@ class GenericListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
         centerTitle: true,
       ),
@@ -1534,7 +1534,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Bill History', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack, // Use the provided callback
@@ -1575,7 +1575,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedFilter,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF007AFF)),
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(
+                          0xFF2196F3)),
                       items: <String>['All Time', 'This Month', 'Last Month']
                           .map((String value) {
                         return DropdownMenuItem<String>(
@@ -1766,7 +1767,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   children: [
                     Text(
                       '₹$total',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF007AFF)),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2196F3)),
                     ),
                     Text(
                       '$itemsCount Items',
@@ -1835,7 +1836,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFF2196F3),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -1875,7 +1876,7 @@ class SalesDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('Invoice ${initialData['invoiceNumber'] ?? 'Details'}', style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
@@ -1927,7 +1928,7 @@ class SalesDetailPage extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF007AFF),
+                                  color: Color(0xFF2196F3),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -2125,7 +2126,7 @@ class SalesDetailPage extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF007AFF),
+                                    color: Color(0xFF2196F3),
                                   ),
                                 ),
                               ],
@@ -2295,7 +2296,7 @@ class SalesDetailPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 32, color: color ?? const Color(0xFF007AFF)),
+            Icon(icon, size: 32, color: color ?? const Color(0xFF2196F3)),
             const SizedBox(height: 8),
             Text(
               label,
@@ -2333,7 +2334,7 @@ class SalesDetailPage extends StatelessWidget {
             if (data['customerPhone'] != null && (data['total'] as num) > 0) ...[
               Text(
                 'A Credit Note will be created for customer ${data['customerName'] ?? data['customerPhone']}',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF007AFF)),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF2196F3)),
               ),
             ],
           ],
@@ -2537,7 +2538,7 @@ class SalesDetailPage extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF007AFF),
+                  color: Color(0xFF2196F3),
                 ),
               ),
             ],
@@ -2589,7 +2590,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Credit Notes', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -2776,7 +2777,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
-                                          color: Color(0xFF007AFF),
+                                          color: Color(0xFF2196F3),
                                         ),
                                       ),
                                       const SizedBox(height: 4),
@@ -2785,7 +2786,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: Color(0xFF007AFF),
+                                          color: Color(0xFF2196F3),
                                         ),
                                       ),
                                     ],
@@ -2828,7 +2829,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF007AFF),
+                                      color: Color(0xFF2196F3),
                                     ),
                                   ),
                                 ],
@@ -2881,7 +2882,7 @@ class CreditNoteDetailPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Credit Note', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -2907,7 +2908,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -3000,7 +3001,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -3117,7 +3118,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF007AFF),
+                                  color: Color(0xFF2196F3),
                                 ),
                               ),
                             ],
@@ -3154,7 +3155,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF007AFF),
+                            color: Color(0xFF2196F3),
                           ),
                         ),
                       ],
@@ -3183,7 +3184,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                         style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
+                        backgroundColor: const Color(0xFF2196F3),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -3202,7 +3203,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                         style: TextStyle(color: Colors.white, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF007AFF),
+                        backgroundColor: const Color(0xFF2196F3),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -3316,7 +3317,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                           color: Colors.white,
                           border: Border.all(
                             color: selectedMode == 'Cash'
-                                ? const Color(0xFF007AFF)
+                                ? const Color(0xFF2196F3)
                                 : Colors.grey.shade300,
                             width: 2,
                           ),
@@ -3345,7 +3346,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                           color: Colors.white,
                           border: Border.all(
                             color: selectedMode == 'Online'
-                                ? const Color(0xFF007AFF)
+                                ? const Color(0xFF2196F3)
                                 : Colors.grey.shade300,
                             width: 2,
                           ),
@@ -3469,7 +3470,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Credit Details', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -3491,7 +3492,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: _selectedTab == 'Sales'
-                            ? const Color(0xFF007AFF)
+                            ? const Color(0xFF2196F3)
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -3515,7 +3516,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
                         color: _selectedTab == 'Purchase'
-                            ? const Color(0xFF007AFF)
+                            ? const Color(0xFF2196F3)
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -3635,7 +3636,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
                 ],
@@ -3673,7 +3674,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       subtitle: Column(
@@ -3702,7 +3703,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       onTap: () {
@@ -3812,7 +3813,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
                 ],
@@ -3865,7 +3866,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF007AFF),
+                                    color: Color(0xFF2196F3),
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -3929,7 +3930,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                 style: const TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF007AFF),
+                                  color: Color(0xFF2196F3),
                                 ),
                               ),
                             ],
@@ -4021,7 +4022,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
             appBar: AppBar(
               title: const Text('Purchase Credit Note',
                   style: TextStyle(color: Colors.white)),
-              backgroundColor: const Color(0xFF007AFF),
+              backgroundColor: const Color(0xFF2196F3),
             ),
             body: const Center(child: Text('Credit note not found')),
           );
@@ -4048,7 +4049,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
           appBar: AppBar(
             title: const Text('Purchase Credit Note',
                 style: TextStyle(color: Colors.white)),
-            backgroundColor: const Color(0xFF007AFF),
+            backgroundColor: const Color(0xFF2196F3),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
@@ -4074,7 +4075,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF007AFF),
+                              color: Color(0xFF2196F3),
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -4168,7 +4169,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -4285,7 +4286,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF007AFF),
+                                      color: Color(0xFF2196F3),
                                     ),
                                   ),
                                 ],
@@ -4324,7 +4325,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF007AFF),
+                                    color: Color(0xFF2196F3),
                                   ),
                                 ),
                               ],
@@ -4423,7 +4424,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                             child: const Row(
                               children: [
                                 Icon(Icons.history,
-                                    color: Color(0xFF007AFF), size: 20),
+                                    color: Color(0xFF2196F3), size: 20),
                                 SizedBox(width: 8),
                                 Text(
                                   'Payment History',
@@ -4506,7 +4507,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 12, vertical: 6),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF007AFF)
+                                      color: const Color(0xFF2196F3)
                                           .withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -4515,7 +4516,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: Color(0xFF007AFF),
+                                        color: Color(0xFF2196F3),
                                       ),
                                     ),
                                   ),
@@ -4554,7 +4555,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                                 color: Colors.white, fontSize: 16),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF007AFF),
+                            backgroundColor: const Color(0xFF2196F3),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -4579,7 +4580,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                             style: TextStyle(color: Colors.white, fontSize: 16),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF007AFF),
+                            backgroundColor: const Color(0xFF2196F3),
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -4639,7 +4640,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                 const SizedBox(height: 8),
                 _buildInfoRow(
                     'Remaining', 'Rs ${remainingAmount.toStringAsFixed(2)}',
-                    valueColor: const Color(0xFF007AFF), isBold: true),
+                    valueColor: const Color(0xFF2196F3), isBold: true),
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 16),
@@ -4675,11 +4676,11 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                             horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
                           color: isSelected
-                              ? const Color(0xFF007AFF)
+                              ? const Color(0xFF2196F3)
                               : Colors.white,
                           border: Border.all(
                             color: isSelected
-                                ? const Color(0xFF007AFF)
+                                ? const Color(0xFF2196F3)
                                 : Colors.grey.shade300,
                             width: 2,
                           ),
@@ -4815,7 +4816,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF007AFF),
+                backgroundColor: const Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
@@ -4893,7 +4894,7 @@ class _CustomersPageState extends State<CustomersPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007AFF)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3)),
             child: const Text('Add', style: TextStyle(color: Colors.white)),
             onPressed: () async {
               final name = nameController.text.trim();
@@ -4929,7 +4930,7 @@ class _CustomersPageState extends State<CustomersPage> {
       backgroundColor: Colors.grey[50],// Light background for better card contrast
       appBar: AppBar(
         title: const Text('Customer Management', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -4961,7 +4962,7 @@ class _CustomersPageState extends State<CustomersPage> {
               Container(
                 decoration: BoxDecoration(color: const Color(0xFFEAF4FF), borderRadius: BorderRadius.circular(8)),
                 child: IconButton(
-                  icon: const Icon(Icons.add, color: Color(0xFF007AFF)),
+                  icon: const Icon(Icons.add, color: Color(0xFF2196F3)),
                   onPressed: _showAddCustomer,
                 ),
               ),
@@ -5029,7 +5030,7 @@ class _CustomersPageState extends State<CustomersPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Customer Name
-                              Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF007AFF))),
+                              Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
                               const SizedBox(height: 4),
                               // Phone
                               Text("Phone Number\n${data['phone'] ?? '--'}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
@@ -5049,7 +5050,7 @@ class _CustomersPageState extends State<CustomersPage> {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text("Credit Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                      Text(" ${data['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF007AFF))),
+                                      Text(" ${data['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2196F3))),
                                     ],
                                   ),
                                 ],
@@ -5091,7 +5092,7 @@ class StaffManagementList extends StatelessWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Staff Management', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -5108,7 +5109,7 @@ class StaffManagementList extends StatelessWidget {
                 onPressed: onAddStaff, // Calls Parent Switch
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text("Add New Staff"),
-                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF007AFF), side: const BorderSide(color: Color(0xFF007AFF))),
+                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2196F3), side: const BorderSide(color: Color(0xFF2196F3))),
               ),
             ),
           ),
@@ -5147,7 +5148,7 @@ class StaffManagementList extends StatelessWidget {
                         backgroundColor: Colors.grey.shade100,
                         child: Text(name.isNotEmpty ? name.substring(0, 2).toUpperCase() : "NA", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
                       ),
-                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF007AFF))),
+                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -5243,7 +5244,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Add New Staff', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         centerTitle: true,
       ),
@@ -5278,7 +5279,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _saveStaff,
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF007AFF), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   child: const Text("Save Staff", style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ),
@@ -6241,7 +6242,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Sale Return', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -6267,7 +6268,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -6412,7 +6413,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                           }
                                         : null,
                                     icon: const Icon(Icons.remove_circle_outline),
-                                    color: const Color(0xFF007AFF),
+                                    color: const Color(0xFF2196F3),
                                   ),
                                   Container(
                                     width: 60,
@@ -6440,7 +6441,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                           }
                                         : null,
                                     icon: const Icon(Icons.add_circle_outline),
-                                    color: const Color(0xFF007AFF),
+                                    color: const Color(0xFF2196F3),
                                   ),
                                 ],
                               ),
@@ -6501,7 +6502,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                     ],
@@ -6565,7 +6566,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                       ? null
                       : () => _processSaleReturn(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF007AFF),
+                    backgroundColor: const Color(0xFF2196F3),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -6757,7 +6758,7 @@ class _EditBillPageState extends State<EditBillPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Edit', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -6786,7 +6787,7 @@ class _EditBillPageState extends State<EditBillPage> {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF007AFF),
+                          color: Color(0xFF2196F3),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -6941,7 +6942,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               Text(itemTotal.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold)),
                               Text(
                                 itemTotal.toStringAsFixed(2),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF007AFF)),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
                               ),
                             ],
                           ),
@@ -6961,11 +6962,11 @@ class _EditBillPageState extends State<EditBillPage> {
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.add, color: Color(0xFF007AFF)),
+                          Icon(Icons.add, color: Color(0xFF2196F3)),
                           SizedBox(width: 8),
                           Text(
                             'Add More',
-                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16, fontWeight: FontWeight.w600),
+                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -7020,7 +7021,7 @@ class _EditBillPageState extends State<EditBillPage> {
                           },
                           child: const Text(
                             'Add Discount',
-                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16),
+                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -7057,7 +7058,7 @@ class _EditBillPageState extends State<EditBillPage> {
                           },
                           child: const Text(
                             'Add Credit Note',
-                            style: TextStyle(color: Color(0xFF007AFF), fontSize: 16),
+                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16),
                           ),
                         ),
                         const Divider(height: 24),
@@ -7070,7 +7071,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF007AFF),
+                                color: Color(0xFF2196F3),
                               ),
                             ),
                           ],
@@ -7108,7 +7109,7 @@ class _EditBillPageState extends State<EditBillPage> {
                         const Text('Credit : ', style: TextStyle(fontSize: 16)),
                         Text(
                           'Rs ${total.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF007AFF)),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
                         ),
                       ],
                     ),
@@ -7158,10 +7159,10 @@ class _EditBillPageState extends State<EditBillPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF007AFF) : Colors.white,
+          color: isSelected ? const Color(0xFF2196F3) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? const Color(0xFF007AFF) : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF2196F3) : Colors.grey.shade300,
           ),
         ),
         child: Text(

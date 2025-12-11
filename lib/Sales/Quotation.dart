@@ -206,9 +206,9 @@ class _QuotationPageState extends State<QuotationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
 
-      backgroundColor: const Color(0xFF1565C0),
+      backgroundColor: const Color(0xFF2196F3),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1565C0),
+        backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
         title: const Text(
           'New Quotation',
@@ -226,7 +226,7 @@ class _QuotationPageState extends State<QuotationPage> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E88E5),
+                  color: const Color(0xFF2196F3),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(

@@ -61,7 +61,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Expenses', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -88,7 +88,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, color: Color(0xFF007AFF), size: 20),
+                          const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
                           const SizedBox(width: 12),
                           Text(
                             DateFormat('dd - MM - yyyy').format(_selectedDate),
@@ -123,7 +123,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF007AFF),
+                      backgroundColor: const Color(0xFF2196F3),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -452,7 +452,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('New Expense', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
@@ -514,7 +514,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, color: Color(0xFF007AFF), size: 20),
+                    const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
                     const SizedBox(width: 12),
                     Text(
                       DateFormat('dd MMM yyyy').format(_selectedDate),
@@ -566,7 +566,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveExpense,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF007AFF),
+                  backgroundColor: const Color(0xFF2196F3),
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -618,7 +618,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF007AFF)),
+              borderSide: const BorderSide(color: Color(0xFF2196F3)),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
@@ -649,7 +649,7 @@ class ExpenseDetailsPage extends StatelessWidget {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: const Text('Expense Details', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
@@ -672,7 +672,7 @@ class ExpenseDetailsPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF007AFF),
+                      color: Color(0xFF2196F3),
                     ),
                   ),
                   const SizedBox(height: 16),

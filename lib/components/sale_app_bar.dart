@@ -53,7 +53,7 @@ class _SaleAppBarState extends State<SaleAppBar> {
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: selected ? const Color(0xFF2196F3) : Colors.black87,
+              color: selected ? const Color(0xFF2196F3) : Colors.black,
               fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
             ),
           ),

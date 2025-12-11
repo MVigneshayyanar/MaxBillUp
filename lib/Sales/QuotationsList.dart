@@ -39,7 +39,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
             style: TextStyle(color: Colors.white),
           ),
         ),
-        backgroundColor: const Color(0xFF007AFF),
+        backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),

@@ -15,7 +15,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 // ==========================================
 // CONSTANTS & STYLES (MATCHED TO UI IMAGE)
 // ==========================================
-const Color kPrimaryColor = Color(0xFF007AFF); // Vibrant Blue from Header/Buttons
+const Color kPrimaryColor = Colors.blue ; // Vibrant Blue from Header/Buttons
 const Color kBgColor = Color(0xFFF5F7FA);     // Cool Light Grey Background
 const Color kSurfaceColor = Colors.white;     // Card/Container White
 const Color kInputFillColor = Color(0xFFF2F4F7); // Light Grey for TextFields
