@@ -1,7 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -89,7 +91,12 @@ class _SettingsPageState extends State<SettingsPage> {
       case 'BusinessDetails':
         return BusinessDetailsPage(uid: widget.uid, onBack: _goBack);
       case 'ReceiptSettings':
-        return ReceiptSettingsPage(onBack: _goBack, onNavigate: _navigateTo);
+        return ReceiptSettingsPage(
+          onBack: _goBack,
+          onNavigate: _navigateTo,
+          uid: widget.uid,
+          userEmail: widget.userEmail,
+        );
       case 'ReceiptCustomization':
         return ReceiptCustomizationPage(onBack: _goBack);
       case 'TaxSettings':
@@ -114,10 +121,33 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: kBgColor,
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
+      ),
       appBar: AppBar(
         title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor, // Matches the blue header in image
         elevation: 0,
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
+        ),
         centerTitle: true,
         automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -221,9 +251,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: plan == 'Max'
                       ? null
                       : () {
-                    Navigator.push(
+                    Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
+                      CupertinoPageRoute(
                         builder: (context) => SubscriptionPlanPage(
                           uid: _userData?['uid'] ?? widget.uid,
                           currentPlan: plan,
@@ -253,7 +283,7 @@ class _SettingsPageState extends State<SettingsPage> {
         onPressed: () async {
           await FirebaseAuth.instance.signOut();
           if (!mounted) return;
-          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (r) => false);
+          Navigator.of(context).pushAndRemoveUntil(CupertinoPageRoute(builder: (_) => const LoginPage()), (r) => false);
         },
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: kDangerColor),
@@ -749,7 +779,17 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 class ReceiptSettingsPage extends StatelessWidget {
   final VoidCallback onBack;
   final Function(String) onNavigate;
-  const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate});
+  final String uid;
+  final String? userEmail;
+
+  const ReceiptSettingsPage({
+    super.key,
+    required this.onBack,
+    required this.onNavigate,
+    required this.uid,
+    this.userEmail,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -47,9 +47,9 @@ if (_hasPermission('addProduct') || isAdmin)
         await PermissionHelper.showPermissionDeniedDialog(context);
         return;
       }
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
+        CupertinoPageRoute(
           builder: (context) => AddProductPage(...),
         ),
       );
@@ -249,7 +249,7 @@ if (_hasPermission('addProduct') || isAdmin)
     await PermissionHelper.showPermissionDeniedDialog(context);
     return;
   }
-  Navigator.push(...); // Only navigates if permitted
+  Navigator.pushReplacement(...); // Only navigates if permitted
 }
 ```
 

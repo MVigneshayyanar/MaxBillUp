@@ -1,10 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:maxbillup/Stocks/Products.dart';
 import 'package:maxbillup/Stocks/Category.dart';
-import 'package:maxbillup/Stocks/components/stock_app_bar.dart';
+import 'package:maxbillup/Stocks/Components/stock_app_bar.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 
 class StockPage extends StatefulWidget {
   final String uid;
@@ -43,7 +45,9 @@ class _StockPageState extends State<StockPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
+      drawer: Drawer(
+        child: MenuPage(uid: _uid, userEmail: _userEmail),
+      ),
       body: Column(
         children: [
           // Stock AppBar Component
@@ -58,14 +62,16 @@ class _StockPageState extends State<StockPage> {
               });
             },
             onAddProduct: () {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (context) => AddProductPage(uid: _uid, userEmail: _userEmail),
                 ),
               );
             },
             buildActionButton: _buildActionButton,
+            screenWidth: MediaQuery.of(context).size.width,
+            screenHeight: MediaQuery.of(context).size.height,
           ),
 
           // Content area - Show Products or Category based on selected tab
@@ -75,12 +81,6 @@ class _StockPageState extends State<StockPage> {
                 : CategoryPage(uid: _uid, userEmail: _userEmail),
           ),
         ],
-      ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: _uid,
-        userEmail: _userEmail,
-        currentIndex: 3,
-        screenWidth: MediaQuery.of(context).size.width,
       ),
     );
   }
@@ -97,4 +97,3 @@ class _StockPageState extends State<StockPage> {
     );
   }
 }
-

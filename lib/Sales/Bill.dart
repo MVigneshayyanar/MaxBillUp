@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
@@ -386,9 +387,9 @@ class _BillPageState extends State<BillPage> {
   void _proceedToPayment(String paymentMode) {
     // If Split is selected, navigate to the dedicated split payment page.
     if (paymentMode == 'Split') {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
+        CupertinoPageRoute(
           builder: (context) => SplitPaymentPage(
             uid: _uid,
             userEmail: widget.userEmail,
@@ -409,9 +410,9 @@ class _BillPageState extends State<BillPage> {
     }
 
     // For single payment modes (Cash, Online, Credit, Set later), go to the simple PaymentPage.
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => PaymentPage(
           uid: _uid,
           userEmail: widget.userEmail,
@@ -1515,9 +1516,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         );
 
         // Navigate to Invoice page
-        Navigator.push(
+        Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => InvoicePage(
               // Assuming InvoicePage can handle the full saleData breakup
               uid: widget.uid,
@@ -2073,35 +2074,37 @@ class _PaymentPageState extends State<PaymentPage> {
       }
 
       if (mounted) {
-        // Close loading dialog
-        Navigator.pop(context);
+        // Close loading dialog first
+        Navigator.of(context).pop();
 
-        // Pop BillPage with success result first
-        Navigator.pop(context, true);
+        // Small delay to ensure the dialog is properly closed
+        await Future.delayed(const Duration(milliseconds: 100));
 
-        // Navigate to Invoice page
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => InvoicePage(
-              uid: widget.uid,
-              userEmail: widget.userEmail,
-              businessName: 'Business Trial',
-              businessLocation: businessLocation ?? 'Tirunelveli',
-              businessPhone: '+91 ${widget.uid}',
-              invoiceNumber: invoiceNumber,
-              dateTime: DateTime.now(),
-              items: widget.cartItems.map((item) => {'name': item.name, 'quantity': item.quantity, 'price': item.price, 'total': item.total}).toList(),
-              subtotal: widget.totalAmount + widget.discountAmount,
-              discount: widget.discountAmount,
-              total: widget.totalAmount,
-              paymentMode: widget.paymentMode,
-              cashReceived: amountReceived,
-              customerName: widget.customerName,
-              customerPhone: widget.customerPhone,
-            ),
-          ),
-        );
+        if (mounted) {
+          // Navigate to Invoice page and return result to NewSale page
+          final invoicePage = InvoicePage(
+            uid: widget.uid,
+            userEmail: widget.userEmail,
+            businessName: 'Business Trial',
+            businessLocation: businessLocation ?? 'Tirunelveli',
+            businessPhone: '+91 ${widget.uid}',
+            invoiceNumber: invoiceNumber,
+            dateTime: DateTime.now(),
+            items: widget.cartItems.map((item) => {'name': item.name, 'quantity': item.quantity, 'price': item.price, 'total': item.total}).toList(),
+            subtotal: widget.totalAmount + widget.discountAmount,
+            discount: widget.discountAmount,
+            total: widget.totalAmount,
+            paymentMode: widget.paymentMode,
+            cashReceived: amountReceived,
+            customerName: widget.customerName,
+            customerPhone: widget.customerPhone,
+          );
+
+          // Pop BillPage and push InvoicePage in one go
+          Navigator.of(context).pushReplacement(
+            CupertinoPageRoute(builder: (context) => invoicePage),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

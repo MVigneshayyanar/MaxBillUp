@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Stocks/Products.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
@@ -99,7 +100,7 @@ class _CategoryPageState extends State<CategoryPage> {
           // Search Bar and Add Category in one row
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             child: Row(
               children: [
                 // Search Bar
@@ -164,7 +165,7 @@ class _CategoryPageState extends State<CategoryPage> {
           if (index == 0) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
+              CupertinoPageRoute(
                 builder: (context) =>
                     ProductsPage(uid: _uid, userEmail: _userEmail),
               ),
@@ -436,9 +437,9 @@ class _CategoryPageState extends State<CategoryPage> {
                           // Create New Product button
                           TextButton.icon(
                             onPressed: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
-                                MaterialPageRoute(
+                                CupertinoPageRoute(
                                   builder: (context) => AddProductPage(
                                     uid: _uid,
                                     userEmail: _userEmail,

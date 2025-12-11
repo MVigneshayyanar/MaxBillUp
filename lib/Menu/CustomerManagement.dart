@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Required for Date Formatting
@@ -635,11 +636,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
           if (title == "Bills") {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
+            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           } else if (title == "Credit Details") {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
+            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
           } else if (title == "ledger") {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
+            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
           }
         },
       ),
@@ -650,9 +651,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   void _showReceiveCreditModal(BuildContext context, double currentBalance, double currentTotalSales) {
     _addAmountController.clear();
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => _ReceiveCreditPage(
           customerId: widget.customerId,
           customerData: widget.customerData,

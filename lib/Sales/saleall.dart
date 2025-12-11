@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
@@ -214,9 +215,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   void _openScanner() async {
-    await Navigator.push(
+    await Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (ctx) => BarcodeScannerPage(onBarcodeScanned: _searchByBarcode),
       ),
     );
@@ -270,7 +271,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final h = MediaQuery.of(context).size.height;
 
     return Column(
+
       children: [
+
         Container(
           color: Colors.white,
           padding: EdgeInsets.fromLTRB(w * 0.04, w *0, w * 0.04, w * 0.02),
@@ -311,7 +314,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ),
         ),
         if (_cart.isNotEmpty)
+
           Container(
+
             color: Colors.white,
             padding: EdgeInsets.symmetric(vertical: h * 0.01),
             child: Column(
@@ -405,6 +410,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             ),
           ),
         Expanded(
+
           child: Container(
             color: const Color(0xFFF5F5F5),
             child: Column(
@@ -461,9 +467,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
           },
           onQuotation: () {
             if (_cart.isNotEmpty) {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (ctx) => QuotationPage(
                     uid: widget.uid,
                     userEmail: widget.userEmail,
@@ -482,9 +488,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
           },
           onBill: () {
             if (_cart.isNotEmpty) {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (ctx) => BillPage(
                     uid: widget.uid,
                     userEmail: widget.userEmail,

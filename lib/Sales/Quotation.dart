@@ -1,9 +1,12 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'dart:math';
 import 'package:maxbillup/utils/firestore_service.dart';
+
 
 class QuotationPage extends StatefulWidget {
   final String uid;
@@ -155,7 +158,7 @@ class _QuotationPageState extends State<QuotationPage> {
         // Navigate to Quotation Preview and pass quotation document id so it can be updated when billed
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => QuotationPreviewPage(
               uid: widget.uid,
               userEmail: widget.userEmail,
@@ -202,14 +205,11 @@ class _QuotationPageState extends State<QuotationPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
       backgroundColor: const Color(0xFF1565C0),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1565C0),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           'New Quotation',
           style: TextStyle(color: Colors.white, fontSize: 18),

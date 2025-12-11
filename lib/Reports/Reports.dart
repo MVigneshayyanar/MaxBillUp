@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -27,6 +29,7 @@ class ReportsPage extends StatefulWidget {
 
   @override
   State<ReportsPage> createState() => _ReportsPageState();
+  
 }
 
 class _ReportsPageState extends State<ReportsPage> {
@@ -72,7 +75,7 @@ class _ReportsPageState extends State<ReportsPage> {
           });
           return Container();
         }
-        return AnalyticsPage(uid: widget.uid, onBack: _reset);
+        return AnalyticsPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
 
       case 'DayBook':
         if (!_hasPermission('daybook') && !isAdmin) {
@@ -354,7 +357,7 @@ class _ReportsPageState extends State<ReportsPage> {
         onTap: () => setState(() => _currentView = view),
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
@@ -369,9 +372,10 @@ class _ReportsPageState extends State<ReportsPage> {
 // ==========================================
 class AnalyticsPage extends StatefulWidget {
   final String uid;
+  final String? userEmail;
   final VoidCallback onBack;
 
-  const AnalyticsPage({super.key, required this.uid, required this.onBack});
+  const AnalyticsPage({super.key, required this.uid, required this.userEmail, required this.onBack});
 
   @override
   State<AnalyticsPage> createState() => _AnalyticsPageState();
@@ -388,7 +392,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+          onPressed: () => _goToNewSale(context, widget.uid, widget.userEmail),
         ),
         title: const Text("Analytics", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryBlue,
@@ -503,7 +507,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             title: "Revenue",
                             value: todayRevenue,
                             icon: Icons.inventory_2_outlined,
-                            iconBg: kPrimaryBlue.withOpacity(0.1),
+                            iconBg: kPrimaryBlue.withAlpha(25),
                             iconColor: kPrimaryBlue
                         ),
                         const SizedBox(height: 12),
@@ -512,7 +516,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           children: [
                             Expanded(child: _buildGridCard(
                                 title: "Net Sale", value: todayRevenue, count: todaySaleCount,
-                                icon: Icons.receipt_long, iconBg: kPrimaryBlue.withOpacity(0.1), iconColor: kPrimaryBlue
+                                icon: Icons.receipt_long, iconBg: kPrimaryBlue.withAlpha(25), iconColor: kPrimaryBlue
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _buildGridCard(
@@ -577,7 +581,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))]
+                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 6, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -647,7 +651,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))]
+                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 6, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -671,7 +675,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   _buildPieLegend(kPrimaryBlue, "Cash", totalCash),
                                   _buildPieLegend(Colors.orange, "Online", totalOnline),
                                 ],
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -837,7 +841,7 @@ class DayBookPage extends StatelessWidget {
     final String todayDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     return Scaffold(
-      appBar: _buildAppBar("DayBook", onBack),
+      appBar: _buildAppBar("DayBook", context, uid, null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -953,7 +957,7 @@ class DayBookPage extends StatelessWidget {
                                   color: kPrimaryBlue,
                                   barWidth: 3,
                                   dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
+                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withAlpha(51)),
                                 ),
                               ],
                             ),
@@ -1003,7 +1007,7 @@ class SalesSummaryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Summary", onBack),
+      appBar: _buildAppBar("Summary", context, '', null),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -1162,7 +1166,7 @@ class SalesSummaryPage extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.3),
+                                            color: Colors.white.withAlpha(76),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Row(
@@ -1270,7 +1274,7 @@ class SalesSummaryPage extends StatelessWidget {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.3),
+                                            color: Colors.white.withAlpha(76),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Row(
@@ -1396,7 +1400,7 @@ class FullSalesHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("All Sales Report", onBack),
+      appBar: _buildAppBar("All Sales Report", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1476,7 +1480,7 @@ class FullSalesHistoryPage extends StatelessWidget {
                                   color: kPrimaryBlue,
                                   barWidth: 3,
                                   dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
+                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withAlpha(51)),
                                 ),
                               ],
                             ),
@@ -1530,7 +1534,7 @@ class ItemSalesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Item Sales", onBack),
+      appBar: _buildAppBar("Item Sales", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1651,7 +1655,7 @@ class TopCustomersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Customers", onBack),
+      appBar: _buildAppBar("Top Customers", context, uid, null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1765,7 +1769,7 @@ class StockReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Stock Report", onBack),
+      appBar: _buildAppBar("Stock Report", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -1793,7 +1797,7 @@ class StockReportPage extends StatelessWidget {
                   children: [
                     Container(
                         padding: const EdgeInsets.all(16),
-                        color: kPrimaryBlue.withOpacity(0.1),
+                        color: kPrimaryBlue.withAlpha(25),
                         child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1905,7 +1909,7 @@ class LowStockPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Low Stock", onBack),
+      appBar: _buildAppBar("Low Stock", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -2029,7 +2033,7 @@ class TopProductsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Products", onBack),
+      appBar: _buildAppBar("Top Products", context, uid, null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -2085,7 +2089,7 @@ class TopProductsPage extends StatelessWidget {
                                         String name = sorted[value.toInt()].key;
                                         return Transform.rotate(
                                           angle: -0.5,
-                                          child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                          child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9), overflow: TextOverflow.ellipsis),
                                         );
                                       }
                                       return const Text('');
@@ -2146,7 +2150,7 @@ class TopCategoriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Categories", onBack),
+      appBar: _buildAppBar("Top Categories", context, '', null),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('Products'),
@@ -2282,7 +2286,7 @@ class ExpenseReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Expense Report", onBack),
+      appBar: _buildAppBar("Expense Report", context, '', null),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('expenses'),
@@ -2420,13 +2424,7 @@ class ExpenseReportPage extends StatelessWidget {
                                   barGroups: categoryExpenses.entries.toList().asMap().entries.map((entry) {
                                     return BarChartGroupData(
                                       x: entry.key,
-                                      barRods: [
-                                        BarChartRodData(
-                                          toY: entry.value.value,
-                                          color: kExpenseRed,
-                                          width: 30,
-                                        ),
-                                      ],
+                                      barRods: [BarChartRodData(toY: entry.value.value, color: kExpenseRed, width: 30)],
                                     );
                                   }).toList(),
                                 ),
@@ -2473,7 +2471,7 @@ class TaxReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Tax Report", onBack),
+      appBar: _buildAppBar("Tax Report", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -2555,7 +2553,7 @@ class TaxReportPage extends StatelessWidget {
                                     color: kIncomeGreen,
                                     barWidth: 3,
                                     dotData: FlDotData(show: true),
-                                    belowBarData: BarAreaData(show: true, color: kIncomeGreen.withOpacity(0.2)),
+                                    belowBarData: BarAreaData(show: true, color: kIncomeGreen.withAlpha(51)),
                                   ),
                                 ],
                               ),
@@ -2599,7 +2597,7 @@ class HSNReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("HSN Report", onBack),
+      appBar: _buildAppBar("HSN Report", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -2717,7 +2715,7 @@ class StaffSaleReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Staff Sales", onBack),
+      appBar: _buildAppBar("Staff Sales", context, '', null),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -2822,13 +2820,25 @@ class StaffSaleReportPage extends StatelessWidget {
 // ==========================================
 // UI HELPER WIDGETS
 // ==========================================
-AppBar _buildAppBar(String title, VoidCallback onBack) {
+AppBar _buildAppBar(String title, BuildContext context, String uid, String? userEmail) {
   return AppBar(
-    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+    leading: IconButton(
+      icon: const Icon(Icons.arrow_back, color: Colors.white), 
+      onPressed: () => _goToNewSale(context, uid, userEmail),
+    ),
     title: Text(title, style: const TextStyle(color: Colors.white)),
     backgroundColor: kPrimaryBlue,
     elevation: 0,
     centerTitle: true,
+  );
+}
+
+void _goToNewSale(BuildContext context, String uid, String? userEmail) {
+  Navigator.pushReplacement(
+    context,
+    CupertinoPageRoute(
+      builder: (context) => NewSalePage(uid: uid, userEmail: userEmail),
+    ),
   );
 }
 

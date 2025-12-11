@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/quotation_migration_helper.dart';
@@ -26,6 +28,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
+      ),
       appBar: AppBar(
         title: GestureDetector(
           onLongPress: () {
@@ -38,9 +43,25 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           ),
         ),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+        leading: Builder(
+          builder: (context) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final tabHeight = kToolbarHeight;
+            return GestureDetector(
+              onTap: () {
+                Scaffold.of(context).openDrawer();
+              },
+              child: Container(
+                width: screenWidth * 0.12,
+                height: tabHeight,
+                child: Icon(
+                  Icons.menu,
+                  color: const Color(0xFFffffff),
+                  size: screenWidth * 0.06,
+                ),
+              ),
+            );
+          }
         ),
         centerTitle: true,
       ),
@@ -111,9 +132,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                     ),
                     child: InkWell(
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => QuotationDetailPage(
                               uid: widget.uid,
                               userEmail: widget.userEmail,
@@ -147,8 +168,8 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isBilled
-                                        ? Colors.grey.withOpacity(0.1)
-                                        : Colors.green.withOpacity(0.1),
+                                        ? Colors.grey.withAlpha(25)
+                                        : Colors.green.withAlpha(25),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -70,7 +71,7 @@ class _SplashGateState extends State<SplashGate> {
       if (user != null) {
         // User is logged in
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (_) => NewSalePage(
               uid: user.uid,
               userEmail: user.email,
@@ -80,7 +81,7 @@ class _SplashGateState extends State<SplashGate> {
       } else {
         // User is NOT logged in
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginPage()),
+          CupertinoPageRoute(builder: (_) => const LoginPage()),
         );
       }
     });

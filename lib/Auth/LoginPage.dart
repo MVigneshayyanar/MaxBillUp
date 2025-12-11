@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
@@ -19,8 +21,8 @@ class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _auth = FirebaseAuth.instance;
+  final _firestoreService = FirestoreService();
 
-  // false = Gmail tab active, true = Staff (email/password) tab active
   bool _isStaff = false;
   bool _hidePass = true;
   bool _loading = false;
@@ -32,13 +34,14 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void _showMsg(String msg) {
+  void _showMsg(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: const Color(0xFF00B8FF),
+        backgroundColor: isError ? const Color(0xFFFF3B30) : const Color(0xFF00B8FF),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -47,7 +50,7 @@ class _LoginPageState extends State<LoginPage> {
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => NewSalePage(uid: uid, userEmail: identifier),
       ),
     );
@@ -57,7 +60,6 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _googleLogin() async {
     setState(() => _loading = true);
     try {
-      // 1. Force account selection
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
 
@@ -65,22 +67,19 @@ class _LoginPageState extends State<LoginPage> {
 
       if (gUser == null) {
         if (mounted) setState(() => _loading = false);
-        return; // User cancelled
+        return;
       }
 
-      // 2. Get credentials
       final GoogleSignInAuthentication gAuth = await gUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: gAuth.accessToken,
         idToken: gAuth.idToken,
       );
 
-      // 3. Sign in to Firebase
       final userCred = await _auth.signInWithCredential(credential);
       final user = userCred.user;
 
       if (user != null) {
-        // 4. Check if Business Data exists
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -90,15 +89,13 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => _loading = false);
 
         if (userDoc.exists) {
-          // Existing Owner -> Go to App
           _showMsg('Welcome back!');
           _navigate(user.uid, user.email);
         } else {
-          // New Owner -> Setup Profile
           _showMsg('Please complete your business profile.');
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(
+            CupertinoPageRoute(
               builder: (context) => BusinessDetailsPage(
                 uid: user.uid,
                 email: user.email,
@@ -110,108 +107,238 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on FirebaseAuthException catch (e) {
       if (mounted) setState(() => _loading = false);
-      _showMsg('Auth Error: ${e.message}');
+      _showMsg('Auth Error: ${e.message}', isError: true);
     } catch (e) {
       if (mounted) setState(() => _loading = false);
-      _showMsg('Error: $e');
+      _showMsg('Error: $e', isError: true);
     }
   }
 
-  // --- STAFF LOGIN LOGIC (Enforces Verification & Approval) ---
+  // --- ENHANCED STAFF LOGIN LOGIC ---
   Future<void> _emailLogin() async {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
 
+    // Validation
     if (email.isEmpty || !email.contains('@')) {
-      _showMsg('Please enter a valid email');
+      _showMsg('Please enter a valid email', isError: true);
       return;
     }
     if (pass.length < 6) {
-      _showMsg('Password must be at least 6 characters');
+      _showMsg('Password must be at least 6 characters', isError: true);
       return;
     }
 
     setState(() => _loading = true);
 
     try {
-      // 1. Attempt Sign In
+      // 1. Sign in with email/password
       final cred = await _auth.signInWithEmailAndPassword(
         email: email,
         password: pass,
       );
 
-      final user = cred.user;
+      User? user = cred.user;
 
-      if (user != null) {
-        // 2. Refresh user to ensure emailVerified status is fresh
-        await user.reload();
+      if (user == null) {
+        throw Exception('Login failed - no user returned');
+      }
 
-        // 3. Check Email Verification
-        if (!user.emailVerified) {
-          await _auth.signOut();
-          _showMsg('Please verify your email address first. Check your inbox.');
-          setState(() => _loading = false);
-          return;
+      // 2. CRITICAL: Reload user to get fresh emailVerified status
+      await user.reload();
+      user = _auth.currentUser;
+
+      if (user == null) {
+        throw Exception('Session lost after reload');
+      }
+
+      print('📧 User: ${user.email}, Email Verified: ${user.emailVerified}');
+
+      // 3. Check email verification from Firebase Auth
+      if (!user.emailVerified) {
+        await _auth.signOut();
+        setState(() => _loading = false);
+
+        _showDialog(
+          title: '📧 Email Not Verified',
+          message: 'Please verify your email address first.\n\nCheck your inbox (and spam folder) for the verification link.',
+          actionText: 'Resend Email',
+          onAction: () async {
+            try {
+              await user?.sendEmailVerification();
+              _showMsg('Verification email sent! Check your inbox.');
+            } catch (e) {
+              _showMsg('Failed to send email: $e', isError: true);
+            }
+          },
+        );
+        return;
+      }
+
+      // 4. Find user document in store-scoped collection
+      DocumentSnapshot? userDoc;
+
+      try {
+        // Try to get from store-scoped collection
+        final storeCollection = await _firestoreService.getStoreCollection('users');
+        final querySnapshot = await storeCollection
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          userDoc = querySnapshot.docs.first;
         }
+      } catch (e) {
+        print('Error finding user in store collection: $e');
+      }
 
-        // 4. Fetch User Document from Firestore
-        final userDoc = await FirebaseFirestore.instance
+      // Fallback: Try root users collection
+      if (userDoc == null || !userDoc.exists) {
+        userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
+      }
 
-        if (userDoc.exists) {
-          final userData = userDoc.data()!;
-          final bool isActive = userData['isActive'] ?? false;
-          final bool dbEmailVerified = userData['isEmailVerified'] ?? false;
+      if (!userDoc.exists) {
+        await _auth.signOut();
+        setState(() => _loading = false);
+        _showMsg('Account not found. Please contact your administrator.', isError: true);
+        return;
+      }
 
-          // 5. Update Firestore if email is verified but DB says false (Syncs with Admin UI)
-          if (!dbEmailVerified) {
-            await userDoc.reference.update({'isEmailVerified': true});
-          }
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final bool isActive = userData['isActive'] ?? false;
+      final bool dbEmailVerified = userData['isEmailVerified'] ?? false;
 
-          // 6. Check Admin Approval (isActive)
-          if (!isActive) {
-            await _auth.signOut();
-            _showMsg('Email Verified! Waiting for Admin to approve your access.');
-            setState(() => _loading = false);
-            return;
-          }
+      // 5. Update Firestore isEmailVerified if it's false but Auth says true
+      if (!dbEmailVerified && user.emailVerified) {
+        print('✅ Syncing email verification to Firestore');
 
-          // 7. Success - Access Granted
-          _navigate(user.uid, user.email);
-        } else {
-          // Fallback if user auth exists but no firestore doc (unlikely for added staff)
-          await _auth.signOut();
-          _showMsg('Account configuration error. Contact Admin.');
+        try {
+          await _firestoreService.updateDocument('users', user.uid, {
+            'isEmailVerified': true,
+            'verifiedAt': FieldValue.serverTimestamp(),
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          print('Error updating Firestore: $e');
+          // Try direct update as fallback
+          await userDoc.reference.update({
+            'isEmailVerified': true,
+            'verifiedAt': FieldValue.serverTimestamp(),
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
+        }
+      } else {
+        // Just update last login
+        try {
+          await _firestoreService.updateDocument('users', user.uid, {
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
+        } catch (e) {
+          await userDoc.reference.update({
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
         }
       }
+
+      // 6. Check if admin has approved (isActive)
+      if (!isActive) {
+        await _auth.signOut();
+        setState(() => _loading = false);
+
+        _showDialog(
+          title: '⏳ Pending Approval',
+          message: 'Your email is verified!\n\nYour account is waiting for administrator approval. Please contact your admin to activate your access.',
+          actionText: 'OK',
+        );
+        return;
+      }
+
+      // 7. SUCCESS - All checks passed
+      setState(() => _loading = false);
+      _showMsg('✅ Login successful! Welcome back.');
+      _navigate(user.uid, user.email);
+
     } on FirebaseAuthException catch (e) {
+      setState(() => _loading = false);
       String msg = 'Login failed';
-      if (e.code == 'user-not-found') msg = 'No account found.';
-      if (e.code == 'wrong-password') msg = 'Incorrect password.';
-      if (e.code == 'invalid-credential') msg = 'Invalid credentials.';
-      _showMsg(msg);
+
+      switch (e.code) {
+        case 'user-not-found':
+          msg = 'No account found with this email.';
+          break;
+        case 'wrong-password':
+          msg = 'Incorrect password. Please try again.';
+          break;
+        case 'invalid-credential':
+          msg = 'Invalid email or password.';
+          break;
+        case 'user-disabled':
+          msg = 'This account has been disabled.';
+          break;
+        case 'too-many-requests':
+          msg = 'Too many failed attempts. Please try again later.';
+          break;
+        default:
+          msg = e.message ?? msg;
+      }
+
+      _showMsg(msg, isError: true);
     } catch (e) {
-      _showMsg('Error: $e');
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      setState(() => _loading = false);
+      _showMsg('Error: $e', isError: true);
+      print('❌ Login error: $e');
     }
+  }
+
+  void _showDialog({
+    required String title,
+    required String message,
+    String actionText = 'OK',
+    VoidCallback? onAction,
+  }) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          if (onAction != null)
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onAction();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00B8FF),
+              ),
+              child: Text(actionText, style: const TextStyle(color: Colors.white)),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _resetPass() async {
     final email = _emailCtrl.text.trim();
     if (email.isEmpty) {
-      _showMsg('Enter your email to reset password');
+      _showMsg('Enter your email to reset password', isError: true);
       return;
     }
 
     setState(() => _loading = true);
     try {
       await _auth.sendPasswordResetEmail(email: email);
-      _showMsg('Password reset email sent');
+      _showMsg('✅ Password reset email sent! Check your inbox.');
     } on FirebaseAuthException catch (e) {
-      _showMsg(e.message ?? 'Reset failed');
+      _showMsg(e.message ?? 'Reset failed', isError: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -231,7 +358,6 @@ class _LoginPageState extends State<LoginPage> {
               const SizedBox(height: 60),
               _buildTabs(),
               const SizedBox(height: 40),
-              // Show Google form when not staff, show staff email/password form when _isStaff is true
               _isStaff ? _buildEmailForm() : _buildGoogleForm(),
               const SizedBox(height: 40),
               _buildButton(),
@@ -257,7 +383,11 @@ class _LoginPageState extends State<LoginPage> {
           height: 50,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
-            return const Text("MAXBILLUP", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF00B8FF)));
+            return const Text("MAXBILLUP",
+                style: TextStyle(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF00B8FF)));
           },
         ),
       ),
@@ -372,7 +502,8 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('Continue with Google', style: TextStyle(fontSize: 16, color: Colors.black87)),
+              const Text('Continue with Google',
+                  style: TextStyle(fontSize: 16, color: Colors.black87)),
             ],
           ),
         ),
@@ -483,7 +614,8 @@ class GoogleGPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final strokeWidth = size.width * 0.22;
-    final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
+    final rect =
+    Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
@@ -501,7 +633,9 @@ class GoogleGPainter extends CustomPainter {
     paint.color = const Color(0xFF4285F4);
     canvas.drawArc(rect, startAngle + sweep * 0.69, sweep * 0.31, false, paint);
 
-    final innerPaint = Paint()..color = Colors.white..style = PaintingStyle.fill;
+    final innerPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius - strokeWidth * 1.25, innerPaint);
 
     final tailPaint = Paint()
@@ -510,7 +644,8 @@ class GoogleGPainter extends CustomPainter {
       ..strokeWidth = strokeWidth * 0.9
       ..strokeCap = StrokeCap.round;
 
-    final tailStart = Offset(center.dx + radius * 0.05, center.dy + radius * 0.25);
+    final tailStart =
+    Offset(center.dx + radius * 0.05, center.dy + radius * 0.25);
     final tailEnd = Offset(center.dx + radius * 0.45, center.dy + radius * 0.05);
     canvas.drawLine(tailStart, tailEnd, tailPaint);
   }

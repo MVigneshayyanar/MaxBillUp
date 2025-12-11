@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Bill.dart';
@@ -365,9 +366,9 @@ class _QuickSalePageState extends State<QuickSalePage> {
           },
           onQuotation: () {
             if (_items.isNotEmpty) {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (context) => QuotationPage(
                     uid: widget.uid,
                     userEmail: widget.userEmail,
@@ -386,9 +387,9 @@ class _QuickSalePageState extends State<QuickSalePage> {
           },
           onBill: () {
             if (_items.isNotEmpty) {
-              Navigator.push(
+              Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(
+                CupertinoPageRoute(
                   builder: (context) => BillPage(
                     uid: widget.uid,
                     userEmail: widget.userEmail,

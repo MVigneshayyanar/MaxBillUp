@@ -373,7 +373,7 @@ if (user != null) {
     }
     
     // Navigate to app with uid
-    Navigator.push(context, MaterialPageRoute(
+    Navigator.pushReplacement(context, CupertinoPageRoute(
       builder: (context) => MenuPage(
         uid: uid,  // Pass UID
         userEmail: user.email,

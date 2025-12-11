@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/Sales/Bill.dart'; // Placeholder import if BillPage is in a different file
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
@@ -17,8 +19,9 @@ import 'package:maxbillup/Settings/Profile.dart'; // For SettingsPage
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:maxbillup/utils/printer_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
+import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
+
 
 
 // ==========================================
@@ -43,6 +46,7 @@ class _MenuPageState extends State<MenuPage> {
   String _email = "";
   String _role = "staff";
   Map<String, dynamic> _permissions = {};
+  Map<String, dynamic>? _storeData;
 
   // Stream Subscription
   StreamSubscription<DocumentSnapshot>? _userSubscription;
@@ -58,6 +62,7 @@ class _MenuPageState extends State<MenuPage> {
     _email = widget.userEmail ?? "maestromindssdg@gmail.com";
     _startFastUserDataListener();
     _loadPermissions();
+    _loadStoreData();
   }
 
   void _loadPermissions() async {
@@ -67,6 +72,19 @@ class _MenuPageState extends State<MenuPage> {
         _permissions = userData['permissions'] as Map<String, dynamic>;
         _role = userData['role'] as String;
       });
+    }
+  }
+
+  void _loadStoreData() async {
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists && mounted) {
+        setState(() {
+          _storeData = storeDoc.data() as Map<String, dynamic>?;
+        });
+      }
+    } catch (e) {
+      print('Error loading store data: $e');
     }
   }
 
@@ -134,7 +152,7 @@ class _MenuPageState extends State<MenuPage> {
           });
           return Container();
         }
-        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail!, onBack: _reset);
+        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
 
       case 'CreditNotes':
         if (!_hasPermission('creditNotes') && !isAdmin) {
@@ -247,7 +265,7 @@ class _MenuPageState extends State<MenuPage> {
               });
               return Container();
             }
-            return AnalyticsPage(uid: widget.uid, onBack: _reset);
+            return AnalyticsPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
           },
         );
 
@@ -588,17 +606,20 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail),
+                          CupertinoPageRoute(
+                            builder: (context) => SubscriptionPlanPage(
+                              uid: widget.uid,
+                              currentPlan: _storeData?['plan'] ?? 'Free',
+                            ),
                           ),
                         );
                       },
-                      icon: const Icon(Icons.add_shopping_cart, size: 18, color: Colors.white),
-                      label: const Text('New Sale', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      icon: const Icon(Icons.workspace_premium, size: 18, color: Colors.white),
+                      label: const Text('Plan', style: TextStyle(color: Colors.white, fontSize: 14)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white24,
+                        backgroundColor: Colors.orange.shade700,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -617,6 +638,9 @@ class _MenuPageState extends State<MenuPage> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
+                // New Sale (First item)
+                _buildMenuItem(Icons.add_shopping_cart, "New Sale", 'NewSale'),
+
                 // Quotation
                 if (_hasPermission('quotation') || isAdmin)
                   _buildMenuItem(Icons.assignment_outlined, "Quotation", 'Quotation'),
@@ -761,9 +785,9 @@ class _MenuPageState extends State<MenuPage> {
   void _navigateToPage(String viewKey) {
     Widget? page = _getPageForView(viewKey);
     if (page != null) {
-      Navigator.push(
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => page),
+        CupertinoPageRoute(builder: (context) => page),
       );
     }
   }
@@ -787,7 +811,7 @@ class _MenuPageState extends State<MenuPage> {
           PermissionHelper.showPermissionDeniedDialog(context);
           return null;
         }
-        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail!, onBack: () => Navigator.pop(context));
+        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context));
 
       case 'CreditNotes':
         if (!_hasPermission('creditNotes') && !isAdmin) {
@@ -931,9 +955,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => StaffManagementPage(
           uid: widget.uid,
           userEmail: widget.userEmail,
@@ -957,11 +981,12 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => AnalyticsPage(
           uid: widget.uid,
+          userEmail: widget.userEmail,
           onBack: () => Navigator.pop(context),
         ),
       ),
@@ -982,9 +1007,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => DayBookPage(
           uid: widget.uid,
           onBack: () => Navigator.pop(context),
@@ -1007,9 +1032,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => SalesSummaryPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1031,9 +1056,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => FullSalesHistoryPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1055,9 +1080,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => ItemSalesPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1079,9 +1104,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => TopCustomersPage(
           uid: widget.uid,
           onBack: () => Navigator.pop(context),
@@ -1104,9 +1129,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => StockReportPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1128,9 +1153,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => LowStockPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1152,9 +1177,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => TopProductsPage(
           uid: widget.uid,
           onBack: () => Navigator.pop(context),
@@ -1177,9 +1202,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => TopCategoriesPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1201,9 +1226,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => ExpenseReportPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1225,9 +1250,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => TaxReportPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1249,9 +1274,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => HSNReportPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1273,9 +1298,9 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => StaffSaleReportPage(
           onBack: () => Navigator.pop(context),
         ),
@@ -1294,9 +1319,9 @@ class _MenuPageState extends State<MenuPage> {
 
   void settleBillAndReturn(String billId) async {
     // Navigate to BillPage
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => BillPage(
           uid: widget.uid,
           cartItems: const [], // Replace with actual cart items
@@ -1410,9 +1435,9 @@ class GenericListPage extends StatelessWidget {
 class SalesHistoryPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
-  final String userEmail;
+  final String? userEmail;
 
-  const SalesHistoryPage({super.key, required this.uid, required this.onBack, required this.userEmail});
+  const SalesHistoryPage({super.key, required this.uid, required this.onBack, this.userEmail});
 
   @override
   State<SalesHistoryPage> createState() => _SalesHistoryPageState();
@@ -1493,10 +1518,34 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
+      ),
+
       appBar: AppBar(
         title: const Text('Bill History', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -1711,9 +1760,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         ))
                             .toList();
                         final double totalAmount = (data['total'] ?? 0).toDouble();
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => BillPage(
                               uid: widget.uid,
                               cartItems: cartItems,
@@ -1727,9 +1776,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         });
                       } else {
                         // If settled, show receipt
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data),
                           ),
                         );
@@ -2033,9 +2082,9 @@ class SalesDetailPage extends StatelessWidget {
                       icon: Icons.shopping_cart_outlined,
                       label: 'Sale Return',
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => SaleReturnPage(
                               documentId: documentId,
                               invoiceData: data,
@@ -2064,9 +2113,9 @@ class SalesDetailPage extends StatelessWidget {
                       icon: Icons.edit_outlined,
                       label: 'Edit',
                       onTap: () {
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => EditBillPage(
                               documentId: documentId,
                               invoiceData: data,
@@ -2439,9 +2488,6 @@ class SalesDetailPage extends StatelessWidget {
 // 4. CUSTOMER RELATED PAGES
 // ==========================================
 
-// ==========================================
-// CREDIT NOTES PAGE
-// ==========================================
 class CreditNotesPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -2477,12 +2523,32 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid),
+      ),
       appBar: AppBar(
         title: const Text('Credit Notes', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+        leading: Builder(
+
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
         ),
         centerTitle: true,
       ),
@@ -2621,9 +2687,9 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                     return GestureDetector(
                       onTap: () {
                         // Navigate to credit note details
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => CreditNoteDetailPage(
                               documentId: doc.id,
                               creditNoteData: data,
@@ -3357,12 +3423,31 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid),
+      ),
       appBar: AppBar(
         title: const Text('Credit Details', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
         ),
         centerTitle: true,
       ),
@@ -3597,9 +3682,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       ),
                       onTap: () {
                         // Navigate to customer details
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => CustomerDetailsPage(
                               customerId: customers[index].id,
                               customerData: data,
@@ -3828,9 +3913,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       ),
                       onTap: () {
                         // Navigate to purchase credit note details
-                        Navigator.push(
+                        Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(
+                          CupertinoPageRoute(
                             builder: (context) => PurchaseCreditNoteDetailPage(
                               documentId: purchaseCreditNotes[index].id,
                               creditNoteData: data,
@@ -4816,11 +4901,34 @@ class _CustomersPageState extends State<CustomersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Light background for better card contrast
+      backgroundColor: Colors.grey[50],
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid),
+      ),// Light background for better card contrast
       appBar: AppBar(
         title: const Text('Customer Management', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
+        ),
         centerTitle: true,
       ),
       body: Column(
@@ -4888,7 +4996,7 @@ class _CustomersPageState extends State<CustomersPage> {
                     return GestureDetector(
                       onTap: () {
                         // Navigate to the External File Page
-                        Navigator.push(
+                        Navigator.pushReplacement(
                             context,
                             PageRouteBuilder(
                               pageBuilder: (context, animation, secondaryAnimation) => CustomerDetailsPage(
@@ -4976,10 +5084,33 @@ class StaffManagementList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      drawer: Drawer(
+        child: MenuPage(uid: adminUid),
+      ),
       appBar: AppBar(
         title: const Text('Staff Management', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
+        ),
         centerTitle: true,
       ),
       body: Column(
@@ -5353,9 +5484,9 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _proceedToPayment(String paymentMode) {
-    Navigator.push(
+    Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => PaymentPage(
           uid: _uid,
           userEmail: widget.userEmail,

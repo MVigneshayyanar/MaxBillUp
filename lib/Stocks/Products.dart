@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -298,7 +299,7 @@ class _ProductsPageState extends State<ProductsPage> {
           // Search bar and action buttons
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Row(
               children: [
                 Expanded(
@@ -346,9 +347,9 @@ class _ProductsPageState extends State<ProductsPage> {
                         await PermissionHelper.showPermissionDeniedDialog(context);
                         return;
                       }
-                      Navigator.push(
+                      Navigator.pushReplacement(
                         context,
-                        MaterialPageRoute(
+                        CupertinoPageRoute(
                           builder: (context) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
                         ),
                       );

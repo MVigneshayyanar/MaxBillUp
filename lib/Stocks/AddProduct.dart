@@ -1,8 +1,10 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Sales/BarcodeScanner.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/Stocks/Stock.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -102,9 +104,9 @@ class _AddProductPageState extends State<AddProductPage> {
 
   // Barcode Scanner Function
   Future<void> _scanBarcode() async {
-    final result = await Navigator.push(
+    final result = await Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => BarcodeScannerPage(
           title: 'Scan Product Barcode',
           onBarcodeScanned: (barcode) {
@@ -131,7 +133,14 @@ class _AddProductPageState extends State<AddProductPage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
+              ),
+            );
+          },
         ),
         title: const Text(
           'Add Product',
@@ -825,7 +834,12 @@ class _AddProductPageState extends State<AddProductPage> {
             duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          CupertinoPageRoute(
+            builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
@@ -1190,7 +1191,7 @@ class _InvoicePageState extends State<InvoicePage> {
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(
+                  CupertinoPageRoute(
                     builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail),
                   ),
                       (route) => false,

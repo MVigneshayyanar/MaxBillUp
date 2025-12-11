@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -129,7 +130,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.email),
           ),
         );

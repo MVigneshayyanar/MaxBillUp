@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
@@ -174,9 +175,9 @@ class _SaleAppBarState extends State<SaleAppBar> {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: widget.onAddProduct ?? () {
-                  Navigator.push(
+                  Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
+                    CupertinoPageRoute(
                       builder: (context) => AddProductPage(uid: uid, userEmail: widget.userEmail),
                     ),
                   );

@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 
@@ -209,19 +211,38 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid),
+      ),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.blue,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color:  Colors.white ,
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
         ),
         title: Text(
           'Choose a Plan',
           style: TextStyle(
             fontSize: screenWidth * 0.05,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
         centerTitle: true,

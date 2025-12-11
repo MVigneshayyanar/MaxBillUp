@@ -1,6 +1,8 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 
 class ExpenseCategoriesPage extends StatefulWidget {
@@ -41,12 +43,31 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: MenuPage(uid: widget.uid),
+      ),
       appBar: AppBar(
         title: const Text('Expense Categories', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
+        leading: Builder(
+            builder: (context) {
+              final screenWidth = MediaQuery.of(context).size.width;
+              final tabHeight = kToolbarHeight;
+              return GestureDetector(
+                onTap: () {
+                  Scaffold.of(context).openDrawer();
+                },
+                child: Container(
+                  width: screenWidth * 0.12,
+                  height: tabHeight,
+                  child: Icon(
+                    Icons.menu,
+                    color: const Color(0xFFffffff),
+                    size: screenWidth * 0.06,
+                  ),
+                ),
+              );
+            }
         ),
         centerTitle: true,
       ),

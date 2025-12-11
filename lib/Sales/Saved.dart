@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
@@ -17,7 +18,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
   void _loadOrder(String orderId, Map<String, dynamic> data) {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => NewSalePage(
           uid: widget.uid,
           userEmail: widget.userEmail,

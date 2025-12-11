@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -216,9 +217,9 @@ class QuotationDetailPage extends StatelessWidget {
     final discount = (quotationData['discount'] ?? 0.0).toDouble();
 
     // Navigate to Bill Page and wait for result
-    final result = await Navigator.push(
+    final result = await Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
+      CupertinoPageRoute(
         builder: (context) => BillPage(
           uid: uid,
           userEmail: userEmail,

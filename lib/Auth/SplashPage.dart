@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'LoginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,7 +23,7 @@ class _SplashPageState extends State<SplashPage> {
       if (user != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(
+          CupertinoPageRoute(
             builder: (context) => NewSalePage(
               uid: user.uid,
               userEmail: user.email,
@@ -32,7 +33,7 @@ class _SplashPageState extends State<SplashPage> {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const LoginPage()),
+          CupertinoPageRoute(builder: (context) => const LoginPage()),
         );
       }
     });
