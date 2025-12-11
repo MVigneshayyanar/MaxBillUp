@@ -208,7 +208,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(color: const Color(0xFF2196F3), borderRadius: BorderRadius.circular(8)),
-                              child: Text('₹${total.toStringAsFixed(2)}',
+                              child: Text(' ${total.toStringAsFixed(2)}',
                                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
                             ),
                           ],

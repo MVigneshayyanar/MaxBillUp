@@ -265,7 +265,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               ],
                             ),
                             trailing: Text(
-                              '₹${amount.toStringAsFixed(2)}',
+                              ' ${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -585,7 +585,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildDetailRow('Payment Mode', expenseData['paymentMode'] ?? 'Cash'),
                   const SizedBox(height: 12),
-                  _buildDetailRow('Amount', '₹${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}'),
+                  _buildDetailRow('Amount', ' ${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}'),
                   if (expenseData['description'] != null && expenseData['description'].toString().isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _buildDetailRow('Description', expenseData['description']),

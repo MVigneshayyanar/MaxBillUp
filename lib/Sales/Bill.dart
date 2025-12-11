@@ -111,7 +111,7 @@ class _BillPageState extends State<BillPage> {
           decoration: const InputDecoration(
             labelText: 'Discount Amount',
             border: OutlineInputBorder(),
-            prefixText: '₹ ',
+            prefixText: '',
           ),
           autofocus: true,
         ),
@@ -532,7 +532,7 @@ class _BillPageState extends State<BillPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '₹${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                            ' ${item.price.toStringAsFixed(2)} × ${item.quantity}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.035,
                               color: Colors.grey[600],
@@ -552,14 +552,14 @@ class _BillPageState extends State<BillPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '₹${item.total.toStringAsFixed(2)}',
+                            ' ${item.total.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.045,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
-                            '₹${item.total.toStringAsFixed(2)}',
+                            ' ${item.total.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.045,
                               color: const Color(0xFF2196F3),
@@ -663,7 +663,7 @@ class _BillPageState extends State<BillPage> {
                         onTap: _showDiscountDialog,
                         child: Text(
                           _discountAmount > 0
-                              ? 'Discount: ₹${_discountAmount.toStringAsFixed(2)}'
+                              ? 'Discount:  ${_discountAmount.toStringAsFixed(2)}'
                               : 'Add Discount',
                           style: const TextStyle(
                             color: Color(0xFF2196F3),
@@ -683,7 +683,7 @@ class _BillPageState extends State<BillPage> {
                           children: [
                             Text(
                               _selectedCreditNotes.isNotEmpty
-                                  ? 'Credit Notes Applied: ${_selectedCreditNotes.length} (₹${_actualCreditUsed.toStringAsFixed(2)})'
+                                  ? 'Credit Notes Applied: ${_selectedCreditNotes.length} ( ${_actualCreditUsed.toStringAsFixed(2)})'
                                   : 'Use Credit Notes',
                               style: TextStyle(
                                 color: _selectedCreditNotes.isNotEmpty
@@ -697,7 +697,7 @@ class _BillPageState extends State<BillPage> {
                               Padding(
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(
-                                  '(₹${(_totalCreditNotesAmount - _actualCreditUsed).toStringAsFixed(2)} excess - will remain available)',
+                                  '( ${(_totalCreditNotesAmount - _actualCreditUsed).toStringAsFixed(2)} excess - will remain available)',
                                   style: const TextStyle(
                                     color: Colors.orange,
                                     fontSize: 12,
@@ -1295,6 +1295,26 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
+  Future<Map<String, String?>> _fetchBusinessDetails() async {
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return {'businessName': null, 'location': null, 'businessPhone': null};
+      final doc = await FirestoreService().storeCollection.doc(storeId).get();
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        return {
+          'businessName': data?['businessName'] as String?,
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String?,
+          'businessPhone': data?['businessPhone'] as String?,
+        };
+      }
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    } catch (e) {
+      debugPrint('Error fetching business details: $e');
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    }
+  }
+
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
 
@@ -1400,7 +1420,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     if (_totalPaid < widget.totalAmount && _dueAmount > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment short by ₹${_dueAmount.toStringAsFixed(2)}. Cannot complete sale.'),
+          content: Text('Payment short by  ${_dueAmount.toStringAsFixed(2)}. Cannot complete sale.'),
           backgroundColor: const Color(0xFFFF5252),
         ),
       );
@@ -1555,7 +1575,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   @override
   Widget build(BuildContext context) {
     // We update the due amount display dynamically
-    String dueDisplay = _dueAmount <= 0 ? '₹0.00 (Change: ₹${(-_dueAmount).toStringAsFixed(2)})' : '₹${_dueAmount.toStringAsFixed(2)} Due';
+    String dueDisplay = _dueAmount <= 0 ? ' 0.00 (Change:  ${(-_dueAmount).toStringAsFixed(2)})' : ' ${_dueAmount.toStringAsFixed(2)} Due';
 
     return Scaffold(
       appBar: AppBar(
@@ -1597,7 +1617,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total Paid:', style: TextStyle(fontSize: 16)),
-                Text('₹${_totalPaid.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                Text(' ${_totalPaid.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ],
             ),
             const SizedBox(height: 8),
@@ -1648,7 +1668,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         keyboardType: TextInputType.number,
         decoration: InputDecoration(
           labelText: label,
-          prefixText: '₹ ',
+          prefixText: '  ',
           border: const OutlineInputBorder(),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
@@ -1789,19 +1809,20 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<Map<String, String?>> _fetchBusinessDetails() async {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
-      if (storeId == null) return {'businessName': null, 'location': null};
+      if (storeId == null) return {'businessName': null, 'location': null, 'businessPhone': null};
       final doc = await FirestoreService().storeCollection.doc(storeId).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
         return {
           'businessName': data?['businessName'] as String?,
-          'location': data?['location'] as String? ?? data?['businessLocation'] as String?
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String?,
+          'businessPhone': data?['businessPhone'] as String?,
         };
       }
-      return {'businessName': null, 'location': null};
+      return {'businessName': null, 'location': null, 'businessPhone': null};
     } catch (e) {
       debugPrint('Error fetching business details: $e');
-      return {'businessName': null, 'location': null};
+      return {'businessName': null, 'location': null, 'businessPhone': null};
     }
   }
 
@@ -2082,12 +2103,17 @@ class _PaymentPageState extends State<PaymentPage> {
 
         if (mounted) {
           // Navigate to Invoice page and return result to NewSale page
+          final businessDetails = await _fetchBusinessDetails();
+          final businessName = businessDetails['businessName'] ?? 'Business Trial';
+          final businessLocation = businessDetails['location'] ?? 'Tirunelveli';
+          final businessPhone = businessDetails['businessPhone'] ?? '+91 ${widget.uid}';
+
           final invoicePage = InvoicePage(
             uid: widget.uid,
             userEmail: widget.userEmail,
-            businessName: 'Business Trial',
-            businessLocation: businessLocation ?? 'Tirunelveli',
-            businessPhone: '+91 ${widget.uid}',
+            businessName: businessName,
+            businessLocation: businessLocation,
+            businessPhone: businessPhone,
             invoiceNumber: invoiceNumber,
             dateTime: DateTime.now(),
             items: widget.cartItems.map((item) => {'name': item.name, 'quantity': item.quantity, 'price': item.price, 'total': item.total}).toList(),

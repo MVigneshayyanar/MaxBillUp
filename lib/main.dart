@@ -64,6 +64,7 @@ class _SplashGateState extends State<SplashGate> {
   @override
   void initState() {
     super.initState();
+    _clearFlutterCache();
     _requestBluetoothPermissions();
     Future.delayed(const Duration(milliseconds: 1500), () async {
       if (!mounted) return;
@@ -85,6 +86,16 @@ class _SplashGateState extends State<SplashGate> {
         );
       }
     });
+  }
+
+  void _clearFlutterCache() {
+    try {
+      // Clear image and memory cache
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    } catch (e) {
+      // Ignore errors if cache is already clear or PaintingBinding is not available
+    }
   }
 
   /// Request Bluetooth and location permissions for printer connectivity

@@ -256,7 +256,7 @@ class PrinterService {
                       pw.Expanded(
                         flex: 2,
                         child: pw.Text(
-                          '₹${amount.toStringAsFixed(2)}',
+                          ' ${amount.toStringAsFixed(2)}',
                           style: const pw.TextStyle(fontSize: 9),
                           textAlign: pw.TextAlign.right,
                         ),
@@ -277,7 +277,7 @@ class PrinterService {
                   children: [
                     pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 10)),
                     pw.Text(
-                      '₹${subtotal.toStringAsFixed(2)}',
+                      ' ${subtotal.toStringAsFixed(2)}',
                       style: const pw.TextStyle(fontSize: 10),
                     ),
                   ],
@@ -288,7 +288,7 @@ class PrinterService {
                   children: [
                     pw.Text('Discount', style: const pw.TextStyle(fontSize: 10)),
                     pw.Text(
-                      '-₹${discount.toStringAsFixed(2)}',
+                      '- ${discount.toStringAsFixed(2)}',
                       style: const pw.TextStyle(fontSize: 10),
                     ),
                   ],
@@ -301,7 +301,7 @@ class PrinterService {
                   children: [
                     pw.Text('Tax', style: const pw.TextStyle(fontSize: 10)),
                     pw.Text(
-                      '₹${tax.toStringAsFixed(2)}',
+                      ' ${tax.toStringAsFixed(2)}',
                       style: const pw.TextStyle(fontSize: 10),
                     ),
                   ],
@@ -324,7 +324,7 @@ class PrinterService {
                     ),
                   ),
                   pw.Text(
-                    '₹${total.toStringAsFixed(2)}',
+                    ' ${total.toStringAsFixed(2)}',
                     style: pw.TextStyle(
                       fontSize: 14,
                       fontWeight: pw.FontWeight.bold,

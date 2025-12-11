@@ -59,7 +59,7 @@ class _MenuPageState extends State<MenuPage> {
   @override
   void initState() {
     super.initState();
-    _email = widget.userEmail ?? "maestromindssdg@gmail.com";
+    _email = widget.userEmail ?? "";
     _startFastUserDataListener();
     _loadPermissions();
     _loadStoreData();
@@ -1399,7 +1399,7 @@ class GenericListPage extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final doc = snapshot.data!.docs[index];
               final data = doc.data() as Map<String, dynamic>;
-              final subtitle = data.containsKey('total') ? 'Total: ₹${data['total']}' : (data.containsKey('phone') ? data['phone'] : '');
+              final subtitle = data.containsKey('total') ? 'Total:  ${data['total']}' : (data.containsKey('phone') ? data['phone'] : '');
               return Card(
                 elevation: 2,
                 margin: const EdgeInsets.only(bottom: 8),
@@ -5037,14 +5037,14 @@ class _CustomersPageState extends State<CustomersPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text("Total Sales :", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                      Text("₹${data['totalSales'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      Text(" ${data['totalSales'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                     ],
                                   ),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text("Credit Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                      Text("₹${data['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF007AFF))),
+                                      Text(" ${data['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF007AFF))),
                                     ],
                                   ),
                                 ],
@@ -5389,7 +5389,7 @@ class _BillPageState extends State<BillPage> {
           decoration: const InputDecoration(
             labelText: 'Discount Amount',
             border: OutlineInputBorder(),
-            prefixText: '₹ ',
+            prefixText: '  ',
           ),
           autofocus: true,
         ),
@@ -5604,7 +5604,7 @@ class _BillPageState extends State<BillPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '₹${item.price.toStringAsFixed(2)} × ${item.quantity}',
+                            ' ${item.price.toStringAsFixed(2)} × ${item.quantity}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.035,
                               color: Colors.grey[600],
@@ -5624,14 +5624,14 @@ class _BillPageState extends State<BillPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '₹${item.total.toStringAsFixed(2)}',
+                            ' ${item.total.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.045,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           Text(
-                            '₹${item.total.toStringAsFixed(2)}',
+                            ' ${item.total.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: screenWidth * 0.045,
                               color: const Color(0xFF2196F3),
@@ -5726,7 +5726,7 @@ class _BillPageState extends State<BillPage> {
                         onTap: _showDiscountDialog,
                         child: Text(
                           _discountAmount > 0
-                              ? 'Discount: ₹${_discountAmount.toStringAsFixed(2)}'
+                              ? 'Discount:  ${_discountAmount.toStringAsFixed(2)}'
                               : 'Add Discount',
                           style: const TextStyle(
                             color: Color(0xFF2196F3),
@@ -7014,7 +7014,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                   keyboardType: TextInputType.number,
                                   decoration: const InputDecoration(
                                     labelText: 'Discount Amount',
-                                    prefixText: '₹ ',
+                                    prefixText: '  ',
                                   ),
                                 ),
                                 actions: [

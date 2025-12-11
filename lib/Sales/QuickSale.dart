@@ -117,7 +117,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
       _notifyChange();
       CommonWidgets.showSnackBar(
         context,
-        'Item added: ₹${price.toStringAsFixed(1)} x ${qty.toStringAsFixed(1)}',
+        'Item added:  ${price.toStringAsFixed(1)} x ${qty.toStringAsFixed(1)}',
         bgColor: const Color(0xFF4CAF50),
       );
     } catch (e) {
@@ -182,7 +182,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                 Container(
                   color: Colors.white,
                   constraints: BoxConstraints(
-                    minHeight: 225,
+                    minHeight: MediaQuery.of(context).size.height * 0.30,
                     maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
                   child: _items.isEmpty
@@ -224,7 +224,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                               ),
                             ),
                             Text(
-                              '+₹${item.total.toStringAsFixed(1)}',
+                              '+ ${item.total.toStringAsFixed(1)}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 color: Color(0xFF4CAF50),
@@ -233,8 +233,79 @@ class _QuickSalePageState extends State<QuickSalePage> {
                             ),
                             const SizedBox(width: 12),
                             GestureDetector(
-                              onTap: () => _removeItem(idx),
+                              onTap: () async {
+                                final controller = TextEditingController(text: item.quantity.toStringAsFixed(1));
+                                final result = await showDialog<double>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Edit Quantity'),
+                                    content: TextField(
+                                      controller: controller,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: const InputDecoration(
+                                        labelText: 'Quantity',
+                                        border: OutlineInputBorder(),
+                                      ),
+                                      autofocus: true,
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          final qty = double.tryParse(controller.text);
+                                          if (qty != null && qty > 0) {
+                                            Navigator.pop(context, qty);
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF2196F3),
+                                        ),
+                                        child: const Text('Update'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (result != null && result > 0) {
+                                  setState(() {
+                                    item.quantity = result;
+                                  });
+                                  _notifyChange();
+                                }
+                              },
                               child: const Icon(Icons.edit, size: 20, color: Color(0xFF2196F3)),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () async {
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Delete Product'),
+                                    content: Text('Are you sure you want to delete ${item.name}?'),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      ElevatedButton(
+                                        onPressed: () => Navigator.pop(context, true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFFFF5252),
+                                        ),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  setState(() => _items.removeAt(idx));
+                                  _notifyChange();
+                                }
+                              },
+                              child: const Icon(Icons.delete, size: 20, color: Color(0xFFFF5252)),
                             ),
                           ],
                         ),

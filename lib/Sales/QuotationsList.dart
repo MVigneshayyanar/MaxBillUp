@@ -203,7 +203,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                                   ),
                                 ),
                                 Text(
-                                  '₹${total.toStringAsFixed(2)}',
+                                  ' ${total.toStringAsFixed(2)}',
                                   style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,

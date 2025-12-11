@@ -166,7 +166,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Price: ₹${item.price.toStringAsFixed(2)}',
+            Text('Price:  ${item.price.toStringAsFixed(2)}',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF2196F3))),
             const SizedBox(height: 16),
             TextField(
@@ -338,7 +338,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             style: TextStyle(fontSize: w * 0.03, color: Colors.white, fontWeight: FontWeight.w600)),
                       ),
                       const Spacer(),
-                      Text('₹${_total.toStringAsFixed(2)}',
+                      Text(' ${_total.toStringAsFixed(2)}',
                           style: TextStyle(
                               fontSize: w * 0.045, color: const Color(0xFF2196F3), fontWeight: FontWeight.w700)),
                       SizedBox(width: w * 0.02),
@@ -389,14 +389,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
                               ),
                               Row(
                                 children: [
-                                  Text('₹${item.price.toStringAsFixed(0)} × ${item.quantity}',
+                                  Text(' ${item.price.toStringAsFixed(0)} × ${item.quantity}',
                                       style: TextStyle(fontSize: w * 0.032, color: Colors.grey[600])),
                                   SizedBox(width: w * 0.01),
                                   Icon(Icons.edit, size: w * 0.03, color: const Color(0xFF2196F3)),
                                 ],
                               ),
                               const Spacer(),
-                              Text('₹${item.total.toStringAsFixed(1)}',
+                              Text(' ${item.total.toStringAsFixed(1)}',
                                   style: TextStyle(
                                       fontSize: w * 0.04, color: const Color(0xFF4CAF50), fontWeight: FontWeight.w700)),
                             ],
@@ -629,7 +629,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          price > 0 ? '₹${price.toStringAsFixed(0)}' : 'Price on sale',
+                          price > 0 ? ' ${price.toStringAsFixed(0)}' : 'Price on sale',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

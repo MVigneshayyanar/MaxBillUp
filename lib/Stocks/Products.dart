@@ -502,7 +502,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          price != null ? '₹${price.toStringAsFixed(0)}' : 'Price on sale',
+                          price != null ? ' ${price.toStringAsFixed(0)}' : 'Price on sale',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

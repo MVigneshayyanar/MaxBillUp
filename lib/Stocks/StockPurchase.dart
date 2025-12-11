@@ -266,7 +266,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                               ],
                             ),
                             trailing: Text(
-                              '₹${amount.toStringAsFixed(2)}',
+                              ' ${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -663,7 +663,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   _buildDetailRow('Payment Mode', purchaseData['paymentMode'] ?? 'N/A'),
                   const SizedBox(height: 12),
-                  _buildDetailRow('Amount', '₹${(purchaseData['totalAmount'] ?? 0.0).toStringAsFixed(2)}'),
+                  _buildDetailRow('Amount', ' ${(purchaseData['totalAmount'] ?? 0.0).toStringAsFixed(2)}'),
                   if (purchaseData['notes'] != null && purchaseData['notes'].toString().isNotEmpty) ...[
                     const SizedBox(height: 12),
                     _buildDetailRow('Notes', purchaseData['notes']),

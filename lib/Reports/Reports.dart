@@ -788,7 +788,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
-            Text("₹${value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
+            Text(" ${value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
           ],
         )
       ],
@@ -902,7 +902,7 @@ class DayBookPage extends StatelessWidget {
                       width: double.infinity,
                       child: Column(children: [
                         const Text("Today's Revenue", style: TextStyle(color: Colors.white70)),
-                        Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        Text(" ${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                         Text("${todayDocs.length} Bills", style:const TextStyle(color:Colors.white70))
                       ])
                   ),
@@ -942,11 +942,11 @@ class DayBookPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text(" ${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -980,7 +980,7 @@ class DayBookPage extends StatelessWidget {
                             return ListTile(
                                 title: Text(docData['customerName'] ?? 'Walk-in'),
                                 subtitle: Text("#${docData['invoiceNumber'] ?? 'N/A'}"),
-                                trailing: Text("₹${saleTotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                                trailing: Text(" ${saleTotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
                             );
                           }
                       )
@@ -1465,11 +1465,11 @@ class FullSalesHistoryPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -1507,7 +1507,7 @@ class FullSalesHistoryPage extends StatelessWidget {
                           return ListTile(
                               title: Text(d['customerName']??'Walk-in'),
                               subtitle: Text(dateStr),
-                              trailing: Text("₹${d['total']}", style:TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                              trailing: Text(" ${d['total']}", style:TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
                           );
                         }
                     ),
@@ -1716,11 +1716,11 @@ class TopCustomersPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -1743,7 +1743,7 @@ class TopCustomersPage extends StatelessWidget {
                         itemBuilder: (c, i) => ListTile(
                             leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text("${i+1}", style: const TextStyle(color: Colors.white))),
                             title: Text(sorted[i].key),
-                            trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
+                            trailing: Text(" ${sorted[i].value.toStringAsFixed(0)}")
                         )
                     ),
                   ),
@@ -1802,7 +1802,7 @@ class StockReportPage extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text("Inventory Value:", style:TextStyle(fontWeight: FontWeight.bold)),
-                              Text("₹${totalVal.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kPrimaryBlue))
+                              Text(" ${totalVal.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kPrimaryBlue))
                             ]
                         )
                     ),
@@ -1881,7 +1881,7 @@ class StockReportPage extends StatelessWidget {
                               var d = snapshot.data!.docs[i].data() as Map<String, dynamic>;
                               return ListTile(
                                   title: Text(d['itemName'] ?? 'Unknown'),
-                                  subtitle: Text("Price: ₹${d['price'] ?? 0}"),
+                                  subtitle: Text("Price:  ${d['price'] ?? 0}"),
                                   trailing: Text("${d['currentStock'] ?? 0} Units")
                               );
                             }
@@ -2232,11 +2232,11 @@ class TopCategoriesPage extends StatelessWidget {
                                         ),
                                       ),
                                       leftTitles: AxisTitles(
-                                        axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                        axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                         sideTitles: SideTitles(
                                           showTitles: true,
                                           reservedSize: 40,
-                                          getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                          getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                         ),
                                       ),
                                     ),
@@ -2258,7 +2258,7 @@ class TopCategoriesPage extends StatelessWidget {
                               itemCount: sorted.length,
                               itemBuilder: (c, i) => ListTile(
                                   title: Text(sorted[i].key),
-                                  trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
+                                  trailing: Text(" ${sorted[i].value.toStringAsFixed(0)}")
                               )
                           ),
                         ),
@@ -2413,11 +2413,11 @@ class ExpenseReportPage extends StatelessWidget {
                                       ),
                                     ),
                                     leftTitles: AxisTitles(
-                                      axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                      axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                       sideTitles: SideTitles(
                                         showTitles: true,
                                         reservedSize: 40,
-                                        getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                        getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                       ),
                                     ),
                                   ),
@@ -2442,7 +2442,7 @@ class ExpenseReportPage extends StatelessWidget {
                               return ListTile(
                                   title: Text(item['title']),
                                   subtitle: Text(item['subtitle']),
-                                  trailing: Text("- ₹${(item['amount'] as double).toStringAsFixed(2)}", style: TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                                  trailing: Text("-  ${(item['amount'] as double).toStringAsFixed(2)}", style: TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
                               );
                             }
                         ),
@@ -2504,7 +2504,7 @@ class TaxReportPage extends StatelessWidget {
 
               return Column(
                   children: [
-                    _summaryBox("Total Tax Collected", "₹${totalTax.toStringAsFixed(2)}", "", kIncomeGreen),
+                    _summaryBox("Total Tax Collected", " ${totalTax.toStringAsFixed(2)}", "", kIncomeGreen),
 
                     // LINE CHART FOR TAX TREND
                     Container(
@@ -2538,11 +2538,11 @@ class TaxReportPage extends StatelessWidget {
                                     ),
                                   ),
                                   leftTitles: AxisTitles(
-                                    axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                     sideTitles: SideTitles(
                                       showTitles: true,
                                       reservedSize: 40,
-                                      getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                      getTitlesWidget: (value, meta) => Text(" ${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                     ),
                                   ),
                                 ),
@@ -2570,7 +2570,7 @@ class TaxReportPage extends StatelessWidget {
                               var d = snapshot.data!.docs[i].data() as Map;
                               return ListTile(
                                   title: Text("Inv #${d['invoiceNumber']}"),
-                                  trailing: Text("Tax: ₹${d['taxAmount']??0}", style: TextStyle(color: kIncomeGreen))
+                                  trailing: Text("Tax:  ${d['taxAmount']??0}", style: TextStyle(color: kIncomeGreen))
                               );
                             }
                         )
@@ -2776,11 +2776,11 @@ class StaffSaleReportPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -2803,7 +2803,7 @@ class StaffSaleReportPage extends StatelessWidget {
                         itemBuilder: (c, i) => ListTile(
                             leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text(staffPerf.keys.elementAt(i).substring(0, 1), style: const TextStyle(color: Colors.white))),
                             title: Text(staffPerf.keys.elementAt(i)),
-                            trailing: Text("₹${staffPerf.values.elementAt(i).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold))
+                            trailing: Text(" ${staffPerf.values.elementAt(i).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold))
                         )
                     ),
                   ),

@@ -483,7 +483,8 @@ class _InvoicePageState extends State<InvoicePage> {
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
                         pw.Text('Date', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-                        pw.Text(DateFormat('dd-MM-yyyy hh:mm a').format(widget.dateTime), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(DateFormat('dd-MM-yyyy').format(widget.dateTime), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(DateFormat('hh:mm a').format(widget.dateTime), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
                       ],
                     ),
                   ],
@@ -531,8 +532,8 @@ class _InvoicePageState extends State<InvoicePage> {
                       children: [
                         pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(item['name'] ?? '')),
                         pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('${item['quantity']}', textAlign: pw.TextAlign.center)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('₹${(item['price'] ?? 0).toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('₹${(item['total'] ?? 0).toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(' ${(item['price'] ?? 0).toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(' ${(item['total'] ?? 0).toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
                       ],
                     )),
                   ],
@@ -548,27 +549,27 @@ class _InvoicePageState extends State<InvoicePage> {
                   ),
                   child: pw.Column(
                     children: [
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Subtotal'), pw.Text('₹${widget.subtotal.toStringAsFixed(2)}')]),
+                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Subtotal'), pw.Text(' ${widget.subtotal.toStringAsFixed(2)}')]),
                       if (widget.discount > 0) ...[
                         pw.SizedBox(height: 4),
-                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Discount'), pw.Text('-₹${widget.discount.toStringAsFixed(2)}', style: const pw.TextStyle(color: PdfColors.red))]),
+                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Discount'), pw.Text('- ${widget.discount.toStringAsFixed(2)}', style: const pw.TextStyle(color: PdfColors.red))]),
                       ],
                       if (widget.cgst > 0) ...[
                         pw.SizedBox(height: 4),
-                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('CGST'), pw.Text('₹${widget.cgst.toStringAsFixed(2)}')]),
+                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('CGST'), pw.Text(' ${widget.cgst.toStringAsFixed(2)}')]),
                       ],
                       if (widget.sgst > 0) ...[
                         pw.SizedBox(height: 4),
-                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('SGST'), pw.Text('₹${widget.sgst.toStringAsFixed(2)}')]),
+                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('SGST'), pw.Text(' ${widget.sgst.toStringAsFixed(2)}')]),
                       ],
                       if (widget.igst > 0) ...[
                         pw.SizedBox(height: 4),
-                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('IGST'), pw.Text('₹${widget.igst.toStringAsFixed(2)}')]),
+                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('IGST'), pw.Text(' ${widget.igst.toStringAsFixed(2)}')]),
                       ],
                       pw.Divider(thickness: 2),
                       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                         pw.Text('TOTAL', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                        pw.Text('₹${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(' ${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                       ]),
                     ],
                   ),
@@ -592,7 +593,7 @@ class _InvoicePageState extends State<InvoicePage> {
                       ]),
                       pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
                         pw.Text('Received', style: const pw.TextStyle(fontSize: 10)),
-                        pw.Text('₹${widget.cashReceived.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        pw.Text(' ${widget.cashReceived.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
                       ]),
                     ],
                   ),
@@ -793,24 +794,42 @@ class _InvoicePageState extends State<InvoicePage> {
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Date',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.032,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
+                              children: [
+                                // Row 1 → Date Title
+                                Text(
+                                  'Date',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.032,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                _formatDateTime(widget.dateTime),
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.035,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
+
+                                SizedBox(height: screenHeight * 0.008),
+
+                                // Row 2 → Formatted Date only
+                                Text(
+                                  DateFormat('dd-MM-yyyy').format(widget.dateTime),
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
                                 ),
-                              ),
-                            ],
+
+                                SizedBox(height: screenHeight * 0.006),
+
+                                // Row 3 → Time only
+                                Text(
+                                  DateFormat('hh:mm a').format(widget.dateTime),
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ]
+
                           ),
                         ],
                       ),
@@ -1084,7 +1103,7 @@ class _InvoicePageState extends State<InvoicePage> {
                                   ),
                                 ),
                                 Text(
-                                  '₹${widget.cashReceived.toStringAsFixed(2)}',
+                                  ' ${widget.cashReceived.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     fontSize: screenWidth * 0.042,
                                     fontWeight: FontWeight.w700,

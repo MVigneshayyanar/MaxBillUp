@@ -284,7 +284,7 @@ class QuotationPreviewPage extends StatelessWidget {
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    '₹${item.price.toStringAsFixed(0)}',
+                                    ' ${item.price.toStringAsFixed(0)}',
                                     textAlign: TextAlign.center,
                                     style: const TextStyle(
                                       fontSize: 14,
@@ -295,7 +295,7 @@ class QuotationPreviewPage extends StatelessWidget {
                                 Expanded(
                                   flex: 2,
                                   child: Text(
-                                    '₹${item.total.toStringAsFixed(2)}',
+                                    ' ${item.total.toStringAsFixed(2)}',
                                     textAlign: TextAlign.right,
                                     style: const TextStyle(
                                       fontSize: 14,
@@ -351,7 +351,7 @@ class QuotationPreviewPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '₹${total.toStringAsFixed(2)}',
+                            ' ${total.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

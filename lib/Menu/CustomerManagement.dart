@@ -1073,7 +1073,7 @@ class CustomerBillsPage extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '₹${total.toStringAsFixed(2)}',
+                            ' ${total.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1187,7 +1187,7 @@ class CustomerCreditsPage extends StatelessWidget {
                 title: Text(title),
                 subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
                 trailing: Text(
-                  "₹${data['amount']}",
+                  " ${data['amount']}",
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -1272,7 +1272,7 @@ class _CreditDetailsDialog extends StatelessWidget {
             // Transaction Details
             _buildDetailRow('Invoice Number', '#${data['invoiceNumber'] ?? 'N/A'}'),
             _buildDetailRow('Date & Time', formattedDate),
-            _buildDetailRow('Amount', '₹${data['amount']?.toStringAsFixed(2) ?? '0.00'}',
+            _buildDetailRow('Amount', ' ${data['amount']?.toStringAsFixed(2) ?? '0.00'}',
               valueColor: isPayment ? Colors.green : Colors.red),
             _buildDetailRow('Method', data['method'] ?? 'N/A'),
 
@@ -1312,11 +1312,11 @@ class _CreditDetailsDialog extends StatelessWidget {
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                       ),
                       subtitle: Text(
-                        'Qty: ${item['quantity']} × ₹${item['price']?.toStringAsFixed(2) ?? '0.00'}',
+                        'Qty: ${item['quantity']} ×  ${item['price']?.toStringAsFixed(2) ?? '0.00'}',
                         style: const TextStyle(fontSize: 12),
                       ),
                       trailing: Text(
-                        '₹${item['total']?.toStringAsFixed(2) ?? '0.00'}',
+                        ' ${item['total']?.toStringAsFixed(2) ?? '0.00'}',
                         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                       ),
                     );

@@ -137,7 +137,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   void _startPayment() {
     final plan = plans.firstWhere((p) => p['name'] == _selectedPlan);
-    final amount = plan['price'][_selectedDuration.toString()] * 100; // Razorpay expects paise (₹1 = 100 paise)
+    final amount = plan['price'][_selectedDuration.toString()] * 100; // Razorpay expects paise ( 1 = 100 paise)
 
     // TODO: Replace with your actual Razorpay API Key from https://dashboard.razorpay.com/
     const razorpayKey = 'rzp_test_1DP5mmOlF5G5ag'; // This is a test key, replace with your key
