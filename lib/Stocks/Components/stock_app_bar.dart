@@ -42,26 +42,8 @@ class StockAppBar extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 55, 16, 12),
             child: Row(
               children: [
-                // Menu Button (Drawer)
-                GestureDetector(
-                  onTap: () {
-                    Scaffold.of(context).openDrawer();
-                  },
-                  child: Container(
-                    width: screenWidth * 0.12,
-                    height: tabHeight+17.5,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.menu,
-                      color: const Color(0xFF2196F3),
-                      size: screenWidth * 0.06,
-                    ),
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.02),
+                // Back Button
+
                 // Product Tab
                 FutureBuilder<Stream<QuerySnapshot>>(
                   future: FirestoreService().getCollectionStream('Products'),

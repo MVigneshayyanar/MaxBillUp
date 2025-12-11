@@ -1,11 +1,8 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'dart:async';
 
 // ==========================================
 // CONSTANTS & STYLES
@@ -40,7 +37,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FirestoreService _firestoreService = FirestoreService();
-  Timer? _verificationCheckTimer;
+  bool _isCheckingVerifications = false;
 
   @override
   void initState() {
@@ -51,116 +48,195 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       });
     });
 
-    // Start automatic verification checking
-    _startVerificationCheck();
+    // Auto-check on load (gives time for UI to render first)
+    Future.delayed(const Duration(seconds: 1), _checkAllPendingVerifications);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _verificationCheckTimer?.cancel();
     super.dispose();
   }
 
-  /// Start periodic check for email verifications (every 15 seconds)
-  void _startVerificationCheck() {
-    // Check immediately on load
-    Future.delayed(const Duration(seconds: 2), () {
-      _checkPendingVerifications();
-    });
+  /// Automatically checks verification status for all pending users
+  /// Uses the 'tempPassword' if available to check without staff interaction
+  Future<void> _checkAllPendingVerifications() async {
+    if (_isCheckingVerifications) return;
 
-    // Then check every 15 seconds
-    _verificationCheckTimer = Timer.periodic(const Duration(seconds: 15), (timer) {
-      _checkPendingVerifications();
-    });
-  }
+    setState(() => _isCheckingVerifications = true);
 
-  /// Check all pending staff for email verification status
-  Future<void> _checkPendingVerifications() async {
+    FirebaseApp? tempApp;
     try {
-      final storeCollection = await _firestoreService.getStoreCollection('users');
-      final pendingStaff = await storeCollection
-          .where('isEmailVerified', isEqualTo: false)
-          .where('isActive', isEqualTo: false)
-          .get();
+      // 1. Get all pending users
+      final snapshot = await _firestoreService.getStoreCollection('users').then((col) => col.get());
 
-      if (pendingStaff.docs.isEmpty) return;
-
-      print('🔍 Checking ${pendingStaff.docs.length} pending verifications...');
-
-      for (var doc in pendingStaff.docs) {
+      final pendingDocs = snapshot.docs.where((doc) {
         final data = doc.data() as Map<String, dynamic>;
-        final uid = data['uid'] as String?;
-        final email = data['email'] as String?;
+        // Check if pending AND has a stored temp password we can use
+        return (data['isEmailVerified'] == false) && (data['tempPassword'] != null);
+      }).toList();
 
-        if (uid != null && email != null) {
-          await _checkSingleVerification(uid, email, doc.id);
+      if (pendingDocs.isEmpty) {
+        return; // Nothing to check
+      }
+
+      // 2. Setup Temp App
+      try {
+        var existing = Firebase.app('AutoCheckApp');
+        await existing.delete();
+      } catch (_) {}
+
+      tempApp = await Firebase.initializeApp(
+          name: 'AutoCheckApp', options: Firebase.app().options);
+
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+      int verifiedCount = 0;
+
+      // 3. Loop and Check
+      for (var doc in pendingDocs) {
+        final data = doc.data() as Map<String, dynamic>;
+        String email = data['email'] ?? '';
+        String pass = data['tempPassword'] ?? '';
+
+        if (email.isEmpty || pass.isEmpty) continue;
+
+        try {
+          final cred = await tempAuth.signInWithEmailAndPassword(email: email, password: pass);
+          if (cred.user != null) {
+            await cred.user!.reload();
+            if (cred.user!.emailVerified) {
+              // 4. Verified! Update DB and DELETE the temp password
+              final updates = {
+                'isEmailVerified': true,
+                'verifiedAt': FieldValue.serverTimestamp(),
+                'tempPassword': FieldValue.delete(), // Cleanup security risk
+              };
+
+              // Update Store Collection
+              await _firestoreService.updateDocument('users', doc.id, updates);
+
+              // Update Global Collection
+              await FirebaseFirestore.instance.collection('users').doc(doc.id).update(updates).catchError((_) {});
+
+              verifiedCount++;
+            }
+          }
+          await tempAuth.signOut();
+        } catch (e) {
+          print("Check skipped for $email: $e");
         }
       }
+
+      if (verifiedCount > 0 && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text("✅ Updated status for $verifiedCount staff member(s)"),
+          backgroundColor: kSuccessColor,
+        ));
+      }
+
     } catch (e) {
-      print('❌ Error checking verifications: $e');
+      print("Auto-check error: $e");
+    } finally {
+      await tempApp?.delete();
+      if (mounted) setState(() => _isCheckingVerifications = false);
     }
   }
 
-  /// Check if a specific user has verified their email
-  Future<void> _checkSingleVerification(String uid, String email, String docId) async {
-    try {
-      // Create a temporary Firebase app to check auth status
-      FirebaseApp? tempApp;
+  /// Advanced: Manually check status with password (fallback)
+  Future<void> _manualCheckVerification(String staffId, String email, String? storedTempPass) async {
+    String password = '';
 
+    if (storedTempPass != null && storedTempPass.isNotEmpty) {
+      password = storedTempPass;
+    } else {
+      // Ask Admin for the password if we don't have it stored
+      final result = await showDialog<String>(
+          context: context,
+          builder: (context) {
+            final passCtrl = TextEditingController();
+            return AlertDialog(
+              title: const Text("Check Verification"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text("Enter the staff's temporary password to check their status."),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passCtrl,
+                    decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+                    obscureText: true,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context, passCtrl.text),
+                  child: const Text("Check"),
+                ),
+              ],
+            );
+          }
+      );
+      if (result == null || result.isEmpty) return;
+      password = result;
+    }
+
+    _showLoading(true);
+
+    FirebaseApp? tempApp;
+    try {
       try {
-        // Try to get user from Auth (this requires admin privileges in production)
-        // For testing, we'll use a different approach
+        var existing = Firebase.app('ManualCheckApp');
+        await existing.delete();
+      } catch (_) {}
 
-        // Alternative: Try to sign in with a test to check verification
-        // This is a workaround - in production, use Cloud Functions
+      tempApp = await Firebase.initializeApp(name: 'ManualCheckApp', options: Firebase.app().options);
+      final cred = await FirebaseAuth.instanceFor(app: tempApp)
+          .signInWithEmailAndPassword(email: email, password: password);
 
-        // For now, we'll just log it
-        print('Pending verification for: $email');
+      await cred.user?.reload();
+      bool isVerified = cred.user?.emailVerified ?? false;
 
-      } catch (e) {
-        print('Cannot check auth status directly: $e');
-      } finally {
-        await tempApp?.delete();
+      if (isVerified) {
+        final updates = {
+          'isEmailVerified': true,
+          'verifiedAt': FieldValue.serverTimestamp(),
+          'tempPassword': FieldValue.delete(), // Cleanup
+        };
+
+        // Update Store
+        await _firestoreService.updateDocument('users', staffId, updates);
+
+        // Update Global
+        await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Verified! You can now approve.'), backgroundColor: kSuccessColor));
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Not verified yet.'), backgroundColor: kWarningColor));
+        }
       }
 
-    } catch (e) {
-      print('Error checking $email: $e');
+    } on FirebaseAuthException catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: ${e.message}'), backgroundColor: kErrorColor));
+    } finally {
+      await tempApp?.delete();
+      _showLoading(false);
     }
   }
 
-  /// Manual check button handler
-  Future<void> _manualCheckVerification(String staffId, String email) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
-
-    try {
-      // Force a refresh of the data
-      await Future.delayed(const Duration(seconds: 1));
-
-      // Trigger rebuild
-      if (mounted) {
-        setState(() {});
-        Navigator.pop(context);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Refreshed! Verification status updates when staff logs in.'),
-            backgroundColor: kPrimaryColor,
-            duration: Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor),
-        );
-      }
+  void _showLoading(bool show) {
+    if (show) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+    } else {
+      Navigator.of(context, rootNavigator: true).pop(); // Dismiss loader
     }
   }
 
@@ -170,7 +246,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         .getStoreCollection('users')
         .then((collection) => collection
         .where('role', whereIn: ['staff', 'Staff', 'manager', 'Manager', 'Admin', 'admin'])
-        .snapshots(includeMetadataChanges: true)) // Enable real-time updates
+        .snapshots(includeMetadataChanges: true))
         .asStream()
         .asyncExpand((snapshot) => snapshot)
         .handleError((error) {
@@ -183,9 +259,6 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
-      ),
       appBar: AppBar(
         title: const Text(
           'Staff Management',
@@ -194,42 +267,18 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack,
         ),
         actions: [
-          // Manual refresh button
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: () {
-              _checkPendingVerifications();
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('🔄 Checking for verified staff...'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            tooltip: 'Check Verifications',
-          ),
+            icon: _isCheckingVerifications
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Icon(Icons.refresh, color: Colors.white),
+            tooltip: 'Refresh Status',
+            onPressed: _isCheckingVerifications ? null : _checkAllPendingVerifications,
+          )
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -300,8 +349,6 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
                   itemCount: staffDocs.length,
                   physics: const BouncingScrollPhysics(),
-                  cacheExtent: 100,
-                  addAutomaticKeepAlives: true,
                   itemBuilder: (context, index) {
                     final doc = staffDocs[index];
                     final data = doc.data() as Map<String, dynamic>;
@@ -315,6 +362,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       role: data['role'] ?? 'Staff',
                       isActive: data['isActive'] ?? false,
                       isEmailVerified: data['isEmailVerified'] ?? false,
+                      tempPassword: data['tempPassword'], // Retrieve hidden temp password
                       permissions: data['permissions'] as Map<String, dynamic>? ?? {},
                     );
                   },
@@ -352,6 +400,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         required bool isActive,
         required bool isEmailVerified,
         required Map<String, dynamic> permissions,
+        String? tempPassword,
       }) {
     Color roleColor = _getRoleColor(role);
 
@@ -368,7 +417,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       statusColor = kWarningColor;
       statusIcon = Icons.warning_amber_rounded;
     } else {
-      statusText = "Invited (Pending)";
+      statusText = "Pending Verification";
       statusColor = kInvitedColor;
       statusIcon = Icons.mail_outline;
     }
@@ -441,7 +490,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
                       ),
                       const Spacer(),
-                      // Approval Button logic
+
+                      // Action Buttons Logic
                       if (!isActive && isEmailVerified)
                         SizedBox(
                           height: 28,
@@ -455,28 +505,19 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                             child: const Text("Add to Store", style: TextStyle(fontSize: 11, color: Colors.white)),
                           ),
                         ),
+
                       if (!isActive && !isEmailVerified)
-                        Row(
-                          children: [
-                            const Text(
-                              "Pending...",
-                              style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: kTextSecondary),
+                        SizedBox(
+                          height: 28,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _manualCheckVerification(staffId, email, tempPassword),
+                            icon: const Icon(Icons.refresh, size: 12),
+                            label: const Text("Status", style: TextStyle(fontSize: 11)),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 10),
                             ),
-                            const SizedBox(width: 8),
-                            SizedBox(
-                              height: 24,
-                              width: 60,
-                              child: OutlinedButton(
-                                onPressed: () => _manualCheckVerification(staffId, email),
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.zero,
-                                  side: const BorderSide(color: kPrimaryColor, width: 1),
-                                ),
-                                child: const Text('Check', style: TextStyle(fontSize: 10)),
-                              ),
-                            ),
-                          ],
-                        )
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -592,45 +633,12 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           children: [
             Text('Ask $name to:', style: const TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _buildHelpStep('Check email inbox'),
-            _buildHelpStep('Check Spam/Junk folder'),
-            _buildHelpStep('Look for email from noreply@maxbillup.firebaseapp.com'),
-            _buildHelpStep('Click verification link in email'),
+            _buildHelpStep('Check email inbox (and Spam folder)'),
+            _buildHelpStep('Click the verification link'),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Staff Email:', style: TextStyle(fontSize: 12, color: kTextSecondary)),
-                  const SizedBox(height: 4),
-                  Text(email, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kSuccessColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: kSuccessColor),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Status updates automatically when staff logs in after verification',
-                      style: TextStyle(fontSize: 11, color: kTextPrimary),
-                    ),
-                  ),
-                ],
-              ),
+            const Text(
+              'Once they click the link, click the Refresh button in the top right of this screen.',
+              style: TextStyle(fontSize: 12, color: kTextPrimary),
             ),
           ],
         ),
@@ -677,9 +685,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  "Staff will receive a verification email. Once verified and logged in, you can approve them here.",
-                  style: TextStyle(fontSize: 12, color: kTextSecondary),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(8)),
+                  child: const Text(
+                    "Staff will be invited via email. You can approve them here once they verify their email address.",
+                    style: TextStyle(fontSize: 12, color: kTextPrimary),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 _buildTextField(nameController, 'Full Name', Icons.person_outline),
@@ -688,19 +700,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 const SizedBox(height: 12),
                 _buildTextField(emailController, 'Email', Icons.email_outlined, type: TextInputType.emailAddress),
                 const SizedBox(height: 12),
-                _buildTextField(passwordController, 'Temporary Password (min 6)', Icons.lock_outline, isPassword: true),
+                _buildTextField(passwordController, 'Temporary Password', Icons.lock_outline, isPassword: true),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: selectedRole,
-                      isExpanded: true,
-                      items: ['Staff', 'Manager', 'Admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                      onChanged: (v) => setState(() => selectedRole = v!),
-                    ),
-                  ),
+                DropdownButtonFormField<String>(
+                  value: selectedRole,
+                  decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                  items: ['Staff', 'Manager', 'Admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                  onChanged: (v) => setState(() => selectedRole = v!),
                 ),
               ],
             ),
@@ -732,11 +738,6 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       return;
     }
 
-    if (passCtrl.text.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password must be at least 6 characters')));
-      return;
-    }
-
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -757,15 +758,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       if (cred.user != null) {
         await cred.user!.updateDisplayName(nameCtrl.text.trim());
         await cred.user!.sendEmailVerification();
-        print('✅ Verification email sent to: ${emailCtrl.text.trim()}');
       }
 
       final storeId = await _firestoreService.getCurrentStoreId();
-      if (storeId == null) {
-        throw Exception('Unable to determine store ID');
-      }
+      if (storeId == null) throw Exception('Store ID not found');
 
-      await _firestoreService.setDocument('users', cred.user!.uid, {
+      // IMPORTANT: Data to be synced to BOTH Store Collection and Global Collection
+      Map<String, dynamic> userData = {
         'name': nameCtrl.text.trim(),
         'phone': phoneCtrl.text.trim(),
         'email': emailCtrl.text.trim(),
@@ -774,47 +773,27 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         'role': role,
         'isActive': false,
         'isEmailVerified': false,
+        'tempPassword': passCtrl.text.trim(), // Stored temporarily until verification
         'permissions': _getDefaultPermissions(role),
         'createdAt': FieldValue.serverTimestamp(),
         'invitedBy': widget.uid,
-      });
+      };
+
+      // 1. Add to Store-Scoped Collection (for Staff Management UI)
+      await _firestoreService.setDocument('users', cred.user!.uid, userData);
+
+      // 2. Add to Global Root Collection (for Login syncing)
+      await FirebaseFirestore.instance.collection('users').doc(cred.user!.uid).set(userData);
 
       if (context.mounted) {
-        Navigator.pop(context);
-        Navigator.pop(context);
+        Navigator.pop(context); // Close loader
+        Navigator.pop(context); // Close dialog
 
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Row(
-              children: [
-                Icon(Icons.check_circle, color: kSuccessColor),
-                SizedBox(width: 12),
-                Text('Invitation Sent!'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('📧 Verification email sent to:'),
-                const SizedBox(height: 8),
-                Text(emailCtrl.text.trim(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                const Text('Next Steps:', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                const Text('1. Staff verifies email'),
-                const Text('2. Staff logs into the app'),
-                const Text('3. Status updates here automatically'),
-                const Text('4. You approve them by clicking "Add to Store"'),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Got it'),
-              ),
-            ],
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Invite sent! You can refresh status here.'),
+            backgroundColor: kSuccessColor,
+            duration: Duration(seconds: 4),
           ),
         );
       }
@@ -822,10 +801,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     } on FirebaseAuthException catch (e) {
       if(context.mounted) {
         Navigator.pop(context);
-        String msg = e.message ?? 'Error';
-        if (e.code == 'email-already-in-use') msg = 'Email already registered';
-        if (e.code == 'weak-password') msg = 'Password too weak';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: kErrorColor));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message ?? 'Error'), backgroundColor: kErrorColor));
       }
     } finally {
       await tempApp?.delete();
@@ -863,26 +839,6 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: TextEditingController(text: currentPhone),
-                  enabled: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Phone Number (Cannot be changed)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.phone),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: TextEditingController(text: currentEmail),
-                  enabled: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Email (Cannot be changed)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                ),
-                const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
                   decoration: const InputDecoration(
@@ -907,33 +863,21 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             ),
             ElevatedButton(
               onPressed: () async {
-                final name = nameController.text.trim();
-
-                if (name.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
-                  return;
-                }
+                final updates = {
+                  'name': nameController.text.trim(),
+                  'role': selectedRole,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                };
 
                 try {
-                  await _firestoreService.updateDocument('users', staffId, {
-                    'name': name,
-                    'role': selectedRole,
-                    'updatedAt': FieldValue.serverTimestamp(),
-                  });
+                  // Update Store
+                  await _firestoreService.updateDocument('users', staffId, updates);
+                  // Update Global
+                  await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
 
-                  final currentUser = FirebaseAuth.instance.currentUser;
-                  if (currentUser != null && currentUser.uid == staffId) {
-                    await currentUser.updateDisplayName(name);
-                  }
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Updated successfully'), backgroundColor: kSuccessColor));
-                  }
+                  if (context.mounted) Navigator.pop(context);
                 } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor));
-                  }
+                  // handle error
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
@@ -1047,10 +991,14 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await _firestoreService.updateDocument('users', staffId, {
+                  final updates = {
                     'permissions': permissions,
                     'updatedAt': FieldValue.serverTimestamp(),
-                  });
+                  };
+                  // Update Store
+                  await _firestoreService.updateDocument('users', staffId, updates);
+                  // Update Global
+                  await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
 
                   if (context.mounted) {
                     Navigator.pop(context);
@@ -1108,22 +1056,33 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     );
   }
 
-  void _activateStaff(String staffId) {
-    _firestoreService.updateDocument('users', staffId, {
+  void _activateStaff(String staffId) async {
+    final updates = {
       'isActive': true,
       'approvedAt': FieldValue.serverTimestamp(),
       'approvedBy': widget.uid,
-    });
+    };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('✅ Staff activated! They can now log in.'), backgroundColor: kSuccessColor),
-    );
+    // Update Store
+    await _firestoreService.updateDocument('users', staffId, updates);
+
+    // Update Global
+    await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('✅ Staff activated! They can now log in.'), backgroundColor: kSuccessColor),
+      );
+    }
   }
 
-  void _toggleStaffStatus(String staffId, bool newStatus) {
-    _firestoreService.updateDocument('users', staffId, {
-      'isActive': newStatus,
-    });
+  void _toggleStaffStatus(String staffId, bool newStatus) async {
+    final updates = {'isActive': newStatus};
+
+    // Update Store
+    await _firestoreService.updateDocument('users', staffId, updates);
+    // Update Global
+    await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
   }
 
   void _showDeleteConfirmation(BuildContext context, String staffId, String name) {
@@ -1131,12 +1090,16 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove Staff'),
-        content: Text('Are you sure you want to remove $name? They will no longer be able to login.'),
+        content: Text('Remove $name? They will not be able to login.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
+              // Delete from Store
               await _firestoreService.deleteDocument('users', staffId);
+              // Delete from Global
+              await FirebaseFirestore.instance.collection('users').doc(staffId).delete().catchError((_) {});
+
               if(context.mounted) Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor),
@@ -1166,61 +1129,18 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(name),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDetailRow('Phone', phone, Icons.phone),
-              if (email.isNotEmpty) _buildDetailRow('Email', email, Icons.email),
-              _buildDetailRow('Role', role, Icons.work),
-              _buildDetailRow(
-                'Status',
-                isActive ? 'Active' : 'Inactive',
-                isActive ? Icons.check_circle : Icons.cancel,
-              ),
-              const SizedBox(height: 16),
-              const Text('Active Permissions:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: permissions.entries.where((e) => e.value == true).map((e) => Chip(
-                  label: Text(_formatPermissionName(e.key), style: const TextStyle(fontSize: 10)),
-                  backgroundColor: Colors.green.withOpacity(0.1),
-                  labelStyle: const TextStyle(color: Colors.green),
-                  visualDensity: VisualDensity.compact,
-                )).toList(),
-              )
-            ],
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Status: ${isActive ? "Active" : "Inactive"}'),
+            Text('Role: $role'),
+            Text('Email: $email'),
+          ],
         ),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("Close"))],
       ),
     );
-  }
-
-  Widget _buildDetailRow(String label, String value, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: Colors.grey),
-          const SizedBox(width: 8),
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 14))),
-        ],
-      ),
-    );
-  }
-
-  String _formatPermissionName(String key) {
-    return key
-        .replaceAllMapped(RegExp(r'[A-Z]'), (match) => ' ${match.group(0)}')
-        .trim()
-        .split(' ')
-        .map((word) => word[0].toUpperCase() + word.substring(1))
-        .join(' ');
   }
 
   Color _getRoleColor(String role) {

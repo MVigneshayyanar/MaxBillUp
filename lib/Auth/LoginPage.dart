@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 
-// Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/BusinessDetailsPage.dart';
 
@@ -41,7 +40,6 @@ class _LoginPageState extends State<LoginPage> {
         content: Text(msg),
         backgroundColor: isError ? const Color(0xFFFF3B30) : const Color(0xFF00B8FF),
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
       ),
     );
   }
@@ -56,17 +54,147 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // --- GOOGLE LOGIN LOGIC (Business Owner) ---
+  Future<void> _emailLogin() async {
+    final email = _emailCtrl.text.trim();
+    final pass = _passCtrl.text.trim();
+
+    if (email.isEmpty || !email.contains('@')) {
+      _showMsg('Please enter a valid email', isError: true);
+      return;
+    }
+    if (pass.length < 6) {
+      _showMsg('Password must be at least 6 characters', isError: true);
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      // 1. Authenticate with Firebase Auth
+      final cred = await _auth.signInWithEmailAndPassword(email: email, password: pass);
+      User? user = cred.user;
+
+      if (user == null) throw Exception('Login failed');
+
+      // 2. FORCE RELOAD to get the latest emailVerified status from Firebase
+      await user.reload();
+      user = _auth.currentUser;
+
+      final bool isAuthVerified = user?.emailVerified ?? false;
+
+      // 3. Find the User Document in Firestore
+      // We check the store-scoped collection first
+      QuerySnapshot storeUserQuery = await (await _firestoreService.getStoreCollection('users'))
+          .where('uid', isEqualTo: user!.uid)
+          .limit(1)
+          .get();
+
+      DocumentReference? userRef;
+      Map<String, dynamic> userData;
+
+      if (storeUserQuery.docs.isNotEmpty) {
+        userRef = storeUserQuery.docs.first.reference;
+        userData = storeUserQuery.docs.first.data() as Map<String, dynamic>;
+      } else {
+        // Fallback to global users collection if not found in store scope
+        final globalDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (globalDoc.exists) {
+          userRef = globalDoc.reference;
+          userData = globalDoc.data() as Map<String, dynamic>;
+        } else {
+          await _auth.signOut();
+          setState(() => _loading = false);
+          _showMsg('User record not found in database.', isError: true);
+          return;
+        }
+      }
+
+      // 4. SYNC STATUS: Update Firestore if Auth says verified but DB doesn't
+      // This acts as a fallback if the Admin hasn't auto-checked yet.
+      bool dbVerified = userData['isEmailVerified'] ?? false;
+
+      if (isAuthVerified) {
+        // If verified, we clean up the tempPassword for security and ensure DB is consistent
+        Map<String, dynamic> updates = {
+          'lastLogin': FieldValue.serverTimestamp(),
+        };
+
+        if (!dbVerified) {
+          updates['isEmailVerified'] = true;
+          updates['verifiedAt'] = FieldValue.serverTimestamp();
+        }
+
+        // Always try to delete tempPassword on successful login for security
+        if (userData.containsKey('tempPassword')) {
+          updates['tempPassword'] = FieldValue.delete();
+        }
+
+        await userRef.update(updates);
+
+        // Update local map for the checks below
+        userData['isEmailVerified'] = true;
+        userData['isActive'] = userData['isActive'] ?? false; // Refresh logic
+      } else {
+        // Just update last login attempt
+        userRef.update({'lastLogin': FieldValue.serverTimestamp()}).catchError((_) {});
+      }
+
+      // 5. Verification Gate
+      if (!isAuthVerified) {
+        await _auth.signOut();
+        setState(() => _loading = false);
+        _showDialog(
+            title: '📧 Verify Email',
+            message: 'Please check your inbox and verify your email address to continue.',
+            actionText: 'Resend Email',
+            onAction: () async {
+              await user?.sendEmailVerification();
+              _showMsg('Verification email sent!');
+            }
+        );
+        return;
+      }
+
+      // 6. Approval Gate (isActive)
+      // We re-fetch or use the map to check if the Admin has approved this user
+      bool isActive = userData['isActive'] ?? false;
+
+      if (!isActive) {
+        await _auth.signOut();
+        setState(() => _loading = false);
+        _showDialog(
+          title: '⏳ Approval Pending',
+          message: 'Your email is verified! \n\nHowever, your account is waiting for Admin approval.\n\nPlease ask your store admin to approve your account.',
+        );
+        return;
+      }
+
+      // 7. Success
+      setState(() => _loading = false);
+      _navigate(user.uid, user.email);
+
+    } on FirebaseAuthException catch (e) {
+      setState(() => _loading = false);
+      String msg = e.message ?? 'Login failed';
+      if (e.code == 'user-not-found') msg = 'Account does not exist.';
+      if (e.code == 'wrong-password') msg = 'Incorrect password.';
+      _showMsg(msg, isError: true);
+    } catch (e) {
+      setState(() => _loading = false);
+      _showMsg('Error: $e', isError: true);
+    }
+  }
+
+  // --- GOOGLE LOGIN (For Business Owners) ---
   Future<void> _googleLogin() async {
     setState(() => _loading = true);
     try {
       final GoogleSignIn googleSignIn = GoogleSignIn();
       await googleSignIn.signOut();
-
       final GoogleSignInAccount? gUser = await googleSignIn.signIn();
 
       if (gUser == null) {
-        if (mounted) setState(() => _loading = false);
+        setState(() => _loading = false);
         return;
       }
 
@@ -80,19 +208,13 @@ class _LoginPageState extends State<LoginPage> {
       final user = userCred.user;
 
       if (user != null) {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
 
-        if (!mounted) return;
-        setState(() => _loading = false);
+        if (mounted) setState(() => _loading = false);
 
         if (userDoc.exists) {
-          _showMsg('Welcome back!');
           _navigate(user.uid, user.email);
         } else {
-          _showMsg('Please complete your business profile.');
           Navigator.pushReplacement(
             context,
             CupertinoPageRoute(
@@ -105,192 +227,9 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) setState(() => _loading = false);
-      _showMsg('Auth Error: ${e.message}', isError: true);
     } catch (e) {
       if (mounted) setState(() => _loading = false);
-      _showMsg('Error: $e', isError: true);
-    }
-  }
-
-  // --- ENHANCED STAFF LOGIN LOGIC ---
-  Future<void> _emailLogin() async {
-    final email = _emailCtrl.text.trim();
-    final pass = _passCtrl.text.trim();
-
-    // Validation
-    if (email.isEmpty || !email.contains('@')) {
-      _showMsg('Please enter a valid email', isError: true);
-      return;
-    }
-    if (pass.length < 6) {
-      _showMsg('Password must be at least 6 characters', isError: true);
-      return;
-    }
-
-    setState(() => _loading = true);
-
-    try {
-      // 1. Sign in with email/password
-      final cred = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: pass,
-      );
-
-      User? user = cred.user;
-
-      if (user == null) {
-        throw Exception('Login failed - no user returned');
-      }
-
-      // 2. CRITICAL: Reload user to get fresh emailVerified status
-      await user.reload();
-      user = _auth.currentUser;
-
-      if (user == null) {
-        throw Exception('Session lost after reload');
-      }
-
-      print('📧 User: ${user.email}, Email Verified: ${user.emailVerified}');
-
-      // 3. Check email verification from Firebase Auth
-      if (!user.emailVerified) {
-        await _auth.signOut();
-        setState(() => _loading = false);
-
-        _showDialog(
-          title: '📧 Email Not Verified',
-          message: 'Please verify your email address first.\n\nCheck your inbox (and spam folder) for the verification link.',
-          actionText: 'Resend Email',
-          onAction: () async {
-            try {
-              await user?.sendEmailVerification();
-              _showMsg('Verification email sent! Check your inbox.');
-            } catch (e) {
-              _showMsg('Failed to send email: $e', isError: true);
-            }
-          },
-        );
-        return;
-      }
-
-      // 4. Find user document in store-scoped collection
-      DocumentSnapshot? userDoc;
-
-      try {
-        // Try to get from store-scoped collection
-        final storeCollection = await _firestoreService.getStoreCollection('users');
-        final querySnapshot = await storeCollection
-            .where('email', isEqualTo: email)
-            .limit(1)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          userDoc = querySnapshot.docs.first;
-        }
-      } catch (e) {
-        print('Error finding user in store collection: $e');
-      }
-
-      // Fallback: Try root users collection
-      if (userDoc == null || !userDoc.exists) {
-        userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-      }
-
-      if (!userDoc.exists) {
-        await _auth.signOut();
-        setState(() => _loading = false);
-        _showMsg('Account not found. Please contact your administrator.', isError: true);
-        return;
-      }
-
-      final userData = userDoc.data() as Map<String, dynamic>;
-      final bool isActive = userData['isActive'] ?? false;
-      final bool dbEmailVerified = userData['isEmailVerified'] ?? false;
-
-      // 5. Update Firestore isEmailVerified if it's false but Auth says true
-      if (!dbEmailVerified && user.emailVerified) {
-        print('✅ Syncing email verification to Firestore');
-
-        try {
-          await _firestoreService.updateDocument('users', user.uid, {
-            'isEmailVerified': true,
-            'verifiedAt': FieldValue.serverTimestamp(),
-            'lastLogin': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          print('Error updating Firestore: $e');
-          // Try direct update as fallback
-          await userDoc.reference.update({
-            'isEmailVerified': true,
-            'verifiedAt': FieldValue.serverTimestamp(),
-            'lastLogin': FieldValue.serverTimestamp(),
-          });
-        }
-      } else {
-        // Just update last login
-        try {
-          await _firestoreService.updateDocument('users', user.uid, {
-            'lastLogin': FieldValue.serverTimestamp(),
-          });
-        } catch (e) {
-          await userDoc.reference.update({
-            'lastLogin': FieldValue.serverTimestamp(),
-          });
-        }
-      }
-
-      // 6. Check if admin has approved (isActive)
-      if (!isActive) {
-        await _auth.signOut();
-        setState(() => _loading = false);
-
-        _showDialog(
-          title: '⏳ Pending Approval',
-          message: 'Your email is verified!\n\nYour account is waiting for administrator approval. Please contact your admin to activate your access.',
-          actionText: 'OK',
-        );
-        return;
-      }
-
-      // 7. SUCCESS - All checks passed
-      setState(() => _loading = false);
-      _showMsg('✅ Login successful! Welcome back.');
-      _navigate(user.uid, user.email);
-
-    } on FirebaseAuthException catch (e) {
-      setState(() => _loading = false);
-      String msg = 'Login failed';
-
-      switch (e.code) {
-        case 'user-not-found':
-          msg = 'No account found with this email.';
-          break;
-        case 'wrong-password':
-          msg = 'Incorrect password. Please try again.';
-          break;
-        case 'invalid-credential':
-          msg = 'Invalid email or password.';
-          break;
-        case 'user-disabled':
-          msg = 'This account has been disabled.';
-          break;
-        case 'too-many-requests':
-          msg = 'Too many failed attempts. Please try again later.';
-          break;
-        default:
-          msg = e.message ?? msg;
-      }
-
-      _showMsg(msg, isError: true);
-    } catch (e) {
-      setState(() => _loading = false);
-      _showMsg('Error: $e', isError: true);
-      print('❌ Login error: $e');
+      _showMsg('Google Sign In Error: $e', isError: true);
     }
   }
 
@@ -316,10 +255,7 @@ class _LoginPageState extends State<LoginPage> {
                 Navigator.pop(context);
                 onAction();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00B8FF),
-              ),
-              child: Text(actionText, style: const TextStyle(color: Colors.white)),
+              child: Text(actionText),
             ),
         ],
       ),
@@ -327,20 +263,15 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _resetPass() async {
-    final email = _emailCtrl.text.trim();
-    if (email.isEmpty) {
-      _showMsg('Enter your email to reset password', isError: true);
+    if (_emailCtrl.text.isEmpty) {
+      _showMsg('Enter email to reset password', isError: true);
       return;
     }
-
-    setState(() => _loading = true);
     try {
-      await _auth.sendPasswordResetEmail(email: email);
-      _showMsg('✅ Password reset email sent! Check your inbox.');
-    } on FirebaseAuthException catch (e) {
-      _showMsg(e.message ?? 'Reset failed', isError: true);
-    } finally {
-      if (mounted) setState(() => _loading = false);
+      await _auth.sendPasswordResetEmail(email: _emailCtrl.text.trim());
+      _showMsg('Reset link sent!');
+    } catch (e) {
+      _showMsg('Error sending reset link', isError: true);
     }
   }
 
@@ -361,8 +292,6 @@ class _LoginPageState extends State<LoginPage> {
               _isStaff ? _buildEmailForm() : _buildGoogleForm(),
               const SizedBox(height: 40),
               _buildButton(),
-              const SizedBox(height: 80),
-              _buildTerms(),
             ],
           ),
         ),
@@ -372,25 +301,9 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildHeader() => Column(
     children: [
-      const Text('Welcome to',
-          style: TextStyle(fontSize: 28, color: Colors.black87)),
+      const Text('Welcome to', style: TextStyle(fontSize: 28, color: Colors.black87)),
       const SizedBox(height: 12),
-      Padding(
-        padding: const EdgeInsets.only(top: 0),
-        child: Image.asset(
-          'assets/logo.png',
-          width: 300,
-          height: 50,
-          fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) {
-            return const Text("MAXBILLUP",
-                style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF00B8FF)));
-          },
-        ),
-      ),
+      const Text("MAXBILLUP", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Color(0xFF00B8FF))),
     ],
   );
 
@@ -413,12 +326,8 @@ class _LoginPageState extends State<LoginPage> {
           color: active ? const Color(0xFF00B8FF) : Colors.white,
           border: Border.all(color: const Color(0xFF00B8FF), width: 1.5),
           borderRadius: BorderRadius.horizontal(
-            left: txt.contains('Gmail')
-                ? const Radius.circular(8)
-                : Radius.zero,
-            right: txt.contains('Staff')
-                ? const Radius.circular(8)
-                : Radius.zero,
+            left: txt.contains('Gmail') ? const Radius.circular(8) : Radius.zero,
+            right: txt.contains('Staff') ? const Radius.circular(8) : Radius.zero,
           ),
         ),
         child: Center(
@@ -435,221 +344,68 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailForm() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _label('Email'),
-      _input(_emailCtrl, 'Enter your staff email',
-          keyboardType: TextInputType.emailAddress),
+      const Text('Email', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _emailCtrl,
+        keyboardType: TextInputType.emailAddress,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFFF5F5F5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          hintText: 'Enter staff email',
+        ),
+      ),
       const SizedBox(height: 24),
-      _label('Password'),
-      _input(_passCtrl, 'Enter your password',
-          obscure: _hidePass,
-          suffix: IconButton(
-            icon: Icon(
-                _hidePass
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: Colors.grey[600]),
+      const Text('Password', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 10),
+      TextField(
+        controller: _passCtrl,
+        obscureText: _hidePass,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFFF5F5F5),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          hintText: 'Enter password',
+          suffixIcon: IconButton(
+            icon: Icon(_hidePass ? Icons.visibility_off : Icons.visibility),
             onPressed: () => setState(() => _hidePass = !_hidePass),
-          )),
+          ),
+        ),
+      ),
       Align(
         alignment: Alignment.centerRight,
         child: TextButton(
-          onPressed: _loading ? null : _resetPass,
-          child: const Text('Forgot Password?',
-              style: TextStyle(
-                  color: Color(0xFF00B8FF),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600)),
+          onPressed: _resetPass,
+          child: const Text('Forgot Password?', style: TextStyle(color: Color(0xFF00B8FF))),
         ),
       ),
     ],
   );
 
   Widget _buildGoogleForm() => Column(
-    crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      const SizedBox(height: 8),
-      const Text('Sign in using your Google (Gmail) account',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.black87)),
-      const SizedBox(height: 24),
-      SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: OutlinedButton(
-          onPressed: _loading ? null : _googleLogin,
-          style: OutlinedButton.styleFrom(
-            backgroundColor: Colors.white,
-            side: BorderSide(color: Colors.grey.shade300, width: 1.5),
-            shape: const StadiumBorder(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.max,
-            children: [
-              SizedBox(
-                width: 30,
-                height: 30,
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/google.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => CustomPaint(
-                      size: const Size(30, 30),
-                      painter: GoogleGPainter(),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text('Continue with Google',
-                  style: TextStyle(fontSize: 16, color: Colors.black87)),
-            ],
-          ),
-        ),
-      ),
+      const SizedBox(height: 20),
+      const Text('Sign in using your Google account', style: TextStyle(fontSize: 16)),
+      const SizedBox(height: 20),
     ],
   );
 
-  Widget _label(String txt) => Padding(
-    padding: const EdgeInsets.only(bottom: 16),
-    child: Text(txt,
-        style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87)),
-  );
-
-  Widget _input(TextEditingController ctrl, String hint,
-      {bool obscure = false,
-        Widget? suffix,
-        bool enabled = true,
-        TextInputType? keyboardType,
-        TextAlign textAlign = TextAlign.start,
-        TextStyle? style,
-        List<TextInputFormatter>? formatters}) =>
-      Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: TextField(
-          controller: ctrl,
-          obscureText: obscure,
-          enabled: enabled,
-          keyboardType: keyboardType,
-          textAlign: textAlign,
-          style: style ?? const TextStyle(fontSize: 16, color: Colors.black87),
-          inputFormatters: formatters,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
-            border: InputBorder.none,
-            contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            suffixIcon: suffix,
-          ),
-        ),
-      );
-
   Widget _buildButton() {
-    String txt = _isStaff ? 'Login (Staff)' : 'Sign in with Google';
-    VoidCallback? action = _isStaff ? _emailLogin : _googleLogin;
-
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _loading ? null : action,
+        onPressed: _loading ? null : (_isStaff ? _emailLogin : _googleLogin),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF00B8FF),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          disabledBackgroundColor:
-          const Color(0xFF00B8FF).withValues(alpha: 0.6),
         ),
         child: _loading
-            ? const SizedBox(
-            height: 24,
-            width: 24,
-            child: CircularProgressIndicator(
-                strokeWidth: 2.5, color: Colors.white))
-            : Text(txt,
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600)),
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(_isStaff ? 'Login (Staff)' : 'Sign in with Google',
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
     );
   }
-
-  Widget _buildTerms() => RichText(
-    textAlign: TextAlign.center,
-    text: const TextSpan(
-      style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.5),
-      children: [
-        TextSpan(text: 'By Proceeding, you agree to our '),
-        TextSpan(
-            text: 'Terms and Conditions',
-            style: TextStyle(
-                color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
-        TextSpan(text: ', '),
-        TextSpan(
-            text: 'Privacy Policy',
-            style: TextStyle(
-                color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
-        TextSpan(text: ' & '),
-        TextSpan(
-            text: 'Refund and Cancellation Policy',
-            style: TextStyle(
-                color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
-      ],
-    ),
-  );
-}
-
-class GoogleGPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-    final strokeWidth = size.width * 0.22;
-    final rect =
-    Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
-
-    const double startAngle = -3.14 / 4;
-    final double sweep = 3.14 * 1.6;
-
-    paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(rect, startAngle, sweep * 0.23, false, paint);
-    paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(rect, startAngle + sweep * 0.23, sweep * 0.23, false, paint);
-    paint.color = const Color(0xFF34A853);
-    canvas.drawArc(rect, startAngle + sweep * 0.46, sweep * 0.23, false, paint);
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(rect, startAngle + sweep * 0.69, sweep * 0.31, false, paint);
-
-    final innerPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(center, radius - strokeWidth * 1.25, innerPaint);
-
-    final tailPaint = Paint()
-      ..color = const Color(0xFF4285F4)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth * 0.9
-      ..strokeCap = StrokeCap.round;
-
-    final tailStart =
-    Offset(center.dx + radius * 0.05, center.dy + radius * 0.25);
-    final tailEnd = Offset(center.dx + radius * 0.45, center.dy + radius * 0.05);
-    canvas.drawLine(tailStart, tailEnd, tailPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

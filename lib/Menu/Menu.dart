@@ -8,6 +8,7 @@ import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/Sales/Bill.dart'; // Placeholder import if BillPage is in a different file
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
+import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
@@ -21,6 +22,7 @@ import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
+
 
 
 
@@ -265,7 +267,7 @@ class _MenuPageState extends State<MenuPage> {
               });
               return Container();
             }
-            return AnalyticsPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+            return AnalyticsPage(uid: widget.uid, onBack: _reset);
           },
         );
 
@@ -606,7 +608,7 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () {
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => SubscriptionPlanPage(
@@ -639,7 +641,6 @@ class _MenuPageState extends State<MenuPage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
                 // New Sale (First item)
-                _buildMenuItem(Icons.add_shopping_cart, "New Sale", 'NewSale'),
 
                 // Quotation
                 if (_hasPermission('quotation') || isAdmin)
@@ -685,71 +686,19 @@ class _MenuPageState extends State<MenuPage> {
                   _buildMenuItem(Icons.badge_outlined, "Staff Management", 'StaffManagement'),
 
                 // Stock (moved from bottom nav - placed above Reports)
-                _buildMenuItem(Icons.inventory_2_outlined, "Stock", 'Stock'),
 
                 // Reports Expansion (moved from bottom nav)
-                Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    leading: Icon(Icons.bar_chart_outlined, color: _iconColor),
-                    title: Text("Reports", style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
-                    iconColor: _iconColor,
-                    collapsedIconColor: _iconColor,
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 24),
-                    childrenPadding: const EdgeInsets.only(left: 72),
-                    children: [
-                      // Analytics & Overview
-                      if (_hasPermission('analytics') || isAdmin)
-                        _buildSubMenuItem("Analytics", 'Analytics'),
-                      if (_hasPermission('daybook') || isAdmin)
-                        _buildSubMenuItem("DayBook", 'DayBook'),
-                      if (_hasPermission('salesSummary') || isAdmin)
-                        _buildSubMenuItem("Sales Summary", 'Summary'),
-
-                      // Sales & Transactions
-                      if (_hasPermission('salesReport') || isAdmin)
-                        _buildSubMenuItem("Sales Report", 'SalesReport'),
-                      if (_hasPermission('itemSalesReport') || isAdmin)
-                        _buildSubMenuItem("Item Sales Report", 'ItemSales'),
-                      if (_hasPermission('topCustomer') || isAdmin)
-                        _buildSubMenuItem("Top Customers", 'TopCustomers'),
-
-                      // Inventory & Products
-                      if (_hasPermission('stockReport') || isAdmin)
-                        _buildSubMenuItem("Stock Report", 'StockReport'),
-                      if (_hasPermission('lowStockProduct') || isAdmin)
-                        _buildSubMenuItem("Low Stock Products", 'LowStock'),
-                      if (_hasPermission('topProducts') || isAdmin)
-                        _buildSubMenuItem("Top Products", 'TopProducts'),
-                      if (_hasPermission('topCategory') || isAdmin)
-                        _buildSubMenuItem("Top Categories", 'TopCategories'),
-
-                      // Financials & Tax
-                      if (_hasPermission('expensesReport') || isAdmin)
-                        _buildSubMenuItem("Expense Report", 'ExpenseReport'),
-                      if (_hasPermission('taxReport') || isAdmin)
-                        _buildSubMenuItem("Tax Report", 'TaxReport'),
-                      if (_hasPermission('hsnReport') || isAdmin)
-                        _buildSubMenuItem("HSN Report", 'HSNReport'),
-                      if (_hasPermission('staffSalesReport') || isAdmin)
-                        _buildSubMenuItem("Staff Sale Report", 'StaffReport'),
-                    ],
-                  ),
-                ),
-
-                // Settings (moved from bottom nav - placed below Reports)
-                _buildMenuItem(Icons.settings_outlined, "Settings", 'Settings'),
               ],
             ),
           ),
         ],
       ),
-      // bottomNavigationBar: CommonBottomNav(
-      //   uid: widget.uid,
-      //   userEmail: widget.userEmail,
-      //   currentIndex: 0,
-      //   screenWidth: MediaQuery.of(context).size.width,
-      // ),
+      bottomNavigationBar: CommonBottomNav(
+        uid: widget.uid,
+        userEmail: widget.userEmail,
+        currentIndex: 0,
+        screenWidth: MediaQuery.of(context).size.width,
+      ),
     );
   }
 
@@ -785,7 +734,7 @@ class _MenuPageState extends State<MenuPage> {
   void _navigateToPage(String viewKey) {
     Widget? page = _getPageForView(viewKey);
     if (page != null) {
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         CupertinoPageRoute(builder: (context) => page),
       );
@@ -955,7 +904,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => StaffManagementPage(
@@ -981,12 +930,11 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => AnalyticsPage(
           uid: widget.uid,
-          userEmail: widget.userEmail,
           onBack: () => Navigator.pop(context),
         ),
       ),
@@ -1007,7 +955,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => DayBookPage(
@@ -1032,7 +980,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => SalesSummaryPage(
@@ -1056,7 +1004,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => FullSalesHistoryPage(
@@ -1080,7 +1028,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => ItemSalesPage(
@@ -1104,7 +1052,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => TopCustomersPage(
@@ -1129,7 +1077,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => StockReportPage(
@@ -1153,7 +1101,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => LowStockPage(
@@ -1177,7 +1125,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => TopProductsPage(
@@ -1202,7 +1150,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => TopCategoriesPage(
@@ -1226,7 +1174,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => ExpenseReportPage(
@@ -1250,7 +1198,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => TaxReportPage(
@@ -1274,7 +1222,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => HSNReportPage(
@@ -1298,7 +1246,7 @@ class _MenuPageState extends State<MenuPage> {
       return;
     }
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => StaffSaleReportPage(
@@ -1319,7 +1267,7 @@ class _MenuPageState extends State<MenuPage> {
 
   void settleBillAndReturn(String billId) async {
     // Navigate to BillPage
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => BillPage(
@@ -1437,22 +1385,38 @@ class SalesHistoryPage extends StatefulWidget {
   final VoidCallback onBack;
   final String? userEmail;
 
-  const SalesHistoryPage({super.key, required this.uid, required this.onBack, this.userEmail});
+  const SalesHistoryPage({
+    super.key,
+    required this.uid,
+    required this.onBack,
+    this.userEmail,
+  });
 
   @override
   State<SalesHistoryPage> createState() => _SalesHistoryPageState();
 }
 
 class _SalesHistoryPageState extends State<SalesHistoryPage> {
+  // Streams
   Stream<List<QueryDocumentSnapshot>>? _combinedStream;
   StreamController<List<QueryDocumentSnapshot>>? _controller;
   StreamSubscription? _salesSub;
   StreamSubscription? _savedOrdersSub;
 
+  // Search & Filter State
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _selectedFilter = 'All Time';
+
   @override
   void initState() {
     super.initState();
     _initializeCombinedStream();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase().trim();
+      });
+    });
   }
 
   @override
@@ -1460,19 +1424,33 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     _salesSub?.cancel();
     _savedOrdersSub?.cancel();
     _controller?.close();
+    _searchController.dispose();
     super.dispose();
   }
 
+  // Merges 'sales' and 'savedOrders' collections into one stream
   Future<void> _initializeCombinedStream() async {
     try {
-      final salesStream = await FirestoreService().getCollectionStream('sales');
-      final savedOrdersStream = await FirestoreService().getCollectionStream('savedOrders');
+      final salesStream = FirebaseFirestore.instance
+          .collection('sales')
+          .orderBy('timestamp', descending: true)
+          .snapshots();
+
+      final savedOrdersStream = FirebaseFirestore.instance
+          .collection('savedOrders')
+          .orderBy('timestamp', descending: true)
+          .snapshots();
 
       List<QueryDocumentSnapshot> salesDocs = [];
       List<QueryDocumentSnapshot> savedOrdersDocs = [];
 
       void updateController() {
+        if (_controller == null || _controller!.isClosed) return;
+
+        // Merge lists
         final allDocs = [...salesDocs, ...savedOrdersDocs];
+
+        // Sort merged list by timestamp descending
         allDocs.sort((a, b) {
           final dataA = a.data() as Map<String, dynamic>? ?? {};
           final dataB = b.data() as Map<String, dynamic>? ?? {};
@@ -1481,11 +1459,10 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           if (tsA == null && tsB == null) return 0;
           if (tsA == null) return 1;
           if (tsB == null) return -1;
-          return tsB.compareTo(tsA); // descending
+          return tsB.compareTo(tsA);
         });
-        if (_controller != null && !_controller!.isClosed) {
-          _controller!.add(allDocs);
-        }
+
+        _controller!.add(allDocs);
       }
 
       _controller = StreamController<List<QueryDocumentSnapshot>>.broadcast();
@@ -1506,7 +1483,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
         });
       }
     } catch (e) {
-      debugPrint('Error initializing bill history stream: $e');
+      debugPrint('Error initializing combined stream: $e');
       if (mounted) {
         setState(() {
           _combinedStream = Stream.value([]);
@@ -1515,77 +1492,106 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     }
   }
 
+  // --- Filtering Logic ---
+
+  List<QueryDocumentSnapshot> _filterDocuments(List<QueryDocumentSnapshot> docs) {
+    if (docs.isEmpty) return [];
+
+    final now = DateTime.now();
+    final startOfThisMonth = DateTime(now.year, now.month, 1);
+    final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
+    final endOfLastMonth = DateTime(now.year, now.month, 0, 23, 59, 59);
+
+    return docs.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+
+      // 1. Search Filter
+      bool matchesSearch = true;
+      if (_searchQuery.isNotEmpty) {
+        final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
+        final customer = (data['customerName'] ?? '').toString().toLowerCase(); // Assuming customerName exists
+        matchesSearch = inv.contains(_searchQuery) || customer.contains(_searchQuery);
+      }
+
+      // 2. Date Dropdown Filter
+      bool matchesDate = true;
+      final timestamp = data['timestamp'] as Timestamp?;
+      if (timestamp != null) {
+        final date = timestamp.toDate();
+        if (_selectedFilter == 'This Month') {
+          matchesDate = date.isAfter(startOfThisMonth) || date.isAtSameMomentAs(startOfThisMonth);
+        } else if (_selectedFilter == 'Last Month') {
+          matchesDate = date.isAfter(startOfLastMonth) && date.isBefore(endOfLastMonth);
+        }
+      }
+
+      return matchesSearch && matchesDate;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
-      ),
-
       appBar: AppBar(
         title: const Text('Bill History', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack, // Use the provided callback
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list, color: Colors.white),
-            onPressed: () {
-              // TODO: Implement filter logic
-            },
-          )
-        ],
       ),
       body: Column(
         children: [
-          // Search Bar & Filter Dropdown Area (Matches the top layout)
+          // Search Bar & Filter Dropdown
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
               children: [
-                const Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      prefixIcon: Icon(Icons.search),
-                      border: InputBorder.none,
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: const InputDecoration(
+                        hintText: 'Search Invoice...',
+                        prefixIcon: Icon(Icons.search, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                DropdownButton<String>(
-                  value: 'All Time',
-                  items: <String>['All Time', 'This Month', 'Last Month'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (_) {},
-                ),
-                IconButton(
-                  icon: const Icon(Icons.tune),
-                  onPressed: () {},
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedFilter,
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF007AFF)),
+                      items: <String>['All Time', 'This Month', 'Last Month']
+                          .map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedFilter = newValue;
+                          });
+                        }
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1595,14 +1601,41 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             child: _combinedStream == null
                 ? const Center(child: CircularProgressIndicator())
                 : StreamBuilder<List<QueryDocumentSnapshot>>(
-                    stream: _combinedStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text('No bills found'));
+              stream: _combinedStream,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                      // 2. Group bills by date
-                final groupedData = _groupBillsByDate(snapshot.data!);
-                final sortedDates = groupedData.keys.toList()..sort((a, b) => b.compareTo(a));
+                final rawData = snapshot.data ?? [];
+                // Apply client-side filters
+                final filteredData = _filterDocuments(rawData);
+
+                if (filteredData.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('No bills found', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+
+                // Group bills by date
+                final groupedData = _groupBillsByDate(filteredData);
+                final sortedDates = groupedData.keys.toList()..sort((a, b) {
+                  // Parse "dd MMM, yyyy" back to Sortable Date if needed,
+                  // but since we rely on the list order which is already sorted by timestamp,
+                  // we can just iterate.
+                  // To be safe, we rely on the order of keys as inserted?
+                  // Map iteration order is preserved in Dart.
+                  // However, to be extra safe, let's parse.
+                  DateFormat fmt = DateFormat('dd MMM, yyyy');
+                  return fmt.parse(b).compareTo(fmt.parse(a));
+                });
 
                 return ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1614,30 +1647,29 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Date Header (e.g., "18 Nov, 2025 (1)")
+                        // Date Header
                         Padding(
                           padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
                           child: Text(
                             '$date (${bills.length})',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
                           ),
                         ),
-
-                        // List of Bills for this date
+                        // List of Bills
                         ...bills.map((doc) => _buildBillCard(context, doc)).toList(),
                       ],
                     );
                   },
                 );
-                    },
-                  ),
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  // Utility function to group documents by date
+  // Group documents by formatted date string
   Map<String, List<QueryDocumentSnapshot>> _groupBillsByDate(List<QueryDocumentSnapshot> docs) {
     final Map<String, List<QueryDocumentSnapshot>> grouped = {};
     for (var doc in docs) {
@@ -1657,98 +1689,110 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     return grouped;
   }
 
-  // Widget to build a single bill card
   Widget _buildBillCard(BuildContext context, QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final inv = data['invoiceNumber'] ?? 'N/A';
-    final total = (data['total'] ?? 0.0).toStringAsFixed(1);
-    final itemsCount = (data['items'] as List<dynamic>? ?? []).length;
-    final staffName = data['staffName'] ?? 'Vishal'; // Assuming 'Created by Vishal' is static or needs staffName
-    final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
-    final timeString = time != null ? DateFormat('dd-MM-yyyy & h:mm a').format(time) : '-';
+    // Handle total as int or double safely
+    final rawTotal = data['total'];
+    final totalVal = (rawTotal is int) ? rawTotal.toDouble() : (rawTotal is double ? rawTotal : 0.0);
+    final total = totalVal.toStringAsFixed(1);
 
-    // Status Logic: Check for a payment mode or 'change' to determine settlement
-    // 'sales' collection docs will have paymentMode, 'savedOrders' will not.
-    final isSettled = data['paymentMode'] != null;
+    final itemsCount = (data['items'] as List<dynamic>? ?? []).length;
+    final staffName = data['staffName'] ?? 'Staff';
+    final customerName = data['customerName'] ?? 'Guest'; // Added field for better context
+
+    final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
+    final timeString = time != null ? DateFormat('h:mm a').format(time) : '-';
+
+    // Status Logic
+    final isSettled = data.containsKey('paymentMode') && data['paymentMode'] != null;
 
     return Card(
-      elevation: 1,
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: Colors.grey.shade200)
+      ),
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Row 1: Invoice No, Status Tag, Items Count
+            // Row 1: Invoice No & Status
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Invoice : $inv', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                Text('#$inv', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isSettled ? Colors.green.shade100 : Colors.orange.shade100,
-                    borderRadius: BorderRadius.circular(4),
+                      color: isSettled ? Colors.green.shade50 : Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: isSettled ? Colors.green.shade200 : Colors.orange.shade200
+                      )
                   ),
                   child: Text(
                     isSettled ? 'Settled' : 'UnSettled',
                     style: TextStyle(
-                      color: isSettled ? Colors.green.shade800 : Colors.orange.shade800,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 10,
+                      color: isSettled ? Colors.green.shade700 : Colors.orange.shade800,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 11,
                     ),
                   ),
                 ),
-                Text('Items : $itemsCount', style: const TextStyle(fontSize: 14)),
               ],
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // Row 2: Date & Time, Total
+            // Row 2: Info Grid
             Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Text('Date & Time : ', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                Text(timeString, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black)),
-                const Spacer(),
-                const Text('Total : ', style: TextStyle(fontSize: 15, color: Colors.black87)),
-                Text(total, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF007AFF))),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _infoRow(Icons.access_time, timeString),
+                      const SizedBox(height: 4),
+                      _infoRow(Icons.person_outline, customerName),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '₹$total',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF007AFF)),
+                    ),
+                    Text(
+                      '$itemsCount Items',
+                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    ),
+                  ],
+                )
               ],
             ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                const Text('Total : ', style: TextStyle(fontSize: 15, color: Colors.black87)),
-                Text(total, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17, color: Color(0xFF007AFF))),
-              ],
-            ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0xFFEEEEEE)),
+            const SizedBox(height: 10),
 
-            const Divider(height: 1, color: Colors.grey),
-
-            const SizedBox(height: 8),
-
-            // Row 3: Customer/Creator, Action Button
+            // Row 3: Creator & Action
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    const Text('Customer : ', style: TextStyle(fontSize: 13, color: Colors.black87)),
-                    Text('Created by $staffName', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                  ],
-                ),
+                Text('By: $staffName', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
 
-                // Action Button (Settle Bill or Receipt)
                 SizedBox(
-                  height: 35,
+                  height: 36,
                   child: ElevatedButton.icon(
                     onPressed: () {
                       if (!isSettled) {
-                        // If this is an unsettled (saved) order, extract cart items and total
+                        // Logic to resume/settle bill
                         final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
                             .map((item) => CartItem(
                           productId: item['productId'] ?? '',
@@ -1759,24 +1803,25 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                               : int.tryParse(item['quantity'].toString()) ?? 1,
                         ))
                             .toList();
-                        final double totalAmount = (data['total'] ?? 0).toDouble();
-                        Navigator.pushReplacement(
+
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => BillPage(
                               uid: widget.uid,
                               cartItems: cartItems,
-                              totalAmount: totalAmount,
+                              totalAmount: totalVal,
                               userEmail: widget.userEmail,
-                              savedOrderId: doc.id, // Pass the saved order ID for reference
+                              savedOrderId: doc.id,
                             ),
                           ),
                         ).then((_) {
-                          setState(() {}); // Refresh after returning from BillPage
+                          // Optional: Refresh or handle return
+                          setState(() {});
                         });
                       } else {
-                        // If settled, show receipt
-                        Navigator.pushReplacement(
+                        // View Receipt
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data),
@@ -1784,15 +1829,15 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         );
                       }
                     },
-                    icon: Icon(isSettled ? Icons.receipt : Icons.person_add, size: 16, color: Colors.white),
+                    icon: Icon(isSettled ? Icons.receipt_long : Icons.payment, size: 16, color: Colors.white),
                     label: Text(
                       isSettled ? 'Receipt' : 'Settle Bill',
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isSettled ? const Color(0xFF007AFF) : const Color(0xFF007AFF),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      backgroundColor: const Color(0xFF007AFF),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
@@ -1801,6 +1846,17 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper widget for small info rows
+  Widget _infoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: Colors.grey),
+        const SizedBox(width: 4),
+        Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+      ],
     );
   }
 }
@@ -1895,7 +1951,15 @@ class SalesDetailPage extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                time != null ? DateFormat('dd MMM yyyy h:mm a').format(time) : 'N/A',
+                                time != null ? DateFormat('dd MMM yyyy').format(time) : 'N/A',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              Text(
+                                time != null ? DateFormat('h:mm a').format(time) : 'N/A',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -2082,7 +2146,7 @@ class SalesDetailPage extends StatelessWidget {
                       icon: Icons.shopping_cart_outlined,
                       label: 'Sale Return',
                       onTap: () {
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => SaleReturnPage(
@@ -2113,7 +2177,7 @@ class SalesDetailPage extends StatelessWidget {
                       icon: Icons.edit_outlined,
                       label: 'Edit',
                       onTap: () {
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => EditBillPage(
@@ -2523,32 +2587,12 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid),
-      ),
       appBar: AppBar(
         title: const Text('Credit Notes', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: Builder(
-
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),
@@ -2687,7 +2731,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                     return GestureDetector(
                       onTap: () {
                         // Navigate to credit note details
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => CreditNoteDetailPage(
@@ -3423,31 +3467,12 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid),
-      ),
       appBar: AppBar(
         title: const Text('Credit Details', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),
@@ -3682,7 +3707,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       ),
                       onTap: () {
                         // Navigate to customer details
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => CustomerDetailsPage(
@@ -3913,7 +3938,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       ),
                       onTap: () {
                         // Navigate to purchase credit note details
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => PurchaseCreditNoteDetailPage(
@@ -4901,33 +4926,13 @@ class _CustomersPageState extends State<CustomersPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid),
-      ),// Light background for better card contrast
+      backgroundColor: Colors.grey[50],// Light background for better card contrast
       appBar: AppBar(
         title: const Text('Customer Management', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),
@@ -4996,7 +5001,7 @@ class _CustomersPageState extends State<CustomersPage> {
                     return GestureDetector(
                       onTap: () {
                         // Navigate to the External File Page
-                        Navigator.pushReplacement(
+                        Navigator.push(
                             context,
                             PageRouteBuilder(
                               pageBuilder: (context, animation, secondaryAnimation) => CustomerDetailsPage(
@@ -5084,32 +5089,12 @@ class StaffManagementList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: Drawer(
-        child: MenuPage(uid: adminUid),
-      ),
       appBar: AppBar(
         title: const Text('Staff Management', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007AFF),
-
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),
@@ -5484,7 +5469,7 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _proceedToPayment(String paymentMode) {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => PaymentPage(

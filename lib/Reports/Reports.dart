@@ -1,12 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 
 // ==========================================
 // COLOR CONSTANTS
@@ -29,7 +28,6 @@ class ReportsPage extends StatefulWidget {
 
   @override
   State<ReportsPage> createState() => _ReportsPageState();
-  
 }
 
 class _ReportsPageState extends State<ReportsPage> {
@@ -37,6 +35,9 @@ class _ReportsPageState extends State<ReportsPage> {
   Map<String, dynamic> _permissions = {};
   bool _isLoading = true;
   String _role = 'staff';
+
+  // Plan-based access cache for features (keyed by same permission keys used in this file)
+  Map<String, bool> _planAccess = {};
 
   @override
   void initState() {
@@ -52,11 +53,63 @@ class _ReportsPageState extends State<ReportsPage> {
         _role = userData['role'] as String;
         _isLoading = false;
       });
+      // Load plan-based access after permissions are set (non-blocking UI)
+      _loadPlanAccess();
+    }
+  }
+
+  // Load plan access for the relevant features (does not block UI; defaults to allowed until loaded)
+  Future<void> _loadPlanAccess() async {
+    final features = [
+      'analytics','daybook','salesSummary','salesReport','itemSalesReport','topCustomer',
+      'stockReport','lowStockProduct','topProducts','topCategory','expensesReport',
+      'taxReport','hsnReport','staffSalesReport'
+    ];
+    Map<String, bool> results = {};
+    for (var f in features) {
+      try {
+        final planKey = _planKeyForView(f);
+        // PlanPermissionHelper returns true/false; default true on unexpected error
+        results[f] = await PlanPermissionHelper.canAccessPageAsync(planKey);
+      } catch (_) {
+        results[f] = true;
+      }
+    }
+    if (mounted) setState(() => _planAccess = results);
+  }
+
+  // Map view/permission key used in this file to the plan key expected by PlanPermissionHelper
+  String _planKeyForView(String viewKey) {
+    switch (viewKey) {
+      case 'analytics': return 'analytics';
+      case 'daybook': return 'daybook';
+      case 'salesSummary': return 'sales_summary';
+      case 'salesReport': return 'sales_report';
+      case 'itemSalesReport': return 'item_sales_report';
+      case 'topCustomer': return 'top_customer';
+      case 'stockReport': return 'stock_report';
+      case 'lowStockProduct': return 'low_stock';
+      case 'topProducts': return 'top_products';
+      case 'topCategory': return 'top_category';
+      case 'expensesReport': return 'expense_report';
+      case 'taxReport': return 'tax_report';
+      case 'hsnReport': return 'hsn_report';
+      case 'staffSalesReport': return 'staff_sales_report';
+      default: return viewKey; // fallback to same key
     }
   }
 
   bool _hasPermission(String permission) {
     return _permissions[permission] == true;
+  }
+
+  // Combined check: admin bypasses, otherwise require both user permission and plan access.
+  bool _isFeatureAvailable(String permission) {
+    if (isAdmin) return true;
+    final userPerm = _permissions[permission] == true;
+    // If plan data not yet loaded for this feature, default to true to avoid blocking the UI.
+    final planOk = _planAccess.containsKey(permission) ? _planAccess[permission]! : true;
+    return userPerm && planOk;
   }
 
   bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
@@ -68,17 +121,17 @@ class _ReportsPageState extends State<ReportsPage> {
     // Permission checks for navigation
     switch (_currentView) {
       case 'Analytics':
-        if (!_hasPermission('analytics') && !isAdmin) {
+        if (!_isFeatureAvailable('analytics')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
           });
           return Container();
         }
-        return AnalyticsPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+        return AnalyticsPage(uid: widget.uid, onBack: _reset);
 
       case 'DayBook':
-        if (!_hasPermission('daybook') && !isAdmin) {
+        if (!_isFeatureAvailable('daybook')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -88,7 +141,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return DayBookPage(uid: widget.uid, onBack: _reset);
 
       case 'Summary':
-        if (!_hasPermission('salesSummary') && !isAdmin) {
+        if (!_isFeatureAvailable('salesSummary')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -98,7 +151,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return SalesSummaryPage(onBack: _reset);
 
       case 'SalesReport':
-        if (!_hasPermission('salesReport') && !isAdmin) {
+        if (!_isFeatureAvailable('salesReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -108,7 +161,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return FullSalesHistoryPage(onBack: _reset);
 
       case 'ExpenseReport':
-        if (!_hasPermission('expensesReport') && !isAdmin) {
+        if (!_isFeatureAvailable('expensesReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -118,7 +171,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return ExpenseReportPage(onBack: _reset);
 
       case 'TopProducts':
-        if (!_hasPermission('topProducts') && !isAdmin) {
+        if (!_isFeatureAvailable('topProducts')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -128,7 +181,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return TopProductsPage(uid: widget.uid, onBack: _reset);
 
       case 'LowStock':
-        if (!_hasPermission('lowStockProduct') && !isAdmin) {
+        if (!_isFeatureAvailable('lowStockProduct')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -138,7 +191,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return LowStockPage(onBack: _reset);
 
       case 'ItemSales':
-        if (!_hasPermission('itemSalesReport') && !isAdmin) {
+        if (!_isFeatureAvailable('itemSalesReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -148,7 +201,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return ItemSalesPage(onBack: _reset);
 
       case 'HSNReport':
-        if (!_hasPermission('hsnReport') && !isAdmin) {
+        if (!_isFeatureAvailable('hsnReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -158,7 +211,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return HSNReportPage(onBack: _reset);
 
       case 'TopCategories':
-        if (!_hasPermission('topCategory') && !isAdmin) {
+        if (!_isFeatureAvailable('topCategory')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -168,7 +221,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return TopCategoriesPage(onBack: _reset);
 
       case 'TopCustomers':
-        if (!_hasPermission('topCustomer') && !isAdmin) {
+        if (!_isFeatureAvailable('topCustomer')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -178,7 +231,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return TopCustomersPage(uid: widget.uid, onBack: _reset);
 
       case 'StockReport':
-        if (!_hasPermission('stockReport') && !isAdmin) {
+        if (!_isFeatureAvailable('stockReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -188,7 +241,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return StockReportPage(onBack: _reset);
 
       case 'StaffReport':
-        if (!_hasPermission('staffSalesReport') && !isAdmin) {
+        if (!_isFeatureAvailable('staffSalesReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -198,7 +251,7 @@ class _ReportsPageState extends State<ReportsPage> {
         return StaffSaleReportPage(onBack: _reset);
 
       case 'TaxReport':
-        if (!_hasPermission('taxReport') && !isAdmin) {
+        if (!_isFeatureAvailable('taxReport')) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
@@ -208,20 +261,8 @@ class _ReportsPageState extends State<ReportsPage> {
         return TaxReportPage(onBack: _reset);
     }
 
-    // Show loading indicator while checking permissions
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: kBackgroundGrey,
-        appBar: AppBar(
-          title: const Text("Reports", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          backgroundColor: kPrimaryBlue,
-          elevation: 0,
-          centerTitle: true,
-          automaticallyImplyLeading: false,
-        ),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
+    // Note: removed blocking loading screen so page renders immediately.
+    // Permissions and plan-access arrive asynchronously and tiles will appear/enable when loaded.
 
     return Scaffold(
       backgroundColor: kBackgroundGrey,
@@ -236,50 +277,50 @@ class _ReportsPageState extends State<ReportsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           // Analytics & Overview Section
-          if (_hasPermission('analytics') || _hasPermission('daybook') || _hasPermission('salesSummary') || isAdmin) ...[
+          if (_isFeatureAvailable('analytics') || _isFeatureAvailable('daybook') || _isFeatureAvailable('salesSummary') || isAdmin) ...[
             _sectionHeader("Analytics & Overview"),
-            if (_hasPermission('analytics') || isAdmin)
+            if (_isFeatureAvailable('analytics'))
               _tile("Analytics", Icons.bar_chart, kPrimaryBlue, 'Analytics'),
-            if (_hasPermission('daybook') || isAdmin)
+            if (_isFeatureAvailable('daybook'))
               _tile("DayBook (Today)", Icons.today, kPrimaryBlue, 'DayBook'),
-            if (_hasPermission('salesSummary') || isAdmin)
+            if (_isFeatureAvailable('salesSummary'))
               _tile("Sales Summary", Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
           ],
 
           // Sales & Transactions Section
-          if (_hasPermission('salesReport') || _hasPermission('itemSalesReport') || _hasPermission('topCustomer') || isAdmin) ...[
+          if (_isFeatureAvailable('salesReport') || _isFeatureAvailable('itemSalesReport') || _isFeatureAvailable('topCustomer') || isAdmin) ...[
             _sectionHeader("Sales & Transactions"),
-            if (_hasPermission('salesReport') || isAdmin)
+            if (_isFeatureAvailable('salesReport'))
               _tile("Sales Report", Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
-            if (_hasPermission('itemSalesReport') || isAdmin)
+            if (_isFeatureAvailable('itemSalesReport'))
               _tile("Item Sales Report", Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
-            if (_hasPermission('topCustomer') || isAdmin)
+            if (_isFeatureAvailable('topCustomer'))
               _tile("Top Customers", Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
           ],
 
           // Inventory & Products Section
-          if (_hasPermission('stockReport') || _hasPermission('lowStockProduct') || _hasPermission('topProducts') || _hasPermission('topCategory') || isAdmin) ...[
+          if (_isFeatureAvailable('stockReport') || _isFeatureAvailable('lowStockProduct') || _isFeatureAvailable('topProducts') || _isFeatureAvailable('topCategory') || isAdmin) ...[
             _sectionHeader("Inventory & Products"),
-            if (_hasPermission('stockReport') || isAdmin)
+            if (_isFeatureAvailable('stockReport'))
               _tile("Stock Report", Icons.inventory, kPrimaryBlue, 'StockReport'),
-            if (_hasPermission('lowStockProduct') || isAdmin)
+            if (_isFeatureAvailable('lowStockProduct'))
               _tile("Low Stock Products", Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
-            if (_hasPermission('topProducts') || isAdmin)
+            if (_isFeatureAvailable('topProducts'))
               _tile("Top Products", Icons.star_border, kPrimaryBlue, 'TopProducts'),
-            if (_hasPermission('topCategory') || isAdmin)
+            if (_isFeatureAvailable('topCategory'))
               _tile("Top Categories", Icons.folder_open, kPrimaryBlue, 'TopCategories'),
           ],
 
           // Financials & Tax Section
-          if (_hasPermission('expensesReport') || _hasPermission('taxReport') || _hasPermission('hsnReport') || _hasPermission('staffSalesReport') || isAdmin) ...[
+          if (_isFeatureAvailable('expensesReport') || _isFeatureAvailable('taxReport') || _isFeatureAvailable('hsnReport') || _isFeatureAvailable('staffSalesReport') || isAdmin) ...[
             _sectionHeader("Financials & Tax"),
-            if (_hasPermission('expensesReport') || isAdmin)
+            if (_isFeatureAvailable('expensesReport'))
               _tile("Expense Report", Icons.money_off, kExpenseRed, 'ExpenseReport'),
-            if (_hasPermission('taxReport') || isAdmin)
+            if (_isFeatureAvailable('taxReport'))
               _tile("Tax Report", Icons.percent, kIncomeGreen, 'TaxReport'),
-            if (_hasPermission('hsnReport') || isAdmin)
+            if (_isFeatureAvailable('hsnReport'))
               _tile("HSN Report", Icons.description, kPrimaryBlue, 'HSNReport'),
-            if (_hasPermission('staffSalesReport') || isAdmin)
+            if (_isFeatureAvailable('staffSalesReport'))
               _tile("Staff Sale Report", Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
           ],
 
@@ -326,20 +367,21 @@ class _ReportsPageState extends State<ReportsPage> {
   }
 
   bool _hasAnyReportPermission() {
-    return _hasPermission('analytics') ||
-        _hasPermission('daybook') ||
-        _hasPermission('salesSummary') ||
-        _hasPermission('salesReport') ||
-        _hasPermission('itemSalesReport') ||
-        _hasPermission('topCustomer') ||
-        _hasPermission('stockReport') ||
-        _hasPermission('lowStockProduct') ||
-        _hasPermission('topProducts') ||
-        _hasPermission('topCategory') ||
-        _hasPermission('expensesReport') ||
-        _hasPermission('taxReport') ||
-        _hasPermission('hsnReport') ||
-        _hasPermission('staffSalesReport');
+    // Consider both user permission and plan access when showing "no permissions" message.
+    return _isFeatureAvailable('analytics') ||
+        _isFeatureAvailable('daybook') ||
+        _isFeatureAvailable('salesSummary') ||
+        _isFeatureAvailable('salesReport') ||
+        _isFeatureAvailable('itemSalesReport') ||
+        _isFeatureAvailable('topCustomer') ||
+        _isFeatureAvailable('stockReport') ||
+        _isFeatureAvailable('lowStockProduct') ||
+        _isFeatureAvailable('topProducts') ||
+        _isFeatureAvailable('topCategory') ||
+        _isFeatureAvailable('expensesReport') ||
+        _isFeatureAvailable('taxReport') ||
+        _isFeatureAvailable('hsnReport') ||
+        _isFeatureAvailable('staffSalesReport');
   }
 
   Widget _sectionHeader(String title) {
@@ -357,7 +399,7 @@ class _ReportsPageState extends State<ReportsPage> {
         onTap: () => setState(() => _currentView = view),
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withAlpha(25), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 20),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
@@ -372,10 +414,9 @@ class _ReportsPageState extends State<ReportsPage> {
 // ==========================================
 class AnalyticsPage extends StatefulWidget {
   final String uid;
-  final String? userEmail;
   final VoidCallback onBack;
 
-  const AnalyticsPage({super.key, required this.uid, required this.userEmail, required this.onBack});
+  const AnalyticsPage({super.key, required this.uid, required this.onBack});
 
   @override
   State<AnalyticsPage> createState() => _AnalyticsPageState();
@@ -392,7 +433,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => _goToNewSale(context, widget.uid, widget.userEmail),
+          onPressed: widget.onBack,
         ),
         title: const Text("Analytics", style: TextStyle(color: Colors.white)),
         backgroundColor: kPrimaryBlue,
@@ -507,7 +548,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             title: "Revenue",
                             value: todayRevenue,
                             icon: Icons.inventory_2_outlined,
-                            iconBg: kPrimaryBlue.withAlpha(25),
+                            iconBg: kPrimaryBlue.withOpacity(0.1),
                             iconColor: kPrimaryBlue
                         ),
                         const SizedBox(height: 12),
@@ -516,7 +557,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           children: [
                             Expanded(child: _buildGridCard(
                                 title: "Net Sale", value: todayRevenue, count: todaySaleCount,
-                                icon: Icons.receipt_long, iconBg: kPrimaryBlue.withAlpha(25), iconColor: kPrimaryBlue
+                                icon: Icons.receipt_long, iconBg: kPrimaryBlue.withOpacity(0.1), iconColor: kPrimaryBlue
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _buildGridCard(
@@ -581,7 +622,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 6, offset: const Offset(0, 2))]
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,7 +692,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [BoxShadow(color: Colors.black.withAlpha(5), blurRadius: 6, offset: const Offset(0, 2))]
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2))]
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -675,7 +716,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   _buildPieLegend(kPrimaryBlue, "Cash", totalCash),
                                   _buildPieLegend(Colors.orange, "Online", totalOnline),
                                 ],
-                              ),
+                              )
                             ],
                           ),
                         ),
@@ -788,7 +829,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
-            Text(" ${value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
+            Text("₹${value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87)),
           ],
         )
       ],
@@ -841,7 +882,7 @@ class DayBookPage extends StatelessWidget {
     final String todayDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     return Scaffold(
-      appBar: _buildAppBar("DayBook", context, uid, null),
+      appBar: _buildAppBar("DayBook", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -902,7 +943,7 @@ class DayBookPage extends StatelessWidget {
                       width: double.infinity,
                       child: Column(children: [
                         const Text("Today's Revenue", style: TextStyle(color: Colors.white70)),
-                        Text(" ${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                         Text("${todayDocs.length} Bills", style:const TextStyle(color:Colors.white70))
                       ])
                   ),
@@ -942,11 +983,11 @@ class DayBookPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text(" ${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -957,7 +998,7 @@ class DayBookPage extends StatelessWidget {
                                   color: kPrimaryBlue,
                                   barWidth: 3,
                                   dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withAlpha(51)),
+                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
                                 ),
                               ],
                             ),
@@ -980,7 +1021,7 @@ class DayBookPage extends StatelessWidget {
                             return ListTile(
                                 title: Text(docData['customerName'] ?? 'Walk-in'),
                                 subtitle: Text("#${docData['invoiceNumber'] ?? 'N/A'}"),
-                                trailing: Text(" ${saleTotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                                trailing: Text("₹${saleTotal.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
                             );
                           }
                       )
@@ -1007,7 +1048,7 @@ class SalesSummaryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Summary", context, '', null),
+      appBar: _buildAppBar("Summary", onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -1017,6 +1058,7 @@ class SalesSummaryPage extends StatelessWidget {
           if (!streamsSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
+
           final salesStream = streamsSnapshot.data![0];
           final expensesStream = streamsSnapshot.data![1];
 
@@ -1031,8 +1073,10 @@ class SalesSummaryPage extends StatelessWidget {
                   }
 
                   final now = DateTime.now();
-                  final todayStr = DateFormat('yyyy-MM-dd').format(now);
-                  final yesterdayStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
+                  final todayStr =
+                  DateFormat('yyyy-MM-dd').format(now);
+                  final yesterdayStr = DateFormat('yyyy-MM-dd')
+                      .format(now.subtract(const Duration(days: 1)));
 
                   // Income calculations
                   double todayIncome = 0;
@@ -1042,18 +1086,24 @@ class SalesSummaryPage extends StatelessWidget {
                   double octoberIncome = 0;
 
                   for (var doc in salesSnapshot.data!.docs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    double amount = double.tryParse(data['total'].toString()) ?? 0;
+                    final data =
+                    doc.data() as Map<String, dynamic>;
+                    double amount = double.tryParse(
+                        data['total'].toString()) ??
+                        0;
 
                     DateTime? dt;
                     if (data['timestamp'] != null) {
-                      dt = (data['timestamp'] as Timestamp).toDate();
+                      dt = (data['timestamp'] as Timestamp)
+                          .toDate();
                     } else if (data['date'] != null) {
-                      dt = DateTime.tryParse(data['date'].toString());
+                      dt = DateTime.tryParse(
+                          data['date'].toString());
                     }
 
                     if (dt != null) {
-                      String dateStr = DateFormat('yyyy-MM-dd').format(dt);
+                      String dateStr = DateFormat('yyyy-MM-dd')
+                          .format(dt);
 
                       if (dateStr == todayStr) {
                         todayIncome += amount;
@@ -1064,10 +1114,12 @@ class SalesSummaryPage extends StatelessWidget {
                       if (now.difference(dt).inDays <= 7) {
                         last7DaysIncome += amount;
                       }
-                      if (dt.month == 11 && dt.year == now.year) {
+                      if (dt.month == 11 &&
+                          dt.year == now.year) {
                         novemberIncome += amount;
                       }
-                      if (dt.month == 10 && dt.year == now.year) {
+                      if (dt.month == 10 &&
+                          dt.year == now.year) {
                         octoberIncome += amount;
                       }
                     }
@@ -1081,18 +1133,24 @@ class SalesSummaryPage extends StatelessWidget {
                   double octoberExpense = 0;
 
                   for (var doc in expenseSnapshot.data!.docs) {
-                    final data = doc.data() as Map<String, dynamic>;
-                    double amount = double.tryParse(data['amount'].toString()) ?? 0;
+                    final data =
+                    doc.data() as Map<String, dynamic>;
+                    double amount = double.tryParse(
+                        data['amount'].toString()) ??
+                        0;
 
                     DateTime? dt;
                     if (data['timestamp'] != null) {
-                      dt = (data['timestamp'] as Timestamp).toDate();
+                      dt = (data['timestamp'] as Timestamp)
+                          .toDate();
                     } else if (data['date'] != null) {
-                      dt = DateTime.tryParse(data['date'].toString());
+                      dt = DateTime.tryParse(
+                          data['date'].toString());
                     }
 
                     if (dt != null) {
-                      String dateStr = DateFormat('yyyy-MM-dd').format(dt);
+                      String dateStr = DateFormat('yyyy-MM-dd')
+                          .format(dt);
 
                       if (dateStr == todayStr) {
                         todayExpense += amount;
@@ -1103,17 +1161,31 @@ class SalesSummaryPage extends StatelessWidget {
                       if (now.difference(dt).inDays <= 7) {
                         last7DaysExpense += amount;
                       }
-                      if (dt.month == 11 && dt.year == now.year) {
+                      if (dt.month == 11 &&
+                          dt.year == now.year) {
                         novemberExpense += amount;
                       }
-                      if (dt.month == 10 && dt.year == now.year) {
+                      if (dt.month == 10 &&
+                          dt.year == now.year) {
                         octoberExpense += amount;
                       }
                     }
                   }
 
-                  double incomePercentChange = yesterdayIncome > 0 ? ((todayIncome - yesterdayIncome) / yesterdayIncome * 100) : 100;
-                  double expensePercentChange = yesterdayExpense > 0 ? ((todayExpense - yesterdayExpense) / yesterdayExpense * 100) : 100;
+                  double incomePercentChange =
+                  yesterdayIncome > 0
+                      ? ((todayIncome -
+                      yesterdayIncome) /
+                      yesterdayIncome *
+                      100)
+                      : 100;
+                  double expensePercentChange =
+                  yesterdayExpense > 0
+                      ? ((todayExpense -
+                      yesterdayExpense) /
+                      yesterdayExpense *
+                      100)
+                      : 100;
 
                   return SingleChildScrollView(
                     child: Column(
@@ -1122,9 +1194,11 @@ class SalesSummaryPage extends StatelessWidget {
 
                         // Income Section
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
                             children: [
                               const Text(
                                 "Income",
@@ -1139,45 +1213,80 @@ class SalesSummaryPage extends StatelessWidget {
                               // Today Income Card
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.all(16),
+                                padding:
+                                const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: kIncomeGreen,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                  BorderRadius.circular(12),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       "Rs ${todayIncome.toStringAsFixed(2)}",
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight:
+                                        FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
                                       children: [
                                         const Text(
                                           "Today",
-                                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                                          style: TextStyle(
+                                            color:
+                                            Colors.white70,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withAlpha(76),
-                                            borderRadius: BorderRadius.circular(12),
+                                          padding: const EdgeInsets
+                                              .symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration:
+                                          BoxDecoration(
+                                            color: Colors.white
+                                                .withOpacity(
+                                                0.3),
+                                            borderRadius:
+                                            BorderRadius
+                                                .circular(
+                                                12),
                                           ),
                                           child: Row(
                                             children: [
-                                              Icon(incomePercentChange >= 0 ? Icons.trending_up : Icons.trending_down, color: Colors.white, size: 16),
-                                              const SizedBox(width: 4),
+                                              Icon(
+                                                incomePercentChange >=
+                                                    0
+                                                    ? Icons
+                                                    .trending_up
+                                                    : Icons
+                                                    .trending_down,
+                                                color:
+                                                Colors.white,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(
+                                                  width: 4),
                                               Text(
                                                 "${incomePercentChange.abs().toStringAsFixed(0)}%",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
+                                                style:
+                                                const TextStyle(
+                                                  color: Colors
+                                                      .white,
+                                                  fontWeight:
+                                                  FontWeight
+                                                      .bold,
                                                   fontSize: 12,
                                                 ),
                                               ),
@@ -1196,14 +1305,16 @@ class SalesSummaryPage extends StatelessWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${yesterdayIncome.toStringAsFixed(2)}",
                                       "Yesterday",
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${last7DaysIncome.toStringAsFixed(2)}",
                                       "Last 7 Days",
                                     ),
@@ -1216,14 +1327,16 @@ class SalesSummaryPage extends StatelessWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${novemberIncome.toStringAsFixed(2)}",
                                       "November",
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${octoberIncome.toStringAsFixed(2)}",
                                       "October",
                                     ),
@@ -1247,45 +1360,80 @@ class SalesSummaryPage extends StatelessWidget {
                               // Today Expense Card
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.all(16),
+                                padding:
+                                const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
                                   color: kExpenseRed,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius:
+                                  BorderRadius.circular(12),
                                 ),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  crossAxisAlignment:
+                                  CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       "Rs ${todayExpense.toStringAsFixed(2)}",
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight:
+                                        FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                      MainAxisAlignment
+                                          .spaceBetween,
                                       children: [
                                         const Text(
                                           "Today",
-                                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                                          style: TextStyle(
+                                            color:
+                                            Colors.white70,
+                                            fontSize: 14,
+                                          ),
                                         ),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withAlpha(76),
-                                            borderRadius: BorderRadius.circular(12),
+                                          padding: const EdgeInsets
+                                              .symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration:
+                                          BoxDecoration(
+                                            color: Colors.white
+                                                .withOpacity(
+                                                0.3),
+                                            borderRadius:
+                                            BorderRadius
+                                                .circular(
+                                                12),
                                           ),
                                           child: Row(
                                             children: [
-                                              Icon(expensePercentChange >= 0 ? Icons.trending_up : Icons.trending_down, color: Colors.white, size: 16),
-                                              const SizedBox(width: 4),
+                                              Icon(
+                                                expensePercentChange >=
+                                                    0
+                                                    ? Icons
+                                                    .trending_up
+                                                    : Icons
+                                                    .trending_down,
+                                                color:
+                                                Colors.white,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(
+                                                  width: 4),
                                               Text(
                                                 "${expensePercentChange.abs().toStringAsFixed(0)}%",
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
+                                                style:
+                                                const TextStyle(
+                                                  color: Colors
+                                                      .white,
+                                                  fontWeight:
+                                                  FontWeight
+                                                      .bold,
                                                   fontSize: 12,
                                                 ),
                                               ),
@@ -1304,14 +1452,16 @@ class SalesSummaryPage extends StatelessWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${yesterdayExpense.toStringAsFixed(2)}",
                                       "Yesterday",
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${last7DaysExpense.toStringAsFixed(2)}",
                                       "Last 7 Days",
                                     ),
@@ -1324,14 +1474,16 @@ class SalesSummaryPage extends StatelessWidget {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${novemberExpense.toStringAsFixed(2)}",
                                       "November",
                                     ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
-                                    child: _buildSummarySmallCard(
+                                    child:
+                                    _buildSummarySmallCard(
                                       "Rs ${octoberExpense.toStringAsFixed(2)}",
                                       "October",
                                     ),
@@ -1388,6 +1540,7 @@ class SalesSummaryPage extends StatelessWidget {
   }
 }
 
+
 // ==========================================
 // 5. FULL SALES REPORT WITH AREA CHART
 // ==========================================
@@ -1400,7 +1553,7 @@ class FullSalesHistoryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("All Sales Report", context, '', null),
+      appBar: _buildAppBar("All Sales Report", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1465,11 +1618,11 @@ class FullSalesHistoryPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -1480,7 +1633,7 @@ class FullSalesHistoryPage extends StatelessWidget {
                                   color: kPrimaryBlue,
                                   barWidth: 3,
                                   dotData: FlDotData(show: true),
-                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withAlpha(51)),
+                                  belowBarData: BarAreaData(show: true, color: kPrimaryBlue.withOpacity(0.2)),
                                 ),
                               ],
                             ),
@@ -1507,7 +1660,7 @@ class FullSalesHistoryPage extends StatelessWidget {
                           return ListTile(
                               title: Text(d['customerName']??'Walk-in'),
                               subtitle: Text(dateStr),
-                              trailing: Text(" ${d['total']}", style:TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
+                              trailing: Text("₹${d['total']}", style:TextStyle(fontWeight: FontWeight.bold, color: kIncomeGreen))
                           );
                         }
                     ),
@@ -1534,7 +1687,7 @@ class ItemSalesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Item Sales", context, '', null),
+      appBar: _buildAppBar("Item Sales", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1655,7 +1808,7 @@ class TopCustomersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Customers", context, uid, null),
+      appBar: _buildAppBar("Top Customers", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -1716,11 +1869,11 @@ class TopCustomersPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
@@ -1743,7 +1896,7 @@ class TopCustomersPage extends StatelessWidget {
                         itemBuilder: (c, i) => ListTile(
                             leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text("${i+1}", style: const TextStyle(color: Colors.white))),
                             title: Text(sorted[i].key),
-                            trailing: Text(" ${sorted[i].value.toStringAsFixed(0)}")
+                            trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
                         )
                     ),
                   ),
@@ -1769,7 +1922,7 @@ class StockReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Stock Report", context, '', null),
+      appBar: _buildAppBar("Stock Report", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -1797,12 +1950,12 @@ class StockReportPage extends StatelessWidget {
                   children: [
                     Container(
                         padding: const EdgeInsets.all(16),
-                        color: kPrimaryBlue.withAlpha(25),
+                        color: kPrimaryBlue.withOpacity(0.1),
                         child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               const Text("Inventory Value:", style:TextStyle(fontWeight: FontWeight.bold)),
-                              Text(" ${totalVal.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kPrimaryBlue))
+                              Text("₹${totalVal.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kPrimaryBlue))
                             ]
                         )
                     ),
@@ -1881,7 +2034,7 @@ class StockReportPage extends StatelessWidget {
                               var d = snapshot.data!.docs[i].data() as Map<String, dynamic>;
                               return ListTile(
                                   title: Text(d['itemName'] ?? 'Unknown'),
-                                  subtitle: Text("Price:  ${d['price'] ?? 0}"),
+                                  subtitle: Text("Price: ₹${d['price'] ?? 0}"),
                                   trailing: Text("${d['currentStock'] ?? 0} Units")
                               );
                             }
@@ -1909,7 +2062,7 @@ class LowStockPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Low Stock", context, '', null),
+      appBar: _buildAppBar("Low Stock", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -2033,7 +2186,7 @@ class TopProductsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Products", context, uid, null),
+      appBar: _buildAppBar("Top Products", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -2150,7 +2303,7 @@ class TopCategoriesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Top Categories", context, '', null),
+      appBar: _buildAppBar("Top Categories", onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('Products'),
@@ -2232,11 +2385,11 @@ class TopCategoriesPage extends StatelessWidget {
                                         ),
                                       ),
                                       leftTitles: AxisTitles(
-                                        axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                        axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                         sideTitles: SideTitles(
                                           showTitles: true,
                                           reservedSize: 40,
-                                          getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                          getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                         ),
                                       ),
                                     ),
@@ -2258,7 +2411,7 @@ class TopCategoriesPage extends StatelessWidget {
                               itemCount: sorted.length,
                               itemBuilder: (c, i) => ListTile(
                                   title: Text(sorted[i].key),
-                                  trailing: Text(" ${sorted[i].value.toStringAsFixed(0)}")
+                                  trailing: Text("₹${sorted[i].value.toStringAsFixed(0)}")
                               )
                           ),
                         ),
@@ -2286,7 +2439,7 @@ class ExpenseReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Expense Report", context, '', null),
+      appBar: _buildAppBar("Expense Report", onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('expenses'),
@@ -2413,18 +2566,24 @@ class ExpenseReportPage extends StatelessWidget {
                                       ),
                                     ),
                                     leftTitles: AxisTitles(
-                                      axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                      axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                       sideTitles: SideTitles(
                                         showTitles: true,
                                         reservedSize: 40,
-                                        getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                        getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                       ),
                                     ),
                                   ),
                                   barGroups: categoryExpenses.entries.toList().asMap().entries.map((entry) {
                                     return BarChartGroupData(
                                       x: entry.key,
-                                      barRods: [BarChartRodData(toY: entry.value.value, color: kExpenseRed, width: 30)],
+                                      barRods: [
+                                        BarChartRodData(
+                                          toY: entry.value.value,
+                                          color: kExpenseRed,
+                                          width: 30,
+                                        ),
+                                      ],
                                     );
                                   }).toList(),
                                 ),
@@ -2442,7 +2601,7 @@ class ExpenseReportPage extends StatelessWidget {
                               return ListTile(
                                   title: Text(item['title']),
                                   subtitle: Text(item['subtitle']),
-                                  trailing: Text("-  ${(item['amount'] as double).toStringAsFixed(2)}", style: TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                                  trailing: Text("- ₹${(item['amount'] as double).toStringAsFixed(2)}", style: TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
                               );
                             }
                         ),
@@ -2471,7 +2630,7 @@ class TaxReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Tax Report", context, '', null),
+      appBar: _buildAppBar("Tax Report", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
@@ -2504,7 +2663,7 @@ class TaxReportPage extends StatelessWidget {
 
               return Column(
                   children: [
-                    _summaryBox("Total Tax Collected", " ${totalTax.toStringAsFixed(2)}", "", kIncomeGreen),
+                    _summaryBox("Total Tax Collected", "₹${totalTax.toStringAsFixed(2)}", "", kIncomeGreen),
 
                     // LINE CHART FOR TAX TREND
                     Container(
@@ -2538,11 +2697,11 @@ class TaxReportPage extends StatelessWidget {
                                     ),
                                   ),
                                   leftTitles: AxisTitles(
-                                    axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                    axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                     sideTitles: SideTitles(
                                       showTitles: true,
                                       reservedSize: 40,
-                                      getTitlesWidget: (value, meta) => Text(" ${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                      getTitlesWidget: (value, meta) => Text("₹${value.toInt()}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                     ),
                                   ),
                                 ),
@@ -2553,7 +2712,7 @@ class TaxReportPage extends StatelessWidget {
                                     color: kIncomeGreen,
                                     barWidth: 3,
                                     dotData: FlDotData(show: true),
-                                    belowBarData: BarAreaData(show: true, color: kIncomeGreen.withAlpha(51)),
+                                    belowBarData: BarAreaData(show: true, color: kIncomeGreen.withOpacity(0.2)),
                                   ),
                                 ],
                               ),
@@ -2570,7 +2729,7 @@ class TaxReportPage extends StatelessWidget {
                               var d = snapshot.data!.docs[i].data() as Map;
                               return ListTile(
                                   title: Text("Inv #${d['invoiceNumber']}"),
-                                  trailing: Text("Tax:  ${d['taxAmount']??0}", style: TextStyle(color: kIncomeGreen))
+                                  trailing: Text("Tax: ₹${d['taxAmount']??0}", style: TextStyle(color: kIncomeGreen))
                               );
                             }
                         )
@@ -2597,7 +2756,7 @@ class HSNReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("HSN Report", context, '', null),
+      appBar: _buildAppBar("HSN Report", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('Products'),
         builder: (context, streamSnapshot) {
@@ -2715,23 +2874,29 @@ class StaffSaleReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _buildAppBar("Staff Sales", context, '', null),
+      appBar: _buildAppBar("Staff Sales", onBack),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
         builder: (context, streamSnapshot) {
           if (!streamSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
+
           return StreamBuilder<QuerySnapshot>(
             stream: streamSnapshot.data!,
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+              // Build staff performance map safely
               Map<String, double> staffPerf = {};
-              for(var d in snapshot.data!.docs) {
-                var data = d.data() as Map<String, dynamic>;
-                String s = data.containsKey('staffName') ? data['staffName'] : 'Admin';
-                staffPerf[s] = (staffPerf[s]??0) + (double.tryParse(data['total'].toString())??0);
+              for (var d in snapshot.data!.docs) {
+                final data = d.data() as Map<String, dynamic>;
+                final staffName = data.containsKey('staffName') ? data['staffName']?.toString() ?? 'Admin' : 'Admin';
+                final total = double.tryParse(data['total']?.toString() ?? '0') ?? 0.0;
+                staffPerf[staffName] = (staffPerf[staffName] ?? 0) + total;
               }
+
+              final sortedEntries = staffPerf.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
               return Column(
                 children: [
@@ -2754,7 +2919,13 @@ class StaffSaleReportPage extends StatelessWidget {
                           child: BarChart(
                             BarChartData(
                               gridData: FlGridData(show: true, drawVerticalLine: false),
-                              borderData: FlBorderData(show: true, border: const Border(bottom: BorderSide(color: Colors.grey), left: BorderSide(color: Colors.grey))),
+                              borderData: FlBorderData(
+                                show: true,
+                                border: const Border(
+                                  bottom: BorderSide(color: Colors.grey),
+                                  left: BorderSide(color: Colors.grey),
+                                ),
+                              ),
                               titlesData: FlTitlesData(
                                 topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -2764,11 +2935,15 @@ class StaffSaleReportPage extends StatelessWidget {
                                     showTitles: true,
                                     reservedSize: 60,
                                     getTitlesWidget: (value, meta) {
-                                      if (value.toInt() >= 0 && value.toInt() < staffPerf.length) {
-                                        String name = staffPerf.keys.elementAt(value.toInt());
+                                      final idx = value.toInt();
+                                      if (idx >= 0 && idx < sortedEntries.length) {
+                                        String name = sortedEntries[idx].key;
                                         return Transform.rotate(
                                           angle: -0.5,
-                                          child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 9)),
+                                          child: Text(
+                                            name.length > 8 ? '${name.substring(0, 8)}...' : name,
+                                            style: const TextStyle(fontSize: 9),
+                                          ),
                                         );
                                       }
                                       return const Text('');
@@ -2776,15 +2951,15 @@ class StaffSaleReportPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text(' ', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
-                                    getTitlesWidget: (value, meta) => Text(" ${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
+                                    getTitlesWidget: (value, meta) => Text("₹${value~/1000}k", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                                   ),
                                 ),
                               ),
-                              barGroups: staffPerf.entries.toList().asMap().entries.map((entry) {
+                              barGroups: sortedEntries.asMap().entries.map((entry) {
                                 return BarChartGroupData(
                                   x: entry.key,
                                   barRods: [BarChartRodData(toY: entry.value.value, color: kPrimaryBlue, width: 30)],
@@ -2799,12 +2974,19 @@ class StaffSaleReportPage extends StatelessWidget {
 
                   Expanded(
                     child: ListView.builder(
-                        itemCount: staffPerf.length,
-                        itemBuilder: (c, i) => ListTile(
-                            leading: CircleAvatar(backgroundColor: kPrimaryBlue, child: Text(staffPerf.keys.elementAt(i).substring(0, 1), style: const TextStyle(color: Colors.white))),
-                            title: Text(staffPerf.keys.elementAt(i)),
-                            trailing: Text(" ${staffPerf.values.elementAt(i).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold))
-                        )
+                      itemCount: sortedEntries.length,
+                      itemBuilder: (c, i) {
+                        final name = sortedEntries[i].key;
+                        final amt = sortedEntries[i].value;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: kPrimaryBlue,
+                            child: Text(name.isNotEmpty ? name.substring(0, 1) : '?', style: const TextStyle(color: Colors.white)),
+                          ),
+                          title: Text(name),
+                          trailing: Text("₹${amt.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -2820,12 +3002,9 @@ class StaffSaleReportPage extends StatelessWidget {
 // ==========================================
 // UI HELPER WIDGETS
 // ==========================================
-AppBar _buildAppBar(String title, BuildContext context, String uid, String? userEmail) {
+AppBar _buildAppBar(String title, VoidCallback onBack) {
   return AppBar(
-    leading: IconButton(
-      icon: const Icon(Icons.arrow_back, color: Colors.white), 
-      onPressed: () => _goToNewSale(context, uid, userEmail),
-    ),
+    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
     title: Text(title, style: const TextStyle(color: Colors.white)),
     backgroundColor: kPrimaryBlue,
     elevation: 0,
@@ -2833,28 +3012,20 @@ AppBar _buildAppBar(String title, BuildContext context, String uid, String? user
   );
 }
 
-void _goToNewSale(BuildContext context, String uid, String? userEmail) {
-  Navigator.pushReplacement(
-    context,
-    CupertinoPageRoute(
-      builder: (context) => NewSalePage(uid: uid, userEmail: userEmail),
+Widget _summaryBox(String title, String value, String subtitle, Color color) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.all(16),
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white70)),
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+        if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      ],
     ),
   );
 }
 
-Widget _summaryBox(String title, String value, String subtitle, Color color) {
-  return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(color: Colors.white70)),
-            Text(value, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-            if (subtitle.isNotEmpty) Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12))
-          ]
-      )
-  );
-}

@@ -84,9 +84,6 @@ class _NewSalePageState extends State<NewSalePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: Drawer(
-        child: MenuPage(uid: _uid, userEmail: _userEmail),
-      ),
       body: Column(
         spacing: 0,
         children: [
@@ -126,12 +123,12 @@ class _NewSalePageState extends State<NewSalePage> {
           ),
         ],
       ),
-      // bottomNavigationBar: CommonBottomNav(
-      //   uid: _uid,
-      //   userEmail: _userEmail,
-      //   currentIndex: 2,
-      //   screenWidth: screenWidth,
-      // ),
+      bottomNavigationBar: CommonBottomNav(
+        uid: _uid,
+        userEmail: _userEmail,
+        currentIndex: 2,
+        screenWidth: screenWidth,
+      ),
     );
   }
 }

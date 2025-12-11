@@ -28,9 +28,6 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
-      ),
       appBar: AppBar(
         title: GestureDetector(
           onLongPress: () {
@@ -43,25 +40,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           ),
         ),
         backgroundColor: const Color(0xFF007AFF),
-        leading: Builder(
-          builder: (context) {
-            final screenWidth = MediaQuery.of(context).size.width;
-            final tabHeight = kToolbarHeight;
-            return GestureDetector(
-              onTap: () {
-                Scaffold.of(context).openDrawer();
-              },
-              child: Container(
-                width: screenWidth * 0.12,
-                height: tabHeight,
-                child: Icon(
-                  Icons.menu,
-                  color: const Color(0xFFffffff),
-                  size: screenWidth * 0.06,
-                ),
-              ),
-            );
-          }
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
       ),

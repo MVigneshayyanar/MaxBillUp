@@ -28,7 +28,7 @@ class QuickSalePage extends StatefulWidget {
 class QuickSaleItem {
   final String name;
   final double price;
-  double quantity;
+  int quantity;
 
   QuickSaleItem({required this.name, required this.price, required this.quantity});
 
@@ -39,6 +39,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
   final List<QuickSaleItem> _items = [];
   String _input = '';
   int _counter = 1;
+  int? editingIndex;
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
         _items.add(QuickSaleItem(
           name: item.name,
           price: item.price,
-          quantity: item.quantity.toDouble(),
+          quantity: item.quantity,
         ));
       }
       _counter = _items.length + 1;
@@ -62,7 +63,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
     productId: '',
     name: item.name,
     price: item.price,
-    quantity: item.quantity.toInt(),
+    quantity: item.quantity,
   ))
       .toList();
 
@@ -89,19 +90,18 @@ class _QuickSalePageState extends State<QuickSalePage> {
 
   void _addItem() {
     if (_input.isEmpty) return;
-
     try {
-      double price, qty;
+      double price;
+      int qty;
       if (_input.contains('x')) {
         final parts = _input.split('x');
         if (parts.length != 2) return;
         price = double.parse(parts[0].trim());
-        qty = double.parse(parts[1].trim());
+        qty = int.tryParse(parts[1].trim()) ?? 1;
       } else {
         price = double.parse(_input);
-        qty = 1.0;
+        qty = 1;
       }
-
       setState(() {
         _items.insert(
             0,
@@ -113,11 +113,10 @@ class _QuickSalePageState extends State<QuickSalePage> {
         _counter++;
         _input = '';
       });
-
       _notifyChange();
       CommonWidgets.showSnackBar(
         context,
-        'Item added:  ${price.toStringAsFixed(1)} x ${qty.toStringAsFixed(1)}',
+        'Item added:  ${price.toStringAsFixed(1)} x $qty',
         bgColor: const Color(0xFF4CAF50),
       );
     } catch (e) {
@@ -134,6 +133,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
       _items.clear();
       _input = '';
       _counter = 1;
+      editingIndex = null;
     });
     _notifyChange();
   }
@@ -141,6 +141,38 @@ class _QuickSalePageState extends State<QuickSalePage> {
   void _removeItem(int idx) {
     setState(() => _items.removeAt(idx));
     _notifyChange();
+  }
+
+  void _startEditQuantity(int idx) {
+    setState(() {
+      editingIndex = idx;
+      _input = _items[idx].quantity.toString();
+    });
+  }
+
+  void _confirmEditQuantity() {
+    if (editingIndex != null) {
+      final qty = int.tryParse(_input);
+      if (qty != null && qty > 0) {
+        setState(() {
+          _items[editingIndex!].quantity = qty;
+          editingIndex = null;
+          _input = '';
+        });
+        _notifyChange();
+        CommonWidgets.showSnackBar(
+          context,
+          'Quantity updated to $qty',
+          bgColor: const Color(0xFF4CAF50),
+        );
+      } else {
+        CommonWidgets.showSnackBar(
+          context,
+          'Invalid quantity',
+          bgColor: const Color(0xFFFF5252),
+        );
+      }
+    }
   }
 
   @override
@@ -168,6 +200,17 @@ class _QuickSalePageState extends State<QuickSalePage> {
                     color: Colors.black87,
                   ),
                 ),
+                if (editingIndex != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: ElevatedButton(
+                      onPressed: _confirmEditQuantity,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2196F3),
+                      ),
+                      child: const Text('Update'),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -219,7 +262,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                           children: [
                             Expanded(
                               child: Text(
-                                '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity.toStringAsFixed(1)}',
+                                '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity}',
                                 style: const TextStyle(fontSize: 16, color: Colors.black87),
                               ),
                             ),
@@ -233,48 +276,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                             ),
                             const SizedBox(width: 12),
                             GestureDetector(
-                              onTap: () async {
-                                final controller = TextEditingController(text: item.quantity.toStringAsFixed(1));
-                                final result = await showDialog<double>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Edit Quantity'),
-                                    content: TextField(
-                                      controller: controller,
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Quantity',
-                                        border: OutlineInputBorder(),
-                                      ),
-                                      autofocus: true,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          final qty = double.tryParse(controller.text);
-                                          if (qty != null && qty > 0) {
-                                            Navigator.pop(context, qty);
-                                          }
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF2196F3),
-                                        ),
-                                        child: const Text('Update'),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (result != null && result > 0) {
-                                  setState(() {
-                                    item.quantity = result;
-                                  });
-                                  _notifyChange();
-                                }
-                              },
+                              onTap: () => _startEditQuantity(idx),
                               child: const Icon(Icons.edit, size: 20, color: Color(0xFF2196F3)),
                             ),
                             const SizedBox(width: 8),
@@ -410,7 +412,28 @@ class _QuickSalePageState extends State<QuickSalePage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _addBtn(),
+                  editingIndex == null ? _addBtn() : SizedBox(
+                    width: (MediaQuery.of(context).size.width - 56) / 4,
+                    height: 148,
+                    child: GestureDetector(
+                      onTap: _confirmEditQuantity,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2196F3),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Update', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                              Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -431,6 +454,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                   _items.clear();
                   _input = '';
                   _counter = 1;
+                  editingIndex = null;
                 });
               },
             );

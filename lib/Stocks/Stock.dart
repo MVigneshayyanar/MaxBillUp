@@ -45,9 +45,6 @@ class _StockPageState extends State<StockPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: MenuPage(uid: _uid, userEmail: _userEmail),
-      ),
       body: Column(
         children: [
           // Stock AppBar Component
@@ -80,7 +77,15 @@ class _StockPageState extends State<StockPage> {
                 ? ProductsPage(uid: _uid, userEmail: _userEmail)
                 : CategoryPage(uid: _uid, userEmail: _userEmail),
           ),
+
         ],
+
+      ),
+      bottomNavigationBar: CommonBottomNav(
+        uid: widget.uid,
+        userEmail: widget.userEmail,
+        currentIndex: 3,
+        screenWidth: MediaQuery.of(context).size.width,
       ),
     );
   }

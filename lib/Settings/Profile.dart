@@ -121,33 +121,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: kBgColor,
-      drawer: Drawer(
-        child: MenuPage(uid: widget.uid, userEmail: widget.userEmail),
-      ),
       appBar: AppBar(
         title: const Text("Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor, // Matches the blue header in image
         elevation: 0,
-        leading: Builder(
-            builder: (context) {
-              final screenWidth = MediaQuery.of(context).size.width;
-              final tabHeight = kToolbarHeight;
-              return GestureDetector(
-                onTap: () {
-                  Scaffold.of(context).openDrawer();
-                },
-                child: Container(
-                  width: screenWidth * 0.12,
-                  height: tabHeight,
-                  child: Icon(
-                    Icons.menu,
-                    color: const Color(0xFFffffff),
-                    size: screenWidth * 0.06,
-                  ),
-                ),
-              );
-            }
-        ),
         centerTitle: true,
         automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -183,12 +160,12 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 30),
         ],
       ),
-      // bottomNavigationBar: CommonBottomNav(
-      //   uid: widget.uid,
-      //   userEmail: widget.userEmail,
-      //   currentIndex: 4,
-      //   screenWidth: screenWidth,
-      // ),
+      bottomNavigationBar: CommonBottomNav(
+        uid: widget.uid,
+        userEmail: widget.userEmail,
+        currentIndex: 4,
+        screenWidth: screenWidth,
+      ),
     );
   }
 

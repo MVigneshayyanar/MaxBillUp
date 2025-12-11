@@ -44,12 +44,6 @@ class CommonWidgets {
             ),
             const SizedBox(width: 12),
           ],
-          // _buildIconButton(
-          //   Icons.print,
-          //   () {
-          //     showSnackBar(context, 'Print functionality coming soon');
-          //   },
-          // ),
           const Spacer(),
           GestureDetector(
             onTap: onBill,

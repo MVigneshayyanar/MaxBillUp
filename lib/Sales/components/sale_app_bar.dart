@@ -32,24 +32,6 @@ class SaleAppBar extends StatelessWidget {
         child: Row(
           children: [
             // Menu Button
-            GestureDetector(
-              onTap: () {
-                Scaffold.of(context).openDrawer();
-              },
-              child: Container(
-                width: screenWidth * 0.12,
-                height: tabHeight,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.menu,
-                  color: const Color(0xFF2196F3),
-                  size: screenWidth * 0.06,
-                ),
-              ),
-            ),
             SizedBox(width: screenWidth * 0.02),
             _buildTab('Sale / All', 0, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
