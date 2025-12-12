@@ -576,78 +576,80 @@ class _ProductsPageState extends State<ProductsPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Update Stock - $productName'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
-              Text(
-                'Current Stock: ${currentStock.toStringAsFixed(1)}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF2196F3),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          isAdding = true;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isAdding ? const Color(0xFF4CAF50) : Colors.grey[300],
-                        foregroundColor: isAdding ? Colors.white : Colors.black87,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Add'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          isAdding = false;
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: !isAdding ? const Color(0xFFFF5252) : Colors.grey[300],
-                        foregroundColor: !isAdding ? Colors.white : Colors.black87,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Remove'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: isAdding ? 'Quantity to Add' : 'Quantity to Remove',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  filled: true,
-                  fillColor: const Color(0xFFF5F5F5),
-                  prefixIcon: Icon(
-                    isAdding ? Icons.add : Icons.remove,
-                    color: isAdding ? const Color(0xFF4CAF50) : const Color(0xFFFF5252),
-                  ),
-                ),
-              ),
+              Icon(Icons.inventory_2_outlined, color: Color(0xFF2196F3)),
+              SizedBox(width: 8),
+              Expanded(child: Text('Update Stock - $productName')),
             ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Current Stock: ${currentStock.toStringAsFixed(1)}',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2196F3),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            isAdding = true;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: isAdding ? Color(0xFF2196F3) : Colors.grey.shade200,
+                          foregroundColor: isAdding ? Colors.white : Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Add'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            isAdding = false;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: !isAdding ? Color(0xFF2196F3) : Colors.grey.shade200,
+                          foregroundColor: !isAdding ? Colors.white : Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Remove'),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Quantity',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 final quantity = double.tryParse(quantityController.text.trim());
                 if (quantity == null || quantity <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -666,21 +668,30 @@ class _ProductsPageState extends State<ProductsPage> {
                       ? currentStock + quantity
                       : currentStock - quantity;
 
-                  await FirestoreService().updateDocument(
+                  FirestoreService().updateDocument(
                     'Products',
                     productId,
                     {'currentStock': newStock},
-                  );
-
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Stock updated to ${newStock.toStringAsFixed(1)}'),
-                      backgroundColor: Colors.green[600],
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                  );
+                  ).then((_) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Stock updated to ${newStock.toStringAsFixed(1)}'),
+                        backgroundColor: Colors.green[600],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    );
+                  }).catchError((e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red[400],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    );
+                  });
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -693,7 +704,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
+                backgroundColor: Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
               child: const Text('Update', style: TextStyle(color: Colors.white)),
@@ -704,3 +715,4 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 }
+

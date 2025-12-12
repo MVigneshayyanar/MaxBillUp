@@ -155,24 +155,37 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           builder: (context) {
             final passCtrl = TextEditingController();
             return AlertDialog(
-              title: const Text("Check Verification"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
                 children: [
-                  const Text("Enter the staff's temporary password to check their status."),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: passCtrl,
-                    decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
-                    obscureText: true,
-                  ),
+                  Icon(Icons.lock_outline, color: kPrimaryColor),
+                  SizedBox(width: 8),
+                  const Text("Check Verification"),
                 ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Enter the staff's temporary password to check their status."),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passCtrl,
+                      decoration: const InputDecoration(labelText: "Password", border: OutlineInputBorder()),
+                      obscureText: true,
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(context, passCtrl.text),
-                  child: const Text("Check"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: const Text("Check", style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -525,7 +538,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             ),
           ),
         ),
-      ),
+      )
     );
   }
 
@@ -1178,3 +1191,4 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     };
   }
 }
+

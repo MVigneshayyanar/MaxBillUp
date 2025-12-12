@@ -1295,10 +1295,10 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Split Payment', style: TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
+        title: const Text('Split Payment', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.blue,
         elevation: 0.5,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
@@ -1707,10 +1707,10 @@ class _PaymentPageState extends State<PaymentPage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: Colors.black87)),
-        backgroundColor: Colors.white,
+        title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: Colors.white)),
+        backgroundColor: Colors.blue,
         elevation: 0.5,
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Column(
         children: [
