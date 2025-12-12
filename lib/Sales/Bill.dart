@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:provider/provider.dart';
 
 // --- IMPORTS FROM YOUR PROJECT ---
 // Update these paths to match your actual project structure
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/models/sale.dart';
+import 'package:maxbillup/services/sale_sync_service.dart';
 
 // --- CONSTANTS FOR STYLING ---
 const Color kPrimaryColor = Color(0xFF2196F3);
@@ -1198,16 +1202,29 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
       final invoiceNumber = (100000 + Random().nextInt(900000)).toString();
-      final staffName = await _fetchStaffName(widget.uid);
-      final businessLocation = await _fetchBusinessLocation(widget.uid);
+      print('🟢 [SplitPayment] Generated invoice: $invoiceNumber');
 
-      // Handle Credit
-      if (_creditAmount > 0 && widget.customerPhone != null) {
-        await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber);
+      // Check connectivity with timeout
+      bool isOnline = false;
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => [ConnectivityResult.none],
+        );
+        isOnline = !connectivityResult.contains(ConnectivityResult.none);
+        print('🟢 [SplitPayment] Connectivity: $isOnline');
+      } catch (e) {
+        print('🔴 [SplitPayment] Connectivity check failed: $e');
+        isOnline = false;
       }
 
-      // Sale Data
-      final saleData = {
+      // Always use defaults to avoid network delays
+      String? staffName = 'Staff';
+      String? businessLocation = 'Tirunelveli';
+      print('🟢 [SplitPayment] Using staff: $staffName, location: $businessLocation');
+
+      // Base sale data without Firestore-specific fields
+      final baseSaleData = {
         'invoiceNumber': invoiceNumber,
         'items': widget.cartItems.map((item) => {
           'productId': item.productId, 'name': item.name, 'price': item.price,
@@ -1225,38 +1242,130 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'customerName': widget.customerName,
         'customerGST': widget.customerGST,
         'creditNote': widget.creditNote,
-        'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
         'staffId': widget.uid,
         'staffName': staffName ?? 'Staff',
         'businessLocation': businessLocation ?? 'Tirunelveli',
+        'savedOrderId': widget.savedOrderId,
+        'selectedCreditNotes': widget.selectedCreditNotes,
+        'quotationId': widget.quotationId,
       };
 
-      await FirestoreService().addDocument('sales', saleData);
-      await _updateProductStock();
+      if (isOnline) {
+        // Add Firestore-specific timestamp for online saves
+        final saleData = {
+          ...baseSaleData,
+          'timestamp': FieldValue.serverTimestamp(),
+        };
+        // Online: Save directly to Firestore
+        try {
+          // Handle Credit
+          if (_creditAmount > 0 && widget.customerPhone != null) {
+            await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber).timeout(
+              const Duration(seconds: 10),
+            );
+          }
 
-      if (widget.savedOrderId != null) {
-        await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      }
+          await FirestoreService().addDocument('sales', saleData).timeout(
+            const Duration(seconds: 10),
+          );
 
-      // Mark credit notes used
-      if (widget.selectedCreditNotes.isNotEmpty) {
-        await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes);
-      }
+          await _updateProductStock().timeout(
+            const Duration(seconds: 10),
+          );
 
-      if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
-        await FirestoreService().updateDocument('quotations', widget.quotationId!, {
-          'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()
-        });
+          if (widget.savedOrderId != null) {
+            try {
+              await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error deleting saved order: $e');
+            }
+          }
+
+          // Mark credit notes used
+          if (widget.selectedCreditNotes.isNotEmpty) {
+            try {
+              await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error marking credit notes: $e');
+            }
+          }
+
+          if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+            try {
+              await FirestoreService().updateDocument('quotations', widget.quotationId!, {
+                'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()
+              }).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error updating quotation: $e');
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sale completed successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          // If online save fails, save offline
+          print('Online save failed, saving offline: $e');
+          final offlineSaleData = {
+            ...baseSaleData,
+            'timestamp': DateTime.now().toIso8601String(),
+          };
+          await _saveOfflineSale(invoiceNumber, offlineSaleData);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Saved offline. Will sync when online.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } else {
+        // Offline: Save to local storage (use baseSaleData without FieldValue)
+        final offlineSaleData = {
+          ...baseSaleData,
+          'timestamp': DateTime.now().toIso8601String(), // Use regular timestamp for offline
+        };
+        await _saveOfflineSale(invoiceNumber, offlineSaleData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Offline mode: Sale saved locally. Will sync when online.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
 
       if (mounted) {
+        print('🟢 [SplitPayment] Closing loading dialog');
         Navigator.pop(context); // loading
         // Pop back to root or Sales page
         Navigator.popUntil(context, (route) => route.isFirst);
 
-        final businessDetails = await _fetchBusinessDetails();
+        // Use default business details to avoid delays
+        Map<String, String?> businessDetails = {
+          'businessName': 'Business',
+          'location': businessLocation ?? 'Tirunelveli',
+          'businessPhone': '',
+        };
 
+        print('🟢 [SplitPayment] Navigating to invoice');
         // Show Invoice
         Navigator.push(context, CupertinoPageRoute(
             builder: (_) => InvoicePage(
@@ -1280,10 +1389,38 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       }
 
     } catch (e) {
+      print('Error in _processSplitSale: $e');
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
+    }
+  }
+
+  Future<void> _saveOfflineSale(String invoiceNumber, Map<String, dynamic> saleData) async {
+    try {
+      final saleSyncService = Provider.of<SaleSyncService>(context, listen: false);
+
+      // Create a Sale object for offline storage
+      final sale = Sale(
+        id: invoiceNumber,
+        data: saleData,
+        isSynced: false,
+      );
+
+      // Save to local storage
+      await saleSyncService.saveSale(sale);
+      print('Sale saved offline successfully (Split): $invoiceNumber');
+    } catch (e) {
+      print('Error saving offline sale to sync service (Split): $e');
+      // Don't rethrow - allow invoice generation to continue
+      // The sale data is still in memory and invoice can be generated
     }
   }
 
@@ -1617,13 +1754,32 @@ class _PaymentPageState extends State<PaymentPage> {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
       final invoiceNumber = (100000 + Random().nextInt(900000)).toString();
-      final staffName = await _fetchStaffName(widget.uid);
-      final businessLocation = await _fetchBusinessLocation(widget.uid);
+      print('🔵 [PaymentPage] Generated invoice: $invoiceNumber');
+
+      // Check connectivity with timeout
+      bool isOnline = false;
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => [ConnectivityResult.none],
+        );
+        isOnline = !connectivityResult.contains(ConnectivityResult.none);
+        print('🔵 [PaymentPage] Connectivity: $isOnline');
+      } catch (e) {
+        print('🔴 [PaymentPage] Connectivity check failed: $e');
+        isOnline = false;
+      }
+
+      // Always use defaults to avoid network delays
+      String? staffName = 'Staff';
+      String? businessLocation = 'Tirunelveli';
+      print('🔵 [PaymentPage] Using staff: $staffName, location: $businessLocation');
 
       final amountReceived = (widget.paymentMode == 'Credit') ? 0.0 : _cashReceived;
       final changeGiven = (widget.paymentMode == 'Credit') ? 0.0 : _change;
 
-      final saleData = {
+      // Base sale data without Firestore-specific fields
+      final baseSaleData = {
         'invoiceNumber': invoiceNumber,
         'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount,
@@ -1636,38 +1792,134 @@ class _PaymentPageState extends State<PaymentPage> {
         'customerName': widget.customerName,
         'customerGST': widget.customerGST,
         'creditNote': widget.creditNote,
-        'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
         'staffId': widget.uid,
         'staffName': staffName ?? 'Staff',
         'businessLocation': businessLocation ?? 'Tirunelveli',
+        'savedOrderId': widget.savedOrderId,
+        'selectedCreditNotes': widget.selectedCreditNotes,
+        'quotationId': widget.quotationId,
       };
 
-      if (widget.paymentMode == 'Credit') {
-        await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount, invoiceNumber);
-      }
+      if (isOnline) {
+        // Add Firestore-specific timestamp for online saves
+        final saleData = {
+          ...baseSaleData,
+          'timestamp': FieldValue.serverTimestamp(),
+        };
+        // Online: Save directly to Firestore
+        try {
+          print('🔵 [PaymentPage] Starting online save...');
 
-      await FirestoreService().addDocument('sales', saleData);
-      await _updateProductStock();
+          if (widget.paymentMode == 'Credit') {
+            print('🔵 [PaymentPage] Updating customer credit...');
+            await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount, invoiceNumber).timeout(
+              const Duration(seconds: 10),
+            );
+          }
 
-      if (widget.savedOrderId != null) {
-        await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      }
+          print('🔵 [PaymentPage] Adding sale document...');
+          await FirestoreService().addDocument('sales', saleData).timeout(
+            const Duration(seconds: 10),
+          );
 
-      // Mark credit notes used
-      if (widget.selectedCreditNotes.isNotEmpty) {
-        await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes);
-      }
+          print('🔵 [PaymentPage] Updating product stock...');
+          await _updateProductStock().timeout(
+            const Duration(seconds: 10),
+          );
 
-      if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
-        await FirestoreService().updateDocument('quotations', widget.quotationId!, {
-          'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()
-        });
+          if (widget.savedOrderId != null) {
+            try {
+              await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error deleting saved order: $e');
+            }
+          }
+
+          // Mark credit notes used
+          if (widget.selectedCreditNotes.isNotEmpty) {
+            try {
+              await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error marking credit notes: $e');
+            }
+          }
+
+          if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+            try {
+              await FirestoreService().updateDocument('quotations', widget.quotationId!, {
+                'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()
+              }).timeout(
+                const Duration(seconds: 5),
+              );
+            } catch (e) {
+              print('Error updating quotation: $e');
+            }
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sale completed successfully'),
+                backgroundColor: Colors.green,
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        } catch (e) {
+          // If online save fails, save offline
+          print('Online save failed, saving offline: $e');
+          final offlineSaleData = {
+            ...baseSaleData,
+            'timestamp': DateTime.now().toIso8601String(),
+          };
+          await _saveOfflineSale(invoiceNumber, offlineSaleData);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Saved offline. Will sync when online.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      } else {
+        // Offline: Save to local storage (use baseSaleData without FieldValue)
+        print('🔵 [PaymentPage] OFFLINE MODE - Saving locally...');
+        final offlineSaleData = {
+          ...baseSaleData,
+          'timestamp': DateTime.now().toIso8601String(), // Use regular timestamp for offline
+        };
+        await _saveOfflineSale(invoiceNumber, offlineSaleData);
+        print('🔵 [PaymentPage] Offline save completed');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Offline mode: Sale saved locally. Will sync when online.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
       }
 
       if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog only
-        final businessDetails = await _fetchBusinessDetails();
+        print('🔵 [PaymentPage] Closing loading dialog');
+        Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog
+
+        // Use default business details to avoid delays
+        Map<String, String?> businessDetails = {
+          'businessName': 'Business',
+          'location': businessLocation ?? 'Tirunelveli',
+          'businessPhone': '',
+        };
+
+        print('🔵 [PaymentPage] Navigating to invoice');
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -1693,10 +1945,38 @@ class _PaymentPageState extends State<PaymentPage> {
       }
 
     } catch (e) {
+      print('Error in _completeSale: $e');
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog if error
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
       }
+    }
+  }
+
+  Future<void> _saveOfflineSale(String invoiceNumber, Map<String, dynamic> saleData) async {
+    try {
+      final saleSyncService = Provider.of<SaleSyncService>(context, listen: false);
+
+      // Create a Sale object for offline storage
+      final sale = Sale(
+        id: invoiceNumber,
+        data: saleData,
+        isSynced: false,
+      );
+
+      // Save to local storage
+      await saleSyncService.saveSale(sale);
+      print('Sale saved offline successfully (Payment): $invoiceNumber');
+    } catch (e) {
+      print('Error saving offline sale to sync service (Payment): $e');
+      // Don't rethrow - allow invoice generation to continue
+      // The sale data is still in memory and invoice can be generated
     }
   }
 

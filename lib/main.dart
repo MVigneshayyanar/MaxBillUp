@@ -6,21 +6,40 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'Auth/SplashPage.dart';
 import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
 import 'Sales/NewSale.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
+import 'package:maxbillup/models/sale.dart';
+import 'package:maxbillup/services/sale_sync_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Initialize Hive for offline storage
+  final appDocumentDir = await getApplicationDocumentsDirectory();
+  await Hive.initFlutter(appDocumentDir.path);
+  Hive.registerAdapter(SaleAdapter());
+
+  // Initialize SaleSyncService for offline sales syncing
+  final saleSyncService = SaleSyncService();
+  await saleSyncService.init();
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeNotifier(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        Provider<SaleSyncService>.value(value: saleSyncService),
+      ],
       child: const MyApp(),
     ),
   );
