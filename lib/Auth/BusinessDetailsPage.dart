@@ -29,6 +29,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _businessNameCtrl = TextEditingController();
   final _businessPhoneCtrl = TextEditingController();
   final _gstinCtrl = TextEditingController(); // Added GSTIN Controller
+  final _businessLocationCtrl = TextEditingController();
 
   bool _loading = false;
 
@@ -48,6 +49,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _businessNameCtrl.dispose();
     _businessPhoneCtrl.dispose();
     _gstinCtrl.dispose();
+    _businessLocationCtrl.dispose();
     super.dispose();
   }
 
@@ -98,6 +100,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'ownerPhone': _phoneCtrl.text.trim(),
         'businessName': _businessNameCtrl.text.trim(),
         'businessPhone': _businessPhoneCtrl.text.trim(),
+        'businessLocation': _businessLocationCtrl.text.trim(),
         'gstin': _gstinCtrl.text.trim(), // Save GSTIN (Optional)
         'ownerEmail': widget.email,
         'ownerUid': widget.uid,
@@ -118,6 +121,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'role': 'admin', // First user is Admin
         'isActive': true,
         'isEmailVerified': true,
+        'businessLocation': _businessLocationCtrl.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -255,6 +259,16 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   controller: _gstinCtrl,
                   hint: 'Enter GSTIN number',
                   validator: (v) => null, // Optional
+                ),
+                const SizedBox(height: 20),
+
+                _label('Business Location'),
+                _buildTextField(
+                  controller: _businessLocationCtrl,
+                  hint: 'Enter your business location',
+                  validator: (v) => v == null || v.trim().isEmpty
+                      ? 'Business location is required'
+                      : null,
                 ),
                 const SizedBox(height: 40),
 

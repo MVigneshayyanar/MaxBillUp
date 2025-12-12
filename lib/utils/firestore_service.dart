@@ -165,6 +165,24 @@ class FirestoreService {
     return collection.doc(docId).delete();
   }
 
+  /// Get the next invoice number for the current store (starting from 100001)
+  Future<int> getNextInvoiceNumber() async {
+    final collection = await getStoreCollection('sales');
+    final query = await collection.orderBy('invoiceNumber', descending: true).limit(1).get();
+    if (query.docs.isEmpty) return 100001;
+    final maxNum = int.tryParse(query.docs.first['invoiceNumber'].toString()) ?? 100000;
+    return maxNum < 100001 ? 100001 : maxNum + 1;
+  }
+
+  /// Get the next quotation number for the current store (starting from 100001)
+  Future<int> getNextQuotationNumber() async {
+    final collection = await getStoreCollection('quotations');
+    final query = await collection.orderBy('quotationNumber', descending: true).limit(1).get();
+    if (query.docs.isEmpty) return 100001;
+    final maxNum = int.tryParse(query.docs.first['quotationNumber'].toString()) ?? 100000;
+    return maxNum < 100001 ? 100001 : maxNum + 1;
+  }
+
   // Direct access to top-level collections
   CollectionReference get usersCollection => _firestore.collection('users');
   CollectionReference get storeCollection => _firestore.collection('store');
