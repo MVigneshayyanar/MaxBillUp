@@ -16,7 +16,7 @@ class SavedOrdersPage extends StatefulWidget {
 
 class _SavedOrdersPageState extends State<SavedOrdersPage> {
   void _loadOrder(String orderId, Map<String, dynamic> data) {
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => NewSalePage(

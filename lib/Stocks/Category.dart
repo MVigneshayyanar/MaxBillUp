@@ -163,7 +163,7 @@ class _CategoryPageState extends State<CategoryPage> {
       child: GestureDetector(
         onTap: () {
           if (index == 0) {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
               CupertinoPageRoute(
                 builder: (context) =>
@@ -437,7 +437,7 @@ class _CategoryPageState extends State<CategoryPage> {
                           // Create New Product button
                           TextButton.icon(
                             onPressed: () {
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
                                 CupertinoPageRoute(
                                   builder: (context) => AddProductPage(

@@ -103,7 +103,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.pushReplacement(
+                      Navigator.push(
                         context,
                         CupertinoPageRoute(
                           builder: (context) => CreateOtherExpensePage(
@@ -253,7 +253,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               ),
                             ),
                             onTap: () {
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
                                 CupertinoPageRoute(
                                   builder: (context) => OtherExpenseDetailsPage(

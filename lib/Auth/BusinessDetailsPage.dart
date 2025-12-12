@@ -128,7 +128,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
       // Navigate to main app
       if (mounted) {
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.email),

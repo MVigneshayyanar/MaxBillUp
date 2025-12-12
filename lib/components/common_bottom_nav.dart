@@ -110,7 +110,7 @@ class CommonBottomNav extends StatelessWidget {
     switch (index) {
       case 0:
         // Menu
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
@@ -124,7 +124,7 @@ class CommonBottomNav extends StatelessWidget {
         break;
       case 1:
       // Navigate to Analytics Dashboard
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
@@ -137,7 +137,7 @@ class CommonBottomNav extends StatelessWidget {
         );
         break;
       case 2:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
@@ -150,7 +150,7 @@ class CommonBottomNav extends StatelessWidget {
         );
         break;
       case 3:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
@@ -163,7 +163,7 @@ class CommonBottomNav extends StatelessWidget {
         );
         break;
       case 4:
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>

@@ -347,7 +347,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         await PermissionHelper.showPermissionDeniedDialog(context);
                         return;
                       }
-                      Navigator.pushReplacement(
+                      Navigator.push(
                         context,
                         CupertinoPageRoute(
                           builder: (context) => AddProductPage(uid: _uid, userEmail: widget.userEmail),

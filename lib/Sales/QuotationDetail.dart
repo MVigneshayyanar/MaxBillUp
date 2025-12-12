@@ -219,7 +219,7 @@ class QuotationDetailPage extends StatelessWidget {
     final discount = (quotationData['discount'] ?? 0.0).toDouble();
 
     // Navigate to Bill Page and wait for result
-    final result = await Navigator.pushReplacement(
+    final result = await Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => BillPage(

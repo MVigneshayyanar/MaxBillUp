@@ -222,7 +222,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   void _openScanner() async {
-    await Navigator.pushReplacement(
+    await Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (ctx) => BarcodeScannerPage(onBarcodeScanned: _searchByBarcode),
@@ -299,7 +299,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           },
           onQuotation: () {
             if (_cart.isNotEmpty) {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 CupertinoPageRoute(
                   builder: (ctx) => QuotationPage(

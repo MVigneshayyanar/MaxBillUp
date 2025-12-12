@@ -59,7 +59,7 @@ class _StockPageState extends State<StockPage> {
               });
             },
             onAddProduct: () {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 CupertinoPageRoute(
                   builder: (context) => AddProductPage(uid: _uid, userEmail: _userEmail),

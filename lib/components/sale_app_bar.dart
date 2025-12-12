@@ -175,7 +175,7 @@ class _SaleAppBarState extends State<SaleAppBar> {
               alignment: Alignment.centerRight,
               child: TextButton.icon(
                 onPressed: widget.onAddProduct ?? () {
-                  Navigator.pushReplacement(
+                  Navigator.push(
                     context,
                     CupertinoPageRoute(
                       builder: (context) => AddProductPage(uid: uid, userEmail: widget.userEmail),

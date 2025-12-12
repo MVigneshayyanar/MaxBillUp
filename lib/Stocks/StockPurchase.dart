@@ -108,7 +108,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       // Navigate to create new stock purchase
-                      Navigator.pushReplacement(
+                      Navigator.push(
                         context,
                         CupertinoPageRoute(
                           builder: (context) => CreateStockPurchasePage(
@@ -254,7 +254,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                               ),
                             ),
                             onTap: () {
-                              Navigator.pushReplacement(
+                              Navigator.push(
                                 context,
                                 CupertinoPageRoute(
                                   builder: (context) => StockPurchaseDetailsPage(

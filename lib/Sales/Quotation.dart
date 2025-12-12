@@ -156,7 +156,7 @@ class _QuotationPageState extends State<QuotationPage> {
         Navigator.pop(context); // Close loading dialog
 
         // Navigate to Quotation Preview and pass quotation document id so it can be updated when billed
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (context) => QuotationPreviewPage(
@@ -210,6 +210,10 @@ class _QuotationPageState extends State<QuotationPage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(), // Back button works
+        ),
         title: const Text(
           'New Quotation',
           style: TextStyle(color: Colors.white, fontSize: 18),
@@ -471,6 +475,8 @@ class _QuotationPageState extends State<QuotationPage> {
 }
 
 // Customer Selection Dialog
+// - Already supports search and import from contacts (Firestore customers collection)
+// - List updates as you type in the search box
 class _CustomerSelectionDialog extends StatefulWidget {
   final String uid;
   final Function(String phone, String name, String? gst) onCustomerSelected;

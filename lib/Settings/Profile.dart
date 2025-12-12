@@ -11,6 +11,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:provider/provider.dart';
+import 'package:maxbillup/utils/theme_notifier.dart';
 
 // ==========================================
 // CONSTANTS & STYLES (MATCHED TO UI IMAGE)
@@ -44,6 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
+    _isLoading = false; // Instantly remove loading
     _fetchUserData();
   }
 
@@ -228,7 +231,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: plan == 'Max'
                       ? null
                       : () {
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       CupertinoPageRoute(
                         builder: (context) => SubscriptionPlanPage(
@@ -1435,9 +1438,25 @@ class _ThemePageState extends State<ThemePage> {
   String _selectedTheme = 'Light Mode';
 
   @override
+  void initState() {
+    super.initState();
+    // Load current theme from provider
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final themeNotifier = Provider.of<ThemeNotifier>(context, listen: false);
+      setState(() {
+        if (themeNotifier.themeMode == ThemeMode.dark) {
+          _selectedTheme = 'Dark Mode';
+        } else {
+          _selectedTheme = 'Light Mode';
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Theme", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
         backgroundColor: kPrimaryColor,
@@ -1458,7 +1477,13 @@ class _ThemePageState extends State<ThemePage> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Theme updated to $_selectedTheme'), backgroundColor: kPrimaryColor));
+                  final themeNotifier = Provider.of<ThemeNotifier>(context, listen: false);
+                  if (_selectedTheme == 'Dark Mode') {
+                    themeNotifier.setTheme(ThemeMode.dark);
+                  } else {
+                    themeNotifier.setTheme(ThemeMode.light);
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Theme updated to _selectedTheme'), backgroundColor: kPrimaryColor));
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
                 child: const Text('Update', style: TextStyle(fontSize: 16, color: Colors.white)),
@@ -1712,3 +1737,4 @@ class _PrimaryButton extends StatelessWidget {
     );
   }
 }
+

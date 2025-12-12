@@ -104,7 +104,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
   // Barcode Scanner Function
   Future<void> _scanBarcode() async {
-    final result = await Navigator.pushReplacement(
+    final result = await Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => BarcodeScannerPage(
@@ -134,7 +134,7 @@ class _AddProductPageState extends State<AddProductPage> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
               CupertinoPageRoute(
                 builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
@@ -834,7 +834,7 @@ class _AddProductPageState extends State<AddProductPage> {
             duration: Duration(seconds: 2),
           ),
         );
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),

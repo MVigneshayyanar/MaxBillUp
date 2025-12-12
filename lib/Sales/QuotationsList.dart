@@ -113,7 +113,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                     ),
                     child: InkWell(
                       onTap: () {
-                        Navigator.pushReplacement(
+                        Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => QuotationDetailPage(

@@ -359,7 +359,7 @@ class _BillPageState extends State<BillPage> {
 
   // --- NAVIGATION ---
   void _proceedToPayment(String paymentMode) {
-    // FIX: Using Navigator.push instead of pushReplacement to prevent black screen on back
+    // FIX: Using Navigator.push instead of push to prevent black screen on back
     final route = CupertinoPageRoute(
       builder: (context) => paymentMode == 'Split'
           ? SplitPaymentPage(

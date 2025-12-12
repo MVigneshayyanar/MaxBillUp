@@ -636,11 +636,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: () {
           if (title == "Bills") {
-            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
+            Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           } else if (title == "Credit Details") {
-            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
+            Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
           } else if (title == "ledger") {
-            Navigator.pushReplacement(context, CupertinoPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
+            Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
           }
         },
       ),
@@ -651,7 +651,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   void _showReceiveCreditModal(BuildContext context, double currentBalance, double currentTotalSales) {
     _addAmountController.clear();
 
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => _ReceiveCreditPage(

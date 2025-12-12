@@ -5,17 +5,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+
 import 'Auth/SplashPage.dart';
 import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
 import 'Sales/NewSale.dart';
+import 'package:maxbillup/utils/theme_notifier.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeNotifier(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -23,6 +31,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MAXmybill',
@@ -32,6 +41,14 @@ class MyApp extends StatelessWidget {
         fontFamily: 'SF Pro Display',
         scaffoldBackgroundColor: Colors.white,
       ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B8FF), brightness: Brightness.dark),
+        useMaterial3: true,
+        fontFamily: 'SF Pro Display',
+        scaffoldBackgroundColor: Colors.black,
+      ),
+      themeMode: themeNotifier.themeMode,
       home: const SplashGate(),
       builder: (context, child) {
         // Lock screen orientation to portrait
@@ -71,7 +88,7 @@ class _SplashGateState extends State<SplashGate> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         // User is logged in
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (_) => NewSalePage(
               uid: user.uid,
@@ -81,7 +98,7 @@ class _SplashGateState extends State<SplashGate> {
         );
       } else {
         // User is NOT logged in
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).push(
           CupertinoPageRoute(builder: (_) => const LoginPage()),
         );
       }

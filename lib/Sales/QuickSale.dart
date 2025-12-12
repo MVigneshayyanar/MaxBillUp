@@ -461,7 +461,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
           },
           onQuotation: () {
             if (_items.isNotEmpty) {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 CupertinoPageRoute(
                   builder: (context) => QuotationPage(
@@ -482,7 +482,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
           },
           onBill: () {
             if (_items.isNotEmpty) {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 CupertinoPageRoute(
                   builder: (context) => BillPage(

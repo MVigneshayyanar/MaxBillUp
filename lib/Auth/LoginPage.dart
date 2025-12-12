@@ -53,7 +53,7 @@ class _LoginPageState extends State<LoginPage> {
   void _navigate(String uid, String? identifier) {
     if (!mounted) return;
     // Functionality from Code 2 (CupertinoPageRoute)
-    Navigator.pushReplacement(
+    Navigator.push(
       context,
       CupertinoPageRoute(
         builder: (context) => NewSalePage(uid: uid, userEmail: identifier),
@@ -253,7 +253,7 @@ class _LoginPageState extends State<LoginPage> {
         if (userDoc.exists) {
           _navigate(user.uid, user.email);
         } else {
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             CupertinoPageRoute(
               builder: (context) => BusinessDetailsPage(

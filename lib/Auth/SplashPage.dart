@@ -21,7 +21,7 @@ class _SplashPageState extends State<SplashPage> {
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (context) => NewSalePage(
@@ -31,7 +31,7 @@ class _SplashPageState extends State<SplashPage> {
           ),
         );
       } else {
-        Navigator.pushReplacement(
+        Navigator.push(
           context,
           CupertinoPageRoute(builder: (context) => const LoginPage()),
         );
