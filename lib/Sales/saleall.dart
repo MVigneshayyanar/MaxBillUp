@@ -488,7 +488,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           },
           onBill: () {
             if (_cart.isNotEmpty) {
-              Navigator.pushReplacement(
+              Navigator.push(
                 context,
                 CupertinoPageRoute(
                   builder: (ctx) => BillPage(

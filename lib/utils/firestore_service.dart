@@ -11,13 +11,12 @@ class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String? _cachedStoreId;
+  // REMOVED: String? _cachedStoreId;
+  // We no longer store the ID in memory.
 
   /// Get the current user's store ID
+  /// This will perform a network fetch every time it is called.
   Future<String?> getCurrentStoreId() async {
-    // Return cached value if available
-    if (_cachedStoreId != null) return _cachedStoreId;
-
     final user = _auth.currentUser;
     final uid = user?.uid;
     final email = user?.email;
@@ -30,14 +29,12 @@ class FirestoreService {
         final data = userDoc.data();
         final storeIdFromUser = data?['storeId'];
         if (storeIdFromUser != null && storeIdFromUser.toString().isNotEmpty) {
-          _cachedStoreId = storeIdFromUser.toString();
-          return _cachedStoreId;
+          return storeIdFromUser.toString();
         }
         // also accept alternative field names if present
         final storeDocId = data?['storeDocId'];
         if (storeDocId != null && storeDocId.toString().isNotEmpty) {
-          _cachedStoreId = storeDocId.toString();
-          return _cachedStoreId;
+          return storeDocId.toString();
         }
       }
 
@@ -52,8 +49,7 @@ class FirestoreService {
         final data = doc.data();
         // prefer explicit storeId field, otherwise use document id
         final storeId = data['storeId'] ?? doc.id;
-        _cachedStoreId = storeId?.toString();
-        return _cachedStoreId;
+        return storeId?.toString();
       }
 
       // 3) Fallback: search store collection by ownerEmail (if email available)
@@ -67,12 +63,10 @@ class FirestoreService {
           final doc = byEmail.docs.first;
           final data = doc.data();
           final storeId = data['storeId'] ?? doc.id;
-          _cachedStoreId = storeId?.toString();
-          return _cachedStoreId;
+          return storeId?.toString();
         }
       }
     } catch (e, st) {
-      // keep debug-friendly logging but avoid throwing from helper
       print('Error getting store ID: $e\n$st');
     }
 
@@ -104,21 +98,19 @@ class FirestoreService {
   }
 
   /// Associate the currently signed-in user with a storeId in `users` collection.
-  /// This writes to users/{uid}.storeId so subsequent calls to getCurrentStoreId are fast.
   Future<void> setUserStoreId(String storeId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('No authenticated user');
+
     await _firestore.collection('users').doc(uid).set({
       'storeId': storeId,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
-    _cachedStoreId = storeId;
+
+    // REMOVED: _cachedStoreId = storeId;
   }
 
-  /// Clear cached store ID (call on logout)
-  void clearCache() {
-    _cachedStoreId = null;
-  }
+  // REMOVED: void clearCache()
 
   /// Get reference to a store-scoped collection
   Future<CollectionReference> getStoreCollection(String collectionName) async {
@@ -218,10 +210,10 @@ class FirestoreService {
 
   /// Query documents with where clause
   Future<List<DocumentSnapshot>> queryDocuments(
-    String collectionName,
-    String field,
-    dynamic value,
-  ) async {
+      String collectionName,
+      String field,
+      dynamic value,
+      ) async {
     final collection = await getStoreCollection(collectionName);
     final snapshot = await collection.where(field, isEqualTo: value).get();
     return snapshot.docs;
@@ -229,9 +221,9 @@ class FirestoreService {
 
   /// Query documents with multiple where clauses
   Future<List<DocumentSnapshot>> queryDocumentsMultiple(
-    String collectionName,
-    List<Map<String, dynamic>> whereConditions,
-  ) async {
+      String collectionName,
+      List<Map<String, dynamic>> whereConditions,
+      ) async {
     var query = await getStoreCollection(collectionName) as Query;
 
     for (var condition in whereConditions) {
