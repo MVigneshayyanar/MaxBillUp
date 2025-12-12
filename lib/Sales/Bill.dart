@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'package:flutter_contacts/flutter_contacts.dart';
 
 // --- IMPORTS FROM YOUR PROJECT ---
 // Update these paths to match your actual project structure
@@ -108,34 +109,91 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _showDiscountDialog() {
-    final TextEditingController discountController = TextEditingController(
+    final TextEditingController percentController = TextEditingController();
+    final TextEditingController amountController = TextEditingController(
       text: _discountAmount > 0 ? _discountAmount.toString() : '',
     );
+    double total = widget.totalAmount;
+    bool isPercentEditing = false;
+    bool isAmountEditing = false;
+
+    void updateFromPercent() {
+      if (isPercentEditing) return;
+      isPercentEditing = true;
+      double percent = double.tryParse(percentController.text) ?? 0.0;
+      double amount = (percent / 100.0) * total;
+      amountController.text = amount > 0 ? amount.toStringAsFixed(2) : '';
+      isPercentEditing = false;
+    }
+
+    void updateFromAmount() {
+      if (isAmountEditing) return;
+      isAmountEditing = true;
+      double amount = double.tryParse(amountController.text) ?? 0.0;
+      double percent = total > 0 ? (amount / total) * 100.0 : 0.0;
+      percentController.text = percent > 0 ? percent.toStringAsFixed(2) : '';
+      isAmountEditing = false;
+    }
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Discount'),
-        content: TextField(
-          controller: discountController,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Amount (Rs)',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.money_off),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Add Discount', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: percentController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Discount (%)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.percent),
+                ),
+                onChanged: (val) => updateFromPercent(),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Discount Amount (Rs)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.money_off),
+                ),
+                onChanged: (val) => updateFromAmount(),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      double amount = double.tryParse(amountController.text) ?? 0.0;
+                      setState(() => _discountAmount = amount);
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
           ),
-          autofocus: true,
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final discount = double.tryParse(discountController.text) ?? 0.0;
-              setState(() => _discountAmount = discount);
-              Navigator.pop(context);
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
   }
@@ -643,6 +701,10 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // For pre-filling add customer dialog
+  String? _prefillName;
+  String? _prefillPhone;
+
   @override
   void initState() {
     super.initState();
@@ -657,53 +719,184 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
     super.dispose();
   }
 
+  Future<void> _importFromContacts() async {
+    if (!await FlutterContacts.requestPermission()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contacts permission denied'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    final contacts = await FlutterContacts.getContacts(withProperties: true);
+    if (contacts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No contacts found'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+    showDialog(
+      context: context,
+      builder: (context) {
+        List<Contact> filteredContacts = contacts;
+        final TextEditingController contactSearchController = TextEditingController();
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            void filterContacts(String query) {
+              setDialogState(() {
+                filteredContacts = contacts.where((c) {
+                  final name = c.displayName.toLowerCase();
+                  final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(' ', '').toLowerCase() : '';
+                  return name.contains(query.toLowerCase()) || phone.contains(query.toLowerCase());
+                }).toList();
+              });
+            }
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: SizedBox(
+                width: 350,
+                height: 500,
+                child: Column(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Text('Select Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: TextField(
+                        controller: contactSearchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search by name or phone',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: filterContacts,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredContacts.length,
+                        itemBuilder: (context, index) {
+                          final c = filteredContacts[index];
+                          final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(' ', '') : '';
+                          return ListTile(
+                            title: Text(c.displayName),
+                            subtitle: Text(phone),
+                            onTap: phone.isNotEmpty
+                                ? () {
+                                    setState(() {
+                                      _prefillName = c.displayName;
+                                      _prefillPhone = phone;
+                                    });
+                                    Navigator.pop(context);
+                                    _showAddCustomerDialog();
+                                  }
+                                : null,
+                            enabled: phone.isNotEmpty,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showAddCustomerDialog() {
-    final nameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
+    final nameCtrl = TextEditingController(text: _prefillName ?? '');
+    final phoneCtrl = TextEditingController(text: _prefillPhone ?? '');
     final gstCtrl = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Customer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder())),
-            const SizedBox(height: 12),
-            TextField(controller: gstCtrl, decoration: const InputDecoration(labelText: 'GST (Optional)', border: OutlineInputBorder())),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
-              try {
-                await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
-                  'name': nameCtrl.text.trim(),
-                  'phone': phoneCtrl.text.trim(),
-                  'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                  'balance': 0.0,
-                  'totalSales': 0.0,
-                  'timestamp': FieldValue.serverTimestamp(),
-                  'lastUpdated': FieldValue.serverTimestamp(),
-                });
-                if (mounted) {
-                  Navigator.pop(context);
-                  widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
-                }
-              } catch (e) {
-                // Handle error
-              }
-            },
-            child: const Text('Add'),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: gstCtrl,
+                decoration: InputDecoration(
+                  labelText: 'GST (Optional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () async {
+                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+                      try {
+                        await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                          'name': nameCtrl.text.trim(),
+                          'phone': phoneCtrl.text.trim(),
+                          'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                          'balance': 0.0,
+                          'totalSales': 0.0,
+                          'timestamp': FieldValue.serverTimestamp(),
+                          'lastUpdated': FieldValue.serverTimestamp(),
+                        });
+                        if (mounted) {
+                          Navigator.pop(context);
+                          widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
+                        }
+                      } catch (e) {
+                        // Handle error
+                      }
+                    },
+                    child: const Text('Add', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
+      ).then((_) {
+      // Clear prefill after dialog closes
+      setState(() {
+        _prefillName = null;
+        _prefillPhone = null;
+      });
+    });
   }
 
   @override
@@ -741,7 +934,15 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   onPressed: _showAddCustomerDialog,
                   icon: const Icon(Icons.person_add, color: kPrimaryColor),
                   style: IconButton.styleFrom(backgroundColor: kPrimaryColor.withOpacity(0.1)),
-                )
+                  tooltip: 'Add Customer',
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _importFromContacts,
+                  icon: const Icon(Icons.import_contacts, color: kPrimaryColor),
+                  style: IconButton.styleFrom(backgroundColor: kPrimaryColor.withOpacity(0.1)),
+                  tooltip: 'Import from Contacts',
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -1322,35 +1523,61 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
-    // (Similar to SplitPaymentPage logic)
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
+    String customerName = 'Unknown';
+
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final customerDoc = await transaction.get(customerRef);
       if (customerDoc.exists) {
-        final current = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0;
-        transaction.update(customerRef, {'balance': current + amount});
+        customerName = (customerDoc.data() as Map<String, dynamic>?)?['name'] ?? 'Unknown';
+        final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0;
+        final newBalance = currentBalance + amount;
+        transaction.update(customerRef, {
+          'balance': newBalance,
+          'lastUpdated': FieldValue.serverTimestamp()
+        });
       }
     });
-    // Add credit ledger entry...
+
+    final staffName = await _fetchStaffName(widget.uid);
+    final businessLocation = await _fetchBusinessLocation(widget.uid);
+
+    await FirestoreService().addDocument('credits', {
+      'customerId': phone,
+      'customerName': customerName,
+      'amount': amount,
+      'type': 'credit_sale',
+      'method': 'Credit',
+      'invoiceNumber': invoiceNumber,
+      'timestamp': FieldValue.serverTimestamp(),
+      'date': DateTime.now().toIso8601String(),
+      'note': 'Split Payment - Inv #$invoiceNumber',
+      'staffId': widget.uid,
+      'staffName': staffName ?? 'Staff',
+      'businessLocation': businessLocation ?? 'Tirunelveli',
+    });
   }
 
   Future<void> _updateProductStock() async {
-    // (Similar to SplitPaymentPage logic)
     try {
-      for (var item in widget.cartItems) {
-        final ref = await FirestoreService().getDocumentReference('Products', item.productId);
-        await FirebaseFirestore.instance.runTransaction((t) async {
-          final doc = await t.get(ref);
-          if (doc.exists) {
-            final data = doc.data() as Map<String, dynamic>?;
-            if (data?['stockEnabled'] == true) {
-              final cur = data?['currentStock'] as double? ?? 0.0;
-              t.update(ref, {'currentStock': cur - item.quantity});
+      for (var cartItem in widget.cartItems) {
+        final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final productDoc = await transaction.get(productRef);
+          if (productDoc.exists) {
+            final productData = productDoc.data() as Map<String, dynamic>?;
+            final stockEnabled = productData?['stockEnabled'] as bool? ?? false;
+            if (stockEnabled) {
+              final currentStock = productData?['currentStock'] as double? ?? 0.0;
+              final newStock = currentStock - cartItem.quantity;
+              transaction.update(productRef, {'currentStock': newStock});
             }
           }
         });
       }
-    } catch(e) { debugPrint(e.toString()); }
+    } catch (e) {
+      debugPrint('Stock update error: $e');
+    }
   }
 
   Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes) async {
@@ -1369,70 +1596,9 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  // Helper method for Set Later Payment: Save to savedOrders and return to menu
-  Future<void> _saveOrderForLater() async {
-    try {
-      if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
-        );
-      }
-
-      final staffName = await _fetchStaffName(widget.uid);
-      final items = widget.cartItems.map((item) => {
-        'productId': item.productId, 'name': item.name, 'price': item.price,
-        'quantity': item.quantity, 'total': item.total,
-      }).toList();
-
-      await FirebaseFirestore.instance
-          .collection('savedOrders')
-          .add({
-        'customerName': widget.customerName,
-        'customerPhone': widget.customerPhone,
-        'items': items,
-        'total': widget.totalAmount,
-        'timestamp': FieldValue.serverTimestamp(),
-        'staffId': widget.uid,
-        'staffName': staffName ?? 'Unknown Staff',
-      });
-
-      if (widget.savedOrderId != null && widget.savedOrderId!.isNotEmpty) {
-        await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      }
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order saved for later payment.'),
-            backgroundColor: Color(0xFF4CAF50),
-          ),
-        );
-        // Navigate back to the root (MenuPage or Sales Page)
-        Navigator.popUntil(context, (route) => route.isFirst);
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving order: $e'),
-            backgroundColor: const Color(0xFFFF5252),
-          ),
-        );
-      }
-    }
-  }
-
   Future<void> _completeSale() async {
     if (widget.paymentMode == 'Credit' && widget.customerPhone == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit')));
-      return;
-    }
-    if (widget.paymentMode == 'Set later') {
-      await _saveOrderForLater();
       return;
     }
 
@@ -1632,8 +1798,8 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
           ),
         ],
-      ),
-    );
+      )
+      );
   }
 
   Widget _buildKeyRow(List<String> keys) {

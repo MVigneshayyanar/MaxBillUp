@@ -1431,13 +1431,15 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   // Merges 'sales' and 'savedOrders' collections into one stream
   Future<void> _initializeCombinedStream() async {
     try {
-      final salesStream = FirebaseFirestore.instance
-          .collection('sales')
+      // Use store-scoped collections via FirestoreService
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      final savedOrdersCollection = await FirestoreService().getStoreCollection('savedOrders');
+
+      final salesStream = salesCollection
           .orderBy('timestamp', descending: true)
           .snapshots();
 
-      final savedOrdersStream = FirebaseFirestore.instance
-          .collection('savedOrders')
+      final savedOrdersStream = savedOrdersCollection
           .orderBy('timestamp', descending: true)
           .snapshots();
 
