@@ -268,7 +268,7 @@ class _ReportsPageState extends State<ReportsPage> {
     return Scaffold(
       backgroundColor: kBackgroundGrey,
       appBar: AppBar(
-        title: const Text("Reports", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('reports'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
@@ -279,50 +279,50 @@ class _ReportsPageState extends State<ReportsPage> {
         children: [
           // Analytics & Overview Section
           if (_isFeatureAvailable('analytics') || _isFeatureAvailable('daybook') || _isFeatureAvailable('salesSummary') || isAdmin) ...[
-            _sectionHeader("Analytics & Overview"),
+            _sectionHeader(context.tr('analytics_overview')),
             if (_isFeatureAvailable('analytics'))
-              _tile("Analytics", Icons.bar_chart, kPrimaryBlue, 'Analytics'),
+              _tile(context.tr('analytics'), Icons.bar_chart, kPrimaryBlue, 'Analytics'),
             if (_isFeatureAvailable('daybook'))
-              _tile("DayBook (Today)", Icons.today, kPrimaryBlue, 'DayBook'),
+              _tile(context.tr('daybook_today'), Icons.today, kPrimaryBlue, 'DayBook'),
             if (_isFeatureAvailable('salesSummary'))
-              _tile("Sales Summary", Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
+              _tile(context.tr('sales_summary'), Icons.dashboard_outlined, kPrimaryBlue, 'Summary'),
           ],
 
           // Sales & Transactions Section
           if (_isFeatureAvailable('salesReport') || _isFeatureAvailable('itemSalesReport') || _isFeatureAvailable('topCustomer') || isAdmin) ...[
-            _sectionHeader("Sales & Transactions"),
+            _sectionHeader(context.tr('sales_transactions')),
             if (_isFeatureAvailable('salesReport'))
-              _tile("Sales Report", Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
+              _tile(context.tr('sales_report'), Icons.receipt_long, kPrimaryBlue, 'SalesReport'),
             if (_isFeatureAvailable('itemSalesReport'))
-              _tile("Item Sales Report", Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
+              _tile(context.tr('item_sales_report'), Icons.category_outlined, kPrimaryBlue, 'ItemSales'),
             if (_isFeatureAvailable('topCustomer'))
-              _tile("Top Customers", Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
+              _tile(context.tr('top_customers'), Icons.people_outline, kPrimaryBlue, 'TopCustomers'),
           ],
 
           // Inventory & Products Section
           if (_isFeatureAvailable('stockReport') || _isFeatureAvailable('lowStockProduct') || _isFeatureAvailable('topProducts') || _isFeatureAvailable('topCategory') || isAdmin) ...[
-            _sectionHeader("Inventory & Products"),
+            _sectionHeader(context.tr('inventory_products')),
             if (_isFeatureAvailable('stockReport'))
-              _tile("Stock Report", Icons.inventory, kPrimaryBlue, 'StockReport'),
+              _tile(context.tr('stock_report'), Icons.inventory, kPrimaryBlue, 'StockReport'),
             if (_isFeatureAvailable('lowStockProduct'))
-              _tile("Low Stock Products", Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
+              _tile(context.tr('low_stock_products'), Icons.warning_amber_rounded, kExpenseRed, 'LowStock'),
             if (_isFeatureAvailable('topProducts'))
-              _tile("Top Products", Icons.star_border, kPrimaryBlue, 'TopProducts'),
+              _tile(context.tr('top_products'), Icons.star_border, kPrimaryBlue, 'TopProducts'),
             if (_isFeatureAvailable('topCategory'))
-              _tile("Top Categories", Icons.folder_open, kPrimaryBlue, 'TopCategories'),
+              _tile(context.tr('top_categories'), Icons.folder_open, kPrimaryBlue, 'TopCategories'),
           ],
 
           // Financials & Tax Section
           if (_isFeatureAvailable('expensesReport') || _isFeatureAvailable('taxReport') || _isFeatureAvailable('hsnReport') || _isFeatureAvailable('staffSalesReport') || isAdmin) ...[
-            _sectionHeader("Financials & Tax"),
+            _sectionHeader(context.tr('financials_tax')),
             if (_isFeatureAvailable('expensesReport'))
-              _tile("Expense Report", Icons.money_off, kExpenseRed, 'ExpenseReport'),
+              _tile(context.tr('expense_report'), Icons.money_off, kExpenseRed, 'ExpenseReport'),
             if (_isFeatureAvailable('taxReport'))
-              _tile("Tax Report", Icons.percent, kIncomeGreen, 'TaxReport'),
+              _tile(context.tr('tax_report'), Icons.percent, kIncomeGreen, 'TaxReport'),
             if (_isFeatureAvailable('hsnReport'))
-              _tile("HSN Report", Icons.description, kPrimaryBlue, 'HSNReport'),
+              _tile(context.tr('hsn_report'), Icons.description, kPrimaryBlue, 'HSNReport'),
             if (_isFeatureAvailable('staffSalesReport'))
-              _tile("Staff Sale Report", Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
+              _tile(context.tr('staff_sale_report'), Icons.badge_outlined, kPrimaryBlue, 'StaffReport'),
           ],
 
           // No permissions message
@@ -340,7 +340,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   Icon(Icons.lock_outline, size: 48, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    'No Report Access',
+                    context.tr('no_report_access'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -349,7 +349,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'You don\'t have permission to view any reports. Contact your administrator.',
+                    context.tr('no_report_permission_msg'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
@@ -976,7 +976,7 @@ class DayBookPage extends StatelessWidget {
                                 topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 bottomTitles: AxisTitles(
-                                  axisNameWidget: const Text('Hour', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: Text(context.tr('hour'), style: const TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     interval: 4,
@@ -984,7 +984,7 @@ class DayBookPage extends StatelessWidget {
                                   ),
                                 ),
                                 leftTitles: AxisTitles(
-                                  axisNameWidget: const Text('₹', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                  axisNameWidget: Text(context.tr('currency_symbol'), style: const TextStyle(fontSize: 10, color: Colors.grey)),
                                   sideTitles: SideTitles(
                                     showTitles: true,
                                     reservedSize: 40,
@@ -1497,10 +1497,10 @@ class SalesSummaryPage extends StatelessWidget {
                           ),
                         ),
                       ],
-                    ),
-                  );
-                },
-              );
+                    )
+                    );
+                  },
+                );
             },
           );
         },

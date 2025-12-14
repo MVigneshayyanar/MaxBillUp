@@ -119,16 +119,16 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           controller: _searchController,
           autofocus: true,
           style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'Search customer or #ID...',
+          decoration: InputDecoration(
+            hintText: context.tr('search'),
             hintStyle: TextStyle(color: Colors.white70),
             border: InputBorder.none,
           ),
         )
             : GestureDetector(
           onLongPress: () => QuotationMigrationHelper.migrateSettledQuotations(context),
-          child: const Text(
-            'Quotations',
+          child:  Text(
+            context.tr('quotations'),
             style: TextStyle(
                 color: Colors.white, fontWeight: FontWeight.w600),
           ),
@@ -152,22 +152,22 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
               setState(() => _currentSort = result);
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<SortOption>>[
-              const PopupMenuItem(
+               PopupMenuItem(
                 value: SortOption.dateNewest,
-                child: Text('Date: Newest First'),
+                child: Text(context.tr('date_newest_first')),
               ),
-              const PopupMenuItem(
+              PopupMenuItem<SortOption>(
                 value: SortOption.dateOldest,
-                child: Text('Date: Oldest First'),
+                child: Text(context.tr('date_oldest_first')),
               ),
               const PopupMenuDivider(),
-              const PopupMenuItem(
+              PopupMenuItem<SortOption>(
                 value: SortOption.amountHigh,
-                child: Text('Amount: High to Low'),
+                child: Text(context.tr('amount_high_to_low')),
               ),
-              const PopupMenuItem(
+              PopupMenuItem<SortOption>(
                 value: SortOption.amountLow,
-                child: Text('Amount: Low to High'),
+                child: Text(context.tr('amount_low_to_high')),
               ),
             ],
           ),
@@ -181,11 +181,11 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               children: [
-                _buildFilterChip('All', FilterStatus.all),
+                _buildFilterChip(context.tr('all'), FilterStatus.all),
                 const SizedBox(width: 8),
-                _buildFilterChip('Available', FilterStatus.available),
+                _buildFilterChip(context.tr('available'), FilterStatus.available),
                 const SizedBox(width: 8),
-                _buildFilterChip('Settled', FilterStatus.settled),
+                _buildFilterChip(context.tr('settled'), FilterStatus.settled),
               ],
             ),
           ),
@@ -206,7 +206,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return _buildEmptyState('No quotations found');
+                return _buildEmptyState(context.tr('no_quotations_found'));
               }
 
               // Apply Search, Sort, and Filter logic
@@ -458,7 +458,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           ),
           const SizedBox(width: 6),
           Text(
-            isBilled ? 'Settled' : 'Available',
+            isBilled ? context.tr('settled') : context.tr('available'),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

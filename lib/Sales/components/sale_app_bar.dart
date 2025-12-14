@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 class SaleAppBar extends StatelessWidget {
@@ -34,11 +33,11 @@ class SaleAppBar extends StatelessWidget {
           children: [
             // Menu Button
             SizedBox(width: screenWidth * 0.02),
-            _buildTab('Sale / All', 0, screenWidth, tabHeight),
+            _buildTab(context.tr('sale_all'), 0, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
-            _buildTab('Quick Sale', 1, screenWidth, tabHeight),
+            _buildTab(context.tr('quick_sale'), 1, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
-            _buildTab('Saved ', 2, screenWidth, tabHeight),
+            _buildTab(context.tr('saved'), 2, screenWidth, tabHeight),
           ],
         ),
       ),

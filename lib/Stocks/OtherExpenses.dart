@@ -57,7 +57,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Other Expenses', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('other_expenses'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -351,7 +351,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${context.tr('error')}: $e')),
         );
       }
     } finally {
@@ -368,7 +368,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('New Other Expense', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('new_other_expense'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -534,7 +534,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Expense Details', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('expense_details'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,

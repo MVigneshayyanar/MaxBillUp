@@ -61,7 +61,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Expenses', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('expenses'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -143,7 +143,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search expenses...',
+                  hintText: context.tr('search'),
                   prefixIcon: const Icon(Icons.search),
                   fillColor: Colors.white,
                   filled: true,
@@ -374,7 +374,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   Future<void> _saveExpense() async {
     if (_titleController.text.isEmpty || _amountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in required fields')),
+        SnackBar(content: Text(context.tr('fill_required_fields'))),
       );
       return;
     }
@@ -435,7 +435,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${context.tr('error')}: $e')),
         );
       }
     } finally {
@@ -452,7 +452,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('New Expense', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('new_expense'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -649,7 +649,7 @@ class ExpenseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Expense Details', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('expense_details'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,

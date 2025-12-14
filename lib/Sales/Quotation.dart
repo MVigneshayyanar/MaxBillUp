@@ -511,7 +511,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             TextField(
               onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
               decoration: InputDecoration(
-                hintText: 'Search customer',
+                hintText: context.tr('search'),
                 prefixIcon: const Icon(Icons.search),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               ),

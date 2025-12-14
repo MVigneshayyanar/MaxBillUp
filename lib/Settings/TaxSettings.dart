@@ -419,7 +419,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text('Tax Settings', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('tax_settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
@@ -859,7 +859,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text('Update Settings', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text(context.tr('update_settings'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],

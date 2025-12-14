@@ -135,8 +135,8 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment Successful! Plan Upgraded.'),
+          SnackBar(
+            content: Text(context.tr('paymentsuccessful')),
             backgroundColor: Colors.green,
           ),
         );
@@ -153,7 +153,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
+            .showSnackBar(SnackBar(content: Text('${context.tr('error')}: $e')));
       }
     }
   }
@@ -161,7 +161,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void _handlePaymentError(PaymentFailureResponse response) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed: ${response.message}'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('${context.tr('paymentfailed')}: ${response.message}'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -206,8 +209,12 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
+        title: Text(
+          context.tr('upgrade'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -219,10 +226,6 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   (route) => false,
             );
           },
-        ),
-        title: const Text(
-          'Upgrade Plan',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1.0),
@@ -301,7 +304,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _storeData?['businessName'] ?? 'Your Store',
+                    _storeData?['businessName'] ?? context.tr('businessname'),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -309,7 +312,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   ),
                   if (_storeData?['subscriptionExpiryDate'] != null)
                     Text(
-                      'Expires: ${_storeData!['subscriptionExpiryDate'].toString().split('T')[0]}',
+                      '${context.tr('subscription_expiry')}: ${_storeData!['subscriptionExpiryDate'].toString().split('T')[0]}',
                       style: TextStyle(
                         color: Colors.grey.shade600,
                         fontSize: 12,
@@ -354,9 +357,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _toggleOption('Monthly', 1),
-            _toggleOption('6 Months', 6),
-            _toggleOption('Yearly', 12, discount: 'SAVE 20%'),
+            _toggleOption(context.tr('permonth'), 1),
+            _toggleOption(context.tr('six_months'), 6),
+            _toggleOption(context.tr('peryear'), 12, discount: context.tr('save_20')),
           ],
         ),
       ),
@@ -482,7 +485,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                               ),
                             ),
                             Text(
-                              _selectedDuration == 1 ? '/month' : '/period',
+                              _selectedDuration == 1 ? context.tr('permonth') : context.tr('perperiod'),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
@@ -514,10 +517,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 ),
               ),
             ),
-          ),
-        );
-      },
-    );
+          )
+          );
+        },
+      );
   }
 
   Widget _buildComparisonSection() {
@@ -547,24 +550,31 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           child: Column(
             children: [
               // Header
-              _buildTableRow("Feature", "Free", "Elite", "Prime", "Max", isHeader: true),
+              _buildTableRow(
+                context.tr('features'),
+                context.tr('freeplan'),
+                'Elite',
+                'Prime',
+                'Max',
+                isHeader: true,
+              ),
               // Data Rows
-              _buildTableRow("Staff", "No", "No", "3", "10"),
-              _buildTableRow("Bill History", "7 days", "Yes", "Yes", "Yes"),
-              _buildTableRow("DayBook", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Report", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Quotation", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Bulk Inventory", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Logo On Bill", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Customer Credit", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Edit Bill", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("TAX Report", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("Import Contacts", "No", "Yes", "Yes", "Yes"),
-              _buildTableRow("POS Billing", "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow("Expense", "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow("Purchase", "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow("Credit", "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow("Cloud Storage", "Yes", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('staff'), "No", "No", "3", "10"),
+              _buildTableRow(context.tr('billhistory'), "7 days", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('daybook'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('report'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('quotation'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('bulk_inventory'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('logo_on_bill'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('customer_credit'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('edit_bill'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('taxreport'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('import_contacts'), "No", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('pos_billing'), "Yes", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('expense'), "Yes", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('purchase'), "Yes", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('credit'), "Yes", "Yes", "Yes", "Yes"),
+              _buildTableRow(context.tr('cloud_storage'), "Yes", "Yes", "Yes", "Yes"),
             ],
           ),
         ),
@@ -666,7 +676,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   ),
                 ),
                 child: Text(
-                  isCurrent ? "Current Plan" : "Pay Now",
+                  isCurrent ? context.tr('currentplan') : context.tr('pay_now'),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),

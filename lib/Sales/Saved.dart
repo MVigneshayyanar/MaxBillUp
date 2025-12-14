@@ -36,7 +36,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Order deleted'),
+            content: Text(context.tr('order_deleted')),
             backgroundColor: Colors.green[600],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -62,7 +62,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Order', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(context.tr('delete_order'), style: const TextStyle(fontWeight: FontWeight.w600)),
         content: Text('Delete order for $name?'),
         actions: [
           TextButton(
@@ -78,7 +78,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
               backgroundColor: Colors.red[400],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -126,7 +126,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                       child: const Icon(Icons.bookmark_border, size: 64, color: Color(0xFF2196F3)),
                     ),
                     const SizedBox(height: 24),
-                    const Text('No Saved Orders', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                    Text(context.tr('no_saved_orders'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 8),
                     Text('Save orders to access them later', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
                   ],

@@ -44,7 +44,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Expense Categories', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('expense_categories'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -64,7 +64,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search categories',
+                      hintText: context.tr('search'),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: const Color(0xFFF5F5F5),
@@ -310,13 +310,13 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a category name')),
+                    SnackBar(content: Text(context.tr('enter_category_name'))),
                   );
                   return;
                 }
@@ -347,7 +347,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 backgroundColor: const Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Add', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -397,13 +397,13 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a category name')),
+                    SnackBar(content: Text(context.tr('enter_category_name'))),
                   );
                   return;
                 }
@@ -432,7 +432,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 backgroundColor: const Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Update', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -457,7 +457,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -467,7 +467,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Category deleted successfully')),
+                      SnackBar(content: Text(context.tr('category_deleted_success'))),
                     );
                   }
                 } catch (e) {
@@ -482,7 +482,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 backgroundColor: Colors.red,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         );

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 // ==========================================
 // PERMISSION HELPER
@@ -119,7 +120,7 @@ class PermissionHelper {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(context.tr('ok')),
           ),
         ],
       ),

@@ -322,7 +322,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search by name, role...',
+                  hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kTextSecondary),
                   prefixIcon: const Icon(Icons.search, color: kTextSecondary),
                   border: InputBorder.none,
@@ -659,7 +659,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+            child: Text(context.tr('ok')),
           ),
         ],
       ),
@@ -694,7 +694,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Invite New Staff'),
+          title: Text(context.tr('invite_new_staff')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -726,7 +726,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
             ElevatedButton(
               onPressed: () => _handleInvite(context, nameController, phoneController, emailController, passwordController, selectedRole),
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
@@ -839,7 +839,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Staff Member'),
+          title: Text(context.tr('edit_staff_member')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -873,7 +873,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -895,7 +895,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: const Text('Update', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -1000,7 +1000,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -1103,10 +1103,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Staff'),
+        title: Text(context.tr('remove_staff')),
         content: Text('Remove $name? They will not be able to login.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
           ElevatedButton(
             onPressed: () async {
               // Delete from Store
@@ -1117,7 +1117,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               if(context.mounted) Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

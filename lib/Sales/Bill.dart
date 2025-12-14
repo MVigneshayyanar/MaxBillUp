@@ -232,7 +232,7 @@ class _BillPageState extends State<BillPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Internal Note'),
+        title: Text(context.tr('add_internal_note')),
         content: TextField(
           controller: noteController,
           maxLines: 3,
@@ -244,13 +244,13 @@ class _BillPageState extends State<BillPage> {
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
           ElevatedButton(
             onPressed: () {
               setState(() => _creditNote = noteController.text);
               Navigator.pop(context);
             },
-            child: const Text('Save'),
+            child: Text(context.tr('save')),
           ),
         ],
       ),
@@ -269,7 +269,7 @@ class _BillPageState extends State<BillPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Available Credit Notes'),
+          title: Text(context.tr('available_credit_notes')),
           content: SizedBox(
             width: double.maxFinite,
             height: 400,
@@ -351,7 +351,7 @@ class _BillPageState extends State<BillPage> {
                 });
                 Navigator.pop(context);
               },
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () {
@@ -370,10 +370,10 @@ class _BillPageState extends State<BillPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Order'),
+        title: Text(context.tr('clear_order')),
         content: const Text('Are you sure you want to discard this bill?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
@@ -918,7 +918,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    child: Text(context.tr('cancel')),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
@@ -946,7 +946,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                         // Handle error
                       }
                     },
-                    child: const Text('Add', style: TextStyle(color: Colors.white)),
+                    child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -986,7 +986,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search Name / Phone / GST',
+                      hintText: context.tr('search'),
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -1525,7 +1525,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
-        title: const Text('Split Payment', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('split_payment'), style: const TextStyle(color: Colors.white)),
         backgroundColor: Colors.blue,
         elevation: 0.5,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -1544,7 +1544,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               ),
               child: Column(
                 children: [
-                  const Text('Total Bill Amount', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                  Text(context.tr('total_bill_amount'), style: const TextStyle(color: Colors.white70, fontSize: 14)),
                   const SizedBox(height: 4),
                   Text('Rs ${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
                 ],
@@ -2127,7 +2127,7 @@ class _PaymentPageState extends State<PaymentPage> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const Text('Total Bill', style: TextStyle(color: Colors.grey)),
+                Text(context.tr('total_bill'), style: const TextStyle(color: Colors.grey)),
                 Text(widget.totalAmount.toStringAsFixed(2), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
 

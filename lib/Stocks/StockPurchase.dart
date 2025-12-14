@@ -61,7 +61,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Stock Purchase', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('stock_purchase'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -421,7 +421,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text('${context.tr('error')}: $e')),
         );
       }
     } finally {
@@ -438,7 +438,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('New Stock Purchase', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('new_stock_purchase'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -608,7 +608,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Purchase Details', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('purchase_details'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,

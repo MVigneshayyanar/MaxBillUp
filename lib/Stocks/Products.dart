@@ -106,11 +106,11 @@ class _ProductsPageState extends State<ProductsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Sort By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(context.tr('sort'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.sort_by_alpha),
-              title: const Text('Name'),
+              title: Text(context.tr('name')),
               trailing: _sortBy == 'name' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -126,7 +126,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.attach_money),
-              title: const Text('Price'),
+              title: Text(context.tr('price')),
               trailing: _sortBy == 'price' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -142,7 +142,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.inventory),
-              title: const Text('Stock'),
+              title: Text(context.tr('stock')),
               trailing: _sortBy == 'stock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -189,7 +189,7 @@ class _ProductsPageState extends State<ProductsPage> {
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.select_all),
-              title: const Text('All Products'),
+              title: Text(context.tr('all_products')),
               trailing: _filterStock == 'all' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -200,7 +200,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.check_circle, color: Color(0xFF4CAF50)),
-              title: const Text('In Stock'),
+              title: Text(context.tr('in_stock')),
               trailing: _filterStock == 'inStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -211,7 +211,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.warning, color: Color(0xFFFF9800)),
-              title: const Text('Low Stock (< 10)'),
+              title: Text(context.tr('low_stock_filter')),
               trailing: _filterStock == 'lowStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -222,7 +222,7 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
             ListTile(
               leading: const Icon(Icons.cancel, color: Color(0xFFFF5252)),
-              title: const Text('Out of Stock'),
+              title: Text(context.tr('out_of_stock')),
               trailing: _filterStock == 'outOfStock' ? const Icon(Icons.check, color: Color(0xFF2196F3)) : null,
               onTap: () {
                 setState(() {
@@ -314,7 +314,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       controller: _searchController,
                       style: const TextStyle(color: Colors.black87),
                       decoration: InputDecoration(
-                        hintText: 'Search',
+                        hintText: context.tr('search'),
                         hintStyle: TextStyle(
                           color: Colors.grey[400],
                           fontSize: 16,
@@ -611,7 +611,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           foregroundColor: isAdding ? Colors.white : Colors.black,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        child: const Text('Add'),
+                        child: Text(context.tr('add')),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -647,7 +647,7 @@ class _ProductsPageState extends State<ProductsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () {
@@ -708,7 +708,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 backgroundColor: Color(0xFF2196F3),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Update', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),

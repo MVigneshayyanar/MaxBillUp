@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class BarcodeScannerPage extends StatefulWidget {
   final Function(String) onBarcodeScanned;
@@ -40,7 +41,9 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
     // Show feedback with vibration-like animation
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Product added! ($barcode) - Total scanned: $_scannedCount'),
+        content: Text(
+          '${context.tr('product_added_scanned')} ($barcode) - ${context.tr('total_scanned')}: $_scannedCount',
+        ),
         backgroundColor: const Color(0xFF4CAF50),
         duration: const Duration(milliseconds: 1500),
         behavior: SnackBarBehavior.floating,
@@ -65,7 +68,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Scan Barcode'),
+        title: Text(context.tr('scanbarcode')),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -125,7 +128,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'Products Scanned: $_scannedCount',
+                        '${context.tr('products_scanned')}: $_scannedCount',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -141,9 +144,9 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
                       color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    child: const Text(
-                      'Scan multiple products\nPress back when done',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('scan_multiple_products'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -249,4 +252,3 @@ class ScannerOverlay extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-

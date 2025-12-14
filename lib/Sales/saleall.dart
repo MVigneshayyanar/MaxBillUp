@@ -133,7 +133,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       if (stockEnabled && _cart[idx].quantity + 1 > stock) {
         CommonWidgets.showSnackBar(
           context,
-          'Max stock reached! (${stock.toInt()} available)',
+          context.tr('max_stock_reached').replaceFirst('{0}', stock.toInt().toString()),
           bgColor: const Color(0xFFFF5252),
         );
         return;
@@ -143,7 +143,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       _cart.insert(0, item);
     } else {
       if (stockEnabled && stock < 1) {
-        CommonWidgets.showSnackBar(context, 'Out of stock!', bgColor: const Color(0xFFFF5252));
+        CommonWidgets.showSnackBar(context, context.tr('out_of_stock'), bgColor: const Color(0xFFFF5252));
         return;
       }
       _cart.insert(0, CartItem(
@@ -245,14 +245,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final snap = await collection.where('barcode', isEqualTo: barcode).limit(1).get();
 
       if (snap.docs.isEmpty) {
-        if (mounted) CommonWidgets.showSnackBar(context, 'Product not found', bgColor: Colors.orange);
+        if (mounted) CommonWidgets.showSnackBar(context, context.tr('product_not_found'), bgColor: Colors.orange);
         return;
       }
 
       final doc = snap.docs.first;
       final data = doc.data() as Map<String, dynamic>;
       final id = doc.id;
-      final name = data['itemName'] ?? 'Unnamed';
+      final name = data['itemName'] ?? context.tr('unnamed');
       final price = (data['price'] ?? 0.0).toDouble();
       final stockEnabled = data['stockEnabled'] ?? false;
       final stock = (data['currentStock'] ?? 0.0).toDouble();
@@ -727,3 +727,4 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
+

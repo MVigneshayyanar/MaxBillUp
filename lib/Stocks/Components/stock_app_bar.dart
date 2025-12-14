@@ -50,13 +50,13 @@ class StockAppBar extends StatelessWidget {
                   future: FirestoreService().getCollectionStream('Products'),
                   builder: (context, streamSnapshot) {
                     if (!streamSnapshot.hasData) {
-                      return _buildTab('Products (0)', 0);
+                      return _buildTab('${context.tr('products')} (0)', 0);
                     }
                     return StreamBuilder<QuerySnapshot>(
                       stream: streamSnapshot.data,
                       builder: (context, snapshot) {
                         final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('Products ($productCount)', 0);
+                        return _buildTab('${context.tr('products')} ($productCount)', 0);
                       },
                     );
                   },
@@ -67,13 +67,13 @@ class StockAppBar extends StatelessWidget {
                   future: FirestoreService().getCollectionStream('categories'),
                   builder: (context, streamSnapshot) {
                     if (!streamSnapshot.hasData) {
-                      return _buildTab('Category (0)', 1);
+                      return _buildTab('${context.tr('category')} (0)', 1);
                     }
                     return StreamBuilder<QuerySnapshot>(
                       stream: streamSnapshot.data,
                       builder: (context, snapshot) {
                         final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('Category ($categoryCount)', 1);
+                        return _buildTab('${context.tr('category')} ($categoryCount)', 1);
                       },
                     );
                   },

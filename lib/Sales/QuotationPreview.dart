@@ -249,12 +249,12 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Share Error'),
+            title: Text(context.tr('share_error')),
             content: Text('Failed to share quotation: ${e.toString()}'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                child: Text(context.tr('ok')),
               ),
             ],
           ),
@@ -291,12 +291,12 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('No Printer Selected'),
+            title: Text(context.tr('no_printer_selected')),
             content: const Text('Please select a printer from Settings > Printer Setup before printing.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                child: Text(context.tr('ok')),
               ),
             ],
           ),
@@ -427,12 +427,12 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Print Error'),
+            title: Text(context.tr('print_error')),
             content: Text('Failed to print quotation: ${e.toString()}'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                child: Text(context.tr('ok')),
               ),
             ],
           ),

@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final String? email;
@@ -129,7 +128,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
       await firestore.collection('users').doc(widget.uid).set(userData);
 
-      _showMsg('Business registered successfully!');
+      _showMsg(context.tr('business_registered_success'));
 
       // Navigate to main app
       if (mounted) {
@@ -141,7 +140,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         );
       }
     } catch (e) {
-      _showMsg('Failed to save: $e', isError: true);
+      _showMsg(context.tr('failed_to_save'), isError: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -154,8 +153,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Business Details',
+        title: Text(
+          context.tr('businessdetails'),
           style: TextStyle(
             color: Colors.black87,
             fontSize: 20,
@@ -175,8 +174,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 const SizedBox(height: 20),
 
                 // Welcome message
-                const Text(
-                  'Complete Your Profile',
+                Text(
+                  context.tr('complete_profile_title'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -185,7 +184,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Please provide your business details to get started',
+                  context.tr('complete_profile_subtitle'),
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -194,81 +193,81 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 const SizedBox(height: 32),
 
                 // Personal Details Section
-                _sectionHeader('Personal Details'),
+                _sectionHeader(context.tr('personaldetails')),
                 const SizedBox(height: 16),
 
-                _label('Your Name'),
+                _label(context.tr('your_name')),
                 _buildTextField(
                   controller: _nameCtrl,
-                  hint: 'Enter your full name',
+                  hint: context.tr('enter_full_name'),
                   validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Name is required'
+                      ? context.tr('name_required')
                       : null,
                 ),
                 const SizedBox(height: 20),
 
-                _label('Your Phone Number'),
+                _label(context.tr('your_phone')),
                 _buildTextField(
                   controller: _phoneCtrl,
-                  hint: 'Enter your phone number',
+                  hint: context.tr('enter_phone'),
                   keyboardType: TextInputType.phone,
                   formatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(10),
                   ],
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Phone is required';
-                    if (v.trim().length != 10) return 'Enter valid 10-digit phone';
+                    if (v == null || v.trim().isEmpty) return context.tr('phone_required');
+                    if (v.trim().length != 10) return context.tr('phone_invalid_10_digit');
                     return null;
                   },
                 ),
                 const SizedBox(height: 32),
 
                 // Business Details Section
-                _sectionHeader('Business Details'),
+                _sectionHeader(context.tr('businessdetails')),
                 const SizedBox(height: 16),
 
-                _label('Business Name'),
+                _label(context.tr('businessname')),
                 _buildTextField(
                   controller: _businessNameCtrl,
-                  hint: 'Enter your business name',
+                  hint: context.tr('enter_business_name'),
                   validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Business name is required'
+                      ? context.tr('business_name_required')
                       : null,
                 ),
                 const SizedBox(height: 20),
 
-                _label('Business Phone Number'),
+                _label(context.tr('businessphone')),
                 _buildTextField(
                   controller: _businessPhoneCtrl,
-                  hint: 'Enter business phone number',
+                  hint: context.tr('enter_business_phone'),
                   keyboardType: TextInputType.phone,
                   formatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     LengthLimitingTextInputFormatter(10),
                   ],
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Business phone is required';
-                    if (v.trim().length != 10) return 'Enter valid 10-digit phone';
+                    if (v == null || v.trim().isEmpty) return context.tr('business_phone_required');
+                    if (v.trim().length != 10) return context.tr('phone_invalid_10_digit');
                     return null;
                   },
                 ),
                 const SizedBox(height: 20),
 
-                _label('GSTIN (Optional)'),
+                _label(context.tr('gstin_optional')),
                 _buildTextField(
                   controller: _gstinCtrl,
-                  hint: 'Enter GSTIN number',
+                  hint: context.tr('enter_gstin'),
                   validator: (v) => null, // Optional
                 ),
                 const SizedBox(height: 20),
 
-                _label('Business Location'),
+                _label(context.tr('businesslocation')),
                 _buildTextField(
                   controller: _businessLocationCtrl,
-                  hint: 'Enter your business location',
+                  hint: context.tr('enter_business_location'),
                   validator: (v) => v == null || v.trim().isEmpty
-                      ? 'Business location is required'
+                      ? context.tr('business_location_required')
                       : null,
                 ),
                 const SizedBox(height: 40),
@@ -295,8 +294,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                         color: Colors.white,
                       ),
                     )
-                        : const Text(
-                      'Complete Registration',
+                        : Text(
+                      context.tr('complete_registration'),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,

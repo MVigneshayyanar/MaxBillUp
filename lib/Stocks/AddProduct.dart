@@ -186,9 +186,9 @@ class _AddProductPageState extends State<AddProductPage> {
             );
           },
         ),
-        title: const Text(
-          'Add Product',
-          style: TextStyle(
+        title: Text(
+          context.tr('addproduct'),
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -204,9 +204,9 @@ class _AddProductPageState extends State<AddProductPage> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   // Item Information Section
-                  const Text(
-                    'Item Information',
-                    style: TextStyle(
+                  Text(
+                    context.tr('item_information'),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.black,
@@ -217,7 +217,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   // Item Name
                   _buildTextField(
                     controller: _itemNameController,
-                    hint: 'Item Name',
+                    hint: context.tr('item_name'),
                     isRequired: true,
                   ),
                   const SizedBox(height: 16),
@@ -229,7 +229,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   // Price
                   _buildTextField(
                     controller: _priceController,
-                    hint: 'Price',
+                    hint: context.tr('price'),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 16),
@@ -237,7 +237,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   // Quantity
                   _buildTextField(
                     controller: _quantityController,
-                    hint: 'Quantity',
+                    hint: context.tr('quantity'),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 12),
@@ -254,7 +254,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Leave field blank for price upon sale.',
+                          context.tr('leave_blank_for_price'),
                           style: TextStyle(
                             fontSize: 14,
                             color: const Color(0xFF2196F3),
@@ -277,9 +277,9 @@ class _AddProductPageState extends State<AddProductPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'More Details',
-                            style: TextStyle(
+                          Text(
+                            context.tr('more_details'),
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
                               color: Colors.black,
@@ -307,7 +307,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         // Cost Price
                         _buildTextField(
                           controller: _costPriceController,
-                          hint: 'Cost Price (Optional)',
+                          hint: context.tr('cost_price_optional'),
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 16),
@@ -315,7 +315,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         // MRP
                         _buildTextField(
                           controller: _mrpController,
-                          hint: 'MRP (Optional)',
+                          hint: context.tr('mrp_optional'),
                           keyboardType: TextInputType.number,
                         ),
                         const SizedBox(height: 16),
@@ -326,7 +326,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             Expanded(
                               child: _buildTextField(
                                 controller: _productCodeController,
-                                hint: 'Product Code',
+                                hint: context.tr('product_code'),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -343,9 +343,9 @@ class _AddProductPageState extends State<AddProductPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Generate',
-                                style: TextStyle(
+                              child: Text(
+                                context.tr('generate'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -362,7 +362,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             Expanded(
                               child: _buildTextField(
                                 controller: _hsnController,
-                                hint: 'hsn/scn',
+                                hint: context.tr('hsn_scn'),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -381,9 +381,9 @@ class _AddProductPageState extends State<AddProductPage> {
                                 ),
                                 elevation: 0,
                               ),
-                              child: const Text(
-                                'Find',
-                                style: TextStyle(
+                              child: Text(
+                                context.tr('find'),
+                                style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                   color: Colors.white,
@@ -397,7 +397,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         // Barcode with scanner icon - UPDATED
                         _buildTextField(
                           controller: _barcodeController,
-                          hint: 'Barcode',
+                          hint: context.tr('barcode'),
                           suffixIcon: Icons.qr_code_scanner,
                           onSuffixTap: _scanBarcode, // Calls scanner
                         ),
@@ -415,7 +415,7 @@ class _AddProductPageState extends State<AddProductPage> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'For adding barcode by an external barcode reader, tap barcode field & scan the barcode',
+                                context.tr('barcode_info'),
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: const Color(0xFF2196F3),
@@ -457,7 +457,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                             });
                                           },
                                           decoration: InputDecoration(
-                                            labelText: 'Unit',
+                                            labelText: context.tr('unit'),
                                             border: OutlineInputBorder(),
                                           ),
                                         ),
@@ -465,12 +465,12 @@ class _AddProductPageState extends State<AddProductPage> {
                                       const SizedBox(width: 8),
                                       IconButton(
                                         icon: const Icon(Icons.add),
-                                        tooltip: 'Add new unit',
+                                        tooltip: context.tr('add_new_unit'),
                                         onPressed: () {
                                           showDialog(
                                             context: context,
                                             builder: (context) => AlertDialog(
-                                              title: const Text('Add New Unit'),
+                                              title: Text(context.tr('add_new_unit')),
                                               content: TextField(
                                                 controller: _unitController,
                                                 decoration: const InputDecoration(
@@ -481,7 +481,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                               actions: [
                                                 TextButton(
                                                   onPressed: () => Navigator.pop(context),
-                                                  child: const Text('Cancel'),
+                                                  child: Text(context.tr('cancel')),
                                                 ),
                                                 ElevatedButton(
                                                   onPressed: () async {
@@ -495,7 +495,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                                     _unitController.clear();
                                                     Navigator.pop(context);
                                                   },
-                                                  child: const Text('Add'),
+                                                  child: Text(context.tr('add')),
                                                 ),
                                               ],
                                             ),
@@ -512,9 +512,9 @@ class _AddProductPageState extends State<AddProductPage> {
                         const SizedBox(height: 20),
 
                         // Tax Section
-                        const Text(
-                          'Tax',
-                          style: TextStyle(
+                        Text(
+                          context.tr('tax'),
+                          style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: Colors.black,
@@ -584,9 +584,9 @@ class _AddProductPageState extends State<AddProductPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Stock',
-                              style: TextStyle(
+                            Text(
+                              context.tr('stock'),
+                              style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black,
@@ -633,9 +633,9 @@ class _AddProductPageState extends State<AddProductPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(
+                  child: Text(
+                    context.tr('add'),
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -693,7 +693,7 @@ class _AddProductPageState extends State<AddProductPage> {
       validator: isRequired
           ? (value) {
         if (value == null || value.isEmpty) {
-          return 'This field is required';
+          return context.tr('this_field_is_required');
         }
         return null;
       }
@@ -713,7 +713,7 @@ class _AddProductPageState extends State<AddProductPage> {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
-              'Category',
+              context.tr('category'),
               style: TextStyle(color: Colors.grey[400], fontSize: 15),
             ),
           );
@@ -753,7 +753,7 @@ class _AddProductPageState extends State<AddProductPage> {
             child: DropdownButton<String>(
               value: _selectedCategory,
               hint: Text(
-                'Category',
+                context.tr('category'),
                 style: TextStyle(color: Colors.grey[400], fontSize: 15),
               ),
               isExpanded: true,
@@ -794,7 +794,7 @@ class _AddProductPageState extends State<AddProductPage> {
         child: DropdownButton<String>(
           value: _selectedStockUnit,
           hint: Text(
-            'Stock Unit',
+            context.tr('stock_unit'),
             style: TextStyle(color: Colors.grey[400], fontSize: 15),
           ),
           isExpanded: true,
@@ -925,10 +925,10 @@ class _AddProductPageState extends State<AddProductPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Product added successfully'),
+          SnackBar(
+            content: Text(context.tr('product_added')),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
         Navigator.push(
@@ -942,7 +942,7 @@ class _AddProductPageState extends State<AddProductPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Text(context.tr('error')),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 2),
           ),

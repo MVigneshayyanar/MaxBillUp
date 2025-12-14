@@ -109,7 +109,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search categories...',
+                      hintText: context.tr('search_categories'),
                       prefixIcon:
                       const Icon(Icons.search, color: Color(0xFF2196F3)),
                       suffixIcon: _searchQuery.isNotEmpty
@@ -139,7 +139,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     },
                     icon: const Icon(Icons.add_circle,
                         color: Color(0xFF4CAF50), size: 32),
-                    tooltip: 'Add Category',
+                    tooltip: context.tr('add_category'),
                   ),
               ],
             ),
@@ -242,7 +242,7 @@ class _CategoryPageState extends State<CategoryPage> {
                         size: 80, color: Colors.grey[300]),
                     const SizedBox(height: 16),
                     Text(
-                      'No categories yet',
+                      context.tr('no_categories_yet'),
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.grey[600],
@@ -251,7 +251,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Add your first category to organize products',
+                      context.tr('add_first_category'),
                       style: TextStyle(fontSize: 14, color: Colors.grey[400]),
                     ),
                   ],
@@ -277,7 +277,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     Icon(Icons.search_off, size: 80, color: Colors.grey[300]),
                     const SizedBox(height: 16),
                     Text(
-                      'No categories found',
+                      context.tr('no_categories_found'),
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.grey[600],
@@ -286,7 +286,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Try searching with different keywords',
+                      context.tr('try_searching_keywords'),
                       style: TextStyle(fontSize: 14, color: Colors.grey[400]),
                     ),
                   ],
@@ -351,13 +351,13 @@ class _CategoryPageState extends State<CategoryPage> {
                                       _showEditCategoryDialog(
                                           context, categoryId, categoryName);
                                     },
-                                    child: const Row(
+                                    child: Row(
                                       children: [
                                         Icon(Icons.edit_outlined,
                                             color: Color(0xFF2196F3), size: 20),
                                         SizedBox(width: 4),
                                         Text(
-                                          'Edit',
+                                          context.tr('edit'),
                                           style: TextStyle(
                                             color: Color(0xFF2196F3),
                                             fontSize: 15,
@@ -411,23 +411,21 @@ class _CategoryPageState extends State<CategoryPage> {
                                 child: Container(
                                   padding:
                                   const EdgeInsets.symmetric(vertical: 11),
-                                  child: const Center(
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.add,
-                                            color: Color(0xFF2196F3), size: 20),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Add Product',
-                                          style: TextStyle(
-                                            color: Color(0xFF2196F3),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                          ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add,
+                                          color: Color(0xFF2196F3), size: 20),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        context.tr('add_product'),
+                                        style: TextStyle(
+                                          color: Color(0xFF2196F3),
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
@@ -451,8 +449,8 @@ class _CategoryPageState extends State<CategoryPage> {
                             },
                             icon: const Icon(Icons.add,
                                 color: Color(0xFF4CAF50), size: 18),
-                            label: const Text(
-                              'Create New Product',
+                            label: Text(
+                              context.tr('create_new_product'),
                               style: TextStyle(
                                 color: Color(0xFF4CAF50),
                                 fontSize: 15,
@@ -493,8 +491,8 @@ class _CategoryPageState extends State<CategoryPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Add Existing Product',
+                  Text(
+                    context.tr('add_existing_product'),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -523,8 +521,8 @@ class _CategoryPageState extends State<CategoryPage> {
                               child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(
-                            child: Text('No products available'),
+                          return Center(
+                            child: Text(context.tr('no_products_available')),
                           );
                         }
                         final products = snapshot.data!.docs;
@@ -555,7 +553,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                 ),
                               ),
                               subtitle: Text(
-                                'Current: $currentCategory | ${price != null ? "Rs ${price.toStringAsFixed(1)}" : "Price on sale"}',
+                                '${context.tr('current')}: $currentCategory | ${price != null ? "Rs "+price.toStringAsFixed(1) : context.tr('price_on_sale')}',
                               ),
                               trailing: ElevatedButton(
                                 onPressed: () async {
@@ -569,13 +567,13 @@ class _CategoryPageState extends State<CategoryPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                            '$productName added to $categoryName'),
+                                            '$productName ${context.tr('added_to')} $categoryName'),
                                         backgroundColor: Colors.green,
                                       ),
                                     );
                                   } catch (e) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Error: $e')),
+                                      SnackBar(content: Text('${context.tr('error')}: $e')),
                                     );
                                   }
                                 },
@@ -584,7 +582,7 @@ class _CategoryPageState extends State<CategoryPage> {
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 8),
                                 ),
-                                child: const Text('Add'),
+                                child: Text(context.tr('add')),
                               ),
                             );
                           },
@@ -623,18 +621,18 @@ class _CategoryPageState extends State<CategoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Edit Category'),
+        title: Text(context.tr('edit_category')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: 'Category Name',
+          decoration: InputDecoration(
+            hintText: context.tr('category_name'),
             border: OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -648,12 +646,12 @@ class _CategoryPageState extends State<CategoryPage> {
                   );
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Category updated successfully')),
+                    SnackBar(
+                        content: Text(context.tr('category_updated_success'))),
                   );
                 } catch (e) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e')),
+                    SnackBar(content: Text('${context.tr('error')}: $e')),
                   );
                 }
               }
@@ -661,7 +659,7 @@ class _CategoryPageState extends State<CategoryPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2196F3),
             ),
-            child: const Text('Save'),
+            child: Text(context.tr('save')),
           ),
         ],
       ),
@@ -674,12 +672,12 @@ class _CategoryPageState extends State<CategoryPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Category'),
-        content: Text('Are you sure you want to delete "$categoryName"?'),
+        title: Text(context.tr('delete_category')),
+        content: Text('${context.tr('are_you_sure_delete')} "$categoryName"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -687,7 +685,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 await FirestoreService().deleteDocument('categories', categoryId);
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Category deleted successfully')),
+                  SnackBar(content: Text(context.tr('category_deleted_success'))),
                 );
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -697,7 +695,7 @@ class _CategoryPageState extends State<CategoryPage> {
             },
             style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5252)),
-            child: const Text('Delete'),
+            child: Text(context.tr('delete')),
           ),
         ],
       ),

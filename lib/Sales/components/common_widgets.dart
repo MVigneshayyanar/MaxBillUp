@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class CommonWidgets {
   // Show snackbar message
@@ -73,9 +74,9 @@ class CommonWidgets {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'Bill',
-                    style: TextStyle(
+                  Text(
+                    context.tr('bill'),
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
@@ -122,7 +123,7 @@ class CommonWidgets {
     required VoidCallback onSuccess,
   }) {
     if (cartItems.isEmpty) {
-      showSnackBar(context, 'Cart is empty!', bgColor: const Color(0xFFFF9800));
+      showSnackBar(context, context.tr('cart_is_empty'), bgColor: const Color(0xFFFF9800));
       return;
     }
 
@@ -134,17 +135,17 @@ class CommonWidgets {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Save Order'),
+          title: Text(context.tr('save_order')),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: phoneCtrl,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Phone Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
+                decoration: InputDecoration(
+                  labelText: context.tr('customer_phone_number'),
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone),
                 ),
                 onChanged: (value) async {
                   if (value.length >= 10) {
@@ -173,10 +174,10 @@ class CommonWidgets {
               else
                 TextField(
                   controller: nameCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Customer Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                  decoration: InputDecoration(
+                    labelText: context.tr('customer_name'),
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.person),
                   ),
                 ),
             ],
@@ -184,7 +185,7 @@ class CommonWidgets {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
+              child: Text(context.tr('cancel')),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -192,7 +193,7 @@ class CommonWidgets {
                 final name = nameCtrl.text.trim();
 
                 if (phone.isEmpty || name.isEmpty) {
-                  showSnackBar(context, 'Please enter phone number and name',
+                  showSnackBar(context, context.tr('enter_phone_and_name'),
                       bgColor: const Color(0xFFFF5252));
                   return;
                 }
@@ -211,7 +212,7 @@ class CommonWidgets {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF2196F3),
               ),
-              child: const Text('Save Order'),
+              child: Text(context.tr('save_order')),
             ),
           ],
         ),
@@ -280,12 +281,12 @@ class CommonWidgets {
       });
 
       if (context.mounted) {
-        showSnackBar(context, 'Order saved successfully!',
+        showSnackBar(context, context.tr('order_saved_success'),
             bgColor: const Color(0xFF4CAF50));
       }
     } catch (e) {
       if (context.mounted) {
-        showSnackBar(context, 'Error saving order: $e',
+        showSnackBar(context, context.tr('error_saving_order').replaceFirst('{0}', e.toString()),
             bgColor: const Color(0xFFFF5252));
       }
     }

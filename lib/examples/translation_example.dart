@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:maxbillup/utils/language_provider.dart';
+import 'package:maxbillup/utils/language_provider.dart' as lang_provider;
 import 'package:maxbillup/utils/translation_helper.dart';
 
 /// Example page showing how to use the multi-language system
@@ -10,12 +10,12 @@ class TranslationExamplePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Method 1: Get language provider
-    final lang = Provider.of<LanguageProvider>(context);
+    final lang = Provider.of<lang_provider.LanguageProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
         // Use translation in AppBar
-        title: Text(lang.translate('settings')),
+        title: Text(context.tr('settings')),
         actions: [
           // Show current language
           Padding(
@@ -35,8 +35,8 @@ class TranslationExamplePage extends StatelessWidget {
           // Example 1: Using Provider.of
           Card(
             child: ListTile(
-              title: Text(lang.translate('sales')),
-              subtitle: Text(lang.translate('new_sale')),
+              title: Text(context.tr('sales')),
+              subtitle: Text(context.tr('new_sale')),
               trailing: const Icon(Icons.arrow_forward),
             ),
           ),
@@ -77,7 +77,7 @@ class TranslationExamplePage extends StatelessWidget {
 
           // Example 5: Show all available languages
           Text(
-            'Available Languages:',
+            context.tr('available_languages'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
@@ -99,7 +99,7 @@ class TranslationExamplePage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Language changed to ${entry.value['name']}',
+                        '${context.tr('language_changed_to')}: ${entry.value['name']}',
                       ),
                       duration: const Duration(seconds: 2),
                     ),
@@ -113,7 +113,7 @@ class TranslationExamplePage extends StatelessWidget {
 
           // Example 6: Common phrases in current language
           Text(
-            'Common Translations:',
+            context.tr('common_translations'),
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 8),
@@ -153,4 +153,3 @@ class TranslationExamplePage extends StatelessWidget {
     );
   }
 }
-

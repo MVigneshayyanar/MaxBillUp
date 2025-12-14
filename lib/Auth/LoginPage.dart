@@ -76,7 +76,7 @@ class _LoginPageState extends State<LoginPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(context.tr('close')),
           ),
           if (onAction != null)
             ElevatedButton(
@@ -98,11 +98,11 @@ class _LoginPageState extends State<LoginPage> {
     final pass = _passCtrl.text.trim();
 
     if (email.isEmpty || !email.contains('@')) {
-      _showMsg('Please enter a valid email', isError: true);
+      _showMsg(context.tr('invalid_email'), isError: true);
       return;
     }
     if (pass.length < 6) {
-      _showMsg('Password must be at least 6 characters', isError: true);
+      _showMsg(context.tr('password_too_short'), isError: true);
       return;
     }
 
@@ -146,7 +146,7 @@ class _LoginPageState extends State<LoginPage> {
         } else {
           await _auth.signOut();
           setState(() => _loading = false);
-          _showMsg('User record not found in database.', isError: true);
+          _showMsg(context.tr('login_failed'), isError: true);
           return;
         }
       }
@@ -319,7 +319,7 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildHeader() => Column(
     children: [
-      const Text('Welcome to',
+      Text(context.tr('welcome_to'),
           style: TextStyle(fontSize: 28, color: Colors.black87)),
       const SizedBox(height: 12),
       Padding(
@@ -343,8 +343,8 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _buildTabs() => Row(
     children: [
-      _tab('Login (Gmail)', !_isStaff),
-      _tab('Staff Login', _isStaff),
+      _tab(context.tr('sign_in_with_google'), !_isStaff),
+      _tab(context.tr('staff') + ' ' + context.tr('login'), _isStaff),
     ],
   );
 
@@ -383,12 +383,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailForm() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _label('Email'),
-      _input(_emailCtrl, 'Enter your staff email',
+      _label(context.tr('email')),
+      _input(_emailCtrl, context.tr('enter_email'),
           keyboardType: TextInputType.emailAddress),
-      const SizedBox(height: 24),
-      _label('Password'),
-      _input(_passCtrl, 'Enter your password',
+      const SizedBox(height: 16),
+      _label(context.tr('password')),
+      _input(_passCtrl, context.tr('enter_password'),
           obscure: _hidePass,
           suffix: IconButton(
             icon: Icon(
@@ -402,7 +402,7 @@ class _LoginPageState extends State<LoginPage> {
         alignment: Alignment.centerRight,
         child: TextButton(
           onPressed: _loading ? null : _resetPass,
-          child: const Text('Forgot Password?',
+          child: Text(context.tr('forgot_password'),
               style: TextStyle(
                   color: Color(0xFF00B8FF),
                   fontSize: 15,
@@ -416,7 +416,7 @@ class _LoginPageState extends State<LoginPage> {
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       const SizedBox(height: 8),
-      const Text('Sign in using your Google (Gmail) account',
+      Text(context.tr('sign_in_with_google'),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 16, color: Colors.black87)),
       const SizedBox(height: 24),
@@ -450,7 +450,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('Continue with Google',
+              Text(context.tr('sign_in_with_google'),
                   style: TextStyle(fontSize: 16, color: Colors.black87)),
             ],
           ),

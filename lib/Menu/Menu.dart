@@ -620,7 +620,7 @@ class _MenuPageState extends State<MenuPage> {
                         );
                       },
                       icon: const Icon(Icons.workspace_premium, size: 18, color: Colors.white),
-                      label: const Text('Plan', style: TextStyle(color: Colors.white, fontSize: 14)),
+                      label: Text(context.tr('subscription_plan'), style: const TextStyle(color: Colors.white, fontSize: 14)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange.shade700,
                         elevation: 0,
@@ -645,19 +645,19 @@ class _MenuPageState extends State<MenuPage> {
 
                 // Quotation
                 if (_hasPermission('quotation') || isAdmin)
-                  _buildMenuItem(Icons.assignment_outlined, "Quotation", 'Quotation'),
+                  _buildMenuItem(Icons.assignment_outlined, context.tr('quotation'), 'Quotation'),
 
                 // Bill History
                 if (_hasPermission('billHistory') || isAdmin)
-                  _buildMenuItem(Icons.receipt_long_outlined, "Bill History", 'BillHistory'),
+                  _buildMenuItem(Icons.receipt_long_outlined, context.tr('billhistory'), 'BillHistory'),
 
                 // Credit Notes
                 if (_hasPermission('creditNotes') || isAdmin)
-                  _buildMenuItem(Icons.description_outlined, "Credit Notes", 'CreditNotes'),
+                  _buildMenuItem(Icons.description_outlined, context.tr('credit_notes'), 'CreditNotes'),
 
                 // Customer Management
                 if (_hasPermission('customerManagement') || isAdmin)
-                  _buildMenuItem(Icons.group_outlined, "Customer Management", 'Customers'),
+                  _buildMenuItem(Icons.group_outlined, context.tr('customer_management'), 'Customers'),
 
                 // Expenses Expansion
                 if (_hasPermission('expenses') || isAdmin)
@@ -665,26 +665,26 @@ class _MenuPageState extends State<MenuPage> {
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       leading: Icon(Icons.account_balance_wallet_outlined, color: _iconColor),
-                      title: Text("Expenses", style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
+                      title: Text(context.tr('expenses'), style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
                       iconColor: _iconColor,
                       collapsedIconColor: _iconColor,
                       tilePadding: const EdgeInsets.symmetric(horizontal: 24),
                       childrenPadding: const EdgeInsets.only(left: 72),
                       children: [
-                        _buildSubMenuItem("Stock Purchase", 'StockPurchase'),
-                        _buildSubMenuItem("Expenses", 'Expenses'),
-                        _buildSubMenuItem("Expense Category", 'ExpenseCategories'),
+                        _buildSubMenuItem(context.tr('stock_purchase'), 'StockPurchase'),
+                        _buildSubMenuItem(context.tr('expenses'), 'Expenses'),
+                        _buildSubMenuItem(context.tr('expense_category'), 'ExpenseCategories'),
                       ],
                     ),
                   ),
 
                 // Credit Details
                 if (_hasPermission('creditDetails') || isAdmin)
-                  _buildMenuItem(Icons.request_quote_outlined, "Credit Details", 'CreditDetails'),
+                  _buildMenuItem(Icons.request_quote_outlined, context.tr('creditdetails'), 'CreditDetails'),
 
                 // Staff Management
                 if (isAdmin || _hasPermission('staffManagement'))
-                  _buildMenuItem(Icons.badge_outlined, "Staff Management", 'StaffManagement'),
+                  _buildMenuItem(Icons.badge_outlined, context.tr('staffmanagement'), 'StaffManagement'),
 
                 // Stock (moved from bottom nav - placed above Reports)
 
@@ -1340,7 +1340,7 @@ class GenericListPage extends StatelessWidget {
             stream: collectionRef.snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text('No $title found'));
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text(context.tr('nodata')));
 
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
@@ -1537,7 +1537,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     return Scaffold(
       appBar: AppBar(
 
-        title: const Text('Bill History', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('billhistory'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -1560,8 +1560,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     ),
                     child: TextField(
                       controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search Invoice...',
+                      decoration: InputDecoration(
+                        hintText: context.tr('search'),
                         prefixIcon: Icon(Icons.search, color: Colors.grey),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
@@ -1583,9 +1583,13 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                           0xFF2196F3)),
                       items: <String>['All Time', 'This Month', 'Last Month']
                           .map((String value) {
+                        String displayText = value;
+                        if (value == 'All Time') displayText = context.tr('all');
+                        else if (value == 'This Month') displayText = context.tr('thismonth');
+                        else if (value == 'Last Month') displayText = context.tr('lastmonth');
                         return DropdownMenuItem<String>(
                           value: value,
-                          child: Text(value, style: const TextStyle(fontSize: 14)),
+                          child: Text(displayText, style: const TextStyle(fontSize: 14)),
                         );
                       }).toList(),
                       onChanged: (newValue) {
@@ -1620,10 +1624,10 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children:  [
                         Icon(Icons.receipt_long, size: 64, color: Colors.grey),
                         SizedBox(height: 16),
-                        Text('No bills found', style: TextStyle(color: Colors.grey)),
+                        Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
                       ],
                     ),
                   );
@@ -1790,7 +1794,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('By: $staffName', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                Text('${context.tr('by')}: $staffName', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
 
                 SizedBox(
                   height: 36,
@@ -1836,7 +1840,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     },
                     icon: Icon(isSettled ? Icons.receipt_long : Icons.payment, size: 16, color: Colors.white),
                     label: Text(
-                      isSettled ? 'Receipt' : 'Settle Bill',
+                      isSettled ? context.tr('receipt') : context.tr('settle_bill'),
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -1879,7 +1883,7 @@ class SalesDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Invoice ${initialData['invoiceNumber'] ?? 'Details'}', style: const TextStyle(color: Colors.white)),
+        title: Text('${context.tr('invoice')} ${initialData['invoiceNumber'] ?? ''}', style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -1899,7 +1903,7 @@ class SalesDetailPage extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
               if (!snapshot.hasData || !snapshot.data!.exists) {
-                return const Center(child: Text('Bill not found or deleted.'));
+                return Center(child: Text(context.tr('bill_not_found')));
               }
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
@@ -1928,7 +1932,7 @@ class SalesDetailPage extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Invoice No. ${data['invoiceNumber'] ?? 'N/A'}',
+                                '${context.tr('invoicenumber')} ${data['invoiceNumber'] ?? 'N/A'}',
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -1937,7 +1941,7 @@ class SalesDetailPage extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Created by ${data['staffName'] ?? 'Admin'}',
+                                '${context.tr('created_by')} ${data['staffName'] ?? 'Admin'}',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.black87,
@@ -1948,9 +1952,9 @@ class SalesDetailPage extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              const Text(
-                                'Issued on :',
-                                style: TextStyle(
+                              Text(
+                                '${context.tr('issued_on')} :',
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
                                 ),
@@ -1981,9 +1985,9 @@ class SalesDetailPage extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Customer Details
-                const Text(
-                  'Customer Details',
-                  style: TextStyle(
+                Text(
+                  context.tr('customerdetails'),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -2009,9 +2013,9 @@ class SalesDetailPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      const Text(
-                        'Phone Number',
-                        style: TextStyle(
+                      Text(
+                        context.tr('phone'),
+                        style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
                         ),
@@ -2030,9 +2034,9 @@ class SalesDetailPage extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 // Invoice Items
-                const Text(
-                  'Invoice items',
-                  style: TextStyle(
+                Text(
+                  context.tr('invoice_items'),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -2057,20 +2061,20 @@ class SalesDetailPage extends StatelessWidget {
                             topRight: Radius.circular(12),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Items',
-                              style: TextStyle(
+                              context.tr('items'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
                             ),
                             Text(
-                              'Amount',
-                              style: TextStyle(
+                              context.tr('amount'),
+                              style: const TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
@@ -2092,15 +2096,15 @@ class SalesDetailPage extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Total items : ${items.length}'),
-                                Text('Sub Total : ${(data['subtotal'] ?? 0.0).toStringAsFixed(2)}'),
+                                Text('${context.tr('totalitems')} : ${items.length}'),
+                                Text('${context.tr('subtotal')} : ${(data['subtotal'] ?? 0.0).toStringAsFixed(2)}'),
                               ],
                             ),
                             const SizedBox(height: 8),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Total Qty : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}'),
+                                Text('${context.tr('totalquantity')} : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}'),
                                 const Text(''),
                               ],
                             ),
@@ -2109,7 +2113,7 @@ class SalesDetailPage extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Credit : ${(data['total'] ?? 0.0).toStringAsFixed(2)}'),
+                                  Text('${context.tr('credit')} : ${(data['total'] ?? 0.0).toStringAsFixed(2)}'),
                                   const Text(''),
                                 ],
                               ),
@@ -2118,9 +2122,9 @@ class SalesDetailPage extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Total Amount :',
-                                  style: TextStyle(
+                                Text(
+                                  '${context.tr('totalamount')} :',
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -2149,7 +2153,7 @@ class SalesDetailPage extends StatelessWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.shopping_cart_outlined,
-                      label: 'Sale Return',
+                      label: context.tr('sale_return'),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -2165,7 +2169,7 @@ class SalesDetailPage extends StatelessWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.delete_outline,
-                      label: 'Cancel Bill',
+                      label: context.tr('cancel_bill'),
                       color: Colors.red,
                       onTap: () {
                         _showCancelBillDialog(context, documentId, data);
@@ -2174,13 +2178,13 @@ class SalesDetailPage extends StatelessWidget {
                     _buildActionButton(
                       context,
                       icon: Icons.receipt_long_outlined,
-                      label: 'Receipt',
+                      label: context.tr('receipt'),
                       onTap: () => _printInvoiceReceipt(context, documentId, data),
                     ),
                     _buildActionButton(
                       context,
                       icon: Icons.edit_outlined,
-                      label: 'Edit',
+                      label: context.tr('edit'),
                       onTap: () {
                         Navigator.push(
                           context,
@@ -2210,7 +2214,7 @@ class SalesDetailPage extends StatelessWidget {
     try {
       // Show loading
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preparing print...')),
+        SnackBar(content: Text(context.tr('preparing_print'))),
       );
 
       // Get store details
@@ -2267,7 +2271,7 @@ class SalesDetailPage extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Print failed: $e'),
+            content: Text('${context.tr('printfailed')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -2346,7 +2350,7 @@ class SalesDetailPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            child: Text(context.tr('cancel'), style: const TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -2449,7 +2453,7 @@ class SalesDetailPage extends StatelessWidget {
                   Navigator.pop(context); // Close loading
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error cancelling bill: $e'),
+                      content: Text('${context.tr('error')}: $e'),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -2460,7 +2464,7 @@ class SalesDetailPage extends StatelessWidget {
               backgroundColor: Colors.red,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Cancel Bill', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('cancel_bill'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -2593,7 +2597,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Credit Notes', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('credit_notes'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -2613,7 +2617,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search',
+                      hintText: context.tr('search'),
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
                       fillColor: Colors.grey.shade100,
@@ -2635,10 +2639,10 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                   child: DropdownButton<String>(
                     value: _filterStatus,
                     underline: const SizedBox(),
-                    items: const [
-                      DropdownMenuItem(value: 'All', child: Text('All')),
-                      DropdownMenuItem(value: 'Available', child: Text('Available')),
-                      DropdownMenuItem(value: 'Used', child: Text('Used')),
+                    items:  [
+                      DropdownMenuItem(value: 'All', child: Text(context.tr('all'))),
+                      DropdownMenuItem(value: 'Available', child: Text(context.tr('available'))),
+                      DropdownMenuItem(value: 'Used', child: Text(context.tr('used'))),
                     ],
                     onChanged: (value) {
                       setState(() {
@@ -2777,7 +2781,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Credit Notes : $creditNoteNumber',
+                                        '${context.tr('creditnote')} : $creditNoteNumber',
                                         style: const TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -2885,7 +2889,7 @@ class CreditNoteDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Credit Note', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('creditnote'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -2908,7 +2912,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Credit Note No : $creditNoteNumber',
+                        '${context.tr('creditnote')} : $creditNoteNumber',
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -2961,7 +2965,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Invoice No : $invoiceNumber',
+                        '${context.tr('invoicenumber')} : $invoiceNumber',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -2991,9 +2995,9 @@ class CreditNoteDetailPage extends StatelessWidget {
                   const SizedBox(height: 16),
                   const Divider(height: 1),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Customer Details',
-                    style: TextStyle(
+                  Text(
+                    context.tr('customerdetails'),
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       color: Colors.grey,
@@ -3136,7 +3140,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Total Items : ${items.length}'),
+                        Text('${context.tr('totalitems')} : ${items.length}'),
                         const Text(''),
                       ],
                     ),
@@ -3147,9 +3151,9 @@ class CreditNoteDetailPage extends StatelessWidget {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Total Amount :',
-                          style: TextStyle(
+                        Text(
+                          '${context.tr('totalamount')} :',
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -3227,7 +3231,7 @@ class CreditNoteDetailPage extends StatelessWidget {
   Future<void> _printCreditNote(BuildContext context) async {
     try {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Preparing print...')),
+        SnackBar(content: Text(context.tr('preparing_print'))),
       );
 
       // Get store details
@@ -3277,7 +3281,7 @@ class CreditNoteDetailPage extends StatelessWidget {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Print failed: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${context.tr('printfailed')}: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -3334,7 +3338,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                               groupValue: selectedMode,
                               onChanged: (value) => setState(() => selectedMode = value!),
                             ),
-                            const Text('Cash'),
+                            Text(context.tr('cash')),
                           ],
                         ),
                       ),
@@ -3363,7 +3367,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                               groupValue: selectedMode,
                               onChanged: (value) => setState(() => selectedMode = value!),
                             ),
-                            const Text('Online'),
+                            Text(context.tr('online')),
                           ],
                         ),
                       ),
@@ -3376,7 +3380,7 @@ class CreditNoteDetailPage extends StatelessWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(context.tr('cancel'), style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -3403,7 +3407,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                     Navigator.pop(context); // Close loading
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Credit note refunded via $selectedMode successfully'),
+                        content: Text('${context.tr('creditnote')} ${context.tr('refund')} ${context.tr('success')}'),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -3425,7 +3429,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                 backgroundColor: Colors.red,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Refund', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('refund'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -3473,7 +3477,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Credit Details', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('creditdetails'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -3547,7 +3551,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search',
+                hintText: context.tr('search'),
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
                 fillColor: Colors.grey.shade100,
@@ -4024,11 +4028,11 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
           return Scaffold(
             backgroundColor: const Color(0xFFF5F5F5),
             appBar: AppBar(
-              title: const Text('Purchase Credit Note',
+              title: Text(context.tr('purchase_credit_note'),
                   style: TextStyle(color: Colors.white)),
               backgroundColor: const Color(0xFF2196F3),
             ),
-            body: const Center(child: Text('Credit note not found')),
+            body: Center(child: Text(context.tr('credit_note_not_found'))),
           );
         }
 
@@ -4051,7 +4055,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
         return Scaffold(
           backgroundColor: const Color(0xFFF5F5F5),
           appBar: AppBar(
-            title: const Text('Purchase Credit Note',
+            title: Text(context.tr('purchase_credit_note'),
                 style: TextStyle(color: Colors.white)),
             backgroundColor: const Color(0xFF2196F3),
             leading: IconButton(
@@ -4304,7 +4308,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Total Items : ${items.length}'),
+                            Text('${context.tr('totalitems')} : ${items.length}'),
                             const Text(''),
                           ],
                         ),
@@ -4317,9 +4321,9 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text(
-                                  'Total Amount :',
-                                  style: TextStyle(
+                                Text(
+                                  '${context.tr('totalamount')} :',
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -4339,9 +4343,9 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'Paid Amount :',
-                                    style: TextStyle(
+                                  Text(
+                                    '${context.tr('paid_amount')} :',
+                                    style: const TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey,
                                     ),
@@ -4573,8 +4577,8 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                         child: ElevatedButton.icon(
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Printing Receipt...')),
+                              SnackBar(
+                                  content: Text(context.tr('preparing_print'))),
                             );
                           },
                           icon: const Icon(Icons.receipt_long,
@@ -4709,7 +4713,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+              child: Text(context.tr('cancel'), style: const TextStyle(color: Colors.grey)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -4718,8 +4722,8 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
 
                 if (paymentAmount <= 0) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please enter a valid amount')),
+                    SnackBar(
+                        content: Text(context.tr('enter_valid_amount'))),
                   );
                   return;
                 }
@@ -4811,7 +4815,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Error processing payment: $e'),
+                        content: Text('${context.tr('error')}: $e'),
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 3),
                       ),
@@ -4824,7 +4828,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Pay Now', style: TextStyle(color: Colors.white)),
+              child: Text(context.tr('pay_now'), style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -4884,29 +4888,29 @@ class _CustomersPageState extends State<CustomersPage> {
 
     showDialog(context: context, builder: (context) {
       return AlertDialog(
-        title: const Text('Add New Customer'),
+        title: Text(context.tr('addnewcustomer')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Name')),
+            TextField(controller: nameController, decoration: InputDecoration(labelText: context.tr('customername'))),
             const SizedBox(height: 8),
-            TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone')),
+            TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: context.tr('customerphone'))),
             const SizedBox(height: 8),
-            TextField(controller: gstController, decoration: const InputDecoration(labelText: 'GST No (Optional)')),
+            TextField(controller: gstController, decoration: InputDecoration(labelText: context.tr('gstin'))),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3)),
-            child: const Text('Add', style: TextStyle(color: Colors.white)),
+            child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
             onPressed: () async {
               final name = nameController.text.trim();
               final phone = phoneController.text.trim();
               final gst = gstController.text.trim();
 
               if (name.isEmpty || phone.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Name and phone required')));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('name_phone_required'))));
                 return;
               }
 
@@ -4933,7 +4937,7 @@ class _CustomersPageState extends State<CustomersPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],// Light background for better card contrast
       appBar: AppBar(
-        title: const Text('Customer Management', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('customer_management'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -4953,7 +4957,7 @@ class _CustomersPageState extends State<CustomersPage> {
                   controller: _searchController,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    hintText: 'Search',
+                    hintText: context.tr('search'),
                     filled: true,
                     fillColor: Colors.grey[100],
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -4986,7 +4990,7 @@ class _CustomersPageState extends State<CustomersPage> {
                   stream: streamSnapshot.data,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text('No customers found'));
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text(context.tr('no_customers_found')));
 
                 final docs = snapshot.data!.docs.where((d) {
                   if (_searchQuery.isEmpty) return true;
@@ -5095,7 +5099,7 @@ class StaffManagementList extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Staff Management', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('staffmanagement'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -5247,7 +5251,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text('Add New Staff', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('addnewstaff'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         centerTitle: true,
@@ -5268,7 +5272,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
               DropdownButtonFormField<String>(
                 value: _selectedRole,
                 decoration: InputDecoration(
-                  labelText: 'Role',
+                  labelText: context.tr('role'),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
@@ -5357,32 +5361,32 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add New Customer'),
+        title: Text(context.tr('addnewcustomer')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('customername'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('customerphone'),
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: gstController,
-              decoration: const InputDecoration(
-                labelText: 'GST No (Optional)',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.tr('gstin'),
+                border: const OutlineInputBorder(),
               ),
             ),
           ],
@@ -5390,7 +5394,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(context.tr('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -5400,9 +5404,9 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 
               if (name.isEmpty || phone.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please enter name and phone number'),
-                    backgroundColor: Color(0xFFFF5252),
+                  SnackBar(
+                    content: Text(context.tr('name_phone_required')),
+                    backgroundColor: const Color(0xFFFF5252),
                   ),
                 );
                 return;
@@ -5427,7 +5431,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error adding customer: $e'),
+                      content: Text('${context.tr('error')}: $e'),
                       backgroundColor: const Color(0xFFFF5252),
                     ),
                   );
@@ -5437,7 +5441,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF2196F3),
             ),
-            child: const Text('Add'),
+            child: Text(context.tr('add')),
           ),
         ],
       ),
@@ -5484,7 +5488,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Contact/Name/GST No',
+                      hintText: context.tr('search'),
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -5526,8 +5530,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   }
 
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(
-                      child: Text('No customers found'),
+                    return Center(
+                      child: Text(context.tr('no_customers_found')),
                     );
                   }
 
@@ -5546,8 +5550,8 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   }).toList();
 
                   if (customers.isEmpty) {
-                    return const Center(
-                      child: Text('No matching customers'),
+                    return Center(
+                      child: Text(context.tr('no_matching_customers')),
                     );
                   }
 
@@ -5701,7 +5705,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Sale Return', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('sale_return'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -5820,7 +5824,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                   ),
                                 ),
                               ),
-                              Text('Available qty : ${qty.toStringAsFixed(2)}'),
+                              Text('${context.tr('available')} ${context.tr('quantity')} : ${qty.toStringAsFixed(2)}'),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -5928,7 +5932,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Amount :'),
+                      Text(context.tr('amount')),
                       Text(
                         'Rs ${totalReturnAmount.toStringAsFixed(2)}',
                         style: const TextStyle(
@@ -5942,7 +5946,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total GST :'),
+                      Text('${context.tr('gst')} :'),
                       Text('Rs ${(totalReturnAmount * 0).toStringAsFixed(1)}'),
                     ],
                   ),
@@ -5950,9 +5954,9 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Total Amount :',
-                        style: TextStyle(
+                      Text(
+                        '${context.tr('totalamount')} :',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -6133,7 +6137,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing return: $e'),
+                content: Text('${context.tr('error')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -6217,7 +6221,7 @@ class _EditBillPageState extends State<EditBillPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('Edit', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('edit'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -6321,7 +6325,7 @@ class _EditBillPageState extends State<EditBillPage> {
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
-                  const Text('Phone Number', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(context.tr('phone'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
                   Text(
                     _selectedCustomerPhone ?? '',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -6356,11 +6360,11 @@ class _EditBillPageState extends State<EditBillPage> {
                         topRight: Radius.circular(12),
                       ),
                     ),
-                    child: const Row(
+                    child:  Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Items', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text('Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text(context.tr('items'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                        Text(context.tr('amount'), style: const TextStyle(fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -6414,7 +6418,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   GestureDetector(
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Add items feature coming soon')),
+                        SnackBar(content: Text(context.tr('coming_soon'))),
                       );
                     },
                     child: Container(
@@ -6443,8 +6447,8 @@ class _EditBillPageState extends State<EditBillPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Total items : ${items.length}'),
-                            Text('Sub Total : Rs ${subtotal.toStringAsFixed(2)}'),
+                            Text('${context.tr('totalitems')} : ${items.length}'),
+                            Text('${context.tr('subtotal')} : Rs ${subtotal.toStringAsFixed(2)}'),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -6454,34 +6458,34 @@ class _EditBillPageState extends State<EditBillPage> {
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('Add Discount'),
+                                title: Text(context.tr('add_discount')),
                                 content: TextField(
                                   controller: _discountController,
                                   keyboardType: TextInputType.number,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Discount Amount',
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('discount_amount'),
                                     prefixText: '  ',
                                   ),
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
+                                    child: Text(context.tr('cancel')),
                                   ),
                                   ElevatedButton(
                                     onPressed: () {
                                       setState(() {});
                                       Navigator.pop(context);
                                     },
-                                    child: const Text('Apply'),
+                                    child: Text(context.tr('apply')),
                                   ),
                                 ],
                               ),
                             );
                           },
-                          child: const Text(
-                            'Add Discount',
-                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16),
+                          child: Text(
+                            context.tr('add_discount'),
+                            style: const TextStyle(color: Color(0xFF2196F3), fontSize: 16),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -6491,26 +6495,26 @@ class _EditBillPageState extends State<EditBillPage> {
                             showDialog(
                               context: context,
                               builder: (context) => AlertDialog(
-                                title: const Text('Add Credit Note'),
+                                title: Text(context.tr('add_credit_note')),
                                 content: TextField(
                                   controller: _creditNoteController,
                                   maxLines: 3,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Credit Note',
-                                    hintText: 'Enter note...',
+                                  decoration: InputDecoration(
+                                    labelText: context.tr('creditnote'),
+                                    hintText: context.tr('enter_note'),
                                   ),
                                 ),
                                 actions: [
                                   TextButton(
                                     onPressed: () => Navigator.pop(context),
-                                    child: const Text('Cancel'),
+                                    child: Text(context.tr('cancel')),
                                   ),
                                   ElevatedButton(
                                     onPressed: () {
                                       setState(() {});
                                       Navigator.pop(context);
                                     },
-                                    child: const Text('Save'),
+                                    child: Text(context.tr('save')),
                                   ),
                                 ],
                               ),
@@ -6525,7 +6529,7 @@ class _EditBillPageState extends State<EditBillPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('Total Amount :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text('${context.tr('totalamount')} :', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                             Text(
                               'Rs ${total.toStringAsFixed(2)}',
                               style: const TextStyle(
@@ -6549,7 +6553,7 @@ class _EditBillPageState extends State<EditBillPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Payment Mode :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text('${context.tr('payment_mode')} :', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -6566,7 +6570,7 @@ class _EditBillPageState extends State<EditBillPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Text('Credit : ', style: TextStyle(fontSize: 16)),
+                        Text('${context.tr('credit')} : ', style: const TextStyle(fontSize: 16)),
                         Text(
                           'Rs ${total.toStringAsFixed(2)}',
                           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
@@ -6690,7 +6694,7 @@ class _EditBillPageState extends State<EditBillPage> {
       if (mounted) {
         Navigator.pop(context); // Close loading
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bill updated successfully'), backgroundColor: Colors.green),
+          SnackBar(content: Text(context.tr('bill_updated_success')), backgroundColor: Colors.green),
         );
         Navigator.pop(context); // Go back
       }
@@ -6698,7 +6702,7 @@ class _EditBillPageState extends State<EditBillPage> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating bill: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${context.tr('error_updating_bill')}: $e'), backgroundColor: Colors.red),
         );
       }
     }

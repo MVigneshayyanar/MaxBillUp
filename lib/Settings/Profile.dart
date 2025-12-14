@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
@@ -94,7 +94,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
     switch (_currentView) {
       case 'BusinessDetails':
-        return BusinessDetailsPage(uid: widget.uid, onBack: _goBack);
+        return BusinessDetailsPage(
+          uid: widget.uid,
+          onBack: _goBack,
+        );
       case 'ReceiptSettings':
         return ReceiptSettingsPage(
           onBack: _goBack,
@@ -103,25 +106,46 @@ class _SettingsPageState extends State<SettingsPage> {
           userEmail: widget.userEmail,
         );
       case 'ReceiptCustomization':
-        return ReceiptCustomizationPage(onBack: _goBack);
+        return ReceiptCustomizationPage(
+          onBack: _goBack,
+        );
       case 'TaxSettings':
-        return TaxSettingsNew.TaxSettingsPage(uid: widget.uid);
+        return TaxSettingsNew.TaxSettingsPage(
+          uid: widget.uid,
+        );
       case 'PrinterSetup':
-        return PrinterSetupPage(onBack: _goBack);
+        return PrinterSetupPage(
+          onBack: _goBack,
+        );
       case 'FeatureSettings':
-        return FeatureSettingsPage(onBack: _goBack);
+        return FeatureSettingsPage(
+          onBack: _goBack,
+        );
       case 'Language':
-        return LanguagePage(onBack: _goBack);
+        return LanguagePage(
+          onBack: _goBack,
+        );
       case 'Theme':
-        return ThemePage(onBack: _goBack);
+        return ThemePage(
+          onBack: _goBack,
+        );
       case 'Help':
-        return HelpPage(onBack: _goBack, onNavigate: _navigateTo);
+        return HelpPage(
+          onBack: _goBack,
+          onNavigate: _navigateTo,
+        );
       case 'FAQs':
-        return FAQsPage(onBack: _goBack);
+        return FAQsPage(
+          onBack: _goBack,
+        );
       case 'UpcomingFeatures':
-        return UpcomingFeaturesPage(onBack: _goBack);
+        return UpcomingFeaturesPage(
+          onBack: _goBack,
+        );
       case 'VideoTutorials':
-        return VideoTutorialsPage(onBack: _goBack);
+        return VideoTutorialsPage(
+          onBack: _goBack,
+        );
     }
 
     return Scaffold(
@@ -143,29 +167,29 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 24),
           _buildSectionTitle("App Settings"),
           _SettingsGroup(children: [
-            _SettingsTile(icon: Icons.store_mall_directory_outlined, title: "Business Details", onTap: () => _navigateTo('BusinessDetails')),
-            _SettingsTile(icon: Icons.receipt_long_outlined, title: "Receipt", onTap: () => _navigateTo('ReceiptSettings')),
-            _SettingsTile(icon: Icons.percent_outlined, title: "TAX / WAT", onTap: () => _navigateTo('TaxSettings')),
-            _SettingsTile(icon: Icons.print_outlined, title: "Printer Setup", onTap: () => _navigateTo('PrinterSetup')),
-            _SettingsTile(icon: Icons.tune_outlined, title: "Feature Settings", onTap: () => _navigateTo('FeatureSettings')),
+            _SettingsTile(icon: Icons.store_mall_directory_outlined, title: context.tr('business_details'), onTap: () => _navigateTo('BusinessDetails')),
+            _SettingsTile(icon: Icons.receipt_long_outlined, title: context.tr('receipt_customization'), onTap: () => _navigateTo('ReceiptSettings')),
+            _SettingsTile(icon: Icons.percent_outlined, title: context.tr('tax_settings'), onTap: () => _navigateTo('TaxSettings')),
+            _SettingsTile(icon: Icons.print_outlined, title: context.tr('printer_setup'), onTap: () => _navigateTo('PrinterSetup')),
+            _SettingsTile(icon: Icons.tune_outlined, title: context.tr('feature_settings'), onTap: () => _navigateTo('FeatureSettings')),
             _SettingsTile(
               icon: Icons.language_outlined,
-              title: Provider.of<LanguageProvider>(context).translate('choose_language'),
+              title: context.tr('choose_language'),
               onTap: () => _navigateTo('Language')
             ),
             _SettingsTile(
               icon: Icons.dark_mode_outlined,
-              title: Provider.of<LanguageProvider>(context).translate('theme'),
+              title: context.tr('theme'),
               showDivider: false,
               onTap: () => _navigateTo('Theme')
             ),
           ]),
           const SizedBox(height: 24),
-          _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('help')),
+          _buildSectionTitle(context.tr('help')),
           _SettingsGroup(children: [
             _SettingsTile(
               icon: Icons.help_outline,
-              title: Provider.of<LanguageProvider>(context).translate('help'),
+              title: context.tr('help'),
               onTap: () => _navigateTo('Help')
             ),
             _SettingsTile(icon: Icons.storefront_outlined, title: "Market Place", onTap: () {}),
@@ -263,7 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: kPrimaryColor.withAlpha(25), borderRadius: BorderRadius.circular(20)),
             child: Text(role, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kPrimaryColor)),
           ),
         ],
@@ -1214,7 +1238,7 @@ class _LanguagePageState extends State<LanguagePage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : kInputFillColor,
+                  color: isSelected ? kPrimaryColor.withAlpha(25) : kInputFillColor,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? kPrimaryColor : Colors.transparent,
@@ -1360,9 +1384,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: kPrimaryColor.withOpacity(0.1),
+                  color: kPrimaryColor.withAlpha(25),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: kPrimaryColor.withOpacity(0.3)),
+                  border: Border.all(color: kPrimaryColor.withAlpha(77)),
                 ),
                 child: Row(
                   children: [
@@ -1576,7 +1600,7 @@ class _ThemePageState extends State<ThemePage> {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Theme updated to _selectedTheme'), backgroundColor: kPrimaryColor));
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: const Text('Update', style: TextStyle(fontSize: 16, color: Colors.white)),
+                child: Text(_selectedTheme, style: const TextStyle(fontSize: 16, color: Colors.white)),
               ),
             ),
           ],

@@ -53,7 +53,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
     final categoryName = _categoryController.text.trim();
     if (categoryName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a category name')),
+        SnackBar(content: Text(context.tr('enter_category_name'))),
       );
       return;
     }
@@ -72,7 +72,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
 
       if (existingCategory.docs.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Category already exists')),
+          SnackBar(content: Text(context.tr('category_exists'))),
         );
         setState(() {
           _isLoading = false;
@@ -89,12 +89,12 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Category added successfully')),
+        SnackBar(content: Text(context.tr('category_added_success'))),
       );
       Navigator.pop(context, categoryName);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add category: $e')),
+        SnackBar(content: Text(context.tr('failed_to_save'))),
       );
     } finally {
       setState(() {
@@ -118,9 +118,9 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Add Category',
-                  style: TextStyle(
+                Text(
+                  context.tr('add_category'),
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -140,9 +140,9 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Enter Category name',
-                  style: TextStyle(
+                Text(
+                  context.tr('enter_category_name'),
+                  style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -161,7 +161,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                       color: Colors.black87,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'Category Name',
+                      hintText: context.tr('category_name'),
                       hintStyle: TextStyle(
                         color: Colors.grey[400],
                         fontSize: 15,
@@ -198,9 +198,9 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        'Add',
-                        style: TextStyle(
+                    : Text(
+                        context.tr('add'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

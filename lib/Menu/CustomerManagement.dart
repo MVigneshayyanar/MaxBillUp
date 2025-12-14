@@ -377,7 +377,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             return Scaffold(
               backgroundColor: const Color(0xFF2196F3),
               appBar: AppBar(
-                title: const Text('Customer Details', style: TextStyle(color: Colors.white)),
+                title: Text(context.tr('customerdetails'), style: const TextStyle(color: Colors.white)),
               backgroundColor: const Color(0xFF2196F3),
               elevation: 0,
               centerTitle: true,
@@ -769,7 +769,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF2196F3),
       appBar: AppBar(
-        title: const Text('Customer Details', style: TextStyle(color: Colors.white)),
+        title: Text(context.tr('customerdetails'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
         centerTitle: true,
@@ -1338,7 +1338,7 @@ class _CreditDetailsDialog extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
-                child: const Text('Close', style: TextStyle(color: Colors.white)),
+                child: Text(context.tr('close'), style: const TextStyle(color: Colors.white)),
               ),
             ),
           ],
