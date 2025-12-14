@@ -7,6 +7,7 @@ import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Menu/Menu.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class NewSalePage extends StatefulWidget {
   final String uid;

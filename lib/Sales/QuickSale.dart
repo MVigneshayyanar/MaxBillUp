@@ -7,6 +7,7 @@ import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/Sales/components//common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class QuickSalePage extends StatefulWidget {
   final String uid;
@@ -252,7 +253,7 @@ class _QuickSalePageState extends State<QuickSalePage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2196F3),
                       ),
-                      child: const Text('Update'),
+                      child: Text(context.tr('update')),
                     ),
                   ),
               ],
@@ -273,19 +274,19 @@ class _QuickSalePageState extends State<QuickSalePage> {
                     maxHeight: MediaQuery.of(context).size.height * 0.4,
                   ),
                   child: _items.isEmpty
-                      ? const Center(
+                      ? Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.shopping_cart_outlined,
                           size: 48,
                           color: Colors.grey,
                         ),
-                        SizedBox(height: 8),
+                        const SizedBox(height: 8),
                         Text(
-                          'No items added',
-                          style: TextStyle(
+                          context.tr('no_items_in_cart'),
+                          style: const TextStyle(
                             fontSize: 16,
                             color: Colors.grey,
                           ),
@@ -329,19 +330,19 @@ class _QuickSalePageState extends State<QuickSalePage> {
                                 final confirm = await showDialog<bool>(
                                   context: context,
                                   builder: (context) => AlertDialog(
-                                    title: const Text('Delete Product'),
-                                    content: Text('Are you sure you want to delete ${item.name}?'),
+                                    title: Text(context.tr('delete')),
+                                    content: Text(context.tr('confirm_delete')),
                                     actions: [
                                       TextButton(
                                         onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
+                                        child: Text(context.tr('cancel')),
                                       ),
                                       ElevatedButton(
                                         onPressed: () => Navigator.pop(context, true),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFFFF5252),
                                         ),
-                                        child: const Text('Delete'),
+                                        child: Text(context.tr('delete')),
                                       ),
                                     ],
                                   ),

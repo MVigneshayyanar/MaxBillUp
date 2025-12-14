@@ -9,6 +9,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 // Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/BusinessDetailsPage.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

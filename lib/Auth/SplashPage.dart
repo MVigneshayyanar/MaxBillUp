@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'LoginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

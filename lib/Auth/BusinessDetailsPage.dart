@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;

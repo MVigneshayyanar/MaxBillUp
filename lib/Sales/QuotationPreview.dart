@@ -13,6 +13,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 // local primary color used in this file
 const Color _primaryColor = Color(0xFF2196F3);

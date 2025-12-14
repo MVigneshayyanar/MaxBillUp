@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class BarcodeScannerPage extends StatefulWidget {
   final Function(String) onBarcodeScanned;

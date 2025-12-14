@@ -7,6 +7,7 @@ import 'package:maxbillup/Stocks/Components/stock_app_bar.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Menu/Menu.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class StockPage extends StatefulWidget {
   final String uid;

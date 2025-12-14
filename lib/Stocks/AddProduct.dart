@@ -5,6 +5,7 @@ import '../Sales/BarcodeScanner.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Stocks/Stock.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;

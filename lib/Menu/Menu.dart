@@ -22,6 +22,7 @@ import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 
 
@@ -1535,6 +1536,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+
         title: const Text('Bill History', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(

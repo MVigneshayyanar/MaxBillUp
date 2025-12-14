@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Menu/Menu.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class SaleAppBar extends StatelessWidget {
   final int selectedTabIndex;

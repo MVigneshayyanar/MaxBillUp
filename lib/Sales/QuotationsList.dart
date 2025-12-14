@@ -6,6 +6,7 @@ import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/quotation_migration_helper.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class QuotationsListPage extends StatefulWidget {
   final String uid;

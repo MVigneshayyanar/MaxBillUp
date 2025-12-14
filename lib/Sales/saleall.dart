@@ -7,6 +7,7 @@ import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
@@ -190,7 +191,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               controller: qtyCtrl,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Quantity',
+                labelText: context.tr('quantity'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.numbers),
               ),
@@ -206,7 +207,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               setState(() {});
               Navigator.pop(ctx);
             },
-            child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -222,7 +223,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               backgroundColor: _primaryColor,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Update'),
+            child: Text(context.tr('update')),
           ),
         ],
       ),
@@ -366,7 +367,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 controller: _searchCtrl,
                 textAlignVertical: TextAlignVertical.center,
                 decoration: InputDecoration(
-                  hintText: 'Search products...',
+                  hintText: context.tr('search'),
                   hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
                   prefixIcon: Icon(Icons.search, color: _primaryColor),
                   border: InputBorder.none,
@@ -416,7 +417,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     const Icon(Icons.shopping_bag_outlined, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      '${_cart.length} Items',
+                      '${_cart.length} ${context.tr('items')}',
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ],
@@ -424,7 +425,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 GestureDetector(
                   onTap: _clearOrder,
                   child: Text(
-                    'Clear All',
+                    context.tr('clear'),
                     style: TextStyle(color: Colors.red[400], fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),

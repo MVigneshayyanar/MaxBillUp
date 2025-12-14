@@ -6,6 +6,7 @@ import 'package:maxbillup/Stocks/AddCategoryPopup.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class CategoryPage extends StatefulWidget {
   final String uid;

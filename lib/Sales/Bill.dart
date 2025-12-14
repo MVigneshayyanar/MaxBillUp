@@ -13,6 +13,7 @@ import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 // --- CONSTANTS FOR STYLING ---
 const Color kPrimaryColor = Color(0xFF2196F3);
@@ -173,13 +174,13 @@ class _BillPageState extends State<BillPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Add Discount', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(context.tr('discount'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               TextField(
                 controller: percentController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Discount (%)',
+                  labelText: '${context.tr('discount')} (%)',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.percent),
                 ),
@@ -188,9 +189,9 @@ class _BillPageState extends State<BillPage> {
               const SizedBox(height: 16),
               TextField(
                 controller: amountController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
-                  labelText: 'Discount Amount (Rs)',
+                  labelText: '${context.tr('discount')} ${context.tr('amount')}',
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   prefixIcon: const Icon(Icons.money_off),
                 ),
@@ -202,7 +203,7 @@ class _BillPageState extends State<BillPage> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                    child: Text(context.tr('cancel')),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
@@ -215,7 +216,7 @@ class _BillPageState extends State<BillPage> {
                       setState(() => _discountAmount = amount);
                       Navigator.pop(context);
                     },
-                    child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                    child: Text(context.tr('apply'), style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
