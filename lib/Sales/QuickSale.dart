@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/Sales/components//common_widgets.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class QuickSalePage extends StatefulWidget {
   final String uid;
@@ -41,9 +44,15 @@ class _QuickSalePageState extends State<QuickSalePage> {
   int _counter = 1;
   int? editingIndex;
 
+  // Default tax settings
+  String _defaultTaxType = 'Price is without Tax';
+  double _defaultTaxPercentage = 0.0;
+  String _defaultTaxName = '';
+
   @override
   void initState() {
     super.initState();
+    _loadDefaultTaxSettings();
     if (widget.initialCartItems != null) {
       for (var item in widget.initialCartItems!) {
         _items.add(QuickSaleItem(
@@ -56,6 +65,38 @@ class _QuickSalePageState extends State<QuickSalePage> {
     }
   }
 
+  Future<void> _loadDefaultTaxSettings() async {
+    try {
+      // Import FirestoreService at the top if not already imported
+      final firestoreService = FirestoreService();
+
+      // Load default tax type from store-scoped settings
+      final settingsDoc = await firestoreService.getDocument('settings', 'taxSettings');
+
+      if (settingsDoc.exists) {
+        final data = settingsDoc.data() as Map<String, dynamic>?;
+        _defaultTaxType = data?['defaultTaxType'] ?? 'Price is without Tax';
+      }
+
+      // Load first active tax for quick sale from store-scoped taxes
+      final taxesCollection = await firestoreService.getStoreCollection('taxes');
+      final taxesSnapshot = await taxesCollection
+          .where('isActive', isEqualTo: true)
+          .limit(1)
+          .get();
+
+      if (taxesSnapshot.docs.isNotEmpty) {
+        final taxData = taxesSnapshot.docs.first.data() as Map<String, dynamic>;
+        _defaultTaxPercentage = (taxData['percentage'] ?? 0.0).toDouble();
+        _defaultTaxName = taxData['name'] ?? '';
+      }
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      debugPrint('Error loading tax settings: $e');
+    }
+  }
+
   double get _total => _items.fold(0.0, (sum, item) => sum + item.total);
 
   List<CartItem> get _cartItems => _items
@@ -64,6 +105,9 @@ class _QuickSalePageState extends State<QuickSalePage> {
     name: item.name,
     price: item.price,
     quantity: item.quantity,
+    taxName: _defaultTaxPercentage > 0 ? _defaultTaxName : null,
+    taxPercentage: _defaultTaxPercentage > 0 ? _defaultTaxPercentage : null,
+    taxType: _defaultTaxType,
   ))
       .toList();
 

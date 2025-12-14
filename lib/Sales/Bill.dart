@@ -80,8 +80,32 @@ class _BillPageState extends State<BillPage> {
   }
 
   // --- CALCULATIONS ---
+
+  // Calculate subtotal (without tax)
+  double get _subtotal {
+    return widget.cartItems.fold(0.0, (sum, item) {
+      if (item.taxType == 'Price includes Tax') {
+        // Remove tax from price to get base amount
+        return sum + (item.basePrice * item.quantity);
+      } else {
+        // Price is already without tax
+        return sum + item.total;
+      }
+    });
+  }
+
+  // Calculate total tax amount
+  double get _totalTax {
+    return widget.cartItems.fold(0.0, (sum, item) => sum + item.taxAmount);
+  }
+
+  // Calculate total with tax
+  double get _totalWithTax {
+    return widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+  }
+
   double get _finalAmount {
-    final amountAfterDiscount = widget.totalAmount - _discountAmount;
+    final amountAfterDiscount = _totalWithTax - _discountAmount;
     final creditToApply = _totalCreditNotesAmount > amountAfterDiscount
         ? amountAfterDiscount
         : _totalCreditNotesAmount;
@@ -89,7 +113,7 @@ class _BillPageState extends State<BillPage> {
   }
 
   double get _actualCreditUsed {
-    final amountAfterDiscount = widget.totalAmount - _discountAmount;
+    final amountAfterDiscount = _totalWithTax - _discountAmount;
     return _totalCreditNotesAmount > amountAfterDiscount
         ? amountAfterDiscount
         : _totalCreditNotesAmount;
@@ -522,16 +546,44 @@ class _BillPageState extends State<BillPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                Text(
-                  '@ ${item.price.toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                Row(
+                  children: [
+                    Text(
+                      '@ ${item.price.toStringAsFixed(2)}',
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                    if (item.taxPercentage != null && item.taxPercentage! > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${item.taxPercentage}% ${item.taxName ?? 'Tax'}',
+                          style: const TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
           ),
-          Text(
-            item.total.toStringAsFixed(2),
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                item.totalWithTax.toStringAsFixed(2),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              if (item.taxAmount > 0)
+                Text(
+                  '(+${item.taxAmount.toStringAsFixed(2)} tax)',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 10),
+                ),
+            ],
           ),
         ],
       ),
@@ -555,8 +607,15 @@ class _BillPageState extends State<BillPage> {
             child: Column(
               children: [
                 // Totals
-                _buildSummaryRow('Subtotal', widget.totalAmount.toStringAsFixed(2)),
+                _buildSummaryRow('Subtotal', _subtotal.toStringAsFixed(2)),
                 const SizedBox(height: 8),
+
+                // Show tax if applicable
+                if (_totalTax > 0) ...[
+                  _buildSummaryRow('Tax', _totalTax.toStringAsFixed(2)),
+                  const SizedBox(height: 8),
+                ],
+
                 _buildClickableRow('Discount', '- ${_discountAmount.toStringAsFixed(2)}', Colors.green, _showDiscountDialog),
                 const SizedBox(height: 8),
                 if (_selectedCreditNotes.isNotEmpty)
@@ -1376,6 +1435,28 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         Navigator.popUntil(context, (route) => route.isFirst);
 
         print('🟢 [SplitPayment] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
+
+        // Calculate tax totals
+        final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
+          if (item.taxType == 'Price includes Tax') {
+            return sum + (item.basePrice * item.quantity);
+          } else {
+            return sum + item.total;
+          }
+        });
+        final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
+        // Group taxes by name and sum their amounts
+        final Map<String, double> taxMap = {};
+        for (var item in widget.cartItems) {
+          if (item.taxAmount > 0 && item.taxName != null) {
+            taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+          }
+        }
+
+        // Convert to list of maps for invoice
+        final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+
         // Show Invoice
         Navigator.push(context, CupertinoPageRoute(
             builder: (_) => InvoicePage(
@@ -1386,10 +1467,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
-              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.total}).toList(),
-              subtotal: widget.totalAmount + widget.discountAmount,
+              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.totalWithTax}).toList(),
+              subtotal: subtotalAmount,
               discount: widget.discountAmount,
-              total: widget.totalAmount,
+              taxes: taxList, // Dynamic tax list grouped by name
+              total: totalWithTax - widget.discountAmount,
               paymentMode: 'Split',
               cashReceived: _totalPaid - _creditAmount,
               customerName: widget.customerName,
@@ -1940,6 +2022,28 @@ class _PaymentPageState extends State<PaymentPage> {
         Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog
 
         print('🔵 [PaymentPage] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
+
+        // Calculate tax totals
+        final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
+          if (item.taxType == 'Price includes Tax') {
+            return sum + (item.basePrice * item.quantity);
+          } else {
+            return sum + item.total;
+          }
+        });
+        final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
+        // Group taxes by name and sum their amounts
+        final Map<String, double> taxMap = {};
+        for (var item in widget.cartItems) {
+          if (item.taxAmount > 0 && item.taxName != null) {
+            taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+          }
+        }
+
+        // Convert to list of maps for invoice
+        final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -1951,10 +2055,11 @@ class _PaymentPageState extends State<PaymentPage> {
               businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
-              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.total}).toList(),
-              subtotal: widget.totalAmount + widget.discountAmount,
+              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.totalWithTax}).toList(),
+              subtotal: subtotalAmount,
               discount: widget.discountAmount,
-              total: widget.totalAmount,
+              taxes: taxList, // Dynamic tax list grouped by name
+              total: totalWithTax - widget.discountAmount,
               paymentMode: widget.paymentMode,
               cashReceived: amountReceived,
               customerName: widget.customerName,

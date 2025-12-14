@@ -124,7 +124,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   double get _total => _cart.fold(0.0, (sum, item) => sum + item.total);
 
-  void _addToCart(String id, String name, double price, bool stockEnabled, double stock) {
+  void _addToCart(String id, String name, double price, bool stockEnabled, double stock,
+      {String? taxName, double? taxPercentage, String? taxType}) {
     final idx = _cart.indexWhere((item) => item.productId == id);
 
     if (idx != -1) {
@@ -144,7 +145,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
         CommonWidgets.showSnackBar(context, 'Out of stock!', bgColor: const Color(0xFFFF5252));
         return;
       }
-      _cart.insert(0, CartItem(productId: id, name: name, price: price));
+      _cart.insert(0, CartItem(
+        productId: id,
+        name: name,
+        price: price,
+        taxName: taxName,
+        taxPercentage: taxPercentage,
+        taxType: taxType,
+      ));
     }
 
     widget.onCartChanged?.call(_cart);
@@ -248,8 +256,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final stockEnabled = data['stockEnabled'] ?? false;
       final stock = (data['currentStock'] ?? 0.0).toDouble();
 
+      // Get tax information
+      final taxName = data['taxName'] as String?;
+      final taxPercentage = data['taxPercentage'] as double?;
+      final taxType = data['taxType'] as String?;
+
       if (price > 0) {
-        _addToCart(id, name, price, stockEnabled, stock);
+        _addToCart(id, name, price, stockEnabled, stock,
+            taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -599,13 +613,19 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final stock = (data['currentStock'] ?? 0.0).toDouble();
     final unit = data['stockUnit'] ?? '';
 
+    // Get tax information
+    final taxName = data['taxName'] as String?;
+    final taxPercentage = data['taxPercentage'] as double?;
+    final taxType = data['taxType'] as String?;
+
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
 
     return GestureDetector(
       onTap: () {
         if (price > 0) {
-          _addToCart(id, name, price, stockEnabled, stock);
+          _addToCart(id, name, price, stockEnabled, stock,
+              taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
         }
       },
       child: Container(

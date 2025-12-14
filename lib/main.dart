@@ -14,6 +14,7 @@ import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
 import 'Sales/NewSale.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
+import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
 
@@ -34,10 +35,15 @@ void main() async {
   final saleSyncService = SaleSyncService();
   await saleSyncService.init();
 
+  // Initialize LanguageProvider and load saved preference
+  final languageProvider = LanguageProvider();
+  await languageProvider.loadLanguagePreference();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
+        ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
         Provider<SaleSyncService>.value(value: saleSyncService),
       ],
       child: const MyApp(),

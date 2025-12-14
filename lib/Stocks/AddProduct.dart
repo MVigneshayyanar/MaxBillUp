@@ -40,10 +40,10 @@ class _AddProductPageState extends State<AddProductPage> {
   bool _moreDetailsExpanded = false;
   bool _stockEnabled = false;
 
-  // Tax switches
-  bool _tax5Enabled = false;
-  bool _tax12Enabled = false;
-  bool _tax15Enabled = false;
+  // Tax switches - dynamic from backend
+  Map<String, bool> _taxSelections = {};
+  List<Map<String, dynamic>> _availableTaxes = [];
+  String _selectedTaxType = 'Price is without Tax';
 
   List<String> units = [];
   String? _selectedStockUnit;
@@ -55,6 +55,49 @@ class _AddProductPageState extends State<AddProductPage> {
     _selectedCategory = widget.preSelectedCategory;
     _checkPermission();
     _fetchUnits();
+    _fetchTaxes();
+    _fetchDefaultTaxType();
+  }
+
+  // Fetch taxes from backend
+  Future<void> _fetchTaxes() async {
+    try {
+      final taxesCollection = await FirestoreService().getStoreCollection('taxes');
+      final snapshot = await taxesCollection.where('isActive', isEqualTo: true).get();
+
+      setState(() {
+        _availableTaxes = snapshot.docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'id': doc.id,
+            'name': data['name'] ?? '',
+            'percentage': data['percentage'] ?? 0.0,
+          };
+        }).toList();
+
+        // Initialize tax selections
+        for (var tax in _availableTaxes) {
+          _taxSelections[tax['id']] = false;
+        }
+      });
+    } catch (e) {
+      debugPrint('Error fetching taxes: $e');
+    }
+  }
+
+  // Fetch default tax type
+  Future<void> _fetchDefaultTaxType() async {
+    try {
+      final doc = await FirestoreService().getDocument('settings', 'taxSettings');
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
+        setState(() {
+          _selectedTaxType = data?['defaultTaxType'] ?? 'Price is without Tax';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching default tax type: $e');
+    }
   }
 
   void _fetchUnits() async {
@@ -478,39 +521,63 @@ class _AddProductPageState extends State<AddProductPage> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Tax options
-                        _buildTaxSwitch('5.0%', 'GST', _tax5Enabled, (value) {
-                          setState(() {
-                            _tax5Enabled = value;
-                            if (value) {
-                              _tax12Enabled = false;
-                              _tax15Enabled = false;
-                            }
-                          });
-                        }),
-                        const SizedBox(height: 8),
+                        // Tax Type Dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedTaxType,
+                              isExpanded: true,
+                              items: [
+                                'Price includes Tax',
+                                'Price is without Tax',
+                                'Zero Rated Tax',
+                                'Exempt Tax',
+                              ].map((type) {
+                                return DropdownMenuItem(value: type, child: Text(type));
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedTaxType = value!;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
 
-                        _buildTaxSwitch('12.0%', 'GST', _tax12Enabled, (value) {
-                          setState(() {
-                            _tax12Enabled = value;
-                            if (value) {
-                              _tax5Enabled = false;
-                              _tax15Enabled = false;
-                            }
-                          });
-                        }),
-                        const SizedBox(height: 8),
+                        // Dynamic Tax options from backend
+                        ..._availableTaxes.map((tax) {
+                          final taxId = tax['id'] as String;
+                          final percentage = tax['percentage'] as double;
+                          final name = tax['name'] as String;
 
-                        _buildTaxSwitch('15.0%', 'GST', _tax15Enabled, (value) {
-                          setState(() {
-                            _tax15Enabled = value;
-                            if (value) {
-                              _tax5Enabled = false;
-                              _tax12Enabled = false;
-                            }
-                          });
-                        }),
-                        const SizedBox(height: 20),
+                          return Column(
+                            children: [
+                              _buildTaxSwitch(
+                                '${percentage.toStringAsFixed(1)}%',
+                                name,
+                                _taxSelections[taxId] ?? false,
+                                (value) {
+                                  setState(() {
+                                    // Only allow one tax to be selected
+                                    _taxSelections.forEach((key, _) {
+                                      _taxSelections[key] = false;
+                                    });
+                                    _taxSelections[taxId] = value;
+                                  });
+                                },
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          );
+                        }).toList(),
+                        const SizedBox(height: 12),
 
                         // Stock Section
                         Row(
@@ -795,10 +862,20 @@ class _AddProductPageState extends State<AddProductPage> {
     }
 
     try {
-      double selectedTax = 0.0;
-      if (_tax5Enabled) selectedTax = 5.0;
-      if (_tax12Enabled) selectedTax = 12.0;
-      if (_tax15Enabled) selectedTax = 15.0;
+      // Get selected tax information
+      String? selectedTaxId;
+      double selectedTaxPercentage = 0.0;
+      String? selectedTaxName;
+
+      for (var entry in _taxSelections.entries) {
+        if (entry.value == true) {
+          selectedTaxId = entry.key;
+          final tax = _availableTaxes.firstWhere((t) => t['id'] == entry.key);
+          selectedTaxPercentage = tax['percentage'] as double;
+          selectedTaxName = tax['name'] as String;
+          break;
+        }
+      }
 
       final productData = {
         'itemName': _itemNameController.text.trim(),
@@ -820,11 +897,30 @@ class _AddProductPageState extends State<AddProductPage> {
         'currentStock': _quantityController.text.isNotEmpty
             ? double.tryParse(_quantityController.text) ?? 0.0
             : 0.0,
-        'taxes': selectedTax > 0 ? [selectedTax] : [],
+        'taxType': _selectedTaxType,
+        'taxId': selectedTaxId,
+        'taxPercentage': selectedTaxPercentage,
+        'taxName': selectedTaxName,
+        'taxes': selectedTaxPercentage > 0 ? [selectedTaxPercentage] : [],
         'createdAt': FieldValue.serverTimestamp(),
       };
 
-      await FirestoreService().addDocument('Products', productData);
+      final docRef = await FirestoreService().addDocument('Products', productData);
+
+      // Update product count for the tax
+      if (selectedTaxId != null) {
+        try {
+          final taxDoc = await FirestoreService().getDocument('taxes', selectedTaxId);
+          if (taxDoc.exists) {
+            final currentCount = (taxDoc.data() as Map<String, dynamic>?)?['productCount'] ?? 0;
+            await FirestoreService().updateDocument('taxes', selectedTaxId, {
+              'productCount': currentCount + 1,
+            });
+          }
+        } catch (e) {
+          debugPrint('Error updating tax product count: $e');
+        }
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

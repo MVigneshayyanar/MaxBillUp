@@ -13,6 +13,8 @@ import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
+import 'package:maxbillup/utils/language_provider.dart';
+import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 
 // ==========================================
 // CONSTANTS & STYLES (MATCHED TO UI IMAGE)
@@ -103,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
       case 'ReceiptCustomization':
         return ReceiptCustomizationPage(onBack: _goBack);
       case 'TaxSettings':
-        return TaxSettingsPage(onBack: _goBack);
+        return TaxSettingsNew.TaxSettingsPage(uid: widget.uid);
       case 'PrinterSetup':
         return PrinterSetupPage(onBack: _goBack);
       case 'FeatureSettings':
@@ -146,13 +148,26 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsTile(icon: Icons.percent_outlined, title: "TAX / WAT", onTap: () => _navigateTo('TaxSettings')),
             _SettingsTile(icon: Icons.print_outlined, title: "Printer Setup", onTap: () => _navigateTo('PrinterSetup')),
             _SettingsTile(icon: Icons.tune_outlined, title: "Feature Settings", onTap: () => _navigateTo('FeatureSettings')),
-            _SettingsTile(icon: Icons.language_outlined, title: "Languages", onTap: () => _navigateTo('Language')),
-            _SettingsTile(icon: Icons.dark_mode_outlined, title: "Theme", showDivider: false, onTap: () => _navigateTo('Theme')),
+            _SettingsTile(
+              icon: Icons.language_outlined,
+              title: Provider.of<LanguageProvider>(context).translate('choose_language'),
+              onTap: () => _navigateTo('Language')
+            ),
+            _SettingsTile(
+              icon: Icons.dark_mode_outlined,
+              title: Provider.of<LanguageProvider>(context).translate('theme'),
+              showDivider: false,
+              onTap: () => _navigateTo('Theme')
+            ),
           ]),
           const SizedBox(height: 24),
-          _buildSectionTitle("Support & Service"),
+          _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('help')),
           _SettingsGroup(children: [
-            _SettingsTile(icon: Icons.help_outline, title: "Help", onTap: () => _navigateTo('Help')),
+            _SettingsTile(
+              icon: Icons.help_outline,
+              title: Provider.of<LanguageProvider>(context).translate('help'),
+              onTap: () => _navigateTo('Help')
+            ),
             _SettingsTile(icon: Icons.storefront_outlined, title: "Market Place", onTap: () {}),
             _SettingsTile(icon: Icons.share_outlined, title: "Refer A Friend", showDivider: false, onTap: () {}),
           ]),
@@ -1138,27 +1153,33 @@ class LanguagePage extends StatefulWidget {
 }
 
 class _LanguagePageState extends State<LanguagePage> {
-  String _selectedLang = 'English';
-  final List<Map<String, String>> _langs = [
-    {'name': 'English', 'native': '', 'tag': ''},
-    {'name': 'Français', 'native': 'French', 'tag': ''},
-    {'name': 'हिंदी', 'native': 'Hindi', 'tag': 'Beta'},
-    {'name': 'Español', 'native': 'Spanish', 'tag': 'Beta'},
-    {'name': 'தமிழ்', 'native': 'Tamil', 'tag': 'Beta'},
-    {'name': 'Bahasa Melayu', 'native': 'Malay', 'tag': 'Beta'},
-    {'name': 'বাংলা', 'native': 'Bangla', 'tag': 'Beta'},
-    {'name': 'O\'zbek', 'native': 'Uzbek', 'tag': 'Beta'},
-    {'name': 'Русский', 'native': 'Russian', 'tag': 'Beta'},
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
+
+    // Get language list from provider
+    final languages = languageProvider.languages.entries.map((entry) {
+      return {
+        'code': entry.key,
+        'name': entry.value['name']!,
+        'native': entry.value['native']!,
+        'tag': entry.key == 'en' || entry.key == 'fr' ? '' : 'Beta',
+      };
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Choose Language", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+        title: Text(
+          languageProvider.translate('choose_language'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)
+        ),
         backgroundColor: kPrimaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: widget.onBack
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
@@ -1170,12 +1191,26 @@ class _LanguagePageState extends State<LanguagePage> {
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
-          itemCount: _langs.length,
+          itemCount: languages.length,
           itemBuilder: (context, index) {
-            final lang = _langs[index];
-            final isSelected = _selectedLang == lang['name'];
+            final lang = languages[index];
+            final isSelected = languageProvider.currentLanguageCode == lang['code'];
             return GestureDetector(
-              onTap: () => setState(() => _selectedLang = lang['name']!),
+              onTap: () async {
+                // Change language
+                await languageProvider.changeLanguage(lang['code']!);
+
+                // Show confirmation
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Language changed to ${lang['name']}'),
+                      duration: const Duration(seconds: 2),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(

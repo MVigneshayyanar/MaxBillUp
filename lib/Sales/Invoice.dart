@@ -26,9 +26,7 @@ class InvoicePage extends StatefulWidget {
   final List<Map<String, dynamic>> items;
   final double subtotal;
   final double discount;
-  final double cgst; // Central GST
-  final double sgst; // State GST
-  final double igst; // Integrated GST
+  final List<Map<String, dynamic>>? taxes; // Dynamic tax list with name and amount
   final double total;
   final String paymentMode;
   final double cashReceived;
@@ -49,9 +47,7 @@ class InvoicePage extends StatefulWidget {
     required this.items,
     required this.subtotal,
     required this.discount,
-    this.cgst = 0.0,
-    this.sgst = 0.0,
-    this.igst = 0.0,
+    this.taxes, // List of {name: "GST", amount: 18.0}
     required this.total,
     required this.paymentMode,
     required this.cashReceived,
@@ -232,6 +228,19 @@ class _InvoicePageState extends State<InvoicePage> {
       bytes.addAll([esc, 0x61, 0x02]); // Right align
       bytes.addAll(utf8.encode('Subtotal: ${widget.subtotal.toStringAsFixed(2)}'));
       bytes.add(lf);
+
+      // Show tax breakdown with actual tax names
+      if (widget.taxes != null && widget.taxes!.isNotEmpty) {
+        for (var tax in widget.taxes!) {
+          final taxName = tax['name'] ?? 'Tax';
+          final taxAmount = (tax['amount'] ?? 0.0) as double;
+          if (taxAmount > 0) {
+            bytes.addAll(utf8.encode('$taxName: ${taxAmount.toStringAsFixed(2)}'));
+            bytes.add(lf);
+          }
+        }
+      }
+
       if (widget.discount > 0) {
         bytes.addAll(utf8.encode('Discount: -${widget.discount.toStringAsFixed(2)}'));
         bytes.add(lf);
@@ -377,8 +386,13 @@ class _InvoicePageState extends State<InvoicePage> {
                             children: [
                               _buildPdfTotalRow("Subtotal", widget.subtotal),
                               if (widget.discount > 0) _buildPdfTotalRow("Discount", -widget.discount),
-                              if (widget.cgst > 0) _buildPdfTotalRow("CGST", widget.cgst),
-                              if (widget.sgst > 0) _buildPdfTotalRow("SGST", widget.sgst),
+                              // Show dynamic taxes with actual names
+                              if (widget.taxes != null)
+                                ...widget.taxes!.map((tax) {
+                                  final taxName = tax['name'] ?? 'Tax';
+                                  final taxAmount = (tax['amount'] ?? 0.0) as double;
+                                  return taxAmount > 0 ? _buildPdfTotalRow(taxName, taxAmount) : pw.Container();
+                                }),
                               pw.Divider(color: PdfColors.grey300),
                               pw.Row(
                                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -603,8 +617,13 @@ class _InvoicePageState extends State<InvoicePage> {
                         const SizedBox(height: 12),
                         _buildSummaryRow("Subtotal", widget.subtotal),
                         if (widget.discount > 0) _buildSummaryRow("Discount", -widget.discount, color: Colors.red),
-                        if (widget.cgst > 0) _buildSummaryRow("CGST", widget.cgst),
-                        if (widget.sgst > 0) _buildSummaryRow("SGST", widget.sgst),
+                        // Show dynamic taxes
+                        if (widget.taxes != null)
+                          ...widget.taxes!.map((tax) {
+                            final taxName = tax['name'] ?? 'Tax';
+                            final taxAmount = (tax['amount'] ?? 0.0) as double;
+                            return taxAmount > 0 ? _buildSummaryRow(taxName, taxAmount) : const SizedBox.shrink();
+                          }),
                         const SizedBox(height: 8),
                         const Divider(height: 1),
                         const SizedBox(height: 12),
