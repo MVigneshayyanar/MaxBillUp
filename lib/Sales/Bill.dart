@@ -1132,7 +1132,10 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     });
 
     final staffName = await _fetchStaffName(widget.uid);
-    final businessLocation = await _fetchBusinessLocation(widget.uid);
+    final businessDetails = await _fetchBusinessDetails();
+    final businessLocation = businessDetails['location'];
+    final businessPhone = businessDetails['businessPhone'];
+    final businessName = businessDetails['businessName'];
 
     await FirestoreService().addDocument('credits', {
       'customerId': phone,
@@ -1147,25 +1150,34 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       'staffId': widget.uid,
       'staffName': staffName ?? 'Staff',
       'businessLocation': businessLocation ?? 'Tirunelveli',
+      'businessPhone': businessPhone ?? '',
+      'businessName': businessName ?? '',
     });
   }
 
   Future<void> _updateProductStock() async {
     try {
+      // Use FieldValue.increment for immediate (local) updates so UI streams reflect changes right away.
       for (var cartItem in widget.cartItems) {
-        final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final productDoc = await transaction.get(productRef);
-          if (productDoc.exists) {
-            final productData = productDoc.data() as Map<String, dynamic>?;
-            final stockEnabled = productData?['stockEnabled'] as bool? ?? false;
-            if (stockEnabled) {
-              final currentStock = productData?['currentStock'] as double? ?? 0.0;
-              final newStock = currentStock - cartItem.quantity;
-              transaction.update(productRef, {'currentStock': newStock});
+        try {
+          final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
+
+          // Decrement stock locally and on server (latency compensation)
+          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))});
+
+          // Best-effort clamp to zero if update resulted in negative value on server
+          try {
+            final snap = await productRef.get();
+            final current = (snap.data() as Map<String, dynamic>?)?['currentStock'] ?? 0;
+            if ((current as num) < 0) {
+              await productRef.update({'currentStock': 0});
             }
+          } catch (_) {
+            // ignore clamp errors
           }
-        });
+        } catch (e) {
+          debugPrint('Stock update error for ${cartItem.productId}: $e');
+        }
       }
     } catch (e) {
       debugPrint('Stock update error: $e');
@@ -1218,10 +1230,13 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         isOnline = false;
       }
 
-      // Always use defaults to avoid network delays
-      String? staffName = 'Staff';
-      String? businessLocation = 'Tirunelveli';
-      print('🟢 [SplitPayment] Using staff: $staffName, location: $businessLocation');
+      // Fetch business details from store-scoped backend
+      final businessDetails = await _fetchBusinessDetails();
+      String? staffName = await _fetchStaffName(widget.uid);
+      String? businessLocation = businessDetails['location'];
+      String? businessPhone = businessDetails['businessPhone'];
+      String? businessName = businessDetails['businessName'];
+      print('🟢 [SplitPayment] Using staff: $staffName, location: $businessLocation, phone: $businessPhone, name: $businessName');
 
       // Base sale data without Firestore-specific fields
       final baseSaleData = {
@@ -1246,6 +1261,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'staffId': widget.uid,
         'staffName': staffName ?? 'Staff',
         'businessLocation': businessLocation ?? 'Tirunelveli',
+        'businessPhone': businessPhone ?? '',
+        'businessName': businessName ?? '',
         'savedOrderId': widget.savedOrderId,
         'selectedCreditNotes': widget.selectedCreditNotes,
         'quotationId': widget.quotationId,
@@ -1335,7 +1352,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           }
         }
       } else {
-        // Offline: Save to local storage (use baseSaleData without FieldValue)
+        // Offline: Save to local storage (use baseSaleData without Firestore-specific fields)
         final offlineSaleData = {
           ...baseSaleData,
           'timestamp': DateTime.now().toIso8601String(), // Use regular timestamp for offline
@@ -1358,22 +1375,15 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         // Pop back to root or Sales page
         Navigator.popUntil(context, (route) => route.isFirst);
 
-        // Use default business details to avoid delays
-        Map<String, String?> businessDetails = {
-          'businessName': 'Business',
-          'location': businessLocation ?? 'Tirunelveli',
-          'businessPhone': '',
-        };
-
-        print('🟢 [SplitPayment] Navigating to invoice');
+        print('🟢 [SplitPayment] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
         // Show Invoice
         Navigator.push(context, CupertinoPageRoute(
             builder: (_) => InvoicePage(
               uid: widget.uid,
               userEmail: widget.userEmail,
-              businessName: businessDetails['businessName'] ?? 'Business',
-              businessLocation: businessDetails['location'] ?? businessLocation ?? '',
-              businessPhone: businessDetails['businessPhone'] ?? '',
+              businessName: businessName ?? 'Business',
+              businessLocation: businessLocation ?? 'Tirunelveli',
+              businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
               items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.total}).toList(),
@@ -1677,7 +1687,10 @@ class _PaymentPageState extends State<PaymentPage> {
     });
 
     final staffName = await _fetchStaffName(widget.uid);
-    final businessLocation = await _fetchBusinessLocation(widget.uid);
+    final businessDetails = await _fetchBusinessDetails();
+    final businessLocation = businessDetails['location'];
+    final businessPhone = businessDetails['businessPhone'];
+    final businessName = businessDetails['businessName'];
 
     await FirestoreService().addDocument('credits', {
       'customerId': phone,
@@ -1692,25 +1705,34 @@ class _PaymentPageState extends State<PaymentPage> {
       'staffId': widget.uid,
       'staffName': staffName ?? 'Staff',
       'businessLocation': businessLocation ?? 'Tirunelveli',
+      'businessPhone': businessPhone ?? '',
+      'businessName': businessName ?? '',
     });
   }
 
   Future<void> _updateProductStock() async {
     try {
+      // Use FieldValue.increment for immediate (local) updates so UI streams reflect changes right away.
       for (var cartItem in widget.cartItems) {
-        final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final productDoc = await transaction.get(productRef);
-          if (productDoc.exists) {
-            final productData = productDoc.data() as Map<String, dynamic>?;
-            final stockEnabled = productData?['stockEnabled'] as bool? ?? false;
-            if (stockEnabled) {
-              final currentStock = productData?['currentStock'] as double? ?? 0.0;
-              final newStock = currentStock - cartItem.quantity;
-              transaction.update(productRef, {'currentStock': newStock});
+        try {
+          final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
+
+          // Decrement stock locally and on server (latency compensation)
+          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))});
+
+          // Best-effort clamp to zero if update resulted in negative value on server
+          try {
+            final snap = await productRef.get();
+            final current = (snap.data() as Map<String, dynamic>?)?['currentStock'] ?? 0;
+            if ((current as num) < 0) {
+              await productRef.update({'currentStock': 0});
             }
+          } catch (_) {
+            // ignore clamp errors
           }
-        });
+        } catch (e) {
+          debugPrint('Stock update error for ${cartItem.productId}: $e');
+        }
       }
     } catch (e) {
       debugPrint('Stock update error: $e');
@@ -1770,10 +1792,13 @@ class _PaymentPageState extends State<PaymentPage> {
         isOnline = false;
       }
 
-      // Always use defaults to avoid network delays
-      String? staffName = 'Staff';
-      String? businessLocation = 'Tirunelveli';
-      print('🔵 [PaymentPage] Using staff: $staffName, location: $businessLocation');
+      // Fetch business details from store-scoped backend
+      final businessDetails = await _fetchBusinessDetails();
+      String? staffName = await _fetchStaffName(widget.uid);
+      String? businessLocation = businessDetails['location'];
+      String? businessPhone = businessDetails['businessPhone'];
+      String? businessName = businessDetails['businessName'];
+      print('🔵 [PaymentPage] Using staff: $staffName, location: $businessLocation, phone: $businessPhone, name: $businessName');
 
       final amountReceived = (widget.paymentMode == 'Credit') ? 0.0 : _cashReceived;
       final changeGiven = (widget.paymentMode == 'Credit') ? 0.0 : _change;
@@ -1796,6 +1821,8 @@ class _PaymentPageState extends State<PaymentPage> {
         'staffId': widget.uid,
         'staffName': staffName ?? 'Staff',
         'businessLocation': businessLocation ?? 'Tirunelveli',
+        'businessPhone': businessPhone ?? '',
+        'businessName': businessName ?? '',
         'savedOrderId': widget.savedOrderId,
         'selectedCreditNotes': widget.selectedCreditNotes,
         'quotationId': widget.quotationId,
@@ -1889,7 +1916,7 @@ class _PaymentPageState extends State<PaymentPage> {
           }
         }
       } else {
-        // Offline: Save to local storage (use baseSaleData without FieldValue)
+        // Offline: Save to local storage (use baseSaleData without Firestore-specific fields)
         print('🔵 [PaymentPage] OFFLINE MODE - Saving locally...');
         final offlineSaleData = {
           ...baseSaleData,
@@ -1912,23 +1939,16 @@ class _PaymentPageState extends State<PaymentPage> {
         print('🔵 [PaymentPage] Closing loading dialog');
         Navigator.of(context, rootNavigator: true).pop(); // Close loading dialog
 
-        // Use default business details to avoid delays
-        Map<String, String?> businessDetails = {
-          'businessName': 'Business',
-          'location': businessLocation ?? 'Tirunelveli',
-          'businessPhone': '',
-        };
-
-        print('🔵 [PaymentPage] Navigating to invoice');
+        print('🔵 [PaymentPage] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
         Navigator.push(
           context,
           CupertinoPageRoute(
             builder: (_) => InvoicePage(
               uid: widget.uid,
               userEmail: widget.userEmail,
-              businessName: businessDetails['businessName'] ?? 'Business',
-              businessLocation: businessDetails['location'] ?? businessLocation ?? '',
-              businessPhone: businessDetails['businessPhone'] ?? '',
+              businessName: businessName ?? 'Business',
+              businessLocation: businessLocation ?? 'Location',
+              businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
               items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.total}).toList(),
