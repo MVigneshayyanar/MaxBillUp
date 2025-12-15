@@ -1,59 +1,139 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
 /// Service to manage product stock locally when offline
-class LocalStockService {
+/// Uses ChangeNotifier pattern for reactive UI updates
+class LocalStockService extends ChangeNotifier {
+  static final LocalStockService _instance = LocalStockService._internal();
+  factory LocalStockService() => _instance;
+  LocalStockService._internal();
+
   static const String _stockPrefix = 'local_stock_';
   static const String _pendingUpdatesKey = 'pending_stock_updates';
 
-  /// Update stock locally for a product
-  static Future<void> updateLocalStock(String productId, int quantityChange) async {
+  // In-memory cache for fast access
+  final Map<String, int> _stockCache = {};
+  bool _initialized = false;
+
+  /// Initialize the service and load cached stock from SharedPreferences
+  Future<void> init() async {
+    if (_initialized) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+
+      for (final key in keys) {
+        if (key.startsWith(_stockPrefix)) {
+          final productId = key.replaceFirst(_stockPrefix, '');
+          final stock = prefs.getInt(key);
+          if (stock != null) {
+            _stockCache[productId] = stock;
+          }
+        }
+      }
+      _initialized = true;
+      print('📦 LocalStockService initialized with ${_stockCache.length} cached items');
+    } catch (e) {
+      print('❌ Error initializing LocalStockService: $e');
+    }
+  }
+
+  /// Update stock locally for a product - NOTIFIES LISTENERS
+  Future<void> updateLocalStock(String productId, int quantityChange) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = '$_stockPrefix$productId';
 
-      // Get current local stock value (or null if not cached)
-      final currentStock = prefs.getInt(key);
+      // Get current stock from memory cache or SharedPreferences
+      int currentStock = _stockCache[productId] ?? prefs.getInt(key) ?? 0;
 
-      if (currentStock != null) {
-        // Update local stock
-        final newStock = (currentStock + quantityChange).clamp(0, double.infinity).toInt();
-        await prefs.setInt(key, newStock);
-        print('📦 Local stock updated for $productId: $currentStock -> $newStock (change: $quantityChange)');
-      } else {
-        print('⚠️ No local stock cached for $productId, will update on next fetch');
-      }
+      // Calculate new stock (never go below 0)
+      final newStock = (currentStock + quantityChange).clamp(0, 999999);
 
-      // Track pending update for sync
+      // Update both memory cache and SharedPreferences
+      _stockCache[productId] = newStock;
+      await prefs.setInt(key, newStock);
+
+      print('📦 Stock updated for $productId: $currentStock -> $newStock (change: $quantityChange)');
+
+      // Track pending update for sync when online
       await _addPendingUpdate(productId, quantityChange);
+
+      // NOTIFY ALL LISTENERS - This triggers UI rebuild in SaleAll page!
+      notifyListeners();
     } catch (e) {
       print('❌ Error updating local stock: $e');
     }
   }
 
-  /// Get local stock for a product (returns null if not cached)
-  static Future<int?> getLocalStock(String productId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      return prefs.getInt('$_stockPrefix$productId');
-    } catch (e) {
-      print('❌ Error getting local stock: $e');
-      return null;
-    }
+  /// Get stock for a product - uses memory cache for instant access
+  int getStock(String productId) {
+    return _stockCache[productId] ?? 0;
   }
 
-  /// Cache stock value from Firestore
-  static Future<void> cacheStock(String productId, int stock) async {
+  /// Check if stock is cached for a product
+  bool hasStock(String productId) {
+    return _stockCache.containsKey(productId);
+  }
+
+  /// Cache stock value from Firestore (also saves to SharedPreferences)
+  Future<void> cacheStock(String productId, int stock) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('$_stockPrefix$productId', stock);
+      // Only update if different (to avoid unnecessary notifications)
+      if (_stockCache[productId] != stock) {
+        _stockCache[productId] = stock;
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('$_stockPrefix$productId', stock);
+      }
     } catch (e) {
       print('❌ Error caching stock: $e');
     }
   }
 
+  /// Bulk cache stock from Firestore products
+  Future<void> cacheStockBulk(Map<String, int> stockMap) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      for (final entry in stockMap.entries) {
+        _stockCache[entry.key] = entry.value;
+        await prefs.setInt('$_stockPrefix${entry.key}', entry.value);
+      }
+
+      // Notify after bulk update
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error bulk caching stock: $e');
+    }
+  }
+
+  /// Refresh stock from Firestore and notify listeners
+  Future<void> refreshFromFirestore(Map<String, int> firestoreStock) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      for (final entry in firestoreStock.entries) {
+        _stockCache[entry.key] = entry.value;
+        await prefs.setInt('$_stockPrefix${entry.key}', entry.value);
+      }
+
+      print('🔄 Stock refreshed from Firestore: ${firestoreStock.length} products');
+
+      // Clear pending updates since we have fresh data
+      await clearPendingUpdates();
+
+      // Notify all listeners to update UI
+      notifyListeners();
+    } catch (e) {
+      print('❌ Error refreshing from Firestore: $e');
+    }
+  }
+
   /// Add pending stock update for later sync
-  static Future<void> _addPendingUpdate(String productId, int quantityChange) async {
+  Future<void> _addPendingUpdate(String productId, int quantityChange) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final updatesJson = prefs.getString(_pendingUpdatesKey) ?? '[]';
@@ -81,7 +161,7 @@ class LocalStockService {
   }
 
   /// Get all pending stock updates
-  static Future<List<Map<String, dynamic>>> getPendingUpdates() async {
+  Future<List<Map<String, dynamic>>> getPendingUpdates() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final updatesJson = prefs.getString(_pendingUpdatesKey) ?? '[]';
@@ -93,7 +173,7 @@ class LocalStockService {
   }
 
   /// Clear pending updates after successful sync
-  static Future<void> clearPendingUpdates() async {
+  Future<void> clearPendingUpdates() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_pendingUpdatesKey);
@@ -104,19 +184,28 @@ class LocalStockService {
   }
 
   /// Clear all local stock cache
-  static Future<void> clearAllLocalStock() async {
+  Future<void> clearAllLocalStock() async {
     try {
+      _stockCache.clear();
+
       final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys();
+      final keys = prefs.getKeys().toList();
       for (final key in keys) {
         if (key.startsWith(_stockPrefix)) {
           await prefs.remove(key);
         }
       }
+
       print('✅ All local stock cache cleared');
+      notifyListeners();
     } catch (e) {
       print('❌ Error clearing local stock: $e');
     }
+  }
+
+  /// Get all cached stock as a map
+  Map<String, int> getAllCachedStock() {
+    return Map.from(_stockCache);
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 
 class StockPurchasePage extends StatefulWidget {
   final String uid;
@@ -357,7 +358,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 
       // If payment mode is Credit, create a purchase credit note
       if (_paymentMode == 'Credit') {
-        final creditNoteNumber = 'PCN${DateTime.now().millisecondsSinceEpoch}';
+        final creditNoteNumber = await NumberGeneratorService.generatePurchaseCreditNoteNumber();
 
         await FirestoreService().addDocument('purchaseCreditNotes', {
           'creditNoteNumber': creditNoteNumber,
@@ -374,19 +375,19 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           'items': [], // Empty array for now, can be expanded later with item details
         });
 
-        // Update supplier's credit balance if supplier phone is provided
+        // Update supplier's credit balance if supplier phone is provided - store-scoped
         if (_supplierPhoneController.text.isNotEmpty) {
-          final supplierRef = FirebaseFirestore.instance
-              .collection('suppliers')
-              .doc(_supplierPhoneController.text);
+          final suppliersCollection = await FirestoreService().getStoreCollection('suppliers');
+          final supplierRef = suppliersCollection.doc(_supplierPhoneController.text);
 
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final supplierDoc = await transaction.get(supplierRef);
 
             if (supplierDoc.exists) {
               // Update existing supplier
-              final currentBalance = supplierDoc.data()?['creditBalance'] ?? 0.0;
-              final newBalance = currentBalance + amount;
+              final supplierData = supplierDoc.data() as Map<String, dynamic>?;
+              final currentBalance = (supplierData?['creditBalance'] ?? 0.0) as num;
+              final newBalance = currentBalance.toDouble() + amount;
               transaction.update(supplierRef, {
                 'creditBalance': newBalance,
                 'lastUpdated': FieldValue.serverTimestamp(),

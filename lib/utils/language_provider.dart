@@ -9,14 +9,14 @@ class LanguageProvider extends ChangeNotifier {
   // Language configurations
   final Map<String, Map<String, String>> _languages = {
     'en': {'name': 'English', 'native': 'English'},
-    'fr': {'name': 'Français', 'native': 'French'},
+    //'fr': {'name': 'Français', 'native': 'French'},
     'hi': {'name': 'हिंदी', 'native': 'Hindi'},
-    'es': {'name': 'Español', 'native': 'Spanish'},
+    //'es': {'name': 'Español', 'native': 'Spanish'},
     'ta': {'name': 'தமிழ்', 'native': 'Tamil'},
-    'ms': {'name': 'Bahasa Melayu', 'native': 'Malay'},
-    'bn': {'name': 'বাংলা', 'native': 'Bangla'},
-    'uz': {'name': 'O\'zbek', 'native': 'Uzbek'},
-    'ru': {'name': 'Русский', 'native': 'Russian'},
+    //'ms': {'name': 'Bahasa Melayu', 'native': 'Malay'},
+    //'bn': {'name': 'বাংলা', 'native': 'Bangla'},
+    //'uz': {'name': 'O\'zbek', 'native': 'Uzbek'},
+    //'ru': {'name': 'Русский', 'native': 'Russian'},
   };
 
   Map<String, Map<String, String>> get languages => _languages;
@@ -110,6 +110,7 @@ class LanguageProvider extends ChangeNotifier {
       'cash': 'Cash',
       'online': 'Online',
       'credit': 'Credit',
+      'credit-note':'Credit Note',
       'split_payment': 'Split Payment',
 
       // Bill

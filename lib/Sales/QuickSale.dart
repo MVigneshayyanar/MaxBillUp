@@ -72,7 +72,8 @@ class _QuickSalePageState extends State<QuickSalePage> {
       final firestoreService = FirestoreService();
 
       // Load default tax type from store-scoped settings
-      final settingsDoc = await firestoreService.getDocument('settings', 'taxSettings');
+      final settingsCollection = await firestoreService.getStoreCollection('settings');
+      final settingsDoc = await settingsCollection.doc('taxSettings').get();
 
       if (settingsDoc.exists) {
         final data = settingsDoc.data() as Map<String, dynamic>?;

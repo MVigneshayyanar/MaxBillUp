@@ -15,6 +15,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // --- CONSTANTS FOR STYLING ---
@@ -1220,6 +1221,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   Future<void> _updateProductStock() async {
     try {
       print('🟢 [SplitPayment] Starting stock update for ${widget.cartItems.length} items...');
+      final localStockService = context.read<LocalStockService>();
+
       for (var cartItem in widget.cartItems) {
         try {
           print('🟢 [SplitPayment] Updating stock for ${cartItem.name}, qty: -${cartItem.quantity}');
@@ -1231,6 +1234,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             print('🟢 [SplitPayment] Stock update timeout - continuing anyway');
           });
           print('🟢 [SplitPayment] ✓ Stock decremented for ${cartItem.name}');
+
+          // Also update local cache so SaleAll page shows updated stock immediately
+          await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
 
           // Best-effort clamp to zero - use cache to avoid hanging
           try {
@@ -1257,16 +1263,18 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   Future<void> _updateProductStockLocally() async {
     try {
       print('📦 [SplitPayment] Starting LOCAL stock update for ${widget.cartItems.length} items...');
+      final localStockService = context.read<LocalStockService>();
+
       for (var cartItem in widget.cartItems) {
         try {
           print('📦 [SplitPayment] Updating local stock for ${cartItem.name}, qty: -${cartItem.quantity}');
-          await LocalStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
+          await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
           print('📦 [SplitPayment] ✓ Local stock updated for ${cartItem.name}');
         } catch (e) {
           debugPrint('🔴 [SplitPayment] Local stock error for ${cartItem.productId}: $e');
         }
       }
-      print('📦 [SplitPayment] ✅ Local stock update completed');
+      print('📦 [SplitPayment] ✅ Local stock update completed - UI will refresh!');
     } catch (e) {
       debugPrint('🔴 [SplitPayment] Local stock update error: $e');
     }
@@ -1301,7 +1309,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-      final invoiceNumber = (100000 + Random().nextInt(900000)).toString();
+      // Generate sequential invoice number from backend
+      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
       print('🟢 [SplitPayment] Generated invoice: $invoiceNumber');
 
       // Check connectivity with timeout
@@ -1828,6 +1837,8 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _updateProductStock() async {
     try {
       print('🔵 [PaymentPage] Starting stock update for ${widget.cartItems.length} items...');
+      final localStockService = context.read<LocalStockService>();
+
       for (var cartItem in widget.cartItems) {
         try {
           print('🔵 [PaymentPage] Updating stock for ${cartItem.name}, qty: -${cartItem.quantity}');
@@ -1839,6 +1850,9 @@ class _PaymentPageState extends State<PaymentPage> {
             print('🔵 [PaymentPage] Stock update timeout - continuing anyway');
           });
           print('🔵 [PaymentPage] ✓ Stock decremented for ${cartItem.name}');
+
+          // Also update local cache so SaleAll page shows updated stock immediately
+          await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
 
           // Best-effort clamp to zero - use cache to avoid hanging
           try {
@@ -1865,16 +1879,18 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _updateProductStockLocally() async {
     try {
       print('📦 [PaymentPage] Starting LOCAL stock update for ${widget.cartItems.length} items...');
+      final localStockService = context.read<LocalStockService>();
+
       for (var cartItem in widget.cartItems) {
         try {
           print('📦 [PaymentPage] Updating local stock for ${cartItem.name}, qty: -${cartItem.quantity}');
-          await LocalStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
+          await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
           print('📦 [PaymentPage] ✓ Local stock updated for ${cartItem.name}');
         } catch (e) {
           debugPrint('🔴 [PaymentPage] Local stock error for ${cartItem.productId}: $e');
         }
       }
-      print('📦 [PaymentPage] ✅ Local stock update completed');
+      print('📦 [PaymentPage] ✅ Local stock update completed - UI will refresh!');
     } catch (e) {
       debugPrint('🔴 [PaymentPage] Local stock update error: $e');
     }
@@ -1916,7 +1932,8 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-      final invoiceNumber = (100000 + Random().nextInt(900000)).toString();
+      // Generate sequential invoice number from backend
+      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
       print('🔵 [PaymentPage] Generated invoice: $invoiceNumber');
 
       // Check connectivity with timeout

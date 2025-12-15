@@ -23,6 +23,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 
 
 
@@ -1879,6 +1880,50 @@ class SalesDetailPage extends StatelessWidget {
 
   const SalesDetailPage({super.key, required this.documentId, required this.initialData});
 
+  // Calculate tax totals from items
+  Map<String, dynamic> _calculateTaxTotals(List<Map<String, dynamic>> items) {
+    double subtotalWithoutTax = 0.0;
+    double totalTax = 0.0;
+    Map<String, double> taxBreakdown = {};
+
+    for (var item in items) {
+      final price = (item['price'] ?? 0).toDouble();
+      final quantity = (item['quantity'] ?? 1);
+      final taxName = item['taxName'] as String?;
+      final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+      final taxType = item['taxType'] as String?;
+
+      double itemTotal = price * quantity;
+      double itemTax = 0.0;
+      double itemBaseAmount = itemTotal;
+
+      if (taxPercentage > 0 && taxType != null) {
+        if (taxType == 'Price includes Tax') {
+          // Tax is included in price, extract it
+          itemBaseAmount = itemTotal / (1 + taxPercentage / 100);
+          itemTax = itemTotal - itemBaseAmount;
+        } else if (taxType == 'Price is without Tax') {
+          // Tax needs to be added
+          itemTax = itemTotal * (taxPercentage / 100);
+        }
+      }
+
+      subtotalWithoutTax += itemBaseAmount;
+      totalTax += itemTax;
+
+      // Track tax breakdown by tax name
+      if (itemTax > 0 && taxName != null && taxName.isNotEmpty) {
+        taxBreakdown[taxName] = (taxBreakdown[taxName] ?? 0.0) + itemTax;
+      }
+    }
+
+    return {
+      'subtotalWithoutTax': subtotalWithoutTax,
+      'totalTax': totalTax,
+      'taxBreakdown': taxBreakdown,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1908,7 +1953,13 @@ class SalesDetailPage extends StatelessWidget {
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
               final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
-          final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+              final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+
+              // Calculate tax information
+              final taxInfo = _calculateTaxTotals(items);
+              final subtotalWithoutTax = taxInfo['subtotalWithoutTax'] as double;
+              final totalTax = taxInfo['totalTax'] as double;
+              final taxBreakdown = taxInfo['taxBreakdown'] as Map<String, double>;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -2093,52 +2144,214 @@ class SalesDetailPage extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${context.tr('totalitems')} : ${items.length}'),
-                                Text('${context.tr('subtotal')} : ${(data['subtotal'] ?? 0.0).toStringAsFixed(2)}'),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${context.tr('totalquantity')} : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}'),
-                                const Text(''),
-                              ],
-                            ),
-                            if (data['paymentMode'] == 'Credit') ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('${context.tr('credit')} : ${(data['total'] ?? 0.0).toStringAsFixed(2)}'),
-                                  const Text(''),
-                                ],
-                              ),
-                            ],
-                            const Divider(height: 24),
+                            // Items count and quantity
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${context.tr('totalamount')} :',
+                                  '${context.tr('totalitems')} : ${items.length}',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                ),
+                                Text(
+                                  '${context.tr('totalquantity')} : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+
+                            // Subtotal (without tax)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${context.tr('subtotal')} (${context.tr('excluding_tax')}):',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                ),
+                                Text(
+                                  'Rs ${subtotalWithoutTax.toStringAsFixed(2)}',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+
+                            // Discount (if any)
+                            if ((data['discount'] ?? 0.0) > 0) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${context.tr('discount')}:',
+                                    style: const TextStyle(fontSize: 14, color: Colors.red),
+                                  ),
+                                  Text(
+                                    '- Rs ${(data['discount'] ?? 0.0).toStringAsFixed(2)}',
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.red),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            // Tax breakdown
+                            if (taxBreakdown.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              ...taxBreakdown.entries.map((entry) => Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      '${entry.key}:',
+                                      style: const TextStyle(fontSize: 13, color: Colors.black54),
+                                    ),
+                                    Text(
+                                      'Rs ${entry.value.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
+                              )).toList(),
+                            ],
+
+                            // Total Tax
+                            if (totalTax > 0) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '${context.tr('total_tax')}:',
+                                    style: const TextStyle(fontSize: 14, color: Colors.green),
+                                  ),
+                                  Text(
+                                    'Rs ${totalTax.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.green),
+                                  ),
+                                ],
+                              ),
+                            ],
+
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+
+                            // Total Amount
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${context.tr('totalamount')}:',
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 18,
                                     fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
                                   ),
                                 ),
                                 Text(
                                   'Rs ${(data['total'] ?? 0.0).toStringAsFixed(2)}',
                                   style: const TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF2196F3),
                                   ),
                                 ),
                               ],
                             ),
+
+                            // Payment mode details
+                            const SizedBox(height: 12),
+                            const Divider(height: 1),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${context.tr('payment_mode')}:',
+                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: data['paymentMode'] == 'Credit'
+                                        ? Colors.orange.shade50
+                                        : Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    data['paymentMode'] ?? 'Cash',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: data['paymentMode'] == 'Credit'
+                                          ? Colors.orange.shade700
+                                          : Colors.green.shade700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            // Split payment details
+                            if (data['paymentMode'] == 'Split') ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('${context.tr('cash')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                  Text('Rs ${(data['cashReceived_split'] ?? 0.0).toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('${context.tr('online')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                  Text('Rs ${(data['onlineReceived_split'] ?? 0.0).toStringAsFixed(2)}',
+                                      style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                ],
+                              ),
+                              if ((data['creditIssued_split'] ?? 0.0) > 0) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${context.tr('credit')}:', style: const TextStyle(fontSize: 13, color: Colors.orange)),
+                                    Text('Rs ${(data['creditIssued_split'] ?? 0.0).toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 13, color: Colors.orange)),
+                                  ],
+                                ),
+                              ],
+                            ],
+
+                            // Cash/Online received and change
+                            if (data['paymentMode'] == 'Cash' || data['paymentMode'] == 'Online') ...[
+                              if ((data['cashReceived'] ?? 0.0) > 0) ...[
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${context.tr('received')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                    Text('Rs ${(data['cashReceived'] ?? 0.0).toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 13, color: Colors.black54)),
+                                  ],
+                                ),
+                              ],
+                              if ((data['change'] ?? 0.0) > 0) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text('${context.tr('change')}:', style: const TextStyle(fontSize: 13, color: Colors.green)),
+                                    Text('Rs ${(data['change'] ?? 0.0).toStringAsFixed(2)}',
+                                        style: const TextStyle(fontSize: 13, color: Colors.green)),
+                                  ],
+                                ),
+                              ],
+                            ],
                           ],
                         ),
                       ),
@@ -2387,8 +2600,8 @@ class SalesDetailPage extends StatelessWidget {
 
                 // 2. Create credit note if customer was involved (for any payment mode)
                 if (data['customerPhone'] != null && (data['total'] as num) > 0) {
-                  // Generate credit note number
-                  final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
+                  // Generate sequential credit note number
+                  final creditNoteNumber = await NumberGeneratorService.generateCreditNoteNumber();
 
                   // Create credit note document
                   await FirestoreService().addDocument('creditNotes', {
@@ -2473,9 +2686,29 @@ class SalesDetailPage extends StatelessWidget {
 
   Widget _buildItemRow(Map<String, dynamic> item) {
     final name = item['name'] ?? 'Item';
-    final price = item['price'] ?? 0;
+    final price = (item['price'] ?? 0).toDouble();
     final quantity = item['quantity'] ?? 1;
-    final total = (price * quantity) as double? ?? 0.0;
+    final taxName = item['taxName'] as String?;
+    final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+    final taxType = item['taxType'] as String?;
+
+    // Calculate amounts
+    double itemTotal = price * quantity;
+    double itemTax = 0.0;
+    double itemBaseAmount = itemTotal;
+
+    if (taxPercentage > 0 && taxType != null) {
+      if (taxType == 'Price includes Tax') {
+        // Tax is included in price, extract it
+        itemBaseAmount = itemTotal / (1 + taxPercentage / 100);
+        itemTax = itemTotal - itemBaseAmount;
+      } else if (taxType == 'Price is without Tax') {
+        // Tax needs to be added
+        itemTax = itemTotal * (taxPercentage / 100);
+      }
+    }
+
+    final finalTotal = itemBaseAmount + itemTax;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -2501,56 +2734,61 @@ class SalesDetailPage extends StatelessWidget {
                 ),
               ),
               Text(
-                '-0.00',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${price.toStringAsFixed(2)} × ${quantity.toStringAsFixed(1)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              Text(
-                '0.00',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                total.toStringAsFixed(2),
+                'Rs ${finalTotal.toStringAsFixed(2)}',
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
               ),
-              Text(
-                total.toStringAsFixed(2),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2196F3),
-                ),
-              ),
             ],
           ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Rs ${price.toStringAsFixed(2)} × $quantity',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              if (itemTax > 0)
+                Text(
+                  'Base: Rs ${itemBaseAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+            ],
+          ),
+          // Show tax information if applicable
+          if (itemTax > 0 && taxName != null && taxName.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '$taxName ($taxPercentage%)',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green.shade600,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                Text(
+                  '+ Rs ${itemTax.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.green.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     ); // Close Container
@@ -2789,6 +3027,19 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
+
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+
+                                      const SizedBox(height: 4),
                                       Text(
                                         'Invoice : $invoiceNumber',
                                         style: const TextStyle(
@@ -2889,7 +3140,7 @@ class CreditNoteDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: Text(context.tr('creditnote'), style: const TextStyle(color: Colors.white)),
+        title: Text(context.tr('Credit Notes'), style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2196F3),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -4772,20 +5023,19 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                     'remainingAfterPayment': totalAmount - newPaidAmount,
                   });
 
-                  // Update supplier balance if applicable
+                  // Update supplier balance if applicable - store-scoped
                   final supplierPhone = creditNoteData['supplierPhone'] ?? '';
                   if (supplierPhone.isNotEmpty) {
-                    final supplierRef = FirebaseFirestore.instance
-                        .collection('suppliers')
-                        .doc(supplierPhone);
+                    final suppliersCollection = await FirestoreService().getStoreCollection('suppliers');
+                    final supplierRef = suppliersCollection.doc(supplierPhone);
 
                     await FirebaseFirestore.instance
                         .runTransaction((transaction) async {
                       final supplierDoc = await transaction.get(supplierRef);
                       if (supplierDoc.exists) {
-                        final currentBalance =
-                            supplierDoc.data()?['creditBalance'] ?? 0.0;
-                        final newBalance = currentBalance - paymentAmount;
+                        final supplierData = supplierDoc.data() as Map<String, dynamic>?;
+                        final currentBalance = (supplierData?['creditBalance'] ?? 0.0) as num;
+                        final newBalance = currentBalance.toDouble() - paymentAmount;
                         transaction.update(supplierRef, {
                           'creditBalance': newBalance > 0 ? newBalance : 0,
                           'lastUpdated': FieldValue.serverTimestamp(),

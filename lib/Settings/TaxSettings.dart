@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'Profile.dart';
 
 const Color kPrimaryColor = Color(0xFF2196F3);
 const Color kBgColor = Color(0xFFF5F5F5);
@@ -48,10 +49,11 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     super.dispose();
   }
 
-  // Load default tax type from backend
+  // Load default tax type from backend (store-scoped)
   Future<void> _loadDefaultTaxType() async {
     try {
-      final doc = await FirestoreService().getDocument('settings', 'taxSettings');
+      final settingsCollection = await FirestoreService().getStoreCollection('settings');
+      final doc = await settingsCollection.doc('taxSettings').get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
         setState(() {
@@ -63,13 +65,14 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     }
   }
 
-  // Save default tax type to backend
+  // Save default tax type to backend (store-scoped)
   Future<void> _saveDefaultTaxType() async {
     try {
-      await FirestoreService().setDocument('settings', 'taxSettings', {
+      final settingsCollection = await FirestoreService().getStoreCollection('settings');
+      await settingsCollection.doc('taxSettings').set({
         'defaultTaxType': _defaultTaxType,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -416,33 +419,55 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: Text(context.tr('tax_settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        bottom: TabBar(
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => SettingsPage(uid: widget.uid),
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(
+          title: Text(context.tr('tax_settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          iconTheme: const IconThemeData(color: Colors.white),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => SettingsPage(uid: widget.uid),
+                ),
+              );
+            },
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white70,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            tabs: const [
+              Tab(text: 'Taxes'),
+              Tab(text: 'Tax for Quick Sale'),
+            ],
+          ),
+        ),
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          tabs: const [
-            Tab(text: 'Taxes'),
-            Tab(text: 'Tax for Quick Sale'),
+          children: [
+            _buildTaxesTab(),
+            _buildQuickSaleTaxTab(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTaxesTab(),
-          _buildQuickSaleTaxTab(),
-        ],
       ),
     );
   }
@@ -821,14 +846,11 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          // Update the backend with the new default tax configuration
-                          // Using 'settings/quick_sale_config' as the path - adjust if needed
-                          await FirebaseFirestore.instance
-                              .collection('settings')
-                              .doc('quick_sale_config')
-                              .set({
+                          // Update the backend with the new default tax configuration (store-scoped)
+                          final settingsCollection = await FirestoreService().getStoreCollection('settings');
+                          await settingsCollection.doc('taxSettings').set({
                             'defaultTaxType': _defaultTaxType,
-                            'lastUpdated': FieldValue.serverTimestamp(),
+                            'updatedAt': FieldValue.serverTimestamp(),
                           }, SetOptions(merge: true));
 
                           if (context.mounted) {

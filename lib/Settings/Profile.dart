@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -105,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
           uid: widget.uid,
           userEmail: widget.userEmail,
         );
-      case 'ReceiptCustomization':
+      //case 'ReceiptCustomization':
         return ReceiptCustomizationPage(
           onBack: _goBack,
         );
@@ -117,7 +118,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return PrinterSetupPage(
           onBack: _goBack,
         );
-      case 'FeatureSettings':
+      //case 'FeatureSettings':
         return FeatureSettingsPage(
           onBack: _goBack,
         );
@@ -125,7 +126,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return LanguagePage(
           onBack: _goBack,
         );
-      case 'Theme':
+      //case 'Theme':
         return ThemePage(
           onBack: _goBack,
         );
@@ -168,21 +169,21 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildSectionTitle("App Settings"),
           _SettingsGroup(children: [
             _SettingsTile(icon: Icons.store_mall_directory_outlined, title: context.tr('business_details'), onTap: () => _navigateTo('BusinessDetails')),
-            _SettingsTile(icon: Icons.receipt_long_outlined, title: context.tr('receipt_customization'), onTap: () => _navigateTo('ReceiptSettings')),
+            //_SettingsTile(icon: Icons.receipt_long_outlined, title: context.tr('receipt_customization'), onTap: () => _navigateTo('ReceiptSettings')),
             _SettingsTile(icon: Icons.percent_outlined, title: context.tr('tax_settings'), onTap: () => _navigateTo('TaxSettings')),
             _SettingsTile(icon: Icons.print_outlined, title: context.tr('printer_setup'), onTap: () => _navigateTo('PrinterSetup')),
-            _SettingsTile(icon: Icons.tune_outlined, title: context.tr('feature_settings'), onTap: () => _navigateTo('FeatureSettings')),
+            //_SettingsTile(icon: Icons.tune_outlined, title: context.tr('feature_settings'), onTap: () => _navigateTo('FeatureSettings')),
             _SettingsTile(
               icon: Icons.language_outlined,
               title: context.tr('choose_language'),
               onTap: () => _navigateTo('Language')
             ),
-            _SettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: context.tr('theme'),
-              showDivider: false,
-              onTap: () => _navigateTo('Theme')
-            ),
+            // _SettingsTile(
+            //   icon: Icons.dark_mode_outlined,
+            //   title: context.tr('theme'),
+            //   showDivider: false,
+            //   onTap: () => _navigateTo('Theme')
+            // ),
           ]),
           const SizedBox(height: 24),
           _buildSectionTitle(context.tr('help')),
@@ -196,7 +197,7 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingsTile(icon: Icons.share_outlined, title: "Refer A Friend", showDivider: false, onTap: () {}),
           ]),
           const SizedBox(height: 24),
-          const Center(child: Text('v .5167', style: TextStyle(color: Colors.grey, fontSize: 13))),
+          const Center(child: Text('v.1.0.0', style: TextStyle(color: Colors.grey, fontSize: 13))),
           const SizedBox(height: 16),
           _buildLogoutButton(),
           const SizedBox(height: 30),
@@ -1280,20 +1281,24 @@ class _LanguagePageState extends State<LanguagePage> {
     );
   }
 }
-
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
   const BusinessDetailsPage({super.key, required this.uid, required this.onBack});
+
   @override
   State<BusinessDetailsPage> createState() => _BusinessDetailsPageState();
 }
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  bool _loading = false;
 
-  // Controllers for editable fields
+  // State
+  bool _loading = false;
+  bool _initialLoading = true;
+  bool _isEditing = false; // Controls View vs Edit mode
+
+  // Controllers
   final TextEditingController _businessNameCtrl = TextEditingController();
   final TextEditingController _businessPhoneCtrl = TextEditingController();
   final TextEditingController _gstinCtrl = TextEditingController();
@@ -1301,11 +1306,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final TextEditingController _ownerPhoneCtrl = TextEditingController();
   final TextEditingController _businessLocationCtrl = TextEditingController();
 
-  // ...existing state variables...
+  // Data
   String _role = 'staff';
   String? _storeId;
   String _email = '';
-  // ...existing code...
 
   @override
   void initState() {
@@ -1325,12 +1329,15 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Future<void> _loadData() async {
+    setState(() => _initialLoading = true);
     try {
       final firestore = FirebaseFirestore.instance;
       final userDoc = await firestore.collection('users').doc(widget.uid).get();
+
       if (!userDoc.exists) throw Exception("User not found");
+
       final userData = userDoc.data()!;
-      final role = userData['role'] ?? 'staff';
+      _role = userData['role'] ?? 'staff';
       final storeIdInt = userData['storeId'];
       final storeId = storeIdInt?.toString();
 
@@ -1338,147 +1345,325 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         final storeDoc = await firestore.collection('store').doc(storeId).get();
         if (storeDoc.exists) {
           final storeData = storeDoc.data()!;
-          setState(() {
-            _businessNameCtrl.text = storeData['businessName'] ?? '';
-            _businessPhoneCtrl.text = storeData['businessPhone'] ?? '';
-            _gstinCtrl.text = storeData['gstin'] ?? '';
-            _ownerNameCtrl.text = storeData['ownerName'] ?? '';
-            _ownerPhoneCtrl.text = storeData['ownerPhone'] ?? '';
-            _businessLocationCtrl.text = storeData['businessLocation'] ?? '';
-            _email = storeData['ownerEmail'] ?? '';
-            _storeId = storeId;
-            _role = role;
-          });
+          _businessNameCtrl.text = storeData['businessName'] ?? '';
+          _businessPhoneCtrl.text = storeData['businessPhone'] ?? '';
+          _gstinCtrl.text = storeData['gstin'] ?? '';
+          _ownerNameCtrl.text = storeData['ownerName'] ?? '';
+          _ownerPhoneCtrl.text = storeData['ownerPhone'] ?? '';
+          _businessLocationCtrl.text = storeData['businessLocation'] ?? '';
+          _email = storeData['ownerEmail'] ?? '';
+          _storeId = storeId;
         }
       }
     } catch (e) {
-      // ...existing error handling...
+      debugPrint("Error loading data: $e");
+    } finally {
+      if (mounted) setState(() => _initialLoading = false);
     }
   }
 
   bool get isAdmin => _role.toLowerCase().contains('admin') || _role.toLowerCase().contains('manager');
+
+  void _toggleEdit() {
+    setState(() {
+      // If we are cancelling edit mode, we might want to reload data to revert changes
+      // For simplicity, we just toggle the boolean here.
+      if (_isEditing) {
+        // We are cancelling, hide keyboard
+        FocusScope.of(context).unfocus();
+        // Optional: Reload original data here if you want to revert text field changes
+        _loadData();
+      }
+      _isEditing = !_isEditing;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
       appBar: AppBar(
-        title: const Text("Business Details", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
+        // The "Up" Button (Back)
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
         ),
+        title: const Text(
+          "Business Profile",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        // Custom curved shape for the AppBar
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+        ),
+        actions: [
+          if (isAdmin)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: _isEditing
+                  ? TextButton.icon(
+                onPressed: _toggleEdit,
+                icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                label: const Text("Cancel", style: TextStyle(color: Colors.white)),
+              )
+                  : IconButton(
+                tooltip: "Edit Details",
+                icon: const Icon(Icons.edit, color: Colors.white),
+                onPressed: _toggleEdit,
+              ),
+            ),
+        ],
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
+      body: _initialLoading
+          ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
           : !isAdmin
           ? _buildAccessDenied()
           : SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withAlpha(25),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: kPrimaryColor.withAlpha(77)),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: kPrimaryColor, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Business details are synced from your account',
-                        style: TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildStatusBanner(),
               const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Business Information', Icons.business),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _businessNameCtrl,
-                      decoration: InputDecoration(labelText: 'Business Name', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Business name is required' : null,
-                    ),
-                    const Divider(height: 32),
-                    TextFormField(
-                      controller: _businessPhoneCtrl,
-                      decoration: InputDecoration(labelText: 'Business Phone', border: OutlineInputBorder()),
-                      keyboardType: TextInputType.phone,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Business phone is required' : null,
-                    ),
-                    const Divider(height: 32),
-                    TextFormField(
-                      controller: _businessLocationCtrl,
-                      decoration: InputDecoration(labelText: 'Business Location', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Business location is required' : null,
-                    ),
-                    const Divider(height: 32),
-                    TextFormField(
-                      controller: _gstinCtrl,
-                      decoration: InputDecoration(labelText: 'GSTIN', border: OutlineInputBorder()),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionHeader('Owner Information', Icons.person),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _ownerNameCtrl,
-                      decoration: InputDecoration(labelText: 'Owner Name', border: OutlineInputBorder()),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Owner name is required' : null,
-                    ),
-                    const Divider(height: 32),
-                    TextFormField(
-                      initialValue: _email,
-                      decoration: InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
-                      readOnly: true,
-                    ),
-                    const Divider(height: 32),
-                    TextFormField(
-                      controller: _ownerPhoneCtrl,
-                      decoration: InputDecoration(labelText: 'Personal Phone', border: OutlineInputBorder()),
-                      keyboardType: TextInputType.phone,
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Personal phone is required' : null,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _updateBusinessDetails,
-                  child: _loading ? CircularProgressIndicator() : Text('Update'),
-                ),
-              ),
-              const SizedBox(height: 16),
+              _buildSectionLabel("Business Information"),
+              const SizedBox(height: 12),
+              _buildBusinessForm(),
+              const SizedBox(height: 24),
+              _buildSectionLabel("Owner Details"),
+              const SizedBox(height: 12),
+              _buildOwnerForm(),
+
+              // Update Button - Only visible in Edit Mode
+              if (_isEditing) ...[
+                const SizedBox(height: 32),
+                _buildUpdateButton(),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // --- Widgets ---
+
+  Widget _buildStatusBanner() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: _isEditing ? Colors.orange.shade50 : kPrimaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isEditing ? Colors.orange.shade200 : kPrimaryColor.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _isEditing ? Icons.edit_note : Icons.visibility_outlined,
+            color: _isEditing ? Colors.orange.shade800 : kPrimaryColor,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _isEditing
+                  ? "You are currently editing details."
+                  : "View mode enabled. Tap the edit icon to make changes.",
+              style: TextStyle(
+                color: _isEditing ? Colors.orange.shade900 : kPrimaryColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(left: 4),
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBusinessForm() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildTextField(
+            controller: _businessNameCtrl,
+            label: "Business Name",
+            icon: Icons.store,
+            enabled: _isEditing,
+            validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+          ),
+          _buildDivider(),
+          _buildTextField(
+            controller: _businessPhoneCtrl,
+            label: "Business Phone",
+            icon: Icons.phone,
+            inputType: TextInputType.phone,
+            enabled: _isEditing,
+            validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+          ),
+          _buildDivider(),
+          _buildTextField(
+            controller: _businessLocationCtrl,
+            label: "Location / Address",
+            icon: Icons.place,
+            enabled: _isEditing,
+            validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+          ),
+          _buildDivider(),
+          _buildTextField(
+            controller: _gstinCtrl,
+            label: "GSTIN (Optional)",
+            icon: Icons.receipt,
+            enabled: _isEditing,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOwnerForm() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildTextField(
+            controller: _ownerNameCtrl,
+            label: "Owner Name",
+            icon: Icons.person_outline,
+            enabled: _isEditing,
+            validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+          ),
+          _buildDivider(),
+          _buildTextField(
+            controller: _ownerPhoneCtrl,
+            label: "Personal Phone",
+            icon: Icons.smartphone,
+            inputType: TextInputType.phone,
+            enabled: _isEditing,
+            validator: (v) => v!.trim().isEmpty ? 'Required' : null,
+          ),
+          _buildDivider(),
+          _buildTextField(
+            initialValue: _email,
+            label: "Registered Email",
+            icon: Icons.alternate_email,
+            readOnly: true, // Email is always read-only
+            enabled: false, // Visibly disabled
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(height: 1, indent: 56, endIndent: 20, color: Colors.grey[100]);
+  }
+
+  Widget _buildTextField({
+    TextEditingController? controller,
+    String? initialValue,
+    required String label,
+    required IconData icon,
+    TextInputType inputType = TextInputType.text,
+    bool enabled = true, // Controls visual state (Edit vs View)
+    bool readOnly = false, // Hard lock (like for Email)
+    String? Function(String?)? validator,
+  }) {
+    // If global editing is off, everything is effectively read-only
+    final isFieldEnabled = enabled && !readOnly;
+
+    return TextFormField(
+      controller: controller,
+      initialValue: initialValue,
+      keyboardType: inputType,
+      readOnly: !isFieldEnabled,
+      validator: validator,
+      style: TextStyle(
+          fontWeight: FontWeight.w500,
+          color: isFieldEnabled ? kTextColor : Colors.grey[700]
+      ),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+        prefixIcon: Icon(
+            icon,
+            // Icon color changes based on edit mode to give visual feedback
+            color: isFieldEnabled ? kPrimaryColor : Colors.grey[400],
+            size: 22
+        ),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        // Subtle background change when editing could be added here if desired
+      ),
+    );
+  }
+
+  Widget _buildUpdateButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: _loading ? null : _updateBusinessDetails,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kPrimaryColor,
+          foregroundColor: Colors.white,
+          elevation: 4,
+          shadowColor: kPrimaryColor.withOpacity(0.4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+        child: _loading
+            ? const SizedBox(
+          height: 24,
+          width: 24,
+          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+        )
+            : Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [
+            Icon(Icons.save_rounded),
+            SizedBox(width: 8),
+            Text(
+              "Save Changes",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
       ),
     );
@@ -1489,32 +1674,31 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.lock_outline, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 24),
-          const Text('Restricted Access', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Icon(Icons.lock_outline_rounded, size: 64, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'Restricted Access',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[600]),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, color: kPrimaryColor, size: 20),
-        const SizedBox(width: 12),
-        Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-      ],
-    );
-  }
+  // --- Logic ---
 
-  // On update button pressed
   Future<void> _updateBusinessDetails() async {
     if (!_formKey.currentState!.validate()) return;
+
+    FocusScope.of(context).unfocus();
     setState(() => _loading = true);
+
     try {
       final firestore = FirebaseFirestore.instance;
-      // Update store document
-      await firestore.collection('store').doc(_storeId).update({
+      final batch = firestore.batch();
+
+      final storeRef = firestore.collection('store').doc(_storeId);
+      batch.update(storeRef, {
         'businessName': _businessNameCtrl.text.trim(),
         'businessPhone': _businessPhoneCtrl.text.trim(),
         'businessLocation': _businessLocationCtrl.text.trim(),
@@ -1523,22 +1707,42 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'ownerPhone': _ownerPhoneCtrl.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      // Update user document (except email)
-      await firestore.collection('users').doc(widget.uid).update({
+
+      final userRef = firestore.collection('users').doc(widget.uid);
+      batch.update(userRef, {
         'name': _ownerNameCtrl.text.trim(),
         'phone': _ownerPhoneCtrl.text.trim(),
         'businessLocation': _businessLocationCtrl.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Business details updated successfully!'), backgroundColor: Colors.green),
-      );
+
+      await batch.commit();
+
+      if (mounted) {
+        // Exit edit mode on success
+        setState(() => _isEditing = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Details updated successfully!'),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update: $e'), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update: $e'),
+            backgroundColor: Colors.red.shade600,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 }

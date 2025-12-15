@@ -17,6 +17,7 @@ import 'package:maxbillup/utils/theme_notifier.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
+import 'package:maxbillup/services/local_stock_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,10 @@ void main() async {
   final saleSyncService = SaleSyncService();
   await saleSyncService.init();
 
+  // Initialize LocalStockService for offline stock management
+  final localStockService = LocalStockService();
+  await localStockService.init();
+
   // Initialize LanguageProvider and load saved preference
   final languageProvider = LanguageProvider();
   await languageProvider.loadLanguagePreference();
@@ -45,6 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
         Provider<SaleSyncService>.value(value: saleSyncService),
+        ChangeNotifierProvider<LocalStockService>.value(value: localStockService),
       ],
       child: const MyApp(),
     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Quotation.dart';
@@ -264,10 +265,16 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final name = data['itemName'] ?? context.tr('unnamed');
       final price = (data['price'] ?? 0.0).toDouble();
       final stockEnabled = data['stockEnabled'] ?? false;
-      final stock = (data['currentStock'] ?? 0.0).toDouble();
+      final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
 
-      // Cache stock locally for offline use
-      LocalStockService.cacheStock(id, stock.toInt());
+      // Cache stock locally for offline use using Provider
+      final localStockService = context.read<LocalStockService>();
+      localStockService.cacheStock(id, firestoreStock.toInt());
+
+      // Get effective stock (local if available, otherwise Firestore)
+      final stock = localStockService.hasStock(id)
+          ? localStockService.getStock(id).toDouble()
+          : firestoreStock;
 
       // Get tax information
       final taxName = data['taxName'] as String?;
@@ -626,21 +633,23 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
     final unit = data['stockUnit'] ?? '';
 
-    // Cache stock locally for offline use and future reference
-    LocalStockService.cacheStock(id, firestoreStock.toInt());
-
     // Get tax information
     final taxName = data['taxName'] as String?;
     final taxPercentage = data['taxPercentage'] as double?;
     final taxType = data['taxType'] as String?;
 
-    // Use FutureBuilder to check local stock first (for offline updates)
-    return FutureBuilder<int?>(
-      future: LocalStockService.getLocalStock(id),
-      builder: (context, snapshot) {
-        // Use local stock if available, otherwise use Firestore stock
-        final stock = snapshot.hasData && snapshot.data != null
-            ? snapshot.data!.toDouble()
+    // Use Consumer to listen for stock changes - this rebuilds when stock is updated!
+    return Consumer<LocalStockService>(
+      builder: (context, localStockService, child) {
+        // Cache stock from Firestore (non-blocking)
+        localStockService.cacheStock(id, firestoreStock.toInt());
+
+        // Get local stock (this is instant from memory cache)
+        final localStock = localStockService.getStock(id);
+
+        // Use local stock if cached, otherwise use Firestore stock
+        final stock = localStockService.hasStock(id)
+            ? localStock.toDouble()
             : firestoreStock;
 
         final isOutOfStock = stockEnabled && stock <= 0;

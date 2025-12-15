@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 
 class ExpensesPage extends StatefulWidget {
   final String uid;
@@ -401,7 +402,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
       // If payment mode is Credit, create an expense credit note
       if (_paymentMode == 'Credit') {
-        final creditNoteNumber = 'ECN${DateTime.now().millisecondsSinceEpoch}';
+        final creditNoteNumber = await NumberGeneratorService.generateExpenseCreditNoteNumber();
 
         await FirestoreService().addDocument('purchaseCreditNotes', {
           'creditNoteNumber': creditNoteNumber,
