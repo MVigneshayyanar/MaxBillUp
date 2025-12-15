@@ -39,16 +39,30 @@ class _QuotationPageState extends State<QuotationPage> {
   final TextEditingController _cashDiscountController = TextEditingController();
   final TextEditingController _percentageController = TextEditingController();
 
+  // Item-wise discount controllers and values
+  late List<TextEditingController> _itemDiscountControllers;
+  late List<double> _itemDiscounts; // Stores discount amount for each item
+
   @override
   void initState() {
     super.initState();
     _uid = widget.uid;
+    // Initialize item-wise discount controllers
+    _itemDiscountControllers = List.generate(
+      widget.cartItems.length,
+      (_) => TextEditingController(),
+    );
+    _itemDiscounts = List.filled(widget.cartItems.length, 0.0);
   }
 
   @override
   void dispose() {
     _cashDiscountController.dispose();
     _percentageController.dispose();
+    // Dispose item-wise discount controllers
+    for (var controller in _itemDiscountControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -59,11 +73,29 @@ class _QuotationPageState extends State<QuotationPage> {
       } else if (_percentageDiscount > 0) {
         return widget.totalAmount * (_percentageDiscount / 100);
       }
+    } else {
+      // Item-wise discount: sum of all item discounts
+      return _itemDiscounts.fold(0.0, (sum, discount) => sum + discount);
     }
     return 0.0;
   }
 
   double get _newTotal => widget.totalAmount - _discountAmount;
+
+  // Get item total after discount
+  double _getItemTotalAfterDiscount(int index) {
+    final item = widget.cartItems[index];
+    return item.total - _itemDiscounts[index];
+  }
+
+  // Update item discount
+  void _updateItemDiscount(int index, String value) {
+    setState(() {
+      final discount = double.tryParse(value) ?? 0.0;
+      final maxDiscount = widget.cartItems[index].total;
+      _itemDiscounts[index] = discount.clamp(0.0, maxDiscount);
+    });
+  }
 
   void _showCustomerDialog() {
     showDialog(
@@ -119,18 +151,29 @@ class _QuotationPageState extends State<QuotationPage> {
       // Prepare quotation data
       final quotationData = {
         'quotationNumber': quotationNumber,
-        'items': widget.cartItems.map((item) => {
-          'productId': item.productId,
-          'name': item.name,
-          'price': item.price,
-          'quantity': item.quantity,
-          'total': item.total,
+        'items': widget.cartItems.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          return {
+            'productId': item.productId,
+            'name': item.name,
+            'price': item.price,
+            'quantity': item.quantity,
+            'total': item.total,
+            'discount': _isBillWise ? 0.0 : _itemDiscounts[index],
+            'finalTotal': _isBillWise ? item.total : _getItemTotalAfterDiscount(index),
+          };
         }).toList(),
         'subtotal': widget.totalAmount,
         'discount': _discountAmount,
         'total': _newTotal,
-        'discountType': _cashDiscountAmount > 0 ? 'cash' : _percentageDiscount > 0 ? 'percentage' : 'none',
-        'discountValue': _cashDiscountAmount > 0 ? _cashDiscountAmount : _percentageDiscount,
+        'discountMode': _isBillWise ? 'billWise' : 'itemWise',
+        'discountType': _isBillWise
+            ? (_cashDiscountAmount > 0 ? 'cash' : _percentageDiscount > 0 ? 'percentage' : 'none')
+            : 'itemWise',
+        'discountValue': _isBillWise
+            ? (_cashDiscountAmount > 0 ? _cashDiscountAmount : _percentageDiscount)
+            : _itemDiscounts,
         'customerPhone': _selectedCustomerPhone,
         'customerName': _selectedCustomerName,
         'customerGST': _selectedCustomerGST,
@@ -327,99 +370,258 @@ class _QuotationPageState extends State<QuotationPage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Total Amount
-                    const Text(
-                      'Total Amount',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Rs ${widget.totalAmount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Cash Discount
-                    const Text(
-                      'Cash Discount',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _cashDiscountController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _updateCashDiscount(),
-                      decoration: InputDecoration(
-                        hintText: 'Amount',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // OR Divider
-                    const Center(
-                      child: Text(
-                        'or',
+                    // Show different UI based on discount mode
+                    if (_isBillWise) ...[
+                      // Bill Wise Discount UI
+                      // Total Amount
+                      const Text(
+                        'Total Amount',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.grey,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Rs ${widget.totalAmount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
 
-                    // Percentage Discount
-                    const Text(
-                      'Percentage Discount',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.black87,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _percentageController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (_) => _updatePercentageDiscount(),
-                      decoration: InputDecoration(
-                        hintText: 'Percentage',
-                        hintStyle: TextStyle(color: Colors.grey[400]),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
+                      // Cash Discount
+                      const Text(
+                        'Cash Discount',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _cashDiscountController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _updateCashDiscount(),
+                        decoration: InputDecoration(
+                          hintText: 'Amount',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // OR Divider
+                      const Center(
+                        child: Text(
+                          'or',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Percentage Discount
+                      const Text(
+                        'Percentage Discount',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _percentageController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _updatePercentageDiscount(),
+                        decoration: InputDecoration(
+                          hintText: 'Percentage',
+                          hintStyle: TextStyle(color: Colors.grey[400]),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 14,
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      // Item Wise Discount UI
+                      const Text(
+                        'Item Discounts',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.black87,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // List of items with discount inputs
+                      ...widget.cartItems.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      item.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${item.quantity} x Rs ${item.price.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Text('Total: ', style: TextStyle(fontSize: 13)),
+                                        Text(
+                                          'Rs ${item.total.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 120,
+                                    height: 40,
+                                    child: TextField(
+                                      controller: _itemDiscountControllers[index],
+                                      keyboardType: TextInputType.number,
+                                      onChanged: (value) => _updateItemDiscount(index, value),
+                                      textAlign: TextAlign.center,
+                                      decoration: InputDecoration(
+                                        hintText: 'Discount',
+                                        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                          borderSide: const BorderSide(color: Color(0xFF2196F3)),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                      ),
+                                      style: const TextStyle(fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (_itemDiscounts[index] > 0) ...[
+                                const SizedBox(height: 6),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'After Discount: ',
+                                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                    ),
+                                    Text(
+                                      'Rs ${_getItemTotalAfterDiscount(index).toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Color(0xFF4CAF50),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                     const SizedBox(height: 24),
+
+                    // Discount Summary
+                    if (_discountAmount > 0) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE3F2FD),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _isBillWise ? 'Bill Discount' : 'Total Item Discounts',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              '- Rs ${_discountAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.blue[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
 
                     // New Total
                     const Text(

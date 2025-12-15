@@ -12,10 +12,21 @@ class FirestoreService {
 
   // Cache to store the ID in memory for 0ms access
   String? _cachedStoreId;
+  DocumentSnapshot? _cachedStoreDoc;
+  Map<String, dynamic>? _cachedStoreData;
 
-  /// Clear cache on logout
+  /// Clear all cache on logout/login
   void clearCache() {
     _cachedStoreId = null;
+    _cachedStoreDoc = null;
+    _cachedStoreData = null;
+  }
+
+  /// Clear cache and prefetch fresh data on login
+  Future<void> refreshCacheOnLogin() async {
+    clearCache();
+    await prefetchStoreId();
+    await getCurrentStoreDoc();
   }
 
   /// Force fetch the store ID and cache it.
@@ -83,20 +94,33 @@ class FirestoreService {
   }
 
   /// Get the whole store document
-  Future<DocumentSnapshot?> getCurrentStoreDoc() async {
+  Future<DocumentSnapshot?> getCurrentStoreDoc({bool forceRefresh = false}) async {
+    // Return cached doc if available
+    if (!forceRefresh && _cachedStoreDoc != null) {
+      return _cachedStoreDoc;
+    }
+
     final storeId = await getCurrentStoreId();
     if (storeId == null) return null;
 
     try {
       final doc = await _firestore.collection('store').doc(storeId).get();
-      if (doc.exists) return doc;
+      if (doc.exists) {
+        _cachedStoreDoc = doc;
+        _cachedStoreData = doc.data() as Map<String, dynamic>?;
+        return doc;
+      }
 
       final byField = await _firestore
           .collection('store')
           .where('storeId', isEqualTo: storeId)
           .limit(1)
           .get();
-      if (byField.docs.isNotEmpty) return byField.docs.first;
+      if (byField.docs.isNotEmpty) {
+        _cachedStoreDoc = byField.docs.first;
+        _cachedStoreData = byField.docs.first.data() as Map<String, dynamic>?;
+        return byField.docs.first;
+      }
     } catch (e) {
       print('Error getting store document: $e');
     }

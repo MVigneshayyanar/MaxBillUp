@@ -8,6 +8,7 @@ import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/local_stock_service.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
@@ -264,6 +265,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final price = (data['price'] ?? 0.0).toDouble();
       final stockEnabled = data['stockEnabled'] ?? false;
       final stock = (data['currentStock'] ?? 0.0).toDouble();
+
+      // Cache stock locally for offline use
+      LocalStockService.cacheStock(id, stock.toInt());
 
       // Get tax information
       final taxName = data['taxName'] as String?;
@@ -619,16 +623,43 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final name = data['itemName'] ?? 'Unnamed';
     final price = (data['price'] ?? 0.0).toDouble();
     final stockEnabled = data['stockEnabled'] ?? false;
-    final stock = (data['currentStock'] ?? 0.0).toDouble();
+    final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
     final unit = data['stockUnit'] ?? '';
+
+    // Cache stock locally for offline use and future reference
+    LocalStockService.cacheStock(id, firestoreStock.toInt());
 
     // Get tax information
     final taxName = data['taxName'] as String?;
     final taxPercentage = data['taxPercentage'] as double?;
     final taxType = data['taxType'] as String?;
 
-    final isOutOfStock = stockEnabled && stock <= 0;
-    final isLowStock = stockEnabled && stock > 0 && stock < 10;
+    // Use FutureBuilder to check local stock first (for offline updates)
+    return FutureBuilder<int?>(
+      future: LocalStockService.getLocalStock(id),
+      builder: (context, snapshot) {
+        // Use local stock if available, otherwise use Firestore stock
+        final stock = snapshot.hasData && snapshot.data != null
+            ? snapshot.data!.toDouble()
+            : firestoreStock;
+
+        final isOutOfStock = stockEnabled && stock <= 0;
+        final isLowStock = stockEnabled && stock > 0 && stock < 10;
+
+        return _buildProductCardUI(
+          id, name, price, stockEnabled, stock, unit,
+          taxName, taxPercentage, taxType,
+          isOutOfStock, isLowStock,
+        );
+      },
+    );
+  }
+
+  Widget _buildProductCardUI(
+    String id, String name, double price, bool stockEnabled, double stock, String unit,
+    String? taxName, double? taxPercentage, String? taxType,
+    bool isOutOfStock, bool isLowStock,
+  ) {
 
     return GestureDetector(
       onTap: () {

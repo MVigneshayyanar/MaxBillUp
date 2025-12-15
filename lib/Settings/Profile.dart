@@ -300,6 +300,8 @@ class _SettingsPageState extends State<SettingsPage> {
       width: double.infinity,
       child: OutlinedButton(
         onPressed: () async {
+          // Clear all cached data on logout
+          FirestoreService().clearCache();
           await FirebaseAuth.instance.signOut();
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(CupertinoPageRoute(builder: (_) => const LoginPage()), (r) => false);

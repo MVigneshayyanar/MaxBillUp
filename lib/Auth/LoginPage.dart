@@ -209,7 +209,8 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      // 7. Success
+      // 7. Success - Clear and refresh cache
+      await _firestoreService.refreshCacheOnLogin();
       setState(() => _loading = false);
       _navigate(user.uid, user.email);
     } on FirebaseAuthException catch (e) {
@@ -254,6 +255,8 @@ class _LoginPageState extends State<LoginPage> {
         if (mounted) setState(() => _loading = false);
 
         if (userDoc.exists) {
+          // Clear and refresh cache on successful login
+          await _firestoreService.refreshCacheOnLogin();
           _navigate(user.uid, user.email);
         } else {
           Navigator.push(

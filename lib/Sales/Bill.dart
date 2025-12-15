@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +14,7 @@ import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
+import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // --- CONSTANTS FOR STYLING ---
@@ -1217,30 +1219,56 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
   Future<void> _updateProductStock() async {
     try {
-      // Use FieldValue.increment for immediate (local) updates so UI streams reflect changes right away.
+      print('🟢 [SplitPayment] Starting stock update for ${widget.cartItems.length} items...');
       for (var cartItem in widget.cartItems) {
         try {
+          print('🟢 [SplitPayment] Updating stock for ${cartItem.name}, qty: -${cartItem.quantity}');
           final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
 
-          // Decrement stock locally and on server (latency compensation)
-          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))});
+          // Decrement stock with timeout to prevent hanging in offline mode
+          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))})
+              .timeout(const Duration(seconds: 3), onTimeout: () {
+            print('🟢 [SplitPayment] Stock update timeout - continuing anyway');
+          });
+          print('🟢 [SplitPayment] ✓ Stock decremented for ${cartItem.name}');
 
-          // Best-effort clamp to zero if update resulted in negative value on server
+          // Best-effort clamp to zero - use cache to avoid hanging
           try {
-            final snap = await productRef.get();
+            final snap = await productRef.get(const GetOptions(source: Source.cache))
+                .timeout(const Duration(seconds: 2), onTimeout: () {
+              throw TimeoutException('Cache timeout');
+            });
             final current = (snap.data() as Map<String, dynamic>?)?['currentStock'] ?? 0;
             if ((current as num) < 0) {
-              await productRef.update({'currentStock': 0});
+              await productRef.update({'currentStock': 0})
+                  .timeout(const Duration(seconds: 2), onTimeout: () {});
             }
-          } catch (_) {
-            // ignore clamp errors
-          }
+          } catch (_) {}
         } catch (e) {
-          debugPrint('Stock update error for ${cartItem.productId}: $e');
+          debugPrint('🔴 [SplitPayment] Stock error for ${cartItem.productId}: $e');
         }
       }
+      print('🟢 [SplitPayment] ✅ Stock update completed');
     } catch (e) {
-      debugPrint('Stock update error: $e');
+      debugPrint('🔴 [SplitPayment] Stock update error: $e');
+    }
+  }
+
+  Future<void> _updateProductStockLocally() async {
+    try {
+      print('📦 [SplitPayment] Starting LOCAL stock update for ${widget.cartItems.length} items...');
+      for (var cartItem in widget.cartItems) {
+        try {
+          print('📦 [SplitPayment] Updating local stock for ${cartItem.name}, qty: -${cartItem.quantity}');
+          await LocalStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
+          print('📦 [SplitPayment] ✓ Local stock updated for ${cartItem.name}');
+        } catch (e) {
+          debugPrint('🔴 [SplitPayment] Local stock error for ${cartItem.productId}: $e');
+        }
+      }
+      print('📦 [SplitPayment] ✅ Local stock update completed');
+    } catch (e) {
+      debugPrint('🔴 [SplitPayment] Local stock update error: $e');
     }
   }
 
@@ -1401,6 +1429,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             'timestamp': DateTime.now().toIso8601String(),
           };
           await _saveOfflineSale(invoiceNumber, offlineSaleData);
+          // Update stock locally when offline
+          await _updateProductStockLocally();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -1418,6 +1448,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           'timestamp': DateTime.now().toIso8601String(), // Use regular timestamp for offline
         };
         await _saveOfflineSale(invoiceNumber, offlineSaleData);
+        // Update stock locally when offline
+        await _updateProductStockLocally();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1795,30 +1827,56 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Future<void> _updateProductStock() async {
     try {
-      // Use FieldValue.increment for immediate (local) updates so UI streams reflect changes right away.
+      print('🔵 [PaymentPage] Starting stock update for ${widget.cartItems.length} items...');
       for (var cartItem in widget.cartItems) {
         try {
+          print('🔵 [PaymentPage] Updating stock for ${cartItem.name}, qty: -${cartItem.quantity}');
           final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId);
 
-          // Decrement stock locally and on server (latency compensation)
-          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))});
+          // Decrement stock with timeout to prevent hanging in offline mode
+          await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))})
+              .timeout(const Duration(seconds: 3), onTimeout: () {
+            print('🔵 [PaymentPage] Stock update timeout - continuing anyway');
+          });
+          print('🔵 [PaymentPage] ✓ Stock decremented for ${cartItem.name}');
 
-          // Best-effort clamp to zero if update resulted in negative value on server
+          // Best-effort clamp to zero - use cache to avoid hanging
           try {
-            final snap = await productRef.get();
+            final snap = await productRef.get(const GetOptions(source: Source.cache))
+                .timeout(const Duration(seconds: 2), onTimeout: () {
+              throw TimeoutException('Cache timeout');
+            });
             final current = (snap.data() as Map<String, dynamic>?)?['currentStock'] ?? 0;
             if ((current as num) < 0) {
-              await productRef.update({'currentStock': 0});
+              await productRef.update({'currentStock': 0})
+                  .timeout(const Duration(seconds: 2), onTimeout: () {});
             }
-          } catch (_) {
-            // ignore clamp errors
-          }
+          } catch (_) {}
         } catch (e) {
-          debugPrint('Stock update error for ${cartItem.productId}: $e');
+          debugPrint('🔴 [PaymentPage] Stock error for ${cartItem.productId}: $e');
         }
       }
+      print('🔵 [PaymentPage] ✅ Stock update completed');
     } catch (e) {
-      debugPrint('Stock update error: $e');
+      debugPrint('🔴 [PaymentPage] Stock update error: $e');
+    }
+  }
+
+  Future<void> _updateProductStockLocally() async {
+    try {
+      print('📦 [PaymentPage] Starting LOCAL stock update for ${widget.cartItems.length} items...');
+      for (var cartItem in widget.cartItems) {
+        try {
+          print('📦 [PaymentPage] Updating local stock for ${cartItem.name}, qty: -${cartItem.quantity}');
+          await LocalStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
+          print('📦 [PaymentPage] ✓ Local stock updated for ${cartItem.name}');
+        } catch (e) {
+          debugPrint('🔴 [PaymentPage] Local stock error for ${cartItem.productId}: $e');
+        }
+      }
+      print('📦 [PaymentPage] ✅ Local stock update completed');
+    } catch (e) {
+      debugPrint('🔴 [PaymentPage] Local stock update error: $e');
     }
   }
 
@@ -1988,6 +2046,8 @@ class _PaymentPageState extends State<PaymentPage> {
             'timestamp': DateTime.now().toIso8601String(),
           };
           await _saveOfflineSale(invoiceNumber, offlineSaleData);
+          // Update stock locally when offline
+          await _updateProductStockLocally();
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -2006,6 +2066,8 @@ class _PaymentPageState extends State<PaymentPage> {
           'timestamp': DateTime.now().toIso8601String(), // Use regular timestamp for offline
         };
         await _saveOfflineSale(invoiceNumber, offlineSaleData);
+        // Update stock locally when offline
+        await _updateProductStockLocally();
         print('🔵 [PaymentPage] Offline save completed');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
