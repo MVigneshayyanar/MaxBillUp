@@ -37,7 +37,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String _query = '';
 
   // Category Filter
-  String _selectedCategory = 'All';
+  String _selectedCategory = '';
 
   Stream<QuerySnapshot>? _productsStream;
   bool _isLoadingStream = true;
@@ -61,6 +61,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
     } else if (widget.savedOrderData != null) {
       _loadOrder(widget.savedOrderData!);
     }
+    // Set default selected category to localized 'all' after first build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _selectedCategory = context.tr('all');
+        });
+      }
+    });
   }
 
   Future<void> _initializeProductsStream() async {
@@ -513,9 +521,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
           itemCount: _categories.length,
           itemBuilder: (context, index) {
             final cat = _categories[index];
-            final isSelected = _selectedCategory == cat;
+            final isSelected = _selectedCategory == (cat == 'All' ? context.tr('all') : cat);
             return GestureDetector(
-              onTap: () => setState(() => _selectedCategory = cat),
+              onTap: () => setState(() => _selectedCategory = (cat == 'All' ? context.tr('all') : cat)),
               child: Container(
                 margin: const EdgeInsets.only(right: 12),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -567,7 +575,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           final matchesSearch = name.contains(_query) || barcode.contains(_query);
 
           if (!matchesSearch) return false;
-          if (_selectedCategory == 'All') return true;
+          if (_selectedCategory == context.tr('all')) return true;
 
           final category = (data['category'] ?? 'Uncategorised').toString();
           return category == _selectedCategory;

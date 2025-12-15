@@ -5,11 +5,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:provider/provider.dart';
+import 'package:maxbillup/utils/language_provider.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 // Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/BusinessDetailsPage.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -292,35 +294,59 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              const SizedBox(height: 40),
-              _buildHeader(),
-              const SizedBox(height: 60),
-              _buildTabs(),
-              const SizedBox(height: 40),
-              // Conditional Form Rendering
-              _isStaff ? _buildEmailForm() : _buildGoogleForm(),
-              const SizedBox(height: 40),
-              _buildButton(),
-              const SizedBox(height: 80),
-              _buildTerms(),
-            ],
+    return Consumer<LanguageProvider>(
+      builder: (context, langProvider, _) {
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Language Selector Dropdown
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: DropdownButton<String>(
+                      value: langProvider.currentLanguageCode,
+                      icon: const Icon(Icons.language, color: Color(0xFF00B8FF)),
+                      underline: SizedBox(),
+                      style: const TextStyle(fontSize: 15, color: Colors.black87),
+                      onChanged: (String? newLang) {
+                        if (newLang != null) {
+                          langProvider.changeLanguage(newLang);
+                        }
+                      },
+                      items: langProvider.languages.entries.map((entry) {
+                        return DropdownMenuItem<String>(
+                          value: entry.key,
+                          child: Text(entry.value['native'] ?? entry.value['name'] ?? entry.key),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildHeader(context),
+                  const SizedBox(height: 60),
+                  _buildTabs(context),
+                  const SizedBox(height: 40),
+                  // Conditional Form Rendering
+                  _isStaff ? _buildEmailForm(context) : _buildGoogleForm(context),
+                  const SizedBox(height: 40),
+                  _buildButton(context),
+                  const SizedBox(height: 80),
+                  _buildTerms(context),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildHeader() => Column(
+  Widget _buildHeader(BuildContext context) => Column(
     children: [
-      Text(context.tr('welcome_to'),
-          style: TextStyle(fontSize: 28, color: Colors.black87)),
+      TranslatedText('welcome_to', style: TextStyle(fontSize: 28, color: Colors.black87)),
       const SizedBox(height: 12),
       Padding(
         padding: const EdgeInsets.only(top: 0),
@@ -341,7 +367,7 @@ class _LoginPageState extends State<LoginPage> {
     ],
   );
 
-  Widget _buildTabs() => Row(
+  Widget _buildTabs(BuildContext context) => Row(
     children: [
       _tab(context.tr('sign_in_with_google'), !_isStaff),
       _tab(context.tr('staff') + ' ' + context.tr('login'), _isStaff),
@@ -363,10 +389,10 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.horizontal(
             left: txt.contains('Gmail')
                 ? const Radius.circular(8)
-                : Radius.zero,
+                : Radius.circular(8),
             right: txt.contains('Staff')
                 ? const Radius.circular(8)
-                : Radius.zero,
+                : Radius.circular(8),
           ),
         ),
         child: Center(
@@ -380,7 +406,7 @@ class _LoginPageState extends State<LoginPage> {
     ),
   );
 
-  Widget _buildEmailForm() => Column(
+  Widget _buildEmailForm(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       _label(context.tr('email')),
@@ -402,23 +428,17 @@ class _LoginPageState extends State<LoginPage> {
         alignment: Alignment.centerRight,
         child: TextButton(
           onPressed: _loading ? null : _resetPass,
-          child: Text(context.tr('forgot_password'),
-              style: TextStyle(
-                  color: Color(0xFF00B8FF),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600)),
+          child: TranslatedText('forgot_password', style: TextStyle(color: Color(0xFF00B8FF), fontSize: 15, fontWeight: FontWeight.w600)),
         ),
       ),
     ],
   );
 
-  Widget _buildGoogleForm() => Column(
+  Widget _buildGoogleForm(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
       const SizedBox(height: 8),
-      Text(context.tr('sign_in_with_google'),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 16, color: Colors.black87)),
+      TranslatedText('sign_in_with_google', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, color: Colors.black87)),
       const SizedBox(height: 24),
       SizedBox(
         width: double.infinity,
@@ -450,8 +470,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(context.tr('sign_in_with_google'),
-                  style: TextStyle(fontSize: 16, color: Colors.black87)),
+              TranslatedText('sign_in_with_google', style: TextStyle(fontSize: 16, color: Colors.black87)),
             ],
           ),
         ),
@@ -488,21 +507,21 @@ class _LoginPageState extends State<LoginPage> {
           enabled: enabled,
           keyboardType: keyboardType,
           textAlign: textAlign,
-          style: style ?? const TextStyle(fontSize: 16, color: Colors.black87),
+          style: style ?? const TextStyle(fontSize: 11, color: Colors.black87),
           inputFormatters: formatters,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 11),
             border: InputBorder.none,
             contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
             suffixIcon: suffix,
           ),
         ),
       );
 
-  Widget _buildButton() {
-    String txt = _isStaff ? 'Login (Staff)' : 'Sign in with Google';
+  Widget _buildButton(BuildContext context) {
+    String txt = _isStaff ? context.tr('login_staff') : context.tr('sign_in_with_google');
     VoidCallback? action = _isStaff ? _emailLogin : _googleLogin;
 
     return SizedBox(
@@ -531,25 +550,25 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildTerms() => RichText(
+  Widget _buildTerms(BuildContext context) => RichText(
     textAlign: TextAlign.center,
-    text: const TextSpan(
-      style: TextStyle(fontSize: 13, color: Colors.black87, height: 1.5),
+    text: TextSpan(
+      style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.5),
       children: [
-        TextSpan(text: 'By Proceeding, you agree to our '),
+        TextSpan(text: context.tr('by_proceeding_agree')), // Add this key to your translations
         TextSpan(
-            text: 'Terms and Conditions',
-            style: TextStyle(
+            text: context.tr('terms_and_conditions'),
+            style: const TextStyle(
                 color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
-        TextSpan(text: ', '),
+        const TextSpan(text: ', '),
         TextSpan(
-            text: 'Privacy Policy',
-            style: TextStyle(
+            text: context.tr('privacy_policy'),
+            style: const TextStyle(
                 color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
-        TextSpan(text: ' & '),
+        const TextSpan(text: ' & '),
         TextSpan(
-            text: 'Refund and Cancellation Policy',
-            style: TextStyle(
+            text: context.tr('refund_and_cancellation_policy'),
+            style: const TextStyle(
                 color: Color(0xFF00B8FF), fontWeight: FontWeight.w600)),
       ],
     ),

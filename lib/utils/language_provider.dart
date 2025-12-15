@@ -39,18 +39,18 @@ class LanguageProvider extends ChangeNotifier {
 
   // Change language and persist
   Future<void> changeLanguage(String languageCode) async {
-    if (_languages.containsKey(languageCode)) {
+    if (_languages.containsKey(languageCode) && _currentLanguageCode != languageCode) {
       _currentLanguageCode = languageCode;
 
-      // Save to SharedPreferences
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('app_language', languageCode);
-      } catch (e) {
-        debugPrint('Error saving language preference: $e');
-      }
-
+      // Notify listeners immediately for instant UI update
       notifyListeners();
+
+      // Save to SharedPreferences asynchronously without awaiting
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setString('app_language', languageCode);
+      }).catchError((e) {
+        debugPrint('Error saving language preference: $e');
+      });
     }
   }
 
@@ -404,6 +404,23 @@ class LanguageProvider extends ChangeNotifier {
       'login_failed': 'Login failed',
       'signup_failed': 'Signup failed',
       'logout_confirm': 'Are you sure you want to logout?',
+      'verify_email': '📧 Verify Email',
+      'verify_email_message': 'Please check your inbox and verify your email address to continue.',
+      'resend_email': 'Resend Email',
+      'verification_email_sent': 'Verification email sent!',
+      'approval_pending': '⏳ Approval Pending',
+      'admin_approval': 'Your email is verified! \n\nHowever, your account is waiting for Admin approval.\n\nPlease ask your store admin to approve your account.',
+      'google_sign_in_error': 'Google Sign In Error',
+      'reset_link_sent': 'Reset link sent!',
+      'error_sending_reset': 'Error sending reset link',
+      'enter_email_reset': 'Enter email to reset password',
+      'account_does_not_exist': 'Account does not exist.',
+      'incorrect_password': 'Incorrect password.',
+      'welcome_to': 'Welcome to',
+      'login_staff': 'Login (Staff)',
+      'by_proceeding_agree': 'By Proceeding, you agree to our ',
+      'terms_and_conditions': 'Terms and Conditions',
+      'refund_and_cancellation_policy': 'Refund and Cancellation Policy',
       'subscription_plan': 'Subscription Plan',
       'choose_plan': 'Choose Plan',
       'current_plan': 'Current Plan',
@@ -592,6 +609,10 @@ class LanguageProvider extends ChangeNotifier {
 
       // Menu.dart specific keys
       'billhistory': 'Bill History',
+      'customer_management': 'Customer Management',
+      'creditdetails': 'Credit Details',
+      'staffmanagement': 'Staff Management',
+      'expense_report': 'Expense Report',
       'nobillsfound': 'No bills found',
       'settle_bill': 'Settle Bill',
       'by': 'By',
@@ -605,8 +626,6 @@ class LanguageProvider extends ChangeNotifier {
       'refund': 'Refund',
       'preparing_print': 'Preparing print...',
       'printfailed': 'Print failed',
-      'creditdetails': 'Credit Details',
-      'creditnote': 'Credit Note',
       'no_sales_credits': 'No sales credits found',
       'no_matching_customers': 'No matching customers found',
       'total_sales_credit': 'Total Sales Credit',
@@ -1006,7 +1025,7 @@ class LanguageProvider extends ChangeNotifier {
       'refresh': 'ताज़ा करें',
       'sync': 'सिंक करें',
       'online_mode': 'ऑनलाइन मोड',
-      'offline_mode': 'ऑफ़लाइन मोड',
+      'offline_mode': 'आफलाइन मोड',
       'select': 'चुनें',
       'select_all': 'सभी चुनें',
       'deselect_all': 'सभी अचयनित करें',
@@ -1363,6 +1382,10 @@ class LanguageProvider extends ChangeNotifier {
 
       // Menu.dart specific keys
       'billhistory': 'Bill History',
+      'customer_management': 'Customer Management',
+      'creditdetails': 'Credit Details',
+      'staffmanagement': 'Staff Management',
+      'expense_report': 'Expense Report',
       'nobillsfound': 'No bills found',
       'settle_bill': 'Settle Bill',
       'by': 'By',
@@ -1376,8 +1399,6 @@ class LanguageProvider extends ChangeNotifier {
       'refund': 'Refund',
       'preparing_print': 'Preparing print...',
       'printfailed': 'Print failed',
-      'creditdetails': 'Credit Details',
-      'creditnote': 'Credit Note',
       'no_sales_credits': 'No sales credits found',
       'no_matching_customers': 'No matching customers found',
       'total_sales_credit': 'Total Sales Credit',
@@ -1947,6 +1968,23 @@ class LanguageProvider extends ChangeNotifier {
       'login_failed': 'உள்நுழைவு தோல்வியுற்றது',
       'signup_failed': 'பதிவு தோல்வியுற்றது',
       'logout_confirm': 'நீங்கள் உண்மையில் வெளியேற விரும்புகிறீர்களா?',
+      'verify_email': '📧 மின்னஞ்சலை சரிபார்க்கவும்',
+      'verify_email_message': 'தொடர உங்கள் இன்பாக்ஸை சரிபார்த்து உங்கள் மின்னஞ்சல் முகவரியை சரிபார்க்கவும்.',
+      'resend_email': 'மின்னஞ்சலை மீண்டும் அனுப்பவும்',
+      'verification_email_sent': 'சரிபார்ப்பு மின்னஞ்சல் அனுப்பப்பட்டது!',
+      'approval_pending': '⏳ ஒப்புதல் நிலுவையில்',
+      'admin_approval': 'உங்கள் மின்னஞ்சல் சரிபார்க்கப்பட்டது! \n\nஇருப்பினும், உங்கள் கணக்கு நிர்வாக ஒப்புதலுக்காக காத்திருக்கிறது.\n\nஉங்கள் கணக்கை ஒப்புதல் செய்ய உங்கள் கடை நிர்வாகியிடம் கேளுங்கள்.',
+      'google_sign_in_error': 'கூகிள் உள்நுழைவு பிழை',
+      'reset_link_sent': 'மீட்டமை இணைப்பு அனுப்பப்பட்டது!',
+      'error_sending_reset': 'மீட்டமை இணைப்பை அனுப்புவதில் பிழை',
+      'enter_email_reset': 'கடவுச்சொல்லை மீட்டமைக்க மின்னஞ்சலை உள்ளிடவும்',
+      'account_does_not_exist': 'கணக்கு இல்லை.',
+      'incorrect_password': 'தவறான கடவுச்சொல்.',
+      'welcome_to': 'வரவேற்கிறோம்',
+      'login_staff': 'உள்நுழைவு (பணியாளர்)',
+      'by_proceeding_agree': 'தொடர்வதன் மூலம், நீங்கள் எங்கள் ',
+      'terms_and_conditions': 'விதிமுறைகள் மற்றும் நிபந்தனைகள்',
+      'refund_and_cancellation_policy': 'பணத்தைத் திரும்பப்பெறும் மற்றும் ரத்து செய்வதற்கான கொள்கை',
       'subscription_plan': 'சப்ஸ்கிரிப்ஷன் திட்டம்',
       'choose_plan': 'திட்டத்தைத் தேர்ந்தெடு',
       'current_plan': 'தற்போதைய திட்டம்',
@@ -2293,6 +2331,13 @@ class LanguageProvider extends ChangeNotifier {
       'current': 'தற்போது',
       'price_on_sale': 'விற்பனை விலை',
       'added_to': 'சேர்க்கப்பட்டது',
+
+      // Menu.dart specific keys
+      'billhistory': 'பில் வரலாறு',
+      'customer_management': 'வாடிக்கையாளர் மேலாண்மை',
+      'creditdetails': 'கடன் விவரங்கள்',
+      'staffmanagement': 'பணியாளர் மேலாண்மை',
+      'expense_report': 'செலவு அறிக்கை',
     },
 
     'fr': {}, // Will fallback to English
