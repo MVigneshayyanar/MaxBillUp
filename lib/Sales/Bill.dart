@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:math';
 import 'dart:async';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -1335,7 +1334,17 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       String? businessName = businessDetails['businessName'];
       print('🟢 [SplitPayment] Using staff: $staffName, location: $businessLocation, phone: $businessPhone, name: $businessName');
 
-      // Base sale data without Firestore-specific fields
+      // Calculate tax information before creating sale data
+      final Map<String, double> taxMap = {};
+      for (var item in widget.cartItems) {
+        if (item.taxAmount > 0 && item.taxName != null) {
+          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        }
+      }
+      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+      // Base sale data without Firestore-specific fields (includes tax info)
       final baseSaleData = {
         'invoiceNumber': invoiceNumber,
         'items': widget.cartItems.map((item) => {
@@ -1345,6 +1354,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'subtotal': widget.totalAmount + widget.discountAmount,
         'discount': widget.discountAmount,
         'total': widget.totalAmount,
+        'taxes': taxList, // Tax breakdown by name
+        'totalTax': totalTax, // Total tax amount
         'paymentMode': 'Split',
         'cashReceived_split': _cashAmount,
         'onlineReceived_split': _onlineAmount,
@@ -1478,7 +1489,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
         print('🟢 [SplitPayment] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
 
-        // Calculate tax totals
+        // Calculate invoice display totals
         final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
           if (item.taxType == 'Price includes Tax') {
             return sum + (item.basePrice * item.quantity);
@@ -1488,16 +1499,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         });
         final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
 
-        // Group taxes by name and sum their amounts
-        final Map<String, double> taxMap = {};
-        for (var item in widget.cartItems) {
-          if (item.taxAmount > 0 && item.taxName != null) {
-            taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
-          }
-        }
-
-        // Convert to list of maps for invoice
-        final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+        // Tax info already included in sale data, just reuse for invoice display
+        print('✅ [SplitPayment] Tax info already saved in sale data: $taxList, Total: $totalTax');
 
         // Show Invoice
         Navigator.push(context, CupertinoPageRoute(
@@ -1536,6 +1539,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       }
     }
   }
+
 
   Future<void> _saveOfflineSale(String invoiceNumber, Map<String, dynamic> saleData) async {
     try {
@@ -1961,13 +1965,25 @@ class _PaymentPageState extends State<PaymentPage> {
       final amountReceived = (widget.paymentMode == 'Credit') ? 0.0 : _cashReceived;
       final changeGiven = (widget.paymentMode == 'Credit') ? 0.0 : _change;
 
-      // Base sale data without Firestore-specific fields
+      // Calculate tax information before creating sale data
+      final Map<String, double> taxMap = {};
+      for (var item in widget.cartItems) {
+        if (item.taxAmount > 0 && item.taxName != null) {
+          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        }
+      }
+      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+      // Base sale data without Firestore-specific fields (includes tax info)
       final baseSaleData = {
         'invoiceNumber': invoiceNumber,
         'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount,
         'discount': widget.discountAmount,
         'total': widget.totalAmount,
+        'taxes': taxList, // Tax breakdown by name
+        'totalTax': totalTax, // Total tax amount
         'paymentMode': widget.paymentMode,
         'cashReceived': amountReceived,
         'change': changeGiven,
@@ -2103,7 +2119,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
         print('🔵 [PaymentPage] Navigating to invoice with business details: $businessName, $businessLocation, $businessPhone');
 
-        // Calculate tax totals
+        // Calculate invoice display totals
         final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
           if (item.taxType == 'Price includes Tax') {
             return sum + (item.basePrice * item.quantity);
@@ -2113,17 +2129,10 @@ class _PaymentPageState extends State<PaymentPage> {
         });
         final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
 
-        // Group taxes by name and sum their amounts
-        final Map<String, double> taxMap = {};
-        for (var item in widget.cartItems) {
-          if (item.taxAmount > 0 && item.taxName != null) {
-            taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
-          }
-        }
+        // Tax info already included in sale data, just reuse for invoice display
+        print('✅ [PaymentPage] Tax info already saved in sale data: $taxList, Total: $totalTax');
 
-        // Convert to list of maps for invoice
-        final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
-
+        // Show Invoice
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -2184,6 +2193,7 @@ class _PaymentPageState extends State<PaymentPage> {
       // The sale data is still in memory and invoice can be generated
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

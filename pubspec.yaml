@@ -57,6 +57,7 @@ dependencies:
   connectivity_plus: ^7.0.0
   build_runner: ^2.5.4
   hive_generator: ^2.0.1
+  google_places_flutter: ^2.1.1
 
 
 dev_dependencies:
@@ -106,3 +107,10 @@ flutter:
     - assets/logo.png
     - assets/google.png
     - assets/app_logo.jpg
+    - assets/cm.png
+    - assets/sm.png
+    - assets/e.png
+    - assets/cd.png
+    - assets/cn.png
+    - assets/bh.png
+    - assets/q.png

@@ -28,7 +28,7 @@ class SaleAppBar extends StatelessWidget {
     return Container(
       color: Colors.white,
       child: Container(
-        padding: EdgeInsets.fromLTRB(tabPadding, tabPadding + 30, tabPadding, tabPadding),
+        padding: EdgeInsets.fromLTRB(tabPadding-8, tabPadding + 30, tabPadding, tabPadding-5),
         child: Row(
           children: [
             // Menu Button

@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
-import 'package:maxbillup/Sales/Bill.dart'; // Placeholder import if BillPage is in a different file
+import 'package:maxbillup/Sales/Bill.dart';
+import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
@@ -16,12 +16,11 @@ import 'package:maxbillup/Stocks/Expenses.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart';
 import 'package:maxbillup/Reports/Reports.dart';
 import 'package:maxbillup/Stocks/Stock.dart';
-import 'package:maxbillup/Settings/Profile.dart'; // For SettingsPage
+import 'package:maxbillup/Settings/Profile.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
-import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 
@@ -645,30 +644,74 @@ class _MenuPageState extends State<MenuPage> {
                 // New Sale (First item)
 
                 // Quotation
+                // Quotation
+                // Quotation
+                // Quotation
                 if (_hasPermission('quotation') || isAdmin)
-                  _buildMenuItem(Icons.assignment_outlined, context.tr('quotation'), 'Quotation'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/q.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    context.tr('quotation'),
+                    'Quotation',
+                  ),
 
-                // Bill History
+// Bill History
                 if (_hasPermission('billHistory') || isAdmin)
-                  _buildMenuItem(Icons.receipt_long_outlined, context.tr('billhistory'), 'BillHistory'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/bh.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    context.tr('billhistory'),
+                    'BillHistory',
+                  ),
 
-                // Credit Notes
+// Credit Notes
                 if (_hasPermission('creditNotes') || isAdmin)
-                  _buildMenuItem(Icons.description_outlined, context.tr('credit_notes'), 'CreditNotes'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/cn.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    context.tr('credit_notes'),
+                    'CreditNotes',
+                  ),
 
-                // Customer Management
+// Customer Management
                 if (_hasPermission('customerManagement') || isAdmin)
-                  _buildMenuItem(Icons.group_outlined, context.tr('customer_management'), 'Customers'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/cm.png',
+                      width:30 ,
+                      height: 30,
+                    ),
+                    context.tr('customer_management'),
+                    'Customers',
+                  ),
 
-                // Expenses Expansion
+// Expenses (Expansion Tile)
                 if (_hasPermission('expenses') || isAdmin)
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
-                      leading: Icon(Icons.account_balance_wallet_outlined, color: _iconColor),
-                      title: Text(context.tr('expenses'), style: TextStyle(fontSize: 16, color: _textColor, fontWeight: FontWeight.w500)),
-                      iconColor: _iconColor,
-                      collapsedIconColor: _iconColor,
+                      leading: Image.asset(
+                        'assets/e.png',
+                        width: 30,
+                      height: 30,
+                      ),
+                      title: Text(
+                        context.tr('expenses'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: _textColor,
+                        ),
+                      ),
                       tilePadding: const EdgeInsets.symmetric(horizontal: 24),
                       childrenPadding: const EdgeInsets.only(left: 72),
                       children: [
@@ -679,13 +722,32 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                   ),
 
-                // Credit Details
+// Credit Details
                 if (_hasPermission('creditDetails') || isAdmin)
-                  _buildMenuItem(Icons.request_quote_outlined, context.tr('creditdetails'), 'CreditDetails'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/cd.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    context.tr('creditdetails'),
+                    'CreditDetails',
+                  ),
 
-                // Staff Management
+// Staff Management
                 if (isAdmin || _hasPermission('staffManagement'))
-                  _buildMenuItem(Icons.badge_outlined, context.tr('staffmanagement'), 'StaffManagement'),
+                  _buildMenuItem(
+                    Image.asset(
+                      'assets/sm.png',
+                      width: 30,
+                      height: 30,
+                    ),
+                    context.tr('staffmanagement'),
+                    'StaffManagement',
+                  ),
+
+
+
 
                 // Stock (moved from bottom nav - placed above Reports)
 
@@ -704,21 +766,25 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  Widget _buildMenuItem(IconData icon, String text, String viewKey) {
+  Widget _buildMenuItem(Widget icon, String text, String viewKey) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: ListTile(
-        leading: Icon(icon, color: _iconColor),
-        title: Text(text, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: _textColor)),
+        leading: icon,
+        title: Text(
+          text,
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: _textColor),
+        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 24),
         trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
         onTap: () {
-          // Navigate to the page in full screen
           _navigateToPage(viewKey);
         },
       ),
     );
   }
+
+
 
   Widget _buildSubMenuItem(String text, String viewKey) {
     return ListTile(
@@ -1998,6 +2064,29 @@ class SalesDetailPage extends StatelessWidget {
                                   color: Colors.black87,
                                 ),
                               ),
+                              // Show edit count indicator
+                              if ((data['editCount'] ?? 0) > 0) ...[
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: (data['editCount'] ?? 0) >= 2
+                                        ? Colors.red.shade100
+                                        : Colors.orange.shade100,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'Edited ${data['editCount']}x (${2 - (data['editCount'] ?? 0)} edits left)',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: (data['editCount'] ?? 0) >= 2
+                                          ? Colors.red.shade700
+                                          : Colors.orange.shade700,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           Column(
@@ -2398,16 +2487,58 @@ class SalesDetailPage extends StatelessWidget {
                       context,
                       icon: Icons.edit_outlined,
                       label: context.tr('edit'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => EditBillPage(
-                              documentId: documentId,
-                              invoiceData: data,
+                      onTap: () async {
+                        // Check edit count - max 2 edits allowed
+                        final editCount = (data['editCount'] ?? 0) as int;
+                        if (editCount >= 2) {
+                          if (context.mounted) {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                title: Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.orange[700]),
+                                    const SizedBox(width: 8),
+                                    const Text('Edit Limit Reached'),
+                                  ],
+                                ),
+                                content: const Text(
+                                  'This bill has already been edited 2 times.\n\n'
+                                  'To make further changes, please contact the admin to cancel this bill and create a new corrected bill.',
+                                  style: TextStyle(fontSize: 15),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('OK'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+                          return;
+                        }
+
+                        // Check if plan allows edit bill
+                        final canEdit = await PlanPermissionHelper.canEditBill();
+                        if (!canEdit) {
+                          if (context.mounted) {
+                            PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill');
+                          }
+                          return;
+                        }
+                        if (context.mounted) {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => EditBillPage(
+                                documentId: documentId,
+                                invoiceData: data,
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                       },
                     ),
                   ],
@@ -2426,16 +2557,18 @@ class SalesDetailPage extends StatelessWidget {
   Future<void> _printInvoiceReceipt(BuildContext context, String documentId, Map<String, dynamic> data) async {
     try {
       // Show loading
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('preparing_print'))),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
       // Get store details
       final storeId = await FirestoreService().getCurrentStoreId();
-      String? businessName;
-      String? businessPhone;
-      String? businessAddress;
-      String? gstin;
+      String businessName = 'Business';
+      String businessPhone = '';
+      String businessLocation = '';
+      String? businessGSTIN;
 
       if (storeId != null) {
         final storeDoc = await FirebaseFirestore.instance
@@ -2444,47 +2577,68 @@ class SalesDetailPage extends StatelessWidget {
             .get();
         if (storeDoc.exists) {
           final storeData = storeDoc.data() as Map<String, dynamic>;
-          businessName = storeData['businessName'];
-          businessPhone = storeData['businessPhone'] ?? storeData['ownerPhone'];
-          businessAddress = storeData['address'];
-          gstin = storeData['gstin'];
+          businessName = storeData['businessName'] ?? 'Business';
+          businessPhone = storeData['businessPhone'] ?? storeData['ownerPhone'] ?? '';
+          businessLocation = storeData['address'] ?? storeData['location'] ?? '';
+          businessGSTIN = storeData['gstin'];
         }
       }
 
-      // Prepare invoice data
+      // Prepare items for invoice page
       final items = (data['items'] as List<dynamic>? ?? [])
           .map((item) => {
                 'name': item['name'] ?? '',
                 'quantity': item['quantity'] ?? 0,
                 'price': (item['price'] ?? 0).toDouble(),
+                'total': ((item['price'] ?? 0) * (item['quantity'] ?? 1)).toDouble(),
+                'productId': item['productId'] ?? '',
               })
           .toList();
 
-      // Call printer service
-      // TODO: Implement printInvoice in PrinterService
-      // await PrinterService.printInvoice(
-      //   invoiceNumber: data['invoiceNumber'] ?? 'N/A',
-      //   customerName: data['customerName'] ?? 'Walk-in Customer',
-      //   customerPhone: data['customerPhone'] ?? '',
-      //   items: items,
-      //   subtotal: (data['subtotal'] ?? 0).toDouble(),
-      //   discount: (data['discount'] ?? 0).toDouble(),
-      //   tax: (data['tax'] ?? 0).toDouble(),
-      //   total: (data['total'] ?? 0).toDouble(),
-      //   paymentMode: data['paymentMode'] ?? 'Cash',
-      //   businessName: businessName,
-      //   businessPhone: businessPhone,
-      //   businessAddress: businessAddress,
-      //   gstin: gstin,
-      //   timestamp: data['timestamp'] != null
-      //       ? (data['timestamp'] as Timestamp).toDate()
-      //       : null,
-      // );
+      // Get timestamp
+      DateTime dateTime = DateTime.now();
+      if (data['timestamp'] != null) {
+        dateTime = (data['timestamp'] as Timestamp).toDate();
+      } else if (data['date'] != null) {
+        dateTime = DateTime.tryParse(data['date'].toString()) ?? DateTime.now();
+      }
+
+      // Close loading
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        // Navigate to Invoice page
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (context) => InvoicePage(
+              uid: data['staffId'] ?? '',
+              businessName: businessName,
+              businessLocation: businessLocation,
+              businessPhone: businessPhone,
+              businessGSTIN: businessGSTIN,
+              invoiceNumber: data['invoiceNumber']?.toString() ?? 'N/A',
+              dateTime: dateTime,
+              items: items.cast<Map<String, dynamic>>(),
+              subtotal: (data['subtotal'] ?? data['total'] ?? 0).toDouble(),
+              discount: (data['discount'] ?? 0).toDouble(),
+              taxes: null, // Will be calculated from items if needed
+              total: (data['total'] ?? 0).toDouble(),
+              paymentMode: data['paymentMode'] ?? 'Cash',
+              cashReceived: (data['cashReceived'] ?? data['total'] ?? 0).toDouble(),
+              customerName: data['customerName'],
+              customerPhone: data['customerPhone'],
+              customerGSTIN: data['customerGST'],
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (context.mounted) {
+        Navigator.pop(context); // Close loading if open
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${context.tr('printfailed')}: $e'),
+            content: Text('${context.tr('error')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -2603,8 +2757,9 @@ class SalesDetailPage extends StatelessWidget {
                   // Generate sequential credit note number
                   final creditNoteNumber = await NumberGeneratorService.generateCreditNoteNumber();
 
-                  // Create credit note document
-                  await FirestoreService().addDocument('creditNotes', {
+                  // Create credit note document - store-scoped
+                  final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
+                  await creditNotesCollection.add({
                     'creditNoteNumber': creditNoteNumber,
                     'invoiceNumber': data['invoiceNumber'],
                     'customerPhone': data['customerPhone'],
@@ -6315,7 +6470,8 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
 
       final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
 
-      // 1. Restore stock for returned items
+      // 1. Restore stock for returned items - store-scoped
+      final productsCollection = await FirestoreService().getStoreCollection('Products');
       for (var entry in returnQuantities.entries) {
         final index = entry.key;
         final returnQty = entry.value;
@@ -6323,13 +6479,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         if (index < items.length) {
           final item = items[index];
           if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
-            final productRef = await FirestoreService().getDocumentReference('Products', item['productId']);
+            final productRef = productsCollection.doc(item['productId']);
 
             await FirebaseFirestore.instance.runTransaction((transaction) async {
               final productDoc = await transaction.get(productRef);
               if (productDoc.exists) {
-                final currentStock = (productDoc.data() as Map<String, dynamic>?)?['currentStock'] ?? 0.0;
-                final newStock = currentStock + returnQty;
+                final productData = productDoc.data() as Map<String, dynamic>?;
+                final currentStock = (productData?['currentStock'] ?? 0.0) as num;
+                final newStock = currentStock.toDouble() + returnQty;
                 transaction.update(productRef, {'currentStock': newStock});
               }
             });
@@ -6337,13 +6494,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         }
       }
 
-      // 2. Create credit note if mode is CreditNote
+      // 2. Create credit note if mode is CreditNote - store-scoped with sequential number
       if (returnMode == 'CreditNote' && widget.invoiceData['customerPhone'] != null) {
-        // Generate credit note number
-        final creditNoteNumber = 'CN${DateTime.now().millisecondsSinceEpoch}';
+        // Generate sequential credit note number
+        final creditNoteNumber = await NumberGeneratorService.generateCreditNoteNumber();
 
-        // Create credit note document
-        await FirestoreService().addDocument('creditNotes', {
+        // Create credit note document - store-scoped
+        final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
+        await creditNotesCollection.add({
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': widget.invoiceData['invoiceNumber'],
           'customerPhone': widget.invoiceData['customerPhone'],
@@ -6414,12 +6572,24 @@ class EditBillPage extends StatefulWidget {
 }
 
 class _EditBillPageState extends State<EditBillPage> {
+  // --- New Design Palette (Based on Reference Images) ---
+  static const Color kPrimaryColor = Color(0xFF4F46E5); // Deep Indigo/Purple (Like 'Verify' button)
+  static const Color kAccentColor = Color(0xFF4F46E5);
+  static const Color kBackgroundColor = Color(0xFFF3F4F6); // Light Grey scaffold background
+  static const Color kSurfaceColor = Colors.white;
+  static const Color kTextPrimary = Color(0xFF1F2937); // Dark Grey
+  static const Color kTextSecondary = Color(0xFF6B7280); // Cool Grey
+  static const Color kBorderColor = Color(0xFFE5E7EB); // Very light border
+  static const Color kSuccessColor = Color(0xFF10B981);
+  static const double kCardRadius = 16.0;
+
   late TextEditingController _discountController;
-  late TextEditingController _creditNoteController;
   late String _selectedPaymentMode;
   late String? _selectedCustomerPhone;
   late String? _selectedCustomerName;
-  late double _creditAmount;
+  late List<Map<String, dynamic>> _items;
+  List<Map<String, dynamic>> _selectedCreditNotes = [];
+  double _creditNotesAmount = 0.0;
 
   @override
   void initState() {
@@ -6427,427 +6597,485 @@ class _EditBillPageState extends State<EditBillPage> {
     _discountController = TextEditingController(
       text: (widget.invoiceData['discount'] ?? 0).toString(),
     );
-    _creditNoteController = TextEditingController(
-      text: widget.invoiceData['creditNote'] ?? '',
-    );
     _selectedPaymentMode = widget.invoiceData['paymentMode'] ?? 'Cash';
     _selectedCustomerPhone = widget.invoiceData['customerPhone'];
     _selectedCustomerName = widget.invoiceData['customerName'];
-    _creditAmount = _selectedPaymentMode == 'Credit'
-        ? (widget.invoiceData['total'] ?? 0).toDouble()
-        : 0.0;
+
+    // Copy items to editable list
+    final originalItems = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    _items = originalItems.map((item) => Map<String, dynamic>.from(item)).toList();
+
+    // Load previously selected credit notes
+    final selectedNotes = widget.invoiceData['selectedCreditNotes'] as List<dynamic>?;
+    if (selectedNotes != null) {
+      _selectedCreditNotes = selectedNotes.map((n) => Map<String, dynamic>.from(n)).toList();
+      _creditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + ((cn['amount'] ?? 0) as num).toDouble());
+    }
   }
 
   @override
   void dispose() {
     _discountController.dispose();
-    _creditNoteController.dispose();
     super.dispose();
   }
 
+  // --- Calculations ---
   double get subtotal {
-    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
-    return items.fold(0.0, (sum, item) {
+    return _items.fold(0.0, (sum, item) {
       final price = (item['price'] ?? 0).toDouble();
       final qty = (item['quantity'] ?? 0) is int
-          ? item['quantity']
-          : int.tryParse(item['quantity'].toString()) ?? 0;
+          ? (item['quantity'] as int).toDouble()
+          : double.tryParse(item['quantity'].toString()) ?? 0.0;
       return sum + (price * qty);
     });
   }
 
-  double get total {
-    final discount = double.tryParse(_discountController.text) ?? 0;
-    return subtotal - discount;
-  }
+  double get discount => double.tryParse(_discountController.text) ?? 0;
+  double get totalBeforeCreditNotes => subtotal - discount;
+  double get finalTotal => (totalBeforeCreditNotes - _creditNotesAmount).clamp(0, double.infinity);
+
+  // --- UI Construction ---
 
   @override
   Widget build(BuildContext context) {
-    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
     final time = widget.invoiceData['timestamp'] != null
         ? (widget.invoiceData['timestamp'] as Timestamp).toDate()
         : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: kBackgroundColor,
+      // Clean AppBar design (White with dark text)
       appBar: AppBar(
-        title: Text(context.tr('edit'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(
+          context.tr('edit'),
+          style: const TextStyle(fontWeight: FontWeight.w700, color: kTextPrimary, fontSize: 18),
+        ),
+        backgroundColor: kSurfaceColor,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios_new, color: kTextPrimary, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: kBorderColor, height: 1),
+        ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Invoice No. ${widget.invoiceData['invoiceNumber'] ?? 'N/A'}',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Created by ${widget.invoiceData['staffName'] ?? 'Admin'}',
-                        style: const TextStyle(fontSize: 14),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Issued on :',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        time != null ? DateFormat('dd MMM yyyy h:mm a').format(time) : 'N/A',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Customer Details
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Customer Details',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    onPressed: () {
-                      // Remove customer
-                      setState(() {
-                        _selectedCustomerPhone = null;
-                        _selectedCustomerName = null;
-                      });
-                    },
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    _selectedCustomerName ?? 'A',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(context.tr('phone'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  Text(
-                    _selectedCustomerPhone ?? '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
+                  // 1. Invoice Header Card (Like Profile Header)
+                  _buildSectionHeader('INVOICE DETAILS'),
+                  _buildInvoiceHeaderCard(time),
+                  const SizedBox(height: 20),
+
+                  // 2. Customer Card (Like Account Selection)
+                  _buildSectionHeader('CUSTOMER'),
+                  _buildCustomerSelectorCard(),
+                  const SizedBox(height: 20),
+
+                  // 3. Items List (Like Menu Items)
+                  _buildSectionHeader('ITEMS'),
+                  _buildItemsCard(),
                 ],
               ),
             ),
+          ),
 
-            // Invoice Items
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Text(
-                'Invoice items',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+          // 4. Bottom Total & Action Panel
+          _buildBottomActionPanel(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: kTextSecondary,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  // Mimics the "Profile" card from the reference image
+  Widget _buildInvoiceHeaderCard(DateTime? time) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(kCardRadius),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Icon Container (Like the Avatar)
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: kPrimaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            Container(
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child:  Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(context.tr('items'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                        Text(context.tr('amount'), style: const TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  ...items.map((item) {
-                    final name = item['name'] ?? '';
-                    final price = (item['price'] ?? 0).toDouble();
-                    final qty = (item['quantity'] ?? 0) is int
-                        ? item['quantity']
-                        : int.tryParse(item['quantity'].toString()) ?? 0;
-                    final itemTotal = price * qty;
-
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                              const Text('-0.00', style: TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('${price.toStringAsFixed(2)} × ${qty.toStringAsFixed(1)}'),
-                              const Text('0.00', style: TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(itemTotal.toStringAsFixed(2), style: const TextStyle(fontWeight: FontWeight.bold)),
-                              Text(
-                                itemTotal.toStringAsFixed(2),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  // Add More button (placeholder)
-                  GestureDetector(
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(context.tr('coming_soon'))),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add, color: Color(0xFF2196F3)),
-                          SizedBox(width: 8),
-                          Text(
-                            'Add More',
-                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Summary section
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${context.tr('totalitems')} : ${items.length}'),
-                            Text('${context.tr('subtotal')} : Rs ${subtotal.toStringAsFixed(2)}'),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        // Add Discount
-                        GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(context.tr('add_discount')),
-                                content: TextField(
-                                  controller: _discountController,
-                                  keyboardType: TextInputType.number,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('discount_amount'),
-                                    prefixText: '  ',
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(context.tr('cancel')),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {});
-                                      Navigator.pop(context);
-                                    },
-                                    child: Text(context.tr('apply')),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: Text(
-                            context.tr('add_discount'),
-                            style: const TextStyle(color: Color(0xFF2196F3), fontSize: 16),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Add Credit Note
-                        GestureDetector(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: Text(context.tr('add_credit_note')),
-                                content: TextField(
-                                  controller: _creditNoteController,
-                                  maxLines: 3,
-                                  decoration: InputDecoration(
-                                    labelText: context.tr('creditnote'),
-                                    hintText: context.tr('enter_note'),
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(context.tr('cancel')),
-                                  ),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      setState(() {});
-                                      Navigator.pop(context);
-                                    },
-                                    child: Text(context.tr('save')),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Add Credit Note',
-                            style: TextStyle(color: Color(0xFF2196F3), fontSize: 16),
-                          ),
-                        ),
-                        const Divider(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${context.tr('totalamount')} :', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                            Text(
-                              'Rs ${total.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+            child: const Center(
+              child: Icon(Icons.receipt_long_rounded, color: kPrimaryColor, size: 28),
             ),
-
-            // Payment Mode
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('${context.tr('payment_mode')} :', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildPaymentModeButton('Cash'),
-                      _buildPaymentModeButton('Online'),
-                      _buildPaymentModeButton('Set Later'),
-                      _buildPaymentModeButton('Split'),
-                      _buildPaymentModeButton('Credit'),
-                    ],
-                  ),
-                  if (_selectedPaymentMode == 'Credit') ...[
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text('${context.tr('credit')} : ', style: const TextStyle(fontSize: 16)),
-                        Text(
-                          'Rs ${total.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2196F3)),
-                        ),
-                      ],
+          ),
+          const SizedBox(width: 16),
+          // Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Invoice #${widget.invoiceData['invoiceNumber'] ?? 'N/A'}',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 12, color: kTextSecondary.withOpacity(0.8)),
+                    const SizedBox(width: 4),
+                    Text(
+                      time != null ? DateFormat('dd MMM yyyy, h:mm a').format(time) : 'N/A',
+                      style: const TextStyle(fontSize: 13, color: kTextSecondary),
                     ),
                   ],
+                ),
+              ],
+            ),
+          ),
+          // Verified Badge style (Staff name)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: kBackgroundColor,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.badge, size: 14, color: kTextSecondary),
+                const SizedBox(width: 4),
+                Text(
+                  '${widget.invoiceData['staffName'] ?? 'Staff'}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextPrimary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mimics the "Select Account" card style
+  Widget _buildCustomerSelectorCard() {
+    final hasCustomer = _selectedCustomerPhone != null;
+    return InkWell(
+      onTap: hasCustomer ? null : () {}, // Logic to add customer if needed
+      borderRadius: BorderRadius.circular(kCardRadius),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(kCardRadius),
+          border: Border.all(color: Colors.transparent), // Removing border for clean look
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: hasCustomer ? kPrimaryColor : kBackgroundColor,
+              child: Icon(
+                Icons.person,
+                color: hasCustomer ? Colors.white : kTextSecondary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _selectedCustomerName ?? 'Walk-in Customer',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: kTextPrimary,
+                    ),
+                  ),
+                  if (hasCustomer)
+                    Text(
+                      _selectedCustomerPhone!,
+                      style: const TextStyle(color: kTextSecondary, fontSize: 13),
+                    ),
+                ],
+              ),
+            ),
+            if (hasCustomer)
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedCustomerPhone = null;
+                    _selectedCustomerName = null;
+                    _selectedCreditNotes = [];
+                    _creditNotesAmount = 0.0;
+                  });
+                },
+                icon: const Icon(Icons.close_rounded, color: Colors.redAccent),
+                splashRadius: 20,
+              )
+            else
+              const Icon(Icons.chevron_right, color: kTextSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Mimics the Menu List style (Clean rows)
+  Widget _buildItemsCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(kCardRadius),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        children: [
+          if (_items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                children: [
+                  Icon(Icons.shopping_bag_outlined, size: 48, color: kTextSecondary.withOpacity(0.3)),
+                  const SizedBox(height: 12),
+                  Text('No items added', style: TextStyle(color: kTextSecondary.withOpacity(0.5))),
                 ],
               ),
             ),
 
-            // Update button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _updateBill,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ..._items.asMap().entries.map((entry) {
+            return _buildItemRow(entry.value, entry.key, entry.key == _items.length - 1);
+          }),
+
+          // "Create New Account" style button for Adding Items
+          InkWell(
+            onTap: _showAddProductDialog,
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(kCardRadius)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              decoration: const BoxDecoration(
+                border: Border(top: BorderSide(color: kBackgroundColor)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.add_circle, size: 20, color: kPrimaryColor),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Add New Item',
+                    style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 15),
                   ),
-                  child: const Text(
-                    'Update',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemRow(Map<String, dynamic> item, int index, bool isLast) {
+    final name = item['name'] ?? '';
+    final price = (item['price'] ?? 0).toDouble();
+    final qty = (item['quantity'] ?? 0) is int
+        ? (item['quantity'] as int)
+        : int.tryParse(item['quantity'].toString()) ?? 0;
+    final itemTotal = price * qty;
+
+    return Dismissible(
+      key: Key('item_${item['productId']}_$index'),
+      direction: DismissDirection.endToStart,
+      background: Container(
+        color: Colors.red.withOpacity(0.1),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        child: const Icon(Icons.delete_outline, color: Colors.red),
+      ),
+      onDismissed: (_) {
+        setState(() {
+          _items.removeAt(index);
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            // Number badge
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: kBackgroundColor,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Center(
+                child: Text('${index + 1}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kTextSecondary)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kTextPrimary)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '₹${price.toStringAsFixed(2)} × $qty',
+                    style: const TextStyle(color: kTextSecondary, fontSize: 12),
                   ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${itemTotal.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextPrimary),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => setState(() => _items.removeAt(index)),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Icon(Icons.close, color: kTextSecondary.withOpacity(0.5), size: 18),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Modern Bottom Panel
+  Widget _buildBottomActionPanel() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Calculation Rows
+            _buildSummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(2)}'),
+            const SizedBox(height: 8),
+            _buildSummaryRow(
+              'Discount',
+              '- ₹${discount.toStringAsFixed(2)}',
+              isLink: true,
+              onTap: _showDiscountDialog,
+              valueColor: kSuccessColor,
+            ),
+            if (_selectedCustomerPhone != null) ...[
+              const SizedBox(height: 8),
+              _buildSummaryRow(
+                'Credit Notes',
+                '- ₹${_creditNotesAmount.toStringAsFixed(2)}',
+                isLink: true,
+                onTap: _showCreditNotesDialog,
+                valueColor: Colors.orange[800],
+              ),
+            ],
+
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(color: kBorderColor),
+            ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Payable', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                Text(
+                  '₹${finalTotal.toStringAsFixed(2)}',
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, color: kPrimaryColor),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Payment Mode Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildPaymentChip('Cash', Icons.payments_outlined),
+                  const SizedBox(width: 10),
+                  _buildPaymentChip('Online', Icons.qr_code_2),
+                  const SizedBox(width: 10),
+                  _buildPaymentChip('Credit', Icons.credit_score),
+                  const SizedBox(width: 10),
+                  _buildPaymentChip('Split', Icons.call_split),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Big "Verify" style button
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _updateBill,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  elevation: 4,
+                  shadowColor: kPrimaryColor.withOpacity(0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text(
+                  'Update Invoice',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 0.5),
                 ),
               ),
             ),
@@ -6857,84 +7085,431 @@ class _EditBillPageState extends State<EditBillPage> {
     );
   }
 
-  Widget _buildPaymentModeButton(String mode) {
-    final isSelected = _selectedPaymentMode == mode;
+  Widget _buildSummaryRow(String label, String value, {bool isLink = false, VoidCallback? onTap, Color? valueColor}) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMode = mode;
-          if (mode == 'Credit') {
-            _creditAmount = total;
-          } else {
-            _creditAmount = 0.0;
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      onTap: onTap,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Text(label, style: const TextStyle(color: kTextSecondary, fontSize: 14)),
+              if (isLink) ...[
+                const SizedBox(width: 4),
+                Icon(Icons.edit_note, size: 16, color: kPrimaryColor.withOpacity(0.7)),
+              ],
+            ],
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: valueColor ?? kTextPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentChip(String label, IconData icon) {
+    final isSelected = _selectedPaymentMode == label;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPaymentMode = label),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2196F3) : Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? kPrimaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: isSelected ? const Color(0xFF2196F3) : Colors.grey.shade300,
+            color: isSelected ? kPrimaryColor : kBorderColor,
+            width: 1.5,
           ),
         ),
-        child: Text(
-          mode,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: isSelected ? Colors.white : kTextSecondary,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : kTextPrimary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 13,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // --- Dialogs (Functionality Preserved, UI Updated) ---
+
+  void _showDiscountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(context.tr('add_discount'), style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: _discountController,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: context.tr('discount_amount'),
+            prefixText: '₹ ',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(context.tr('cancel'), style: const TextStyle(color: kTextSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {});
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(context.tr('apply'), style: const TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreditNotesDialog() async {
+    if (_selectedCustomerPhone == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a customer first'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    try {
+      final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
+      final snapshot = await creditNotesCollection
+          .where('customerPhone', isEqualTo: _selectedCustomerPhone)
+          .where('status', isEqualTo: 'Available')
+          .get();
+
+      final availableCreditNotes = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          ...data,
+        };
+      }).toList();
+
+      if (!mounted) return;
+
+      if (availableCreditNotes.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No credit notes available'), behavior: SnackBarBehavior.floating),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        builder: (ctx) {
+          List<Map<String, dynamic>> tempSelected = List.from(_selectedCreditNotes);
+
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: const Text('Select Credit Notes', style: TextStyle(fontWeight: FontWeight.bold)),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: availableCreditNotes.length,
+                    separatorBuilder: (c, i) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final cn = availableCreditNotes[index];
+                      final isSelected = tempSelected.any((s) => s['id'] == cn['id']);
+                      final amount = (cn['amount'] ?? 0).toDouble();
+
+                      return CheckboxListTile(
+                        value: isSelected,
+                        activeColor: kPrimaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        title: Text('${cn['creditNoteNumber']}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text('₹${amount.toStringAsFixed(2)} • ${cn['reason'] ?? 'Credit Note'}'),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            if (value == true) {
+                              tempSelected.add(cn);
+                            } else {
+                              tempSelected.removeWhere((s) => s['id'] == cn['id']);
+                            }
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(context.tr('cancel'), style: const TextStyle(color: kTextSecondary)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _selectedCreditNotes = tempSelected;
+                        _creditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + ((cn['amount'] ?? 0) as num).toDouble());
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                    child: Text('Apply (${tempSelected.length})', style: const TextStyle(color: Colors.white)),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading credit notes: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showAddProductDialog() async {
+    try {
+      final productsCollection = await FirestoreService().getStoreCollection('Products');
+      final snapshot = await productsCollection.limit(50).get();
+
+      final products = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          'name': data['itemName'] ?? data['name'] ?? 'Unknown',
+          'price': (data['price'] ?? 0).toDouble(),
+          'currentStock': (data['currentStock'] ?? 0).toDouble(),
+          'stockEnabled': data['stockEnabled'] ?? false,
+        };
+      }).toList();
+
+      if (!mounted) return;
+
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) {
+          final searchController = TextEditingController();
+          String searchQuery = '';
+
+          return StatefulBuilder(
+            builder: (context, setSheetState) {
+              final filteredProducts = products.where((p) {
+                final name = (p['name'] ?? '').toString().toLowerCase();
+                return name.contains(searchQuery.toLowerCase());
+              }).toList();
+
+              return Container(
+                height: MediaQuery.of(context).size.height * 0.85,
+                decoration: const BoxDecoration(
+                  color: kSurfaceColor,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          const Text('Add Item', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search products...',
+                          prefixIcon: const Icon(Icons.search, color: kTextSecondary),
+                          filled: true,
+                          fillColor: kBackgroundColor,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                        onChanged: (value) {
+                          setSheetState(() => searchQuery = value);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView.separated(
+                        itemCount: filteredProducts.length,
+                        separatorBuilder: (c, i) => const Divider(height: 1, indent: 20, endIndent: 20),
+                        itemBuilder: (context, index) {
+                          final product = filteredProducts[index];
+                          final stock = product['currentStock'] as double;
+                          final stockEnabled = product['stockEnabled'] as bool;
+                          final isOutOfStock = stockEnabled && stock <= 0;
+
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                            enabled: !isOutOfStock,
+                            leading: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isOutOfStock ? Colors.grey[100] : kPrimaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.inventory_2_outlined,
+                                color: isOutOfStock ? Colors.grey : kPrimaryColor,
+                                size: 22,
+                              ),
+                            ),
+                            title: Text(
+                              product['name'],
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: isOutOfStock ? Colors.grey : kTextPrimary,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '₹${(product['price'] as double).toStringAsFixed(2)}${stockEnabled ? ' • Stock: ${stock.toInt()}' : ''}',
+                              style: TextStyle(color: isOutOfStock ? Colors.red : kTextSecondary),
+                            ),
+                            trailing: isOutOfStock
+                                ? const Chip(label: Text('Out', style: TextStyle(fontSize: 10, color: Colors.white)), backgroundColor: Colors.red)
+                                : CircleAvatar(
+                              radius: 16,
+                              backgroundColor: kPrimaryColor,
+                              child: const Icon(Icons.add, color: Colors.white, size: 20),
+                            ),
+                            onTap: isOutOfStock ? null : () {
+                              setState(() {
+                                _items.add({
+                                  'productId': product['id'],
+                                  'name': product['name'],
+                                  'price': product['price'],
+                                  'quantity': 1,
+                                });
+                              });
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Item added'), duration: Duration(milliseconds: 1000)),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading products: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   Future<void> _updateBill() async {
+    if (_items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please add at least one item'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
       );
 
-      final discount = double.tryParse(_discountController.text) ?? 0;
       final oldPaymentMode = widget.invoiceData['paymentMode'];
       final oldTotal = (widget.invoiceData['total'] ?? 0).toDouble();
+      final currentEditCount = (widget.invoiceData['editCount'] ?? 0) as int;
 
       // Update bill in Firestore
-      await FirebaseFirestore.instance
-          .collection('sales')
-          .doc(widget.documentId)
-          .update({
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      await salesCollection.doc(widget.documentId).update({
+        'items': _items,
+        'subtotal': subtotal,
         'discount': discount,
-        'total': total,
-        'creditNote': _creditNoteController.text,
+        'total': finalTotal,
         'paymentMode': _selectedPaymentMode,
         'customerPhone': _selectedCustomerPhone,
         'customerName': _selectedCustomerName,
+        'selectedCreditNotes': _selectedCreditNotes,
+        'creditNotesAmount': _creditNotesAmount,
+        'updatedAt': FieldValue.serverTimestamp(),
+        'editCount': currentEditCount + 1,
       });
 
-      // Update customer credit if payment mode changed
+      // Handle Credit Notes Logic (Same as before)
+      if (_selectedCreditNotes.isNotEmpty) {
+        final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
+        for (var cn in _selectedCreditNotes) {
+          await creditNotesCollection.doc(cn['id']).update({
+            'status': 'Used',
+            'usedInInvoice': widget.invoiceData['invoiceNumber'],
+            'usedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      // Handle Customer Credit Logic (Same as before)
       if (_selectedCustomerPhone != null) {
-        final customerRef = FirebaseFirestore.instance
-            .collection('customers')
-            .doc(_selectedCustomerPhone);
+        final customersCollection = await FirestoreService().getStoreCollection('customers');
+        final customerRef = customersCollection.doc(_selectedCustomerPhone);
 
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final customerDoc = await transaction.get(customerRef);
           if (customerDoc.exists) {
-            double currentBalance = customerDoc.data()?['balance'] ?? 0.0;
+            final customerData = customerDoc.data() as Map<String, dynamic>?;
+            double currentBalance = ((customerData?['balance'] ?? 0.0) as num).toDouble();
 
-            // Remove old credit
-            if (oldPaymentMode == 'Credit') {
-              currentBalance -= oldTotal;
-            }
-
-            // Add new credit
-            if (_selectedPaymentMode == 'Credit') {
-              currentBalance += total;
-            }
+            if (oldPaymentMode == 'Credit') currentBalance -= oldTotal;
+            if (_selectedPaymentMode == 'Credit') currentBalance += finalTotal;
 
             transaction.update(customerRef, {'balance': currentBalance});
           }

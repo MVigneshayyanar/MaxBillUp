@@ -317,12 +317,14 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
   // --- FIRESTORE TRANSACTION ---
   Future<void> _processTransaction(double amount, double oldBalance, double oldTotalSales, String method) async {
-    final firestore = FirebaseFirestore.instance;
-    final customerRef = firestore.collection('customers').doc(widget.customerId);
-    final creditsRef = firestore.collection('credits').doc();
-
     try {
-      await firestore.runTransaction((transaction) async {
+      // Get store-scoped collections
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final creditsCollection = await FirestoreService().getStoreCollection('credits');
+
+      final customerRef = customersCollection.doc(widget.customerId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
         DocumentSnapshot snapshot = await transaction.get(customerRef);
         if (!snapshot.exists) throw Exception("Customer does not exist!");
 
@@ -335,15 +337,16 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           'totalSales': newTotalSales,
           'lastUpdated': FieldValue.serverTimestamp(),
         });
+      });
 
-        transaction.set(creditsRef, {
-          'customerId': widget.customerId,
-          'customerName': widget.customerData['name'],
-          'amount': amount,
-          'type': 'add_credit',
-          'method': method,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      // Add credit transaction record (store-scoped)
+      await creditsCollection.add({
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': amount,
+        'type': 'add_credit',
+        'method': method,
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Credit Added Successfully')));
@@ -721,10 +724,13 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
         builder: (context) => const Center(child: CircularProgressIndicator()),
       );
 
-      final firestore = FirebaseFirestore.instance;
-      final customerRef = firestore.collection('customers').doc(widget.customerId);
+      // Get store-scoped collections
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final creditsCollection = await FirestoreService().getStoreCollection('credits');
 
-      await firestore.runTransaction((transaction) async {
+      final customerRef = customersCollection.doc(widget.customerId);
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
         DocumentSnapshot snapshot = await transaction.get(customerRef);
         if (!snapshot.exists) throw Exception("Customer does not exist!");
 
@@ -735,16 +741,16 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
           'balance': newBalance,
           'lastUpdated': FieldValue.serverTimestamp(),
         });
+      });
 
-        // Add credit transaction record
-        await firestore.collection('credits').add({
-          'customerId': widget.customerId,
-          'customerName': widget.customerData['name'],
-          'amount': _enteredAmount,
-          'type': 'payment_received',
-          'method': 'Cash',
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+      // Add credit transaction record (store-scoped)
+      await creditsCollection.add({
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': _enteredAmount,
+        'type': 'payment_received',
+        'method': 'Cash',
+        'timestamp': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
@@ -940,9 +946,82 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
 // SUB-PAGE 1: BILLS HISTORY
 // =============================================================================
 
-class CustomerBillsPage extends StatelessWidget {
+class CustomerBillsPage extends StatefulWidget {
   final String phone;
   const CustomerBillsPage({super.key, required this.phone});
+
+  @override
+  State<CustomerBillsPage> createState() => _CustomerBillsPageState();
+}
+
+class _CustomerBillsPageState extends State<CustomerBillsPage> {
+  List<Map<String, dynamic>> _bills = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBills();
+  }
+
+  Future<void> _loadBills() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      debugPrint('📋 Loading bills for customer phone: ${widget.phone}');
+
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      debugPrint('📋 Sales collection path: ${salesCollection.path}');
+
+      final snapshot = await salesCollection
+          .where('customerPhone', isEqualTo: widget.phone)
+          .get();
+
+      debugPrint('📋 Found ${snapshot.docs.length} bills');
+
+      final bills = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          ...data,
+        };
+      }).toList();
+
+      // Sort by timestamp descending
+      bills.sort((a, b) {
+        Timestamp? aTime;
+        Timestamp? bTime;
+
+        if (a['timestamp'] != null) aTime = a['timestamp'] as Timestamp;
+        if (b['timestamp'] != null) bTime = b['timestamp'] as Timestamp;
+
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return 1;
+        if (bTime == null) return -1;
+
+        return bTime.compareTo(aTime);
+      });
+
+      if (mounted) {
+        setState(() {
+          _bills = bills;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading bills: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -953,146 +1032,149 @@ class CustomerBillsPage extends StatelessWidget {
         backgroundColor: const Color(0xFF2196F3),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadBills,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('sales')
-            .where('customerPhone', isEqualTo: phone)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: $_error', textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadBills,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_bills.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.receipt_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text("No bills found", style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Text("Phone: ${widget.phone}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadBills,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _bills.length,
+        itemBuilder: (context, index) {
+          final data = _bills[index];
+          final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
+          final total = (data['total'] ?? 0).toDouble();
+          final paymentMode = data['paymentMode'] ?? 'N/A';
+
+          // Parse date
+          String formattedDate = 'N/A';
+          try {
+            if (data['timestamp'] != null) {
+              final ts = data['timestamp'] as Timestamp;
+              formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
+            } else if (data['date'] != null) {
+              final dt = DateTime.parse(data['date']);
+              formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+            }
+          } catch (e) {
+            formattedDate = 'N/A';
           }
 
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
-              child: Text(
-                "No bills found",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            );
-          }
-
-          // Sort documents by timestamp in memory
-          var docs = snapshot.data!.docs.toList();
-          docs.sort((a, b) {
-            var aData = a.data() as Map<String, dynamic>;
-            var bData = b.data() as Map<String, dynamic>;
-
-            Timestamp? aTimestamp = aData['timestamp'] as Timestamp?;
-            Timestamp? bTimestamp = bData['timestamp'] as Timestamp?;
-
-            if (aTimestamp == null && bTimestamp == null) return 0;
-            if (aTimestamp == null) return 1;
-            if (bTimestamp == null) return -1;
-
-            return bTimestamp.compareTo(aTimestamp); // descending
-          });
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: docs.length,
-            itemBuilder: (context, index) {
-              var data = docs[index].data() as Map<String, dynamic>;
-              String invoiceNumber = data['invoiceNumber'] ?? 'N/A';
-              double total = (data['total'] ?? 0).toDouble();
-              String paymentMode = data['paymentMode'] ?? 'N/A';
-
-              // Parse date - try timestamp first, then date string
-              String formattedDate = 'N/A';
-              try {
-                if (data['timestamp'] != null) {
-                  Timestamp ts = data['timestamp'] as Timestamp;
-                  formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
-                } else if (data['date'] != null) {
-                  DateTime dt = DateTime.parse(data['date']);
-                  formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
-                }
-              } catch (e) {
-                formattedDate = 'N/A';
-              }
-
-              return Card(
-                elevation: 1,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          return Card(
+            elevation: 1,
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Invoice #$invoiceNumber',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2196F3),
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _getPaymentModeColor(paymentMode).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              paymentMode,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: _getPaymentModeColor(paymentMode),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
                       Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
+                        'Invoice #$invoiceNumber',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2196F3),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Total Amount',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getPaymentModeColor(paymentMode).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          paymentMode,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _getPaymentModeColor(paymentMode),
                           ),
-                          Text(
-                            ' ${total.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF4CAF50),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              );
-            },
-          ); // Close ListView
-        }, // Close StreamBuilder builder
-      ), // Close StreamBuilder (body parameter)
-    ); // Close Scaffold
-  } // Close build method
+                  const SizedBox(height: 8),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Amount',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                      Text(
+                        '₹${total.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF4CAF50),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Color _getPaymentModeColor(String mode) {
     switch (mode.toLowerCase()) {
@@ -1114,108 +1196,200 @@ class CustomerBillsPage extends StatelessWidget {
 // SUB-PAGE 2: CREDIT HISTORY
 // =============================================================================
 
-class CustomerCreditsPage extends StatelessWidget {
+class CustomerCreditsPage extends StatefulWidget {
   final String customerId;
   const CustomerCreditsPage({super.key, required this.customerId});
 
   @override
+  State<CustomerCreditsPage> createState() => _CustomerCreditsPageState();
+}
+
+class _CustomerCreditsPageState extends State<CustomerCreditsPage> {
+  List<Map<String, dynamic>> _credits = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCredits();
+  }
+
+  Future<void> _loadCredits() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      debugPrint('📋 Loading credits for customer: ${widget.customerId}');
+
+      final creditsCollection = await FirestoreService().getStoreCollection('credits');
+      debugPrint('📋 Credits collection path: ${creditsCollection.path}');
+
+      final snapshot = await creditsCollection
+          .where('customerId', isEqualTo: widget.customerId)
+          .get();
+
+      debugPrint('📋 Found ${snapshot.docs.length} credit records');
+
+      final credits = snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          ...data,
+        };
+      }).toList();
+
+      // Sort by timestamp descending
+      credits.sort((a, b) {
+        final aTime = a['timestamp'] as Timestamp? ?? Timestamp.now();
+        final bTime = b['timestamp'] as Timestamp? ?? Timestamp.now();
+        return bTime.compareTo(aTime);
+      });
+
+      if (mounted) {
+        setState(() {
+          _credits = credits;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading credits: $e');
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Credit/Payment History"), backgroundColor: const Color(0xFF007AFF), foregroundColor: Colors.white),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('credits')
-            .where('customerId', isEqualTo: customerId)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return const Center(child: Text("No credit history"));
+      appBar: AppBar(
+        title: const Text("Credit/Payment History"),
+        backgroundColor: const Color(0xFF2196F3),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadCredits,
+            tooltip: 'Refresh',
+          ),
+        ],
+      ),
+      body: _buildBody(),
+    );
+  }
 
-          // Sort documents by timestamp in memory
-          var docs = snapshot.data!.docs.toList();
-          docs.sort((a, b) {
-            var aData = a.data() as Map<String, dynamic>;
-            var bData = b.data() as Map<String, dynamic>;
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-            Timestamp aTimestamp = aData['timestamp'] as Timestamp? ?? Timestamp.now();
-            Timestamp bTimestamp = bData['timestamp'] as Timestamp? ?? Timestamp.now();
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text('Error: $_error', textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadCredits,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
 
-            return bTimestamp.compareTo(aTimestamp); // descending
-          });
+    if (_credits.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text("No credit/payment history", style: TextStyle(fontSize: 16, color: Colors.grey)),
+            const SizedBox(height: 8),
+            Text("Customer ID: ${widget.customerId}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: docs.length,
-            separatorBuilder: (c, i) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              var data = docs[index].data() as Map<String, dynamic>;
-              Timestamp ts = data['timestamp'] ?? Timestamp.now();
-              String formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
-              String type = data['type'] ?? 'credit';
-              bool isPayment = type == 'add_credit';
-              bool isCreditSale = type == 'credit_sale';
+    return RefreshIndicator(
+      onRefresh: _loadCredits,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(12),
+        itemCount: _credits.length,
+        separatorBuilder: (c, i) => const SizedBox(height: 10),
+        itemBuilder: (context, index) {
+          final data = _credits[index];
+          final ts = data['timestamp'] as Timestamp? ?? Timestamp.now();
+          final formattedDate = DateFormat('dd MMM yyyy, hh:mm a').format(ts.toDate());
+          final type = (data['type'] ?? 'credit').toString();
+          final isPayment = type == 'payment_received';
+          final isCreditSale = type == 'credit_sale';
 
-              String title = isPayment
-                  ? "Payment Received"
-                  : isCreditSale
-                      ? "Credit Sale"
-                      : "Credit Used";
+          String title = isPayment
+              ? "Payment Received"
+              : isCreditSale
+                  ? "Credit Sale"
+                  : "Credit Added";
 
-              String subtitle = "$formattedDate\nMethod: ${data['method'] ?? 'N/A'}";
-              if (data['invoiceNumber'] != null) {
-                subtitle += "\nInvoice: #${data['invoiceNumber']}";
-              }
-              if (data['staffName'] != null) {
-                subtitle += "\nStaff: ${data['staffName']}";
-              }
-              if (data['businessLocation'] != null) {
-                subtitle += "\nLocation: ${data['businessLocation']}";
-              }
-              if (data['itemCount'] != null && data['itemCount'] > 0) {
-                subtitle += "\nItems: ${data['itemCount']}";
-              }
+          String subtitle = formattedDate;
+          if (data['method'] != null) subtitle += "\nMethod: ${data['method']}";
+          if (data['invoiceNumber'] != null) subtitle += "\nInvoice: #${data['invoiceNumber']}";
+          if (data['staffName'] != null) subtitle += "\nStaff: ${data['staffName']}";
 
-              return ListTile(
-                tileColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                leading: CircleAvatar(
-                  backgroundColor: isPayment ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
-                  child: Icon(
-                    isPayment ? Icons.arrow_downward : Icons.arrow_upward,
-                    color: isPayment ? Colors.green : Colors.red
+          final amount = (data['amount'] ?? 0).toDouble();
+
+          return ListTile(
+            tileColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            leading: CircleAvatar(
+              backgroundColor: isPayment
+                  ? Colors.green.withValues(alpha: 0.1)
+                  : Colors.orange.withValues(alpha: 0.1),
+              child: Icon(
+                isPayment ? Icons.arrow_downward : Icons.arrow_upward,
+                color: isPayment ? Colors.green : Colors.orange,
+              ),
+            ),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+            subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
+            trailing: Text(
+              "₹${amount.toStringAsFixed(2)}",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: isPayment ? Colors.green : Colors.orange,
+              ),
+            ),
+            onTap: () {
+              if (data['items'] != null && (data['items'] as List).isNotEmpty) {
+                showDialog(
+                  context: context,
+                  builder: (context) => _CreditDetailsDialog(
+                    data: data,
+                    isPayment: isPayment,
+                    isCreditSale: isCreditSale,
                   ),
-                ),
-                title: Text(title),
-                subtitle: Text(subtitle, style: const TextStyle(fontSize: 12)),
-                trailing: Text(
-                  " ${data['amount']}",
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: isPayment ? Colors.green : Colors.red
-                  )
-                ),
-                onTap: () {
-                  // Show detailed credit information in a dialog
-                  if (data['items'] != null && (data['items'] as List).isNotEmpty) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => _CreditDetailsDialog(
-                        data: data,
-                        isPayment: isPayment,
-                        isCreditSale: isCreditSale,
-                      ),
-                    );
-                  }
-                },
-              );
+                );
+              }
             },
-          ); // Close ListView
-        }, // Close StreamBuilder builder
-      ), // Close StreamBuilder (body parameter)
-    ); // Close Scaffold
-  } // Close build method
-} // Close CustomerCreditsPage class
+          );
+        },
+      ),
+    );
+  }
+}
 
 // =============================================================================
 // CREDIT DETAILS DIALOG
@@ -1405,99 +1579,329 @@ class CustomerLedgerPage extends StatefulWidget {
 }
 
 class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
-  Future<List<LedgerItem>>? _ledgerFuture;
+  List<LedgerItem> _ledgerItems = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _ledgerFuture = _generateLedger();
+    _loadLedger();
   }
 
-  Future<List<LedgerItem>> _generateLedger() async {
-    final firestore = FirebaseFirestore.instance;
-    final results = await Future.wait([
-      firestore.collection('sales').where('customerPhone', isEqualTo: widget.customerId).get(),
-      firestore.collection('credits').where('customerId', isEqualTo: widget.customerId).get(),
-    ]);
+  Future<void> _loadLedger() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    final salesDocs = results[0].docs;
-    final creditDocs = results[1].docs;
-    List<LedgerItem> items = [];
+    try {
+      debugPrint('📊 Loading ledger for customer: ${widget.customerId}');
 
-    for (var doc in salesDocs) {
-      final data = doc.data();
-      DateTime date;
-      try { date = DateTime.parse(data['date']); } catch (e) { date = DateTime(2000); }
-      items.add(LedgerItem(date: date, description: "Invoice #${data['invoiceNumber']}", debit: (data['total'] ?? 0).toDouble(), credit: 0));
+      // Get store-scoped collections
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      final creditsCollection = await FirestoreService().getStoreCollection('credits');
+
+      debugPrint('📊 Sales collection path: ${salesCollection.path}');
+      debugPrint('📊 Credits collection path: ${creditsCollection.path}');
+
+      final results = await Future.wait([
+        salesCollection.where('customerPhone', isEqualTo: widget.customerId).get(),
+        creditsCollection.where('customerId', isEqualTo: widget.customerId).get(),
+      ]);
+
+      final salesDocs = results[0].docs;
+      final creditDocs = results[1].docs;
+
+      debugPrint('📊 Found ${salesDocs.length} sales records');
+      debugPrint('📊 Found ${creditDocs.length} credit records');
+
+      List<LedgerItem> items = [];
+
+      // Process ALL sales (debit entries - all purchases by customer)
+      for (var doc in salesDocs) {
+        final data = doc.data() as Map<String, dynamic>;
+        DateTime date;
+        try {
+          if (data['timestamp'] != null) {
+            date = (data['timestamp'] as Timestamp).toDate();
+          } else if (data['date'] != null) {
+            date = DateTime.parse(data['date']);
+          } else {
+            date = DateTime.now();
+          }
+        } catch (e) {
+          date = DateTime.now();
+        }
+
+        final paymentMode = (data['paymentMode'] ?? 'Cash').toString();
+        final total = (data['total'] ?? 0).toDouble();
+        final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
+
+        // Add ALL bills to ledger as debit (purchase)
+        items.add(LedgerItem(
+          date: date,
+          description: "Invoice #$invoiceNumber ($paymentMode)",
+          debit: total,
+          credit: 0,
+        ));
+
+        // If payment was Cash/Online/Split, also add immediate payment as credit
+        final lowerPaymentMode = paymentMode.toLowerCase();
+        if (lowerPaymentMode == 'cash' || lowerPaymentMode == 'online') {
+          // Immediate full payment
+          items.add(LedgerItem(
+            date: date,
+            description: "Paid - Inv #$invoiceNumber ($paymentMode)",
+            debit: 0,
+            credit: total,
+          ));
+        } else if (lowerPaymentMode == 'split') {
+          // Split payment - add cash portion as credit
+          final cashReceived = (data['cashReceived'] ?? 0).toDouble();
+          if (cashReceived > 0) {
+            items.add(LedgerItem(
+              date: date,
+              description: "Paid (Split) - Inv #$invoiceNumber",
+              debit: 0,
+              credit: cashReceived,
+            ));
+          }
+        }
+        // Credit bills don't get immediate credit entry - they remain as outstanding
+      }
+
+      // Process credits (credit entries - payments received for credit sales)
+      for (var doc in creditDocs) {
+        final data = doc.data() as Map<String, dynamic>;
+        DateTime date;
+        try {
+          if (data['timestamp'] != null) {
+            date = (data['timestamp'] as Timestamp).toDate();
+          } else {
+            date = DateTime.now();
+          }
+        } catch (e) {
+          date = DateTime.now();
+        }
+
+        String type = (data['type'] ?? '').toString();
+
+        if (type == 'payment_received') {
+          // Payment received for credit sales - reduces outstanding balance
+          items.add(LedgerItem(
+            date: date,
+            description: "Payment Received (${data['method'] ?? 'Cash'})",
+            debit: 0,
+            credit: (data['amount'] ?? 0).toDouble(),
+          ));
+        }
+        // Note: We don't add credit_sale or add_credit here anymore since
+        // all sales are already captured from the sales collection
+      }
+
+      // Sort by date ascending for running balance calculation
+      items.sort((a, b) => a.date.compareTo(b.date));
+
+      // Calculate running balance
+      double runningBalance = 0.0;
+      for (var item in items) {
+        runningBalance = runningBalance + item.debit - item.credit;
+        item.balance = runningBalance;
+      }
+
+      // Reverse for display (newest first)
+      items = items.reversed.toList();
+
+      if (mounted) {
+        setState(() {
+          _ledgerItems = items;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error generating ledger: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading ledger: $e';
+          _isLoading = false;
+        });
+      }
     }
-
-    for (var doc in creditDocs) {
-      final data = doc.data();
-      Timestamp ts = data['timestamp'] ?? Timestamp.now();
-      items.add(LedgerItem(date: ts.toDate(), description: "Payment (${data['method'] ?? 'Unknown'})", debit: 0, credit: (data['amount'] ?? 0).toDouble()));
-    }
-
-    items.sort((a, b) => a.date.compareTo(b.date));
-
-    double runningBalance = 0.0;
-    for (var item in items) {
-      runningBalance = runningBalance + item.debit - item.credit;
-      item.balance = runningBalance;
-    }
-
-    return items.reversed.toList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Column(children: [const Text("Customer Ledger", style: TextStyle(fontSize: 16)), Text(widget.customerName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w300))]),
-        backgroundColor: const Color(0xFF007AFF), foregroundColor: Colors.white, centerTitle: true,
+        title: Column(
+          children: [
+            const Text("Customer Ledger", style: TextStyle(fontSize: 16)),
+            Text(widget.customerName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w300)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF2196F3),
+        foregroundColor: Colors.white,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadLedger,
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
-      body: FutureBuilder<List<LedgerItem>>(
-        future: _ledgerFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-          if (!snapshot.hasData || snapshot.data!.isEmpty) return const Center(child: Text("No transaction history"));
+      body: _buildBody(),
+    );
+  }
 
-          final ledger = snapshot.data!;
-          return Column(
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(_errorMessage!, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadLedger,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_ledgerItems.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.account_balance_wallet_outlined, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text("No transactions found", style: TextStyle(fontSize: 16, color: Colors.grey)),
+            SizedBox(height: 8),
+            Text("Credit sales and payments will appear here", style: TextStyle(fontSize: 13, color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    final currentBalance = _ledgerItems.isNotEmpty ? _ledgerItems.first.balance : 0.0;
+
+    return Column(
+      children: [
+        // Header
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          color: Colors.grey[200],
+          child: const Row(
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8), color: Colors.grey[200],
-                child: const Row(children: [
-                  Expanded(flex: 2, child: Text("Date", style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 3, child: Text("Particulars", style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))),
-                  Expanded(flex: 2, child: Text("Bal", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold))),
-                ]),
+              Expanded(flex: 2, child: Text("Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Expanded(flex: 3, child: Text("Particulars", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+              Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.red))),
+              Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green))),
+              Expanded(flex: 2, child: Text("Balance", textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+            ],
+          ),
+        ),
+        // Ledger entries
+        Expanded(
+          child: ListView.separated(
+            itemCount: _ledgerItems.length,
+            separatorBuilder: (c, i) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final item = _ledgerItems[index];
+              return Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                color: index % 2 == 0 ? Colors.white : Colors.grey[50],
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        DateFormat('dd/MM/yy').format(item.date),
+                        style: const TextStyle(fontSize: 10),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 3,
+                      child: Text(
+                        item.description,
+                        style: const TextStyle(fontSize: 10),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        item.debit > 0 ? '₹${item.debit.toStringAsFixed(0)}' : "-",
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        item.credit > 0 ? '₹${item.credit.toStringAsFixed(0)}' : "-",
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '₹${item.balance.toStringAsFixed(0)}',
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          color: item.balance > 0 ? Colors.red : Colors.green,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        // Total balance footer
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, -2),
               ),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: ledger.length,
-                  separatorBuilder: (c, i) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final item = ledger[index];
-                    return Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      color: index % 2 == 0 ? Colors.white : Colors.grey[50],
-                      child: Row(children: [
-                        Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(item.date), style: const TextStyle(fontSize: 12))),
-                        Expanded(flex: 3, child: Text(item.description, style: const TextStyle(fontSize: 12))),
-                        Expanded(flex: 2, child: Text(item.debit > 0 ? item.debit.toStringAsFixed(1) : "-", textAlign: TextAlign.right, style: const TextStyle(color: Colors.red, fontSize: 12))),
-                        Expanded(flex: 2, child: Text(item.credit > 0 ? item.credit.toStringAsFixed(1) : "-", textAlign: TextAlign.right, style: const TextStyle(color: Colors.green, fontSize: 12))),
-                        Expanded(flex: 2, child: Text(item.balance.toStringAsFixed(1), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                      ]),
-                    );
-                  },
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Outstanding Balance:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                '₹${currentBalance.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                  color: currentBalance > 0 ? Colors.red : Colors.green,
                 ),
               ),
             ],
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -69,14 +69,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B8FF)),
         useMaterial3: true,
-        fontFamily: 'SF Pro Display',
+        fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.white,
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B8FF), brightness: Brightness.dark),
         useMaterial3: true,
-        fontFamily: 'SF Pro Display',
+        fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.black,
       ),
       themeMode: themeNotifier.themeMode,

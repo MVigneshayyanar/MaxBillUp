@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:google_places_flutter/google_places_flutter.dart';
+
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
   final String? email;
@@ -30,6 +32,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _businessPhoneCtrl = TextEditingController();
   final _gstinCtrl = TextEditingController(); // Added GSTIN Controller
   final _businessLocationCtrl = TextEditingController();
+  final _businessLocationFocusNode = FocusNode();
 
   bool _loading = false;
 
@@ -50,6 +53,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _businessPhoneCtrl.dispose();
     _gstinCtrl.dispose();
     _businessLocationCtrl.dispose();
+    _businessLocationFocusNode.dispose();
     super.dispose();
   }
 
@@ -263,12 +267,44 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 const SizedBox(height: 20),
 
                 _label(context.tr('businesslocation')),
-                _buildTextField(
-                  controller: _businessLocationCtrl,
-                  hint: context.tr('enter_business_location'),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? context.tr('business_location_required')
-                      : null,
+                FocusScope(
+                  node: FocusScopeNode(),
+                  child: GooglePlaceAutoCompleteTextField(
+                    textEditingController: _businessLocationCtrl,
+                    focusNode: _businessLocationFocusNode,
+                    googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c", // <-- Replace with your actual API key
+                    inputDecoration: InputDecoration(
+                      hintText: context.tr('enter_business_location'),
+                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    ),
+                    debounceTime: 800,
+                    countries: [], // Empty for global suggestions
+                    isLatLngRequired: false,
+                    getPlaceDetailWithLatLng: (prediction) {
+                      _businessLocationCtrl.text = prediction.description ?? '';
+                    },
+                    itemClick: (prediction) {
+                      _businessLocationCtrl.text = prediction.description ?? '';
+                      _businessLocationCtrl.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _businessLocationCtrl.text.length),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 40),
 

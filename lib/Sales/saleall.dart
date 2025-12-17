@@ -50,7 +50,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   // UI Constants
   final Color _primaryColor = const Color(0xFF2196F3);
-  final Color _bgColor = const Color(0xFFF4F7FC);
+  final Color _successColor = const Color(0xFF4CAF50);
+  final Color _errorColor = const Color(0xFFFF5252);
+  final Color _warningColor = const Color(0xFFFF9800);
+  final Color _bgColor = Colors.white; // Changed to white
 
   @override
   void initState() {
@@ -190,12 +193,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(item.name, style: const TextStyle(fontSize: 18)),
+        title: Text(item.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Price: ${item.price.toStringAsFixed(2)}',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryColor)),
+            Text('Price: ${item.price.toStringAsFixed(0)}',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primaryColor)),
             const SizedBox(height: 20),
             TextField(
               controller: qtyCtrl,
@@ -204,6 +207,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 labelText: context.tr('quantity'),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 prefixIcon: const Icon(Icons.numbers),
+                filled: true,
+                fillColor: Colors.grey[50],
               ),
               autofocus: true,
             ),
@@ -217,7 +222,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               setState(() {});
               Navigator.pop(ctx);
             },
-            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.red)),
+            child: Text(context.tr('delete'), style: TextStyle(color: _errorColor)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -294,101 +299,105 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
-    return Column(
-      children: [
-        // 1. Header
-        _buildHeader(w),
+    return Scaffold(
+      backgroundColor: _bgColor,
+      body: Column(
+        children: [
+          // 1. Header
+          _buildHeader(w),
 
-        // 2. Cart Preview
-        if (_cart.isNotEmpty) _buildCartPreview(w),
+          // 2. Cart Preview
+          if (_cart.isNotEmpty) _buildCartPreview(w),
 
-        // 3. Category & Product Grid
-        Expanded(
-          child: Container(
-            color: _bgColor,
-            child: Column(
-              children: [
-                _buildCategorySelector(w),
-                Expanded(child: _buildProductGrid(w)),
-              ],
+          // 3. Category & Product Grid
+          Expanded(
+            child: Container(
+              color: _bgColor,
+              child: Column(
+                children: [
+                  _buildCategorySelector(w),
+                  Expanded(child: _buildProductGrid(w)),
+                ],
+              ),
             ),
           ),
-        ),
 
-        // 4. Action Buttons
-        CommonWidgets.buildActionButtons(
-          context: context,
-          onSaveOrder: () {
-            CommonWidgets.showSaveOrderDialog(
-              context: context,
-              uid: widget.uid,
-              cartItems: _cart,
-              totalBill: _total,
-              onSuccess: () {
-                _cart.clear();
-                widget.onCartChanged?.call(_cart);
-                setState(() {});
-              },
-            );
-          },
-          onQuotation: () {
-            if (_cart.isNotEmpty) {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (ctx) => QuotationPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cart,
-                    totalAmount: _total,
-                  ),
-                ),
+          // 4. Action Buttons
+          CommonWidgets.buildActionButtons(
+            context: context,
+            onSaveOrder: () {
+              CommonWidgets.showSaveOrderDialog(
+                context: context,
+                uid: widget.uid,
+                cartItems: _cart,
+                totalBill: _total,
+                onSuccess: () {
+                  _cart.clear();
+                  widget.onCartChanged?.call(_cart);
+                  setState(() {});
+                },
               );
-            }
-          },
-          onBill: () {
-            if (_cart.isNotEmpty) {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (ctx) => BillPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cart,
-                    totalAmount: _total,
-                    savedOrderId: widget.savedOrderId,
+            },
+            onQuotation: () {
+              if (_cart.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (ctx) => QuotationPage(
+                      uid: widget.uid,
+                      userEmail: widget.userEmail,
+                      cartItems: _cart,
+                      totalAmount: _total,
+                    ),
                   ),
-                ),
-              );
-            }
-          },
-          totalBill: _total,
-        ),
-      ],
+                );
+              }
+            },
+            onBill: () {
+              if (_cart.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (ctx) => BillPage(
+                      uid: widget.uid,
+                      userEmail: widget.userEmail,
+                      cartItems: _cart,
+                      totalAmount: _total,
+                      savedOrderId: widget.savedOrderId,
+                    ),
+                  ),
+                );
+              }
+            },
+            totalBill: _total,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildHeader(double w) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: 0),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 0,w*0.04 , 12),
       child: Row(
         children: [
           Expanded(
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[300]!),
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: TextField(
                 controller: _searchCtrl,
                 textAlignVertical: TextAlignVertical.center,
+                style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
-                  prefixIcon: Icon(Icons.search, color: _primaryColor),
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 22),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
@@ -422,18 +431,29 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   Widget _buildCartPreview(double w) {
     return Container(
-      color: Colors.white,
+      // REMOVED: color: Colors.white, (This caused the crash)
       padding: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white, // The color must be here inside BoxDecoration
+        //border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.04, vertical: 8),
+            padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.shopping_bag_outlined, size: 20),
+                    Icon(Icons.shopping_bag_outlined, size: 20, color: _primaryColor),
                     const SizedBox(width: 8),
                     Text(
                       '${_cart.length} ${context.tr('items')}',
@@ -445,7 +465,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   onTap: _clearOrder,
                   child: Text(
                     context.tr('clear'),
-                    style: TextStyle(color: Colors.red[400], fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: _errorColor, fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -462,13 +482,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 return GestureDetector(
                   onTap: () => _showEditDialog(idx),
                   child: Container(
-                    width: w * 0.65,
+                    width: 200,
                     margin: const EdgeInsets.only(right: 12),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
                       ],
@@ -480,7 +500,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           height: 40,
                           decoration: BoxDecoration(
                             color: _primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: Center(
                             child: Text(
@@ -499,6 +519,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              const SizedBox(height: 2),
                               Text(
                                 '${item.price.toStringAsFixed(0)} x ${item.quantity} = ${item.total.toStringAsFixed(0)}',
                                 style: TextStyle(color: Colors.grey[600], fontSize: 12),
@@ -506,7 +527,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.edit, size: 16, color: Colors.grey),
                       ],
                     ),
                   ),
@@ -520,13 +540,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   Widget _buildCategorySelector(double w) {
-    if (_isLoadingCategories) return const LinearProgressIndicator(minHeight: 2);
+    if (_isLoadingCategories) return LinearProgressIndicator(minHeight: 2, color: _primaryColor, backgroundColor: Colors.white);
 
     return Container(
       color: _bgColor,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 12, 0, 12),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 0, 0, 12),
       child: SizedBox(
-        height: 40,
+        height: 36,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: _categories.length,
@@ -536,17 +556,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
             return GestureDetector(
               onTap: () => setState(() => _selectedCategory = (cat == 'All' ? context.tr('all') : cat)),
               child: Container(
-                margin: const EdgeInsets.only(right: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                 decoration: BoxDecoration(
                   color: isSelected ? _primaryColor : Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? _primaryColor : Colors.grey[300]!,
+                    color: isSelected ? _primaryColor : Colors.grey.shade300,
                   ),
-                  boxShadow: isSelected
-                      ? [BoxShadow(color: _primaryColor.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 3))]
-                      : null,
                 ),
                 child: Center(
                   child: Text(
@@ -597,7 +614,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.search_off, size: 60, color: Colors.grey[300]),
+                Icon(Icons.search_off, size: 48, color: Colors.grey[300]),
                 const SizedBox(height: 12),
                 Text('No products found', style: TextStyle(color: Colors.grey[500])),
               ],
@@ -606,13 +623,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
         }
 
         return GridView.builder(
-          padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 80),
+          padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 20),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            // Changed aspect ratio to 1.6 (Wider cards since image is gone)
-            childAspectRatio: 1.6,
+            crossAxisCount: w > 600 ? 5 : 3, // Increased columns for compact look
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.85,
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {
@@ -665,10 +681,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   Widget _buildProductCardUI(
-    String id, String name, double price, bool stockEnabled, double stock, String unit,
-    String? taxName, double? taxPercentage, String? taxType,
-    bool isOutOfStock, bool isLowStock,
-  ) {
+      String id, String name, double price, bool stockEnabled, double stock, String unit,
+      String? taxName, double? taxPercentage, String? taxType,
+      bool isOutOfStock, bool isLowStock,
+      ) {
 
     return GestureDetector(
       onTap: () {
@@ -681,98 +697,66 @@ class _SaleAllPageState extends State<SaleAllPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 3),
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             )
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Stack(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Product Name (Top)
-                    Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, height: 1.2),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                    // Price and Stock (Bottom)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          price.toStringAsFixed(0),
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                            color: Colors.grey[800],
-                          ),
-                        ),
-                        if (stockEnabled)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isOutOfStock
-                                  ? Colors.red[50]
-                                  : (isLowStock ? Colors.orange[50] : Colors.green[50]),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isOutOfStock ? '0' : '${stock.toInt()}$unit',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isOutOfStock
-                                    ? Colors.red
-                                    : (isLowStock ? Colors.orange : Colors.green),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            // Top: Name
+            Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.2, color: Colors.black87),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            // Bottom: Price and Stock
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  price.toStringAsFixed(0),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: _primaryColor,
+                  ),
                 ),
-              ),
-              // Overlay if Out of Stock
-              if (isOutOfStock)
-                Container(
-                  color: Colors.white.withOpacity(0.7),
-                  child: Center(
-                    child: Transform.rotate(
-                      angle: -0.2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]
-                        ),
-                        child: const Text(
-                          'SOLD OUT',
-                          style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900),
-                        ),
+                if (stockEnabled) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: isOutOfStock
+                          ? _errorColor.withOpacity(0.1)
+                          : (isLowStock ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1)),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      isOutOfStock ? 'Out' : '${stock.toInt()}$unit',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isOutOfStock
+                            ? _errorColor
+                            : (isLowStock ? _warningColor : _successColor),
                       ),
                     ),
                   ),
-                ),
-            ],
-          ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
-
