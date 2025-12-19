@@ -17,6 +17,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 
 // ==========================================
@@ -285,7 +286,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 if (plan != 'Max') ...[
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => SubscriptionPlanPage(
+                            uid: widget.uid,
+                            currentPlan: plan,
+                          ),
+                        ),
+                      );
+                      // Refresh data after returning from subscription page
+                      _fetchUserData();
+                    },
                     child: const Text('Upgrade Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kPrimaryColor)),
                   ),
                 ]
@@ -649,36 +662,47 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     // When editing, show Google Places autocomplete
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: FocusScope(
-        node: FocusScopeNode(),
-        child: GooglePlaceAutoCompleteTextField(
-          textEditingController: _locCtrl,
-          focusNode: _locationFocusNode,
-          googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
-          inputDecoration: InputDecoration(
-            labelText: "Location",
-            labelStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
-            hintText: "Search for business location",
-            prefixIcon: Icon(Icons.location_on, color: kPrimaryColor, size: 22),
-            border: InputBorder.none,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-            isDense: true,
+      child: GooglePlaceAutoCompleteTextField(
+        textEditingController: _locCtrl,
+        focusNode: _locationFocusNode,
+        googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
+        inputDecoration: InputDecoration(
+          labelText: "Location",
+          labelStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
+          hintText: "Search for business location",
+          prefixIcon: Icon(Icons.location_on, color: kPrimaryColor, size: 22),
+          filled: true,
+          fillColor: const Color(0xFFF5F5F5),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
           ),
-          debounceTime: 800,
-          countries: [],
-          isLatLngRequired: false,
-          getPlaceDetailWithLatLng: (prediction) {
-            _locCtrl.text = prediction.description ?? '';
-          },
-          itemClick: (prediction) {
-            _locCtrl.text = prediction.description ?? '';
-            _locCtrl.selection = TextSelection.fromPosition(
-              TextPosition(offset: _locCtrl.text.length),
-            );
-            // Unfocus to close keyboard after selection
-            _locationFocusNode.unfocus();
-          },
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
+        debounceTime: 600,
+        countries: const ["in"], // Focus on India for better suggestions
+        isLatLngRequired: false,
+        getPlaceDetailWithLatLng: (prediction) {
+          _locCtrl.text = prediction.description ?? '';
+          // Close keyboard after selection
+          FocusScope.of(context).unfocus();
+        },
+        itemClick: (prediction) {
+          _locCtrl.text = prediction.description ?? '';
+          _locCtrl.selection = TextSelection.fromPosition(
+            TextPosition(offset: _locCtrl.text.length),
+          );
+          // Close keyboard after selection
+          FocusScope.of(context).unfocus();
+        },
       ),
     );
   }
@@ -909,6 +933,26 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _showEmail = false;
   bool _showPhone = true;
   bool _showGST = true;
+  bool _canUseLogo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogoPermission();
+  }
+
+  Future<void> _checkLogoPermission() async {
+    final canUseLogo = await PlanPermissionHelper.canUseLogoOnBill();
+    if (mounted) {
+      setState(() {
+        _canUseLogo = canUseLogo;
+        // If user can't use logo, disable it
+        if (!_canUseLogo) {
+          _showLogo = false;
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -919,7 +963,18 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         padding: const EdgeInsets.all(16),
         children: [
           _buildCard("Header Information", [
-            _SwitchTile("Show Logo", _showLogo, (v) => setState(() => _showLogo = v)),
+            _SwitchTile(
+              "Show Logo",
+              _showLogo,
+              (v) {
+                if (!_canUseLogo) {
+                  PlanPermissionHelper.showUpgradeDialog(context, 'Logo on Bill');
+                  return;
+                }
+                setState(() => _showLogo = v);
+              },
+              subtitle: _canUseLogo ? null : "Upgrade to use logo",
+            ),
             _SwitchTile("Show Email", _showEmail, (v) => setState(() => _showEmail = v)),
             _SwitchTile("Show Phone", _showPhone, (v) => setState(() => _showPhone = v)),
             _SwitchTile("Show GSTIN", _showGST, (v) => setState(() => _showGST = v), showDivider: false),
@@ -1178,7 +1233,8 @@ class _SwitchTile extends StatelessWidget {
   final Function(bool) onChanged;
   final bool showDivider;
   final bool hasInfo;
-  const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.hasInfo = false});
+  final String? subtitle;
+  const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.hasInfo = false, this.subtitle});
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -1187,10 +1243,24 @@ class _SwitchTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-              if (hasInfo) ...[const SizedBox(width: 6), const Icon(Icons.info_outline, size: 16, color: kTextSecondary)],
-              const Spacer(),
-              CupertinoSwitch(value: value, onChanged: onChanged, activeColor: kPrimaryColor),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                        if (hasInfo) ...[const SizedBox(width: 6), const Icon(Icons.info_outline, size: 16, color: kTextSecondary)],
+                      ],
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                    ],
+                  ],
+                ),
+              ),
+              CupertinoSwitch(value: value, onChanged: onChanged, activeTrackColor: kPrimaryColor),
             ],
           ),
         ),

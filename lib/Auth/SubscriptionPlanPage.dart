@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/Settings/Profile.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
@@ -133,21 +134,25 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         'lastPaymentDate': now.toIso8601String(),
       });
 
+      // Plan changes are now reflected immediately (no cache)
+      // Navigate back to trigger Menu refresh
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(context.tr('paymentsuccessful')),
             backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
           ),
         );
-        await Future.delayed(const Duration(seconds: 1));
+
+        // Wait a moment for Firestore to sync
+        await Future.delayed(const Duration(milliseconds: 500));
+
         if (mounted) {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => SettingsPage(uid: widget.uid),
-            ),
-                (route) => false,
-          );
+          // Just pop back to the previous screen (Settings/Profile)
+          // The Menu listener will detect the plan change and refresh automatically
+          Navigator.of(context).pop();
         }
       }
     } catch (e) {

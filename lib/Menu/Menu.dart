@@ -51,8 +51,12 @@ class _MenuPageState extends State<MenuPage> {
   Map<String, dynamic> _permissions = {};
   Map<String, dynamic>? _storeData;
 
-  // Stream Subscription
+  // Rebuild key - increments when plan changes to force widget refresh
+  int _rebuildKey = 0;
+
+  // Stream Subscriptions
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<DocumentSnapshot>? _storeSubscription;
 
   // Colors
   final Color _headerBlue = Colors.blue ;
@@ -64,8 +68,15 @@ class _MenuPageState extends State<MenuPage> {
     super.initState();
     _email = widget.userEmail ?? "";
     _startFastUserDataListener();
+    _startStoreDataListener();
     _loadPermissions();
-    _loadStoreData();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh permissions when returning from other pages (e.g., after plan purchase)
+    _loadPermissions();
   }
 
   void _loadPermissions() async {
@@ -78,16 +89,37 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  void _loadStoreData() async {
+  void _startStoreDataListener() async {
     try {
       final storeDoc = await FirestoreService().getCurrentStoreDoc();
-      if (storeDoc != null && storeDoc.exists && mounted) {
-        setState(() {
-          _storeData = storeDoc.data() as Map<String, dynamic>?;
+      if (storeDoc != null) {
+        _storeSubscription = FirebaseFirestore.instance
+            .collection('store')
+            .doc(storeDoc.id)
+            .snapshots()
+            .listen((snapshot) async {
+          if (snapshot.exists && mounted) {
+            final newData = snapshot.data() as Map<String, dynamic>?;
+
+            // Check if plan changed
+            final oldPlan = _storeData?['plan'];
+            final newPlan = newData?['plan'];
+
+            setState(() {
+              _storeData = newData;
+
+              // If plan changed, increment rebuild key to force all widgets to refresh
+              if (oldPlan != newPlan && newPlan != null && oldPlan != null) {
+                _rebuildKey++;
+                // Also reset current view to show home screen
+                _currentView = null;
+              }
+            });
+          }
         });
       }
     } catch (e) {
-      print('Error loading store data: $e');
+      print('Error starting store listener: $e');
     }
   }
 
@@ -115,6 +147,7 @@ class _MenuPageState extends State<MenuPage> {
   @override
   void dispose() {
     _userSubscription?.cancel();
+    _storeSubscription?.cancel();
     super.dispose();
   }
 
@@ -138,14 +171,27 @@ class _MenuPageState extends State<MenuPage> {
 
     // Inline Lists
       case 'Quotation':
-        if (!_hasPermission('quotation') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessQuotation(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('quotation') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+          },
+        );
 
       case 'BillHistory':
         if (!_hasPermission('billHistory') && !isAdmin) {
@@ -158,14 +204,27 @@ class _MenuPageState extends State<MenuPage> {
         return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
 
       case 'CreditNotes':
-        if (!_hasPermission('creditNotes') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return CreditNotesPage(uid: widget.uid, onBack: _reset);
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessCustomerCredit(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('creditNotes') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return CreditNotesPage(uid: widget.uid, onBack: _reset);
+          },
+        );
 
       case 'Customers':
         if (!_hasPermission('customerManagement') && !isAdmin) {
@@ -178,14 +237,27 @@ class _MenuPageState extends State<MenuPage> {
         return CustomersPage(uid: widget.uid, onBack: _reset);
 
       case 'CreditDetails':
-        if (!_hasPermission('creditDetails') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return CreditDetailsPage(uid: widget.uid, onBack: _reset);
+        return FutureBuilder<bool>(
+          future: PlanPermissionHelper.canAccessCustomerCredit(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.data!) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+                _reset();
+              });
+              return Container();
+            }
+            if (!_hasPermission('creditDetails') && !isAdmin) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                PermissionHelper.showPermissionDeniedDialog(context);
+                _reset();
+              });
+              return Container();
+            }
+            return CreditDetailsPage(uid: widget.uid, onBack: _reset);
+          },
+        );
 
     // Expenses Sub-menu items
       case 'StockPurchase':
@@ -229,7 +301,7 @@ class _MenuPageState extends State<MenuPage> {
             }
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -256,7 +328,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -273,27 +345,8 @@ class _MenuPageState extends State<MenuPage> {
         );
 
       case 'DayBook':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('daybook') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return DayBookPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+        // Daybook is FREE for everyone - no restrictions
+        return DayBookPage(uid: widget.uid, onBack: _reset);
 
       case 'Summary':
         return FutureBuilder<bool>(
@@ -302,7 +355,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -325,7 +378,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -348,7 +401,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -371,7 +424,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -394,7 +447,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -417,7 +470,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -440,7 +493,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -463,7 +516,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -486,7 +539,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -509,7 +562,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -532,7 +585,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -555,7 +608,7 @@ class _MenuPageState extends State<MenuPage> {
             if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
             if (!snapshot.data!) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
                 _reset();
               });
               return Container();
@@ -789,9 +842,9 @@ class _MenuPageState extends State<MenuPage> {
   Widget _buildSubMenuItem(String text, String viewKey) {
     return ListTile(
       title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO((_textColor.r * 255.0).round() & 0xff, (_textColor.g * 255.0).round() & 0xff, (_textColor.b * 255.0).round() & 0xff, 0.8))),
-      onTap: () {
+      onTap: () async {
         // Navigate to the page in full screen
-        _navigateToPage(viewKey);
+        await _navigateToPage(viewKey);
       },
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
@@ -799,8 +852,8 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  void _navigateToPage(String viewKey) {
-    Widget? page = _getPageForView(viewKey);
+  Future<void> _navigateToPage(String viewKey) async {
+    Widget? page = await _getPageForView(viewKey);
     if (page != null) {
       Navigator.push(
         context,
@@ -809,7 +862,7 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  Widget? _getPageForView(String viewKey) {
+  Future<Widget?> _getPageForView(String viewKey) async {
     bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
     switch (viewKey) {
@@ -817,6 +870,12 @@ class _MenuPageState extends State<MenuPage> {
         return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
 
       case 'Quotation':
+        // Check plan permission first (async)
+        final canAccessQuotation = await PlanPermissionHelper.canAccessQuotation();
+        if (!canAccessQuotation) {
+          PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
+          return null;
+        }
         if (!_hasPermission('quotation') && !isAdmin) {
           PermissionHelper.showPermissionDeniedDialog(context);
           return null;
@@ -831,6 +890,12 @@ class _MenuPageState extends State<MenuPage> {
         return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context));
 
       case 'CreditNotes':
+        // Check plan permission first (async)
+        final canAccessCreditNotes = await PlanPermissionHelper.canAccessCustomerCredit();
+        if (!canAccessCreditNotes) {
+          PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+          return null;
+        }
         if (!_hasPermission('creditNotes') && !isAdmin) {
           PermissionHelper.showPermissionDeniedDialog(context);
           return null;
@@ -845,6 +910,12 @@ class _MenuPageState extends State<MenuPage> {
         return CustomersPage(uid: widget.uid, onBack: () => Navigator.pop(context));
 
       case 'CreditDetails':
+        // Check plan permission first (async)
+        final canAccessCreditDetails = await PlanPermissionHelper.canAccessCustomerCredit();
+        if (!canAccessCreditDetails) {
+          PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+          return null;
+        }
         if (!_hasPermission('creditDetails') && !isAdmin) {
           PermissionHelper.showPermissionDeniedDialog(context);
           return null;
@@ -963,7 +1034,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessStaffManagement();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
       return;
     }
 
@@ -989,7 +1060,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1010,19 +1081,7 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _navigateToDayBook() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
-      return;
-    }
-
-    if (!_hasPermission('daybook') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
+    // Daybook is FREE for everyone - no restrictions
     Navigator.push(
       context,
       CupertinoPageRoute(
@@ -1039,7 +1098,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1063,7 +1122,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1087,7 +1146,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1111,7 +1170,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1136,7 +1195,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1160,7 +1219,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1184,7 +1243,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1209,7 +1268,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1233,7 +1292,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1257,7 +1316,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1281,7 +1340,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1305,7 +1364,7 @@ class _MenuPageState extends State<MenuPage> {
 
     bool canAccess = await PlanPermissionHelper.canAccessReports();
     if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports');
+      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
       return;
     }
 
@@ -1564,7 +1623,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
   // --- Filtering Logic ---
 
-  List<QueryDocumentSnapshot> _filterDocuments(List<QueryDocumentSnapshot> docs) {
+  List<QueryDocumentSnapshot> _filterDocumentsWithLimit(List<QueryDocumentSnapshot> docs, int historyDaysLimit) {
     if (docs.isEmpty) return [];
 
     final now = DateTime.now();
@@ -1572,8 +1631,20 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
     final endOfLastMonth = DateTime(now.year, now.month, 0, 23, 59, 59);
 
+    // Use the provided history limit
+    final historyLimitDate = now.subtract(Duration(days: historyDaysLimit));
+
     return docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
+
+      // 0. Plan-based History Limit (Free users see only 7 days)
+      final timestamp = data['timestamp'] as Timestamp?;
+      if (timestamp != null) {
+        final date = timestamp.toDate();
+        if (date.isBefore(historyLimitDate)) {
+          return false; // Filter out bills older than plan limit
+        }
+      }
 
       // 1. Search Filter
       bool matchesSearch = true;
@@ -1585,7 +1656,6 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
       // 2. Date Dropdown Filter
       bool matchesDate = true;
-      final timestamp = data['timestamp'] as Timestamp?;
       if (timestamp != null) {
         final date = timestamp.toDate();
         if (_selectedFilter == 'This Month') {
@@ -1676,33 +1746,42 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           Expanded(
             child: _combinedStream == null
                 ? const Center(child: CircularProgressIndicator())
-                : StreamBuilder<List<QueryDocumentSnapshot>>(
-              stream: _combinedStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                : FutureBuilder<int>(
+              future: PlanPermissionHelper.getBillHistoryDaysLimit(),
+              builder: (context, planSnapshot) {
+                if (!planSnapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final rawData = snapshot.data ?? [];
-                // Apply client-side filters
-                final filteredData = _filterDocuments(rawData);
+                final historyDaysLimit = planSnapshot.data!;
 
-                if (filteredData.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children:  [
-                        Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  );
-                }
+                return StreamBuilder<List<QueryDocumentSnapshot>>(
+                  stream: _combinedStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                // Group bills by date
-                final groupedData = _groupBillsByDate(filteredData);
-                final sortedDates = groupedData.keys.toList()..sort((a, b) {
+                    final rawData = snapshot.data ?? [];
+                    // Apply client-side filters with plan-based limit
+                    final filteredData = _filterDocumentsWithLimit(rawData, historyDaysLimit);
+
+                    if (filteredData.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children:  [
+                            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // Group bills by date
+                    final groupedData = _groupBillsByDate(filteredData);
+                    final sortedDates = groupedData.keys.toList()..sort((a, b) {
                   // Parse "dd MMM, yyyy" back to Sortable Date if needed,
                   // but since we rely on the list order which is already sorted by timestamp,
                   // we can just iterate.
@@ -1737,6 +1816,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     );
                   },
                 );
+              },
+            );
               },
             ),
           ),
@@ -1900,7 +1981,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
-                            builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data),
+                            builder: (context) => SalesDetailPage(
+                              documentId: doc.id,
+                              initialData: data,
+                              uid: widget.uid,
+                            ),
                           ),
                         );
                       }
@@ -1943,8 +2028,14 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 class SalesDetailPage extends StatelessWidget {
   final String documentId;
   final Map<String, dynamic> initialData;
+  final String uid;
 
-  const SalesDetailPage({super.key, required this.documentId, required this.initialData});
+  const SalesDetailPage({
+    super.key,
+    required this.documentId,
+    required this.initialData,
+    required this.uid,
+  });
 
   // Calculate tax totals from items
   Map<String, dynamic> _calculateTaxTotals(List<Map<String, dynamic>> items) {
@@ -2524,7 +2615,7 @@ class SalesDetailPage extends StatelessWidget {
                         final canEdit = await PlanPermissionHelper.canEditBill();
                         if (!canEdit) {
                           if (context.mounted) {
-                            PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill');
+                            PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill', uid: uid);
                           }
                           return;
                         }

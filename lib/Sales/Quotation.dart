@@ -233,16 +233,16 @@ class _QuotationPageState extends State<QuotationPage> {
 
   Future<String?> _fetchStaffName(String uid) async {
     try {
-      final doc = await FirestoreService().getDocument('users', uid);
+      final doc = await FirestoreService().usersCollection.doc(uid).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>?;
         return data?['name'] as String?;
       }
-      return null;
     } catch (e) {
       debugPrint('Error fetching staff name: $e');
       return null;
     }
+    return null;
   }
 
   @override

@@ -16,6 +16,7 @@ import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 
 // --- CONSTANTS FOR STYLING ---
 const Color kPrimaryColor = Color(0xFF2196F3);
@@ -786,6 +787,13 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
   }
 
   Future<void> _importFromContacts() async {
+    // Check plan permission first (async)
+    final canImport = await PlanPermissionHelper.canImportContacts();
+    if (!canImport) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Import Contacts');
+      return;
+    }
+
     if (!await FlutterContacts.requestPermission()) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Contacts permission denied'), backgroundColor: Colors.red),

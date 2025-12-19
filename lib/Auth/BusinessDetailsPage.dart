@@ -97,7 +97,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       // Get next store ID
       final storeId = await _getNextStoreId();
 
-      // Create store document
+      // Create store document with default Free plan
       final storeData = {
         'storeId': storeId,
         'ownerName': _nameCtrl.text.trim(),
@@ -108,6 +108,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'gstin': _gstinCtrl.text.trim(), // Save GSTIN (Optional)
         'ownerEmail': widget.email,
         'ownerUid': widget.uid,
+        'plan': 'Free', // Default to Free plan
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
@@ -267,44 +268,45 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 const SizedBox(height: 20),
 
                 _label(context.tr('businesslocation')),
-                FocusScope(
-                  node: FocusScopeNode(),
-                  child: GooglePlaceAutoCompleteTextField(
-                    textEditingController: _businessLocationCtrl,
-                    focusNode: _businessLocationFocusNode,
-                    googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c", // <-- Replace with your actual API key
-                    inputDecoration: InputDecoration(
-                      hintText: context.tr('enter_business_location'),
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F5F5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                GooglePlaceAutoCompleteTextField(
+                  textEditingController: _businessLocationCtrl,
+                  focusNode: _businessLocationFocusNode,
+                  googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
+                  inputDecoration: InputDecoration(
+                    hintText: context.tr('enter_business_location'),
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
+                    filled: true,
+                    fillColor: const Color(0xFFF5F5F5),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
                     ),
-                    debounceTime: 800,
-                    countries: [], // Empty for global suggestions
-                    isLatLngRequired: false,
-                    getPlaceDetailWithLatLng: (prediction) {
-                      _businessLocationCtrl.text = prediction.description ?? '';
-                    },
-                    itemClick: (prediction) {
-                      _businessLocationCtrl.text = prediction.description ?? '';
-                      _businessLocationCtrl.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _businessLocationCtrl.text.length),
-                      );
-                    },
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
+                  debounceTime: 600,
+                  countries: const ["in"], // Focus on India for better suggestions
+                  isLatLngRequired: false,
+                  getPlaceDetailWithLatLng: (prediction) {
+                    _businessLocationCtrl.text = prediction.description ?? '';
+                    // Close keyboard after selection
+                    FocusScope.of(context).unfocus();
+                  },
+                  itemClick: (prediction) {
+                    _businessLocationCtrl.text = prediction.description ?? '';
+                    _businessLocationCtrl.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _businessLocationCtrl.text.length),
+                    );
+                    // Close keyboard after selection
+                    FocusScope.of(context).unfocus();
+                  },
                 ),
                 const SizedBox(height: 40),
 
