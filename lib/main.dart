@@ -15,6 +15,7 @@ import 'firebase_options.dart';
 import 'Sales/NewSale.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
 import 'package:maxbillup/utils/language_provider.dart';
+import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
@@ -44,11 +45,15 @@ void main() async {
   final languageProvider = LanguageProvider();
   await languageProvider.loadLanguagePreference();
 
+  // Initialize PlanProvider for real-time plan updates
+  final planProvider = PlanProvider();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeNotifier()),
         ChangeNotifierProvider<LanguageProvider>.value(value: languageProvider),
+        ChangeNotifierProvider<PlanProvider>.value(value: planProvider),
         Provider<SaleSyncService>.value(value: saleSyncService),
         ChangeNotifierProvider<LocalStockService>.value(value: localStockService),
       ],
@@ -118,7 +123,11 @@ class _SplashGateState extends State<SplashGate> {
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // User is logged in
+        // User is logged in - Initialize PlanProvider
+        final planProvider = Provider.of<PlanProvider>(context, listen: false);
+        await planProvider.initialize();
+
+        if (!mounted) return;
         Navigator.of(context).push(
           CupertinoPageRoute(
             builder: (_) => NewSalePage(

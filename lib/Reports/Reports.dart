@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // ==========================================
@@ -43,19 +45,11 @@ class _ReportsPageState extends State<ReportsPage> {
   String? _currentView;
   Map<String, dynamic> _permissions = {};
   String _role = 'staff';
-  Map<String, bool> _planAccess = {};
 
   @override
   void initState() {
     super.initState();
     _loadPermissions();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh plan access when returning from other pages (e.g., after purchase)
-    _loadPlanAccess();
   }
 
   Future<void> _loadPermissions() async {
@@ -65,56 +59,7 @@ class _ReportsPageState extends State<ReportsPage> {
         _permissions = userData['permissions'] as Map<String, dynamic>;
         _role = userData['role'] as String;
       });
-      _loadPlanAccess();
     }
-  }
-
-  Future<void> _loadPlanAccess() async {
-    final features = [
-      'analytics','daybook','salesSummary','salesReport','itemSalesReport','topCustomer',
-      'stockReport','lowStockProduct','topProducts','topCategory','expensesReport',
-      'taxReport','hsnReport','staffSalesReport'
-    ];
-    Map<String, bool> results = {};
-    for (var f in features) {
-      try {
-        final planKey = _planKeyForView(f);
-        results[f] = await PlanPermissionHelper.canAccessPage(planKey);
-      } catch (_) {
-        results[f] = true;
-      }
-    }
-    if (mounted) setState(() => _planAccess = results);
-  }
-
-  String _planKeyForView(String viewKey) {
-    switch (viewKey) {
-      case 'salesSummary': return 'sales_summary';
-      case 'salesReport': return 'sales_report';
-      case 'itemSalesReport': return 'item_sales_report';
-      case 'topCustomer': return 'top_customer';
-      case 'stockReport': return 'stock_report';
-      case 'lowStockProduct': return 'low_stock';
-      case 'topProducts': return 'top_products';
-      case 'topCategory': return 'top_category';
-      case 'expensesReport': return 'expense_report';
-      case 'taxReport': return 'tax_report';
-      case 'hsnReport': return 'hsn_report';
-      case 'staffSalesReport': return 'staff_sales_report';
-      default: return viewKey;
-    }
-  }
-
-  bool _isFeatureAvailable(String permission) {
-    // Admins/Owners only need plan permission, not user permission
-    if (isAdmin) {
-      final planOk = _planAccess.containsKey(permission) ? _planAccess[permission]! : true;
-      return planOk;
-    }
-    // Staff users need both user permission AND plan permission
-    final userPerm = _permissions[permission] == true;
-    final planOk = _planAccess.containsKey(permission) ? _planAccess[permission]! : true;
-    return userPerm && planOk;
   }
 
   bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
@@ -143,55 +88,69 @@ class _ReportsPageState extends State<ReportsPage> {
       }
     }
 
-    // --- MAIN MENU UI ---
-    return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: AppBar(
-        title: Text(context.tr('reports'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        automaticallyImplyLeading: false,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        children: [
-          _sectionHeader(context.tr('analytics_overview')),
-          _buildModernTile(context.tr('analytics'), Icons.bar_chart_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !_isFeatureAvailable('analytics')),
-          _buildModernTile(context.tr('daybook_today'), Icons.calendar_today_rounded, kPrimaryColor, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE - no restrictions
-          _buildModernTile(context.tr('sales_summary'), Icons.dashboard_customize_rounded, kPrimaryColor, 'Summary', isLocked: !_isFeatureAvailable('salesSummary')),
+    // --- MAIN MENU UI - Always fetch fresh plan data from Firestore ---
+    final planProvider = Provider.of<PlanProvider>(context);
+    return FutureBuilder<String>(
+      future: planProvider.getCurrentPlan(),
+      builder: (context, snapshot) {
+        final currentPlan = snapshot.data ?? 'Free';
+        final isPaidPlan = currentPlan != 'Free';
 
-          const SizedBox(height: 12),
-          _sectionHeader(context.tr('sales_transactions')),
-          _buildModernTile(context.tr('sales_report'), Icons.receipt_long_rounded, kPrimaryColor, 'SalesReport', isLocked: !_isFeatureAvailable('salesReport')),
-          _buildModernTile(context.tr('item_sales_report'), Icons.category_rounded, kPrimaryColor, 'ItemSales', isLocked: !_isFeatureAvailable('itemSalesReport')),
-          _buildModernTile(context.tr('top_customers'), Icons.people_alt_rounded, kPrimaryColor, 'TopCustomers', isLocked: !_isFeatureAvailable('topCustomer')),
+        // Helper to check if feature available (fresh data every time)
+        bool isFeatureAvailable(String permission) {
+          if (isAdmin) return isPaidPlan;
+          final userPerm = _permissions[permission] == true;
+          return userPerm && isPaidPlan;
+        }
 
-          const SizedBox(height: 12),
-          _sectionHeader(context.tr('inventory_products')),
-          _buildModernTile(context.tr('stock_report'), Icons.inventory_2_rounded, kPrimaryColor, 'StockReport', isLocked: !_isFeatureAvailable('stockReport')),
-          _buildModernTile(context.tr('low_stock_products'), Icons.warning_amber_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !_isFeatureAvailable('lowStockProduct')),
-          _buildModernTile(context.tr('top_products'), Icons.star_rounded, kPrimaryColor, 'TopProducts', isLocked: !_isFeatureAvailable('topProducts')),
-          _buildModernTile(context.tr('top_categories'), Icons.folder_copy_rounded, kPrimaryColor, 'TopCategories', isLocked: !_isFeatureAvailable('topCategory')),
+        return Scaffold(
+          backgroundColor: kBackgroundColor,
+          appBar: AppBar(
+            title: Text(context.tr('reports'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
+            backgroundColor: kPrimaryColor,
+            elevation: 0,
+            centerTitle: true,
+            automaticallyImplyLeading: false,
+          ),
+          body: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            children: [
+              _sectionHeader(context.tr('analytics_overview')),
+              _buildModernTile(context.tr('analytics'), Icons.bar_chart_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !isFeatureAvailable('analytics')),
+              _buildModernTile(context.tr('daybook_today'), Icons.calendar_today_rounded, kPrimaryColor, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE
+              _buildModernTile(context.tr('sales_summary'), Icons.dashboard_customize_rounded, kPrimaryColor, 'Summary', isLocked: !isFeatureAvailable('salesSummary')),
 
-          const SizedBox(height: 12),
-          _sectionHeader(context.tr('financials_tax')),
-          _buildModernTile(context.tr('expense_report'), Icons.money_off_rounded, kExpenseRed, 'ExpenseReport', isLocked: !_isFeatureAvailable('expensesReport')),
-          _buildModernTile(context.tr('tax_report'), Icons.percent_rounded, kIncomeGreen, 'TaxReport', isLocked: !_isFeatureAvailable('taxReport')),
-          _buildModernTile(context.tr('hsn_report'), Icons.description_rounded, kPrimaryColor, 'HSNReport', isLocked: !_isFeatureAvailable('hsnReport')),
-          _buildModernTile(context.tr('staff_sale_report'), Icons.badge_rounded, kPrimaryColor, 'StaffReport', isLocked: !_isFeatureAvailable('staffSalesReport')),
-        ],
-      ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: widget.uid,
-        userEmail: widget.userEmail,
-        currentIndex: 1,
-        screenWidth: MediaQuery.of(context).size.width,
-      ),
+              const SizedBox(height: 12),
+              _sectionHeader(context.tr('sales_transactions')),
+              _buildModernTile(context.tr('sales_report'), Icons.receipt_long_rounded, kPrimaryColor, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
+              _buildModernTile(context.tr('item_sales_report'), Icons.category_rounded, kPrimaryColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
+              _buildModernTile(context.tr('top_customers'), Icons.people_alt_rounded, kPrimaryColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
+
+              const SizedBox(height: 12),
+              _sectionHeader(context.tr('inventory_products')),
+              _buildModernTile(context.tr('stock_report'), Icons.inventory_2_rounded, kPrimaryColor, 'StockReport', isLocked: !isFeatureAvailable('stockReport')),
+              _buildModernTile(context.tr('low_stock_products'), Icons.warning_amber_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !isFeatureAvailable('lowStockProduct')),
+              _buildModernTile(context.tr('top_products'), Icons.star_rounded, kPrimaryColor, 'TopProducts', isLocked: !isFeatureAvailable('topProducts')),
+              _buildModernTile(context.tr('top_categories'), Icons.folder_copy_rounded, kPrimaryColor, 'TopCategories', isLocked: !isFeatureAvailable('topCategory')),
+
+              const SizedBox(height: 12),
+              _sectionHeader(context.tr('financials_tax')),
+              _buildModernTile(context.tr('expense_report'), Icons.money_off_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
+              _buildModernTile(context.tr('tax_report'), Icons.percent_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
+              _buildModernTile(context.tr('hsn_report'), Icons.description_rounded, kPrimaryColor, 'HSNReport', isLocked: !isFeatureAvailable('hsnReport')),
+              _buildModernTile(context.tr('staff_sale_report'), Icons.badge_rounded, kPrimaryColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
+            ],
+          ),
+          bottomNavigationBar: CommonBottomNav(
+            uid: widget.uid,
+            userEmail: widget.userEmail,
+            currentIndex: 1,
+            screenWidth: MediaQuery.of(context).size.width,
+          ),
+        );
+      },
     );
   }
-
-  bool _hasAnyReportPermission() => _isFeatureAvailable('analytics') || _isFeatureAvailable('daybook') || isAdmin;
 
   Widget _sectionHeader(String title) {
     return Padding(

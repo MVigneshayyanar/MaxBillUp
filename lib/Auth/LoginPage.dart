@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
+import 'package:maxbillup/utils/plan_provider.dart';
+
 // Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/BusinessDetailsPage.dart';
@@ -53,9 +55,16 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  void _navigate(String uid, String? identifier) {
+  void _navigate(String uid, String? identifier) async {
     if (!mounted) return;
-    // Functionality from Code 2 (CupertinoPageRoute)
+
+    // Initialize PlanProvider for real-time plan updates
+    final planProvider = Provider.of<PlanProvider>(context, listen: false);
+    await planProvider.initialize();
+
+    if (!mounted) return;
+
+    // Navigate to NewSalePage
     Navigator.push(
       context,
       CupertinoPageRoute(

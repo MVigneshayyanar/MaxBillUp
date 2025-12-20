@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
@@ -19,6 +20,7 @@ import 'package:maxbillup/Stocks/Stock.dart';
 import 'package:maxbillup/Settings/Profile.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -49,7 +51,6 @@ class _MenuPageState extends State<MenuPage> {
   String _email = "";
   String _role = "staff";
   Map<String, dynamic> _permissions = {};
-  Map<String, dynamic>? _storeData;
 
   // Rebuild key - increments when plan changes to force widget refresh
   int _rebuildKey = 0;
@@ -99,21 +100,9 @@ class _MenuPageState extends State<MenuPage> {
             .snapshots()
             .listen((snapshot) async {
           if (snapshot.exists && mounted) {
-            final newData = snapshot.data() as Map<String, dynamic>?;
-
-            // Check if plan changed
-            final oldPlan = _storeData?['plan'];
-            final newPlan = newData?['plan'];
-
+            // Don't cache data - just trigger rebuild to fetch fresh
             setState(() {
-              _storeData = newData;
-
-              // If plan changed, increment rebuild key to force all widgets to refresh
-              if (oldPlan != newPlan && newPlan != null && oldPlan != null) {
-                _rebuildKey++;
-                // Also reset current view to show home screen
-                _currentView = null;
-              }
+              _rebuildKey++;
             });
           }
         });
@@ -159,74 +148,79 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+    // Use Consumer for real-time plan updates (listener triggers rebuild)
+    return Consumer<PlanProvider>(
+      builder: (context, planProvider, child) {
+        bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
-    // ------------------------------------------
-    // CONDITIONAL RENDERING SWITCH
-    // ------------------------------------------
-    switch (_currentView) {
-    // New Sale
-      case 'NewSale':
-        return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+        // ------------------------------------------
+        // CONDITIONAL RENDERING SWITCH
+        // ------------------------------------------
+        switch (_currentView) {
+        // New Sale
+          case 'NewSale':
+            return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
 
-    // Inline Lists
-      case 'Quotation':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessQuotation(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('quotation') && !isAdmin) {
+        // Inline Lists
+          case 'Quotation':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessQuotationAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('quotation') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+              },
+            );
+
+          case 'BillHistory':
+            if (!_hasPermission('billHistory') && !isAdmin) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
-          },
-        );
-
-      case 'BillHistory':
-        if (!_hasPermission('billHistory') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
             _reset();
           });
           return Container();
         }
         return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
 
-      case 'CreditNotes':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessCustomerCredit(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('creditNotes') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return CreditNotesPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+          case 'CreditNotes':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessCustomerCreditAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('creditNotes') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return CreditNotesPage(uid: widget.uid, onBack: _reset);
+              },
+            );
 
-      case 'Customers':
+          case 'Customers':
         if (!_hasPermission('customerManagement') && !isAdmin) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
@@ -236,31 +230,32 @@ class _MenuPageState extends State<MenuPage> {
         }
         return CustomersPage(uid: widget.uid, onBack: _reset);
 
-      case 'CreditDetails':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessCustomerCredit(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('creditDetails') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return CreditDetailsPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+          case 'CreditDetails':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessCustomerCreditAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('creditDetails') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return CreditDetailsPage(uid: widget.uid, onBack: _reset);
+              },
+            );
 
-    // Expenses Sub-menu items
-      case 'StockPurchase':
+        // Expenses Sub-menu items
+          case 'StockPurchase':
         if (!_hasPermission('expenses') && !isAdmin) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             PermissionHelper.showPermissionDeniedDialog(context);
@@ -290,188 +285,188 @@ class _MenuPageState extends State<MenuPage> {
         }
         return ExpenseCategoriesPage(uid: widget.uid, onBack: _reset);
 
-      // Staff Management
-      case 'StaffManagement':
-        // Check plan access first
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessStaffManagement(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('staffManagement') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
-          },
-        );
+          // Staff Management
+          case 'StaffManagement':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessStaffManagementAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('staffManagement') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
+              },
+            );
 
-      // ==========================================
-      // REPORTS SECTION
-      // ==========================================
+          // ==========================================
+          // REPORTS SECTION
+          // ==========================================
 
-      case 'Analytics':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('analytics') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return AnalyticsPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+          case 'Analytics':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('analytics') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return AnalyticsPage(uid: widget.uid, onBack: _reset);
+              },
+            );
 
-      case 'DayBook':
-        // Daybook is FREE for everyone - no restrictions
-        return DayBookPage(uid: widget.uid, onBack: _reset);
+          case 'DayBook':
+            // Daybook is FREE for everyone - no restrictions
+            return DayBookPage(uid: widget.uid, onBack: _reset);
 
-      case 'Summary':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('salesSummary') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return SalesSummaryPage(onBack: _reset);
-          },
-        );
+          case 'Summary':
+            // Always fetch fresh from backend
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('salesSummary') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return SalesSummaryPage(onBack: _reset);
+              },
+            );
 
-      case 'SalesReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('salesReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return FullSalesHistoryPage(onBack: _reset);
-          },
-        );
+          case 'SalesReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('salesReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return FullSalesHistoryPage(onBack: _reset);
+              },
+            );
 
-      case 'ItemSales':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('itemSalesReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return ItemSalesPage(onBack: _reset);
-          },
-        );
+          case 'ItemSales':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('itemSalesReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return ItemSalesPage(onBack: _reset);
+              },
+            );
 
-      case 'TopCustomers':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('topCustomer') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return TopCustomersPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+          case 'TopCustomers':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('topCustomer') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return TopCustomersPage(uid: widget.uid, onBack: _reset);
+              },
+            );
 
-      case 'StockReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('stockReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return StockReportPage(onBack: _reset);
-          },
-        );
+          case 'StockReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('stockReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return StockReportPage(onBack: _reset);
+              },
+            );
 
-      case 'LowStock':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
+          case 'LowStock':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
               });
               return Container();
             }
@@ -481,178 +476,178 @@ class _MenuPageState extends State<MenuPage> {
                 _reset();
               });
               return Container();
-            }
-            return LowStockPage(onBack: _reset);
-          },
-        );
+                }
+                return LowStockPage(onBack: _reset);
+              },
+            );
 
-      case 'TopProducts':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('topProducts') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return TopProductsPage(uid: widget.uid, onBack: _reset);
-          },
-        );
+          case 'TopProducts':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('topProducts') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return TopProductsPage(uid: widget.uid, onBack: _reset);
+              },
+            );
 
-      case 'TopCategories':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('topCategory') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return TopCategoriesPage(onBack: _reset);
-          },
-        );
+          case 'TopCategories':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('topCategory') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return TopCategoriesPage(onBack: _reset);
+              },
+            );
 
-      case 'ExpenseReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('expensesReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return ExpenseReportPage(onBack: _reset);
-          },
-        );
+          case 'ExpenseReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('expensesReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return ExpenseReportPage(onBack: _reset);
+              },
+            );
 
-      case 'TaxReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('taxReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return TaxReportPage(onBack: _reset);
-          },
-        );
+          case 'TaxReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('taxReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return TaxReportPage(onBack: _reset);
+              },
+            );
 
-      case 'HSNReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('hsnReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return HSNReportPage(onBack: _reset);
-          },
-        );
+          case 'HSNReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('hsnReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return HSNReportPage(onBack: _reset);
+              },
+            );
 
-      case 'StaffReport':
-        return FutureBuilder<bool>(
-          future: PlanPermissionHelper.canAccessReports(),
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-            if (!snapshot.data!) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                _reset();
-              });
-              return Container();
-            }
-            if (!_hasPermission('staffSalesReport') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-            }
-            return StaffSaleReportPage(onBack: _reset);
-          },
-        );
+          case 'StaffReport':
+            return FutureBuilder<bool>(
+              future: planProvider.canAccessReportsAsync(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.data!) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
+                    _reset();
+                  });
+                  return Container();
+                }
+                if (!_hasPermission('staffSalesReport') && !isAdmin) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    PermissionHelper.showPermissionDeniedDialog(context);
+                    _reset();
+                  });
+                  return Container();
+                }
+                return StaffSaleReportPage(onBack: _reset);
+              },
+            );
 
-      // ==========================================
-      // STOCK PAGE (moved from bottom nav)
-      // ==========================================
+          // ==========================================
+          // STOCK PAGE (moved from bottom nav)
+          // ==========================================
 
-      case 'Stock':
-        return StockPage(uid: widget.uid, userEmail: widget.userEmail);
+          case 'Stock':
+            return StockPage(uid: widget.uid, userEmail: widget.userEmail);
 
-      // ==========================================
-      // SETTINGS PAGE (moved from bottom nav)
-      // ==========================================
+          // ==========================================
+          // SETTINGS PAGE (moved from bottom nav)
+          // ==========================================
 
-      case 'Settings':
-        return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
-    }
+          case 'Settings':
+            return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
+        }
 
-    // ------------------------------------------
-    // DEFAULT VIEW (MENU)
-    // ------------------------------------------
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // HEADER
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 25, left: 20, right: 20),
-            color: _headerBlue,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        // ------------------------------------------
+        // DEFAULT VIEW (MENU)
+        // ------------------------------------------
+        return Scaffold(
+          backgroundColor: Colors.white,
+          body: Column(
+            children: [
+              // HEADER
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 25, left: 20, right: 20),
+                color: _headerBlue,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -661,13 +656,19 @@ class _MenuPageState extends State<MenuPage> {
                       child: Text(_businessName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                     ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
+                        // Fetch fresh plan data from backend
+                        final planProvider = Provider.of<PlanProvider>(context, listen: false);
+                        final currentPlan = await planProvider.getCurrentPlan();
+
+                        if (!mounted) return;
+
                         Navigator.push(
                           context,
                           CupertinoPageRoute(
                             builder: (context) => SubscriptionPlanPage(
                               uid: widget.uid,
-                              currentPlan: _storeData?['plan'] ?? 'Free',
+                              currentPlan: currentPlan,
                             ),
                           ),
                         );
@@ -816,6 +817,8 @@ class _MenuPageState extends State<MenuPage> {
         currentIndex: 0,
         screenWidth: MediaQuery.of(context).size.width,
       ),
+        );
+      },
     );
   }
 
@@ -3044,7 +3047,26 @@ class SalesDetailPage extends StatelessWidget {
 // ==========================================
 // 4. CUSTOMER RELATED PAGES
 // ==========================================
+// import 'package:flutter/material.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:intl/intl.dart';
 
+// --- Global Theme Constants (Pure White BG, Standard Blue AppBar) ---
+const Color kPrimaryBlue = Color(0xFF2196F3);
+const Color kDeepNavy = Color(0xFF1E293B);
+const Color kMediumBlue = Color(0xFF475569);
+const Color kWhite = Colors.white;
+const Color kSoftAzure = Color(0xFFF1F5F9);
+const Color kBorderColor = Color(0xFFE2E8F0);
+
+// Semantic Colors
+const Color kSuccessGreen = Color(0xFF4CAF50);
+const Color kWarningOrange = Color(0xFFFF9800);
+const Color kErrorRed = Color(0xFFFF5252);
+
+// ==========================================
+// 1. CREDIT NOTES LIST PAGE
+// ==========================================
 class CreditNotesPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -3058,7 +3080,7 @@ class CreditNotesPage extends StatefulWidget {
 class _CreditNotesPageState extends State<CreditNotesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _filterStatus = 'All'; // All, Available, Used
+  String _filterStatus = 'All';
 
   @override
   void initState() {
@@ -3079,275 +3101,89 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: kWhite,
       appBar: AppBar(
-        title: Text(context.tr('credit_notes'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text(context.tr('credit_notes'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite),
+          onPressed: widget.onBack,
+        ),
       ),
       body: Column(
         children: [
-          // Search Bar and Filter
+          // Search & Filter Header (Matches SaleAllPage look)
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: kWhite,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: context.tr('search'),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: kDeepNavy, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: context.tr('search'),
+                        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                        prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _filterStatus,
-                    underline: const SizedBox(),
-                    items:  [
-                      DropdownMenuItem(value: 'All', child: Text(context.tr('all'))),
-                      DropdownMenuItem(value: 'Available', child: Text(context.tr('available'))),
-                      DropdownMenuItem(value: 'Used', child: Text(context.tr('used'))),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _filterStatus = value ?? 'All';
-                      });
-                    },
-                  ),
-                ),
+                _buildStatusFilter(),
               ],
             ),
           ),
 
-          // Credit Notes List
           Expanded(
             child: FutureBuilder<CollectionReference>(
               future: FirestoreService().getStoreCollection('creditNotes'),
               builder: (context, collectionSnapshot) {
-                if (!collectionSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+
                 return StreamBuilder<QuerySnapshot>(
-                  stream: collectionSnapshot.data!
-                      .orderBy('timestamp', descending: true)
-                      .snapshots(),
+                  stream: collectionSnapshot.data!.orderBy('timestamp', descending: true).snapshots(),
                   builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
 
-                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text(
-                          'No credit notes found',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  );
-                }
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return _buildEmptyState();
+                    }
 
-                var creditNotes = snapshot.data!.docs.where((doc) {
-                  final data = doc.data() as Map<String, dynamic>;
+                    var docs = snapshot.data!.docs.where((doc) {
+                      final data = doc.data() as Map<String, dynamic>;
+                      if (_filterStatus != 'All' && (data['status'] ?? 'Available') != _filterStatus) return false;
+                      if (_searchQuery.isNotEmpty) {
+                        final cn = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
+                        final cust = (data['customerName'] ?? '').toString().toLowerCase();
+                        return cn.contains(_searchQuery) || cust.contains(_searchQuery);
+                      }
+                      return true;
+                    }).toList();
 
-                  // Filter by status
-                  if (_filterStatus != 'All') {
-                    final status = data['status'] ?? 'Available';
-                    if (status != _filterStatus) return false;
-                  }
-
-                  // Filter by search query
-                  if (_searchQuery.isNotEmpty) {
-                    final creditNoteNumber = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
-                    final invoiceNumber = (data['invoiceNumber'] ?? '').toString().toLowerCase();
-                    final customerName = (data['customerName'] ?? '').toString().toLowerCase();
-                    final customerPhone = (data['customerPhone'] ?? '').toString().toLowerCase();
-
-                    return creditNoteNumber.contains(_searchQuery) ||
-                        invoiceNumber.contains(_searchQuery) ||
-                        customerName.contains(_searchQuery) ||
-                        customerPhone.contains(_searchQuery);
-                  }
-
-                  return true;
-                }).toList();
-
-                if (creditNotes.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No matching credit notes',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  );
-                }
-
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: creditNotes.length,
-                  itemBuilder: (context, index) {
-                    final doc = creditNotes[index];
-                    final data = doc.data() as Map<String, dynamic>;
-                    final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
-                    final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
-                    final amount = (data['amount'] ?? 0.0) as num;
-                    final status = data['status'] ?? 'Available';
-                    final timestamp = data['timestamp'] as Timestamp?;
-                    final dateString = timestamp != null
-                        ? DateFormat('dd-MM-yyyy').format(timestamp.toDate())
-                        : 'N/A';
-
-                    return GestureDetector(
-                      onTap: () {
-                        // Navigate to credit note details
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => CreditNoteDetailPage(
-                              documentId: doc.id,
-                              creditNoteData: data,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: status == 'Available'
-                                ? Colors.green.shade200
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 5,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '${context.tr('creditnote')} : $creditNoteNumber',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2196F3),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Invoice : $invoiceNumber',
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF2196F3),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: status == 'Available'
-                                          ? Colors.green.shade100
-                                          : Colors.grey.shade200,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      status,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: status == 'Available'
-                                            ? Colors.green.shade800
-                                            : Colors.grey.shade700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Date : $dateString',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black87,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Amount : ${amount.toStringAsFixed(1)}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2196F3),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) => _buildCreditNoteCard(docs[index]),
                     );
                   },
                 );
-              },
-            );
               },
             ),
           ),
@@ -3355,10 +3191,100 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       ),
     );
   }
+
+  Widget _buildStatusFilter() {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kPrimaryBlue),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _filterStatus,
+          dropdownColor: kWhite,
+          icon: const Icon(Icons.filter_list, color: kPrimaryBlue, size: 20),
+          items: ['All', 'Available', 'Used'].map((s) => DropdownMenuItem(
+              value: s,
+              child: Text(s, style: const TextStyle(color: kDeepNavy, fontWeight: FontWeight.bold, fontSize: 13))
+          )).toList(),
+          onChanged: (v) => setState(() => _filterStatus = v!),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditNoteCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final status = data['status'] ?? 'Available';
+    final amount = (data['amount'] ?? 0.0) as num;
+    final timestamp = data['timestamp'] as Timestamp?;
+    final isAvailable = status.toLowerCase() == 'available';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
+        ],
+      ),
+      child: InkWell(
+        onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => CreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepNavy)),
+                      const SizedBox(height: 4),
+                      Text(timestamp != null ? DateFormat('dd MMM, yyyy').format(timestamp.toDate()) : '--', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    ],
+                  ),
+                  _buildStatusPill(status),
+                ],
+              ),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildLabelValue("CUSTOMER", data['customerName'] ?? 'Walk-in'),
+                  Text("₹${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: isAvailable ? kSuccessGreen : kErrorRed)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[200]),
+          const SizedBox(height: 12),
+          Text("No records found", style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
 }
 
 // ==========================================
-// CREDIT NOTE DETAIL PAGE
+// 2. CREDIT NOTE DETAIL PAGE
 // ==========================================
 class CreditNoteDetailPage extends StatelessWidget {
   final String documentId;
@@ -3372,561 +3298,128 @@ class CreditNoteDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final creditNoteNumber = creditNoteData['creditNoteNumber'] ?? 'N/A';
-    final invoiceNumber = creditNoteData['invoiceNumber'] ?? 'N/A';
-    final customerName = creditNoteData['customerName'] ?? 'Unknown';
     final amount = (creditNoteData['amount'] ?? 0.0) as num;
     final status = creditNoteData['status'] ?? 'Available';
-    final timestamp = creditNoteData['timestamp'] as Timestamp?;
     final items = (creditNoteData['items'] as List<dynamic>? ?? []);
-    final dateString = timestamp != null
-        ? DateFormat('dd MMM yyyy h:mm a').format(timestamp.toDate())
-        : 'N/A';
+    final timestamp = creditNoteData['timestamp'] as Timestamp?;
+    final dateString = timestamp != null ? DateFormat('dd MMM yyyy • h:mm a').format(timestamp.toDate()) : 'N/A';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: kWhite,
       appBar: AppBar(
-        title: Text(context.tr('Credit Notes'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: const Text('Detail Overview',
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: kWhite),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
       ),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(20),
-              color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${context.tr('creditnote')} : $creditNoteNumber',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Created by Admin',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'Issued on:',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      Text(
-                        dateString,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
+            // Prominent Amount Card
+            _buildHeroCard(creditNoteData['creditNoteNumber'] ?? 'N/A', amount, status),
 
-            // Invoice Info & Customer Details
-            Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        '${context.tr('invoicenumber')} : $invoiceNumber',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: status == 'Available'
-                              ? Colors.green.shade100
-                              : Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: status == 'Available'
-                                ? Colors.green.shade800
-                                : Colors.grey.shade700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  const Divider(height: 1),
-                  const SizedBox(height: 16),
-                  Text(
-                    context.tr('customerdetails'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    customerName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    creditNoteData['customerPhone'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Items
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
+            const SizedBox(height: 24),
+            _buildSectionTitle("INFORMATION"),
+            _buildSectionCard(
               child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Items',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Amount',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ...items.map((item) {
-                    final name = item['name'] ?? 'Unknown';
-                    final qty = item['quantity'] ?? 0;
-                    final price = (item['price'] ?? 0).toDouble();
-                    final total = (item['total'] ?? 0).toDouble();
-
-                    return Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey.shade200),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              const Text(
-                                '- 0.00',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${price.toStringAsFixed(2)} x ${qty.toStringAsFixed(1)}',
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                              const Text(
-                                '0.00',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                total.toStringAsFixed(2),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Text(
-                                total.toStringAsFixed(2),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2196F3),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('${context.tr('totalitems')} : ${items.length}'),
-                        const Text(''),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '${context.tr('totalamount')} :',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Rs ${amount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF2196F3),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildIconRow(Icons.receipt_long, "Invoice ID", "#${creditNoteData['invoiceNumber']}", kPrimaryBlue),
+                  const Divider(height: 32),
+                  _buildIconRow(Icons.person, "Customer", creditNoteData['customerName'] ?? 'Walk-in', kSuccessGreen),
+                  const Divider(height: 32),
+                  _buildIconRow(Icons.calendar_today, "Issued", dateString, kWarningOrange),
                 ],
               ),
             ),
 
-            // Action Buttons
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            const SizedBox(height: 24),
+            _buildSectionTitle("ITEMS LIST"),
+            _buildSectionCard(
+              padding: EdgeInsets.zero,
+              child: Column(
                 children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: status == 'Available'
-                          ? () {
-                              _showRefundDialog(context);
-                            }
-                          : null,
-                      icon: const Icon(Icons.attach_money, color: Colors.white),
-                      label: const Text(
-                        'Refund',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        disabledBackgroundColor: Colors.grey,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _printCreditNote(context),
-                      icon: const Icon(Icons.receipt_long, color: Colors.white),
-                      label: const Text(
-                        'Receipt',
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
+                  if (items.isEmpty)
+                    const Padding(padding: EdgeInsets.all(32), child: Text("No items listed", style: TextStyle(color: kMediumBlue))),
+                  ...items.map((item) => _buildItemRow(item)).toList(),
+                  _buildDetailTotalRow(amount, items.length),
                 ],
               ),
             ),
+
+            const SizedBox(height: 32),
+            if (status == 'Available')
+              _buildLargeButton(
+                context,
+                label: "PROCESS REFUND",
+                icon: Icons.check_circle_outline,
+                color: kSuccessGreen,
+                onPressed: () => _showRefundDialog(context),
+              ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Future<void> _printCreditNote(BuildContext context) async {
-    try {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(context.tr('preparing_print'))),
-      );
-
-      // Get store details
-      final storeId = await FirestoreService().getCurrentStoreId();
-      String? businessName;
-      String? businessPhone;
-
-      if (storeId != null) {
-        final storeDoc = await FirebaseFirestore.instance
-            .collection('stores')
-            .doc(storeId)
-            .get();
-        if (storeDoc.exists) {
-          final storeData = storeDoc.data() as Map<String, dynamic>;
-          businessName = storeData['businessName'];
-          businessPhone = storeData['businessPhone'] ?? storeData['ownerPhone'];
-        }
-      }
-
-      // Extract data from creditNoteData
-      final cnNumber = creditNoteData['creditNoteNumber'] ?? 'N/A';
-      final invNumber = creditNoteData['invoiceNumber'] ?? 'N/A';
-      final custName = creditNoteData['customerName'] ?? 'Unknown';
-      final custPhone = creditNoteData['customerPhone'] ?? '';
-      final cnAmount = (creditNoteData['amount'] ?? 0.0) as num;
-      final cnItems = (creditNoteData['items'] as List<dynamic>? ?? []);
-      final cnTimestamp = creditNoteData['timestamp'] as Timestamp?;
-
-      // Call printer service
-      // TODO: Implement printCreditNote in PrinterService
-      // await PrinterService.printCreditNote(
-      //   creditNoteNumber: cnNumber,
-      //   invoiceNumber: invNumber,
-      //   customerName: custName,
-      //   customerPhone: custPhone,
-      //   items: cnItems.map((item) => {
-      //     'name': item['name'] ?? '',
-      //     'quantity': item['quantity'] ?? 0,
-      //     'price': (item['price'] ?? 0).toDouble(),
-      //     'total': (item['total'] ?? 0).toDouble(),
-      //   }).toList(),
-      //   amount: cnAmount.toDouble(),
-      //   businessName: businessName,
-      //   businessPhone: businessPhone,
-      //   timestamp: cnTimestamp?.toDate(),
-      // );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('printfailed')}: $e'), backgroundColor: Colors.red),
-        );
-      }
-    }
+  Widget _buildHeroCard(String id, num amount, String status) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: kPrimaryBlue,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: kPrimaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(id, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              _buildStatusPill(status, isInverse: true),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text("REFUND AMOUNT", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 11)),
+          const SizedBox(height: 4),
+          Text("₹${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
+        ],
+      ),
+    );
   }
 
   void _showRefundDialog(BuildContext context) {
-    String selectedMode = 'Cash';
-
+    String mode = 'Cash';
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Are you sure?',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          title: const Text('Confirm Refund', style: TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Refund CreditNote ${creditNoteData['creditNoteNumber']}',
-                style: const TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Mode:',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+              const Text('Select refund method:', style: TextStyle(color: kMediumBlue)),
+              const SizedBox(height: 24),
+              _buildDialogOption(onSelect: () => setState(() => mode = "Cash"), mode: "Cash", current: mode, icon: Icons.payments, color: kSuccessGreen),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => selectedMode = 'Cash'),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: selectedMode == 'Cash'
-                                ? const Color(0xFF2196F3)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Radio<String>(
-                              value: 'Cash',
-                              groupValue: selectedMode,
-                              onChanged: (value) => setState(() => selectedMode = value!),
-                            ),
-                            Text(context.tr('cash')),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => selectedMode = 'Online'),
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(
-                            color: selectedMode == 'Online'
-                                ? const Color(0xFF2196F3)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Radio<String>(
-                              value: 'Online',
-                              groupValue: selectedMode,
-                              onChanged: (value) => setState(() => selectedMode = value!),
-                            ),
-                            Text(context.tr('online')),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              _buildDialogOption(onSelect: () => setState(() => mode = "Online"), mode: "Online", current: mode, icon: Icons.account_balance, color: kPrimaryBlue),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(context.tr('cancel'), style: const TextStyle(color: Colors.grey)),
-            ),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kErrorRed))),
             ElevatedButton(
-              onPressed: () async {
-                try {
-                  Navigator.pop(ctx);
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) => const Center(child: CircularProgressIndicator()),
-                  );
-
-                  // Update credit note status to Used
-                  await FirestoreService().updateDocument('creditNotes', documentId, {
-                    'status': 'Used',
-                    'refundMode': selectedMode,
-                    'refundedAt': FieldValue.serverTimestamp(),
-                  });
-
-                  // NOTE: We do NOT touch customer balance
-                  // Credit notes are separate from balance
-                  // This refund represents giving cash/online payment back to customer
-
-                  if (context.mounted) {
-                    Navigator.pop(context); // Close loading
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${context.tr('creditnote')} ${context.tr('refund')} ${context.tr('success')}'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    Navigator.pop(context); // Go back
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Text(context.tr('refund'), style: const TextStyle(color: Colors.white)),
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(backgroundColor: kSuccessGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              child: const Text('CONFIRM'),
             ),
           ],
         ),
@@ -3936,7 +3429,7 @@ class CreditNoteDetailPage extends StatelessWidget {
 }
 
 // ==========================================
-// CREDIT DETAILS PAGE
+// 3. CREDIT DETAILS PAGE
 // ==========================================
 class CreditDetailsPage extends StatefulWidget {
   final String uid;
@@ -3951,1404 +3444,413 @@ class CreditDetailsPage extends StatefulWidget {
 class _CreditDetailsPageState extends State<CreditDetailsPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedTab = 'Sales'; // Sales or Purchase
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  String _selectedTab = 'Sales';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: kWhite,
       appBar: AppBar(
-        title: Text(context.tr('creditdetails'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: const Text('Credit Tracker',
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: kWhite),
           onPressed: () => Navigator.pop(context),
         ),
-        centerTitle: true,
       ),
       body: Column(
         children: [
-          // Tab Selector
+          // Tab Switcher (Matches Category Selector in SaleAllPage)
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedTab = 'Sales'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _selectedTab == 'Sales'
-                            ? const Color(0xFF2196F3)
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Sales',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _selectedTab == 'Sales' ? Colors.white : Colors.black87,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _selectedTab = 'Purchase'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _selectedTab == 'Purchase'
-                            ? const Color(0xFF2196F3)
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Purchase',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: _selectedTab == 'Purchase' ? Colors.white : Colors.black87,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: kWhite,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
             ),
-          ),
-
-          // Search Bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: context.tr('search'),
-                prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                filled: true,
-                fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _buildTabChip("Sales", Icons.people_outline),
+                  const SizedBox(width: 10),
+                  _buildTabChip("Purchase", Icons.store_outlined),
+                ],
               ),
             ),
           ),
 
-          // Content based on selected tab
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: TextField(
+                onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+                decoration: InputDecoration(
+                  hintText: "Search name or contact...",
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ),
+
           Expanded(
-            child: _selectedTab == 'Sales' ? _buildSalesCreditList() : _buildPurchaseCreditList(),
+            child: _selectedTab == 'Sales' ? _buildSalesList() : _buildPurchaseList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSalesCreditList() {
-    return FutureBuilder<CollectionReference>(
-      future: FirestoreService().getStoreCollection('customers'),
-      builder: (context, collectionSnapshot) {
-        if (!collectionSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return StreamBuilder<QuerySnapshot>(
-          stream: collectionSnapshot.data!
-              .where('balance', isGreaterThan: 0)
-              .snapshots(),
-          builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No sales credits found',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          );
-        }
-
-        final customers = snapshot.data!.docs.where((doc) {
-          if (_searchQuery.isEmpty) return true;
-          final data = doc.data() as Map<String, dynamic>;
-          final name = (data['name'] ?? '').toString().toLowerCase();
-          final phone = (data['phone'] ?? '').toString().toLowerCase();
-          return name.contains(_searchQuery) || phone.contains(_searchQuery);
-        }).toList();
-
-        if (customers.isEmpty) {
-          return const Center(
-            child: Text(
-              'No matching customers found',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          );
-        }
-
-        // Calculate total
-        double totalCredit = 0;
-        for (var doc in customers) {
-          final data = doc.data() as Map<String, dynamic>;
-          totalCredit += (data['balance'] ?? 0.0) as num;
-        }
-
-        return Column(
+  Widget _buildTabChip(String key, IconData icon) {
+    final isSelected = _selectedTab == key;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTab = key),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? kPrimaryBlue : kWhite,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? kPrimaryBlue : Colors.grey.shade300),
+        ),
+        child: Row(
           children: [
-            // Total Credit Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Total Sales Credit : ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    'Rs ${totalCredit.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Customer List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: customers.length,
-                itemBuilder: (context, index) {
-                  final data = customers[index].data() as Map<String, dynamic>;
-                  final name = data['name'] ?? 'Unknown';
-                  final phone = data['phone'] ?? '';
-                  final balance = (data['balance'] ?? 0.0) as num;
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      title: Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Phone Number',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            phone,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      trailing: Text(
-                        balance.toStringAsFixed(2),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      onTap: () {
-                        // Navigate to customer details
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => CustomerDetailsPage(
-                              customerId: customers[index].id,
-                              customerData: data,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-      },
-    );
-  }
-
-  Widget _buildPurchaseCreditList() {
-    return FutureBuilder<CollectionReference>(
-      future: FirestoreService().getStoreCollection('purchaseCreditNotes'),
-      builder: (context, collectionSnapshot) {
-        if (!collectionSnapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return StreamBuilder<QuerySnapshot>(
-          stream: collectionSnapshot.data!
-              .orderBy('timestamp', descending: true)
-              .snapshots(),
-          builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'No purchase credits found',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        final purchaseCreditNotes = snapshot.data!.docs.where((doc) {
-          if (_searchQuery.isEmpty) return true;
-          final data = doc.data() as Map<String, dynamic>;
-          final creditNoteNumber = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
-          final supplierName = (data['supplierName'] ?? '').toString().toLowerCase();
-          final supplierPhone = (data['supplierPhone'] ?? '').toString().toLowerCase();
-
-          return creditNoteNumber.contains(_searchQuery) ||
-              supplierName.contains(_searchQuery) ||
-              supplierPhone.contains(_searchQuery);
-        }).toList();
-
-        if (purchaseCreditNotes.isEmpty) {
-          return const Center(
-            child: Text(
-              'No matching purchase credits',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-          );
-        }
-
-        // Calculate total
-        double totalCredit = 0;
-        for (var doc in purchaseCreditNotes) {
-          final data = doc.data() as Map<String, dynamic>;
-          totalCredit += (data['amount'] ?? 0.0) as num;
-        }
-
-        return Column(
-          children: [
-            // Total Credit Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Total Purchase Credit : ',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  Text(
-                    'Rs ${totalCredit.toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Purchase Credit Notes List
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: purchaseCreditNotes.length,
-                itemBuilder: (context, index) {
-                  final data = purchaseCreditNotes[index].data() as Map<String, dynamic>;
-                  final creditNoteNumber = data['creditNoteNumber'] ?? 'N/A';
-                  final supplierName = data['supplierName'] ?? 'Unknown Supplier';
-                  final supplierPhone = data['supplierPhone'] ?? '';
-                  final amount = (data['amount'] ?? 0.0) as num;
-                  final status = data['status'] ?? 'Available';
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: status == 'Available'
-                            ? Colors.green.shade200
-                            : Colors.grey.shade300,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 5,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.all(16),
-                      title: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Credit Note: $creditNoteNumber',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2196F3),
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  supplierName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: status == 'Available'
-                                  ? Colors.green.shade100
-                                  : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              status,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: status == 'Available'
-                                    ? Colors.green.shade800
-                                    : Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Phone Number',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            supplierPhone,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Rs ${amount.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2196F3),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        // Navigate to purchase credit note details
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => PurchaseCreditNoteDetailPage(
-                              documentId: purchaseCreditNotes[index].id,
-                              creditNoteData: data,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
-      },
-    );
-  }
-}
-
-// ==========================================
-// PURCHASE CREDIT NOTE DETAIL PAGE
-// ==========================================
-class PurchaseCreditNoteDetailPage extends StatefulWidget {
-  final String documentId;
-  final Map<String, dynamic> creditNoteData;
-
-  const PurchaseCreditNoteDetailPage({
-    super.key,
-    required this.documentId,
-    required this.creditNoteData,
-  });
-
-  @override
-  State<PurchaseCreditNoteDetailPage> createState() => _PurchaseCreditNoteDetailPageState();
-}
-
-class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailPage> {
-  Stream<DocumentSnapshot>? _documentStream;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeStream();
-  }
-
-  Future<void> _initializeStream() async {
-    final collection = await FirestoreService().getStoreCollection('purchaseCreditNotes');
-    if (mounted) {
-      setState(() {
-        _documentStream = collection.doc(widget.documentId).snapshots();
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_documentStream == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    return StreamBuilder<DocumentSnapshot>(
-      stream: _documentStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFF5F5F5),
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (!snapshot.hasData || !snapshot.data!.exists) {
-          return Scaffold(
-            backgroundColor: const Color(0xFFF5F5F5),
-            appBar: AppBar(
-              title: Text(context.tr('purchase_credit_note'),
-                  style: TextStyle(color: Colors.white)),
-              backgroundColor: const Color(0xFF2196F3),
-            ),
-            body: Center(child: Text(context.tr('credit_note_not_found'))),
-          );
-        }
-
-        // Get real-time data from Firestore
-        final liveData = snapshot.data!.data() as Map<String, dynamic>;
-        final creditNoteNumber = liveData['creditNoteNumber'] ?? 'N/A';
-        final purchaseNumber = liveData['purchaseNumber'] ?? 'N/A';
-        final supplierName = liveData['supplierName'] ?? 'Unknown Supplier';
-        final supplierPhone = liveData['supplierPhone'] ?? '';
-        final amount = (liveData['amount'] ?? 0.0) as num;
-        final paidAmount = (liveData['paidAmount'] ?? 0.0) as num;
-        final remainingAmount = amount - paidAmount;
-        final status = liveData['status'] ?? 'Available';
-        final timestamp = liveData['timestamp'] as Timestamp?;
-        final items = (liveData['items'] as List<dynamic>? ?? []);
-        final dateString = timestamp != null
-            ? DateFormat('dd MMM yyyy h:mm a').format(timestamp.toDate())
-            : 'N/A';
-
-        return Scaffold(
-          backgroundColor: const Color(0xFFF5F5F5),
-          appBar: AppBar(
-            title: Text(context.tr('purchase_credit_note'),
-                style: TextStyle(color: Colors.white)),
-            backgroundColor: const Color(0xFF2196F3),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
-            ),
-            centerTitle: true,
-          ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  color: Colors.white,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Credit Note No : $creditNoteNumber',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2196F3),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Created by Admin',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'Issued on:',
-                            style: TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                          Text(
-                            dateString,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Purchase Info & Supplier Details
-                Container(
-                  margin: const EdgeInsets.all(16),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Purchase No : $purchaseNumber',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: status == 'Available'
-                                  ? Colors.green.shade100
-                                  : Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              status,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: status == 'Available'
-                                    ? Colors.green.shade800
-                                    : Colors.grey.shade700,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      const Divider(height: 1),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Supplier Details',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        supplierName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2196F3),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        supplierPhone,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Items
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Items',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Amount',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      ...items.map((item) {
-                        final name = item['name'] ?? 'Unknown';
-                        final qty = item['quantity'] ?? 0;
-                        final price = (item['price'] ?? 0).toDouble();
-                        final total = (item['total'] ?? 0).toDouble();
-
-                        return Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey.shade200),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                  const Text(
-                                    '- 0.00',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${price.toStringAsFixed(2)} x ${qty.toStringAsFixed(1)}',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                  const Text(
-                                    '0.00',
-                                    style: TextStyle(color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    total.toStringAsFixed(2),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    total.toStringAsFixed(2),
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF2196F3),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('${context.tr('totalitems')} : ${items.length}'),
-                            const Text(''),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${context.tr('totalamount')} :',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  'Rs ${amount.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2196F3),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (paidAmount > 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${context.tr('paid_amount')} :',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rs ${paidAmount.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.green,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                            if (remainingAmount > 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'Remaining :',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Rs ${remainingAmount.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.red,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Payment History Section
-                FutureBuilder<CollectionReference>(
-                  future: FirestoreService().getStoreCollection('purchaseCreditNotes'),
-                  builder: (context, collSnapshot) {
-                    if (!collSnapshot.hasData) {
-                      return const SizedBox.shrink();
-                    }
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: collSnapshot.data!
-                          .doc(widget.documentId)
-                          .collection('paymentHistory')
-                          .orderBy('timestamp', descending: true)
-                          .snapshots(),
-                      builder: (context, historySnapshot) {
-                    if (!historySnapshot.hasData ||
-                        historySnapshot.data!.docs.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(12),
-                                topRight: Radius.circular(12),
-                              ),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.history,
-                                    color: Color(0xFF2196F3), size: 20),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Payment History',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ...historySnapshot.data!.docs.map((paymentDoc) {
-                            final paymentData =
-                            paymentDoc.data() as Map<String, dynamic>;
-                            final payAmount =
-                            (paymentData['amount'] ?? 0.0) as num;
-                            final payMode =
-                                paymentData['paymentMode'] ?? 'Cash';
-                            final payTimestamp =
-                            paymentData['timestamp'] as Timestamp?;
-                            final payDateString = payTimestamp != null
-                                ? DateFormat('dd MMM yyyy, h:mm a')
-                                .format(payTimestamp.toDate())
-                                : 'N/A';
-
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom:
-                                  BorderSide(color: Colors.grey.shade200),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      payMode == 'Cash'
-                                          ? Icons.money
-                                          : payMode == 'Online' ||
-                                          payMode == 'UPI'
-                                          ? Icons.credit_card
-                                          : Icons.account_balance,
-                                      color: Colors.green,
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Rs ${payAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          payDateString,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF2196F3)
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      payMode,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2196F3),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ],
-                      ),
-                    );
-                  },
-                );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Action Buttons
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: remainingAmount > 0
-                              ? () {
-                            _showPurchaseRefundDialog(
-                                context, widget.documentId, liveData);
-                          }
-                              : null,
-                          icon: const Icon(Icons.attach_money,
-                              color: Colors.white),
-                          label: Text(
-                            remainingAmount > 0 ? 'Pay' : 'Paid',
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 16),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2196F3),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            disabledBackgroundColor: Colors.grey,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(context.tr('preparing_print'))),
-                            );
-                          },
-                          icon: const Icon(Icons.receipt_long,
-                              color: Colors.white),
-                          label: const Text(
-                            'Receipt',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2196F3),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showPurchaseRefundDialog(BuildContext context, String documentId,
-      Map<String, dynamic> creditNoteData) {
-    final TextEditingController amountController = TextEditingController();
-    String selectedMode = 'Cash';
-
-    final totalAmount = (creditNoteData['amount'] ?? 0.0) as num;
-    final paidAmount = (creditNoteData['paidAmount'] ?? 0.0) as num;
-    final remainingAmount = totalAmount - paidAmount;
-
-    // Set default to remaining amount
-    amountController.text = remainingAmount.toStringAsFixed(2);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Settle Payment',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Credit Note: ${creditNoteData['creditNoteNumber']}',
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                _buildInfoRow(
-                    'Total Amount', 'Rs ${totalAmount.toStringAsFixed(2)}'),
-                const SizedBox(height: 8),
-                _buildInfoRow(
-                    'Already Paid', 'Rs ${paidAmount.toStringAsFixed(2)}',
-                    valueColor: Colors.green),
-                const SizedBox(height: 8),
-                _buildInfoRow(
-                    'Remaining', 'Rs ${remainingAmount.toStringAsFixed(2)}',
-                    valueColor: const Color(0xFF2196F3), isBold: true),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Payment Amount',
-                    prefixText: 'Rs ',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    helperText:
-                    'Enter amount to pay (max: ${remainingAmount.toStringAsFixed(2)})',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Payment Mode:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: ['Cash', 'Online', 'UPI', 'Card', 'Bank Transfer']
-                      .map((mode) {
-                    final isSelected = selectedMode == mode;
-                    return GestureDetector(
-                      onTap: () => setState(() => selectedMode = mode),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF2196F3)
-                              : Colors.white,
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF2196F3)
-                                : Colors.grey.shade300,
-                            width: 2,
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          mode,
-                          style: TextStyle(
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(context.tr('cancel'), style: const TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final paymentAmount =
-                    double.tryParse(amountController.text) ?? 0.0;
-
-                if (paymentAmount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(context.tr('enter_valid_amount'))),
-                  );
-                  return;
-                }
-
-                if (paymentAmount > remainingAmount) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(
-                            'Amount cannot exceed remaining balance (Rs ${remainingAmount.toStringAsFixed(2)})')),
-                  );
-                  return;
-                }
-
-                // 1. Close the Input Dialog FIRST
-                Navigator.pop(ctx);
-
-                // 2. Show Loading Indicator
-
-
-                try {
-                  // Calculate new paid amount and status
-                  final newPaidAmount = paidAmount + paymentAmount;
-                  final newStatus =
-                  newPaidAmount >= totalAmount ? 'Paid' : 'Partially Paid';
-
-                  // Update purchase credit note
-                  await FirebaseFirestore.instance
-                      .collection('purchaseCreditNotes')
-                      .doc(documentId)
-                      .update({
-                    'paidAmount': newPaidAmount,
-                    'status': newStatus,
-                    'lastPaymentDate': FieldValue.serverTimestamp(),
-                  });
-
-                  // Add payment history entry
-                  await FirebaseFirestore.instance
-                      .collection('purchaseCreditNotes')
-                      .doc(documentId)
-                      .collection('paymentHistory')
-                      .add({
-                    'amount': paymentAmount,
-                    'paymentMode': selectedMode,
-                    'timestamp': FieldValue.serverTimestamp(),
-                    'paidBy': 'Admin',
-                    'remainingAfterPayment': totalAmount - newPaidAmount,
-                  });
-
-                  // Update supplier balance if applicable - store-scoped
-                  final supplierPhone = creditNoteData['supplierPhone'] ?? '';
-                  if (supplierPhone.isNotEmpty) {
-                    final suppliersCollection = await FirestoreService().getStoreCollection('suppliers');
-                    final supplierRef = suppliersCollection.doc(supplierPhone);
-
-                    await FirebaseFirestore.instance
-                        .runTransaction((transaction) async {
-                      final supplierDoc = await transaction.get(supplierRef);
-                      if (supplierDoc.exists) {
-                        final supplierData = supplierDoc.data() as Map<String, dynamic>?;
-                        final currentBalance = (supplierData?['creditBalance'] ?? 0.0) as num;
-                        final newBalance = currentBalance.toDouble() - paymentAmount;
-                        transaction.update(supplierRef, {
-                          'creditBalance': newBalance > 0 ? newBalance : 0,
-                          'lastUpdated': FieldValue.serverTimestamp(),
-                        });
-                      }
-                    });
-                  }
-
-                  // 3. Close the Loading Indicator
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-
-                    // Show success message
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(newStatus == 'Paid'
-                            ? '✓ Payment settled successfully! Credit note fully paid.'
-                            : '✓ Payment of Rs ${paymentAmount.toStringAsFixed(2)} recorded.'),
-                        backgroundColor: Colors.green,
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  // If error, Close Loading Indicator
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('${context.tr('error')}: $e'),
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              child: Text(context.tr('pay_now'), style: const TextStyle(color: Colors.white)),
-            ),
+            Icon(icon, color: isSelected ? kWhite : kMediumBlue, size: 16),
+            const SizedBox(width: 8),
+            Text(key, style: TextStyle(color: isSelected ? kWhite : kMediumBlue, fontWeight: FontWeight.bold, fontSize: 13)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value,
-      {Color? valueColor, bool isBold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, color: Colors.grey)),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 14,
-            color: valueColor ?? Colors.black87,
-            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-          ),
-        ),
-      ],
+  Widget _buildSalesList() {
+    return FutureBuilder<CollectionReference>(
+      future: FirestoreService().getStoreCollection('customers'),
+      builder: (context, collectionSnapshot) {
+        if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+        return StreamBuilder<QuerySnapshot>(
+          stream: collectionSnapshot.data!.where('balance', isGreaterThan: 0).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+            final filtered = (snapshot.data?.docs ?? []).where((d) => (d.data() as Map<String, dynamic>)['name'].toString().toLowerCase().contains(_searchQuery)).toList();
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) => _buildContactCard(filtered[index], kSuccessGreen, "DUE FROM CUST"),
+            );
+          },
+        );
+      },
     );
   }
+
+  Widget _buildPurchaseList() {
+    return FutureBuilder<CollectionReference>(
+      future: FirestoreService().getStoreCollection('purchaseCreditNotes'),
+      builder: (context, collectionSnapshot) {
+        if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+        return StreamBuilder<QuerySnapshot>(
+          stream: collectionSnapshot.data!.orderBy('timestamp', descending: true).snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+            final filtered = (snapshot.data?.docs ?? []).where((d) => (d.data() as Map<String, dynamic>)['supplierName'].toString().toLowerCase().contains(_searchQuery)).toList();
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: filtered.length,
+              itemBuilder: (context, index) => _buildPurchaseCard(filtered[index]),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildContactCard(QueryDocumentSnapshot doc, Color color, String label) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Text(data['name'][0].toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        ),
+        title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, color: kDeepNavy)),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kMediumBlue)),
+            Text("₹${(data['balance'] ?? 0).toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPurchaseCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        title: Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(data['supplierName'] ?? 'Supplier', style: TextStyle(color: Colors.grey[600])),
+        trailing: Text("₹${(data['amount'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kWarningOrange)),
+        onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => PurchaseCreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 4. PURCHASE CREDIT NOTE DETAIL PAGE
+// ==========================================
+class PurchaseCreditNoteDetailPage extends StatefulWidget {
+  final String documentId;
+  final Map<String, dynamic> creditNoteData;
+
+  const PurchaseCreditNoteDetailPage({super.key, required this.documentId, required this.creditNoteData});
+
+  @override
+  State<PurchaseCreditNoteDetailPage> createState() => _PurchaseCreditNoteDetailPageState();
+}
+
+class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailPage> {
+  @override
+  Widget build(BuildContext context) {
+    final data = widget.creditNoteData;
+    final total = (data['amount'] ?? 0.0) as num;
+    final paid = (data['paidAmount'] ?? 0.0) as num;
+    final remaining = total - paid;
+
+    return Scaffold(
+      backgroundColor: kWhite,
+      appBar: AppBar(
+        title: const Text('Purchase Overview',
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildSectionCard(
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+                      _buildStatusPill(data['status'] ?? 'Available'),
+                    ],
+                  ),
+                  const Divider(height: 32),
+                  _buildLabelValue("SUPPLIER", data['supplierName'] ?? 'Unknown'),
+                  const SizedBox(height: 16),
+                  _buildLabelValue("BUSINESS CONTACT", data['supplierPhone'] ?? '--'),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+            _buildSectionTitle("FINANCIAL SUMMARY"),
+            _buildSectionCard(
+              child: Column(
+                children: [
+                  _buildSummaryRow("Purchase Liability", "₹${total.toStringAsFixed(2)}"),
+                  _buildSummaryRow("Settled Amount", "₹${paid.toStringAsFixed(2)}", color: kSuccessGreen),
+                  const Divider(height: 32),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("UNPAID DUE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kMediumBlue)),
+                      Text("₹${remaining.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: kErrorRed)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+            if (remaining > 0)
+              _buildLargeButton(context, label: "RECORD PAYMENT", icon: Icons.receipt_long_rounded, color: kPrimaryBlue, onPressed: () {}),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: kMediumBlue, fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(value, style: TextStyle(color: color ?? kDeepNavy, fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+}
+
+// --- Top Level Helper Widgets (SaleAllPage Aesthetics) ---
+
+Widget _buildSectionCard({required Widget child, EdgeInsets? padding}) {
+  return Container(
+    width: double.infinity,
+    padding: padding ?? const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: kWhite,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey.shade200),
+      boxShadow: [
+        BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))
+      ],
+    ),
+    child: child,
+  );
+}
+
+Widget _buildSectionTitle(String title) {
+  return Padding(padding: const EdgeInsets.only(left: 6, bottom: 12), child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kMediumBlue, letterSpacing: 1)));
+}
+
+Widget _buildLabelValue(String label, String value, {CrossAxisAlignment crossAlign = CrossAxisAlignment.start, Color? color}) {
+  return Column(crossAxisAlignment: crossAlign, children: [
+    Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kMediumBlue)),
+    const SizedBox(height: 4),
+    Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color ?? kDeepNavy)),
+  ]);
+}
+
+Widget _buildStatusPill(String status, {bool isInverse = false}) {
+  Color c;
+  switch (status.toLowerCase()) {
+    case 'available': c = kSuccessGreen; break;
+    case 'used': c = kErrorRed; break;
+    default: c = kWarningOrange;
+  }
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: isInverse ? kWhite.withOpacity(0.2) : c.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(8),
+      border: isInverse ? Border.all(color: kWhite.withOpacity(0.4)) : Border.all(color: c.withOpacity(0.2)),
+    ),
+    child: Text(status.toUpperCase(), style: TextStyle(color: isInverse ? kWhite : c, fontWeight: FontWeight.bold, fontSize: 10)),
+  );
+}
+
+Widget _buildItemRow(Map<String, dynamic> item) {
+  final name = item['name'] ?? 'Item';
+  final qty = (item['quantity'] ?? 0).toDouble();
+  final price = (item['price'] ?? 0).toDouble();
+  final total = (item['total'] ?? (price * qty)).toDouble();
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+    child: Row(children: [
+      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kDeepNavy)),
+        const SizedBox(height: 2),
+        Text("₹${price.toStringAsFixed(0)} × ${qty.toInt()}", style: const TextStyle(fontSize: 12, color: kMediumBlue)),
+      ])),
+      Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepNavy)),
+    ]),
+  );
+}
+
+Widget _buildDetailTotalRow(num amount, int itemCount) {
+  return Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16))),
+    child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+      Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kMediumBlue)),
+      Text("₹${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+    ]),
+  );
+}
+
+Widget _buildIconRow(IconData icon, String label, String value, Color iconColor) {
+  return Row(children: [
+    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
+    const SizedBox(width: 16),
+    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kMediumBlue)),
+      const SizedBox(height: 2),
+      Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kDeepNavy)),
+    ])),
+  ]);
+}
+
+Widget _buildLargeButton(BuildContext context, {required String label, required IconData icon, required Color color, required VoidCallback onPressed}) {
+  return SizedBox(
+    width: double.infinity, height: 56,
+    child: ElevatedButton.icon(
+      onPressed: onPressed, icon: Icon(icon, color: kWhite, size: 20),
+      label: Text(label, style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+  );
+}
+
+Widget _buildDialogOption({required VoidCallback onSelect, required String mode, required String current, required IconData icon, required Color color}) {
+  final isSelected = current == mode;
+  return InkWell(
+    onTap: onSelect, borderRadius: BorderRadius.circular(12),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 200), padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isSelected ? color.withOpacity(0.05) : kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isSelected ? color : Colors.grey.shade200, width: 2),
+      ),
+      child: Row(children: [
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 22, color: color)),
+        const SizedBox(width: 16),
+        Text(mode, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isSelected ? color : kDeepNavy)),
+        const Spacer(),
+        if (isSelected) Icon(Icons.check_circle, color: color, size: 20),
+      ]),
+    ),
+  );
 }
 
 class CustomersPage extends StatefulWidget {
@@ -5375,6 +3877,56 @@ class _CustomersPageState extends State<CustomersPage> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  /// Calculate total sales from all sales documents for a customer
+  /// Traverses all sales in backend and sums up totals for this customer
+  Future<double> _calculateTotalSalesFromBackend(String customerPhone) async {
+    try {
+      // Fetch all sales for this customer from backend
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      final salesSnapshot = await salesCollection
+          .where('customerPhone', isEqualTo: customerPhone)
+          .get();
+
+      double totalSales = 0.0;
+
+      // Traverse all sales documents and sum the totals
+      for (var saleDoc in salesSnapshot.docs) {
+        final saleData = saleDoc.data() as Map<String, dynamic>;
+        final saleTotal = (saleData['total'] ?? 0.0) as num;
+        totalSales += saleTotal.toDouble();
+      }
+
+      return totalSales;
+    } catch (e) {
+      debugPrint('Error calculating total sales for $customerPhone: $e');
+      return 0.0;
+    }
+  }
+
+  /// Fetch customer data and calculate totalSales from sales documents
+  Future<Map<String, dynamic>> _fetchCustomerDataWithTotalSales(String customerPhone) async {
+    try {
+      // Fetch customer document
+      final customerDoc = await FirestoreService().getDocument('customers', customerPhone);
+      Map<String, dynamic> customerData = {};
+
+      if (customerDoc.exists) {
+        customerData = customerDoc.data() as Map<String, dynamic>;
+      }
+
+      // Calculate totalSales from all sales documents (fresh from backend)
+      final calculatedTotalSales = await _calculateTotalSalesFromBackend(customerPhone);
+
+      // Replace totalSales with calculated value from backend
+      customerData['totalSales'] = calculatedTotalSales;
+
+      return customerData;
+    } catch (e) {
+      debugPrint('Error fetching customer data with total sales: $e');
+      return {};
+    }
   }
 
   void _showAddCustomer() {
@@ -5501,69 +4053,80 @@ class _CustomersPageState extends State<CustomersPage> {
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
                     final data = docs[index].data() as Map<String, dynamic>;
-                    final docId = docs[index].id; // This is the Phone Number based on your logic
+                    final docId = docs[index].id; // Customer phone number
 
-                    return GestureDetector(
-                      onTap: () {
-                        // Navigate to the External File Page
-                        Navigator.push(
-                            context,
-                            PageRouteBuilder(
-                              pageBuilder: (context, animation, secondaryAnimation) => CustomerDetailsPage(
-                                customerId: docId,
-                                customerData: data,
-                              ),
-                              transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                return FadeTransition(
-                                  opacity: animation,
-                                  child: child,
-                                );
-                              },
-                              transitionDuration: const Duration(milliseconds: 100),
-                            )
-                        );
-                      },
-                      child: Card(
-                        elevation: 0,
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Customer Name
-                              Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
-                              const SizedBox(height: 4),
-                              // Phone
-                              Text("Phone Number\n${data['phone'] ?? '--'}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                              const SizedBox(height: 12),
-                              // Stats Row
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // Fetch fresh data AND calculate totalSales from all sales documents
+                    return FutureBuilder<Map<String, dynamic>>(
+                      future: _fetchCustomerDataWithTotalSales(docId),
+                      builder: (context, freshSnapshot) {
+                        // Use fresh calculated data if available, otherwise use cached stream data
+                        final freshData = freshSnapshot.hasData && freshSnapshot.data!.isNotEmpty
+                            ? freshSnapshot.data!
+                            : data;
+
+                        return GestureDetector(
+                          onTap: () {
+                            // Navigate to the External File Page
+                            Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, secondaryAnimation) => CustomerDetailsPage(
+                                    customerId: docId,
+                                    customerData: freshData,
+                                  ),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    return FadeTransition(
+                                      opacity: animation,
+                                      child: child,
+                                    );
+                                  },
+                                  transitionDuration: const Duration(milliseconds: 100),
+                                )
+                            );
+                          },
+                          child: Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                  // Customer Name
+                                  Text(freshData['name'] ?? 'Unknown', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
+                                  const SizedBox(height: 4),
+                                  // Phone
+                                  Text("Phone Number\n${freshData['phone'] ?? '--'}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                  const SizedBox(height: 12),
+                                  // Stats Row - FRESH DATA FROM BACKEND
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text("Total Sales :", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                      Text(" ${data['totalSales'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text("Total Sales :", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                          Text(" ${freshData['totalSales'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                        ],
+                                      ),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text("Credit Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                                          Text(" ${freshData['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2196F3))),
+                                        ],
+                                      ),
                                     ],
-                                  ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text("Credit Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                      Text(" ${data['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2196F3))),
-                                    ],
-                                  ),
+                                  )
                                 ],
-                              )
-                            ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    ); // Close Card
+                        ); // Close Card
+                      },
+                    );
                   }, // Close ListView itemBuilder
                 ); // Close ListView
                   }, // Close StreamBuilder builder

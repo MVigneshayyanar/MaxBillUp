@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
@@ -243,70 +244,76 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildProfileCard() {
     final name = _storeData?['businessName'] ?? _userData?['businessName'] ?? _userData?['name'] ?? 'User';
     final email = _userData?['email'] ?? widget.userEmail ?? '';
-    final role = _userData?['role'] ?? 'Administrator';
-    final plan = _storeData?['plan'] ?? _userData?['plan'] ?? 'Free';
-    final expiry = _storeData?['subscriptionExpiryDate'] ?? _userData?['subscriptionExpiryDate'];
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
-        boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: kPrimaryColor.withOpacity(0.1),
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : "U",
-              style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 20),
-            ),
+    // Use FutureBuilder to always fetch fresh plan data from Firestore
+    final planProvider = Provider.of<PlanProvider>(context);
+    return FutureBuilder<String>(
+      future: planProvider.getCurrentPlan(),
+      builder: (context, snapshot) {
+        final plan = snapshot.data ?? 'Free';
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: kSurfaceColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kBorderColor),
+            boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: kPrimaryColor.withOpacity(0.1),
+                child: Text(
+                  name.isNotEmpty ? name[0].toUpperCase() : "U",
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kTextPrimary), overflow: TextOverflow.ellipsis)),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6)),
-                      child: Text(plan, style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold)),
+                    Row(
+                      children: [
+                        Flexible(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kTextPrimary), overflow: TextOverflow.ellipsis)),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6)),
+                          child: Text(plan, style: TextStyle(fontSize: 10, color: Colors.orange.shade800, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 4),
+                    Text(email, style: const TextStyle(fontSize: 13, color: kTextSecondary)),
+                    if (plan != 'Max') ...[
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          await Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => SubscriptionPlanPage(
+                                uid: widget.uid,
+                                currentPlan: plan,
+                              ),
+                            ),
+                          );
+                          // Trigger rebuild to fetch fresh data
+                          if (mounted) setState(() {});
+                        },
+                        child: const Text('Upgrade Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kPrimaryColor)),
+                      ),
+                    ]
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(email, style: const TextStyle(fontSize: 13, color: kTextSecondary)),
-                if (plan != 'Max') ...[
-                  const SizedBox(height: 8),
-                  InkWell(
-                    onTap: () async {
-                      await Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => SubscriptionPlanPage(
-                            uid: widget.uid,
-                            currentPlan: plan,
-                          ),
-                        ),
-                      );
-                      // Refresh data after returning from subscription page
-                      _fetchUserData();
-                    },
-                    child: const Text('Upgrade Plan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kPrimaryColor)),
-                  ),
-                ]
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

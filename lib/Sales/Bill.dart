@@ -1970,8 +1970,9 @@ class _PaymentPageState extends State<PaymentPage> {
       String? businessName = businessDetails['businessName'];
       print('🔵 [PaymentPage] Using staff: $staffName, location: $businessLocation, phone: $businessPhone, name: $businessName');
 
-      final amountReceived = (widget.paymentMode == 'Credit') ? 0.0 : _cashReceived;
-      final changeGiven = (widget.paymentMode == 'Credit') ? 0.0 : _change;
+      final amountReceived = _cashReceived;  // Use actual cash received
+      final changeGiven = _cashReceived > widget.totalAmount ? (_cashReceived - widget.totalAmount) : 0.0;  // Calculate actual change
+      final creditAmount = widget.paymentMode == 'Credit' ? (widget.totalAmount - _cashReceived) : 0.0;  // Amount added to customer credit
 
       // Calculate tax information before creating sale data
       final Map<String, double> taxMap = {};
@@ -1995,6 +1996,7 @@ class _PaymentPageState extends State<PaymentPage> {
         'paymentMode': widget.paymentMode,
         'cashReceived': amountReceived,
         'change': changeGiven,
+        'creditAmount': creditAmount,  // Amount added to customer credit balance
         'customerPhone': widget.customerPhone,
         'customerName': widget.customerName,
         'customerGST': widget.customerGST,
@@ -2022,9 +2024,14 @@ class _PaymentPageState extends State<PaymentPage> {
 
           if (widget.paymentMode == 'Credit') {
             print('🔵 [PaymentPage] Updating customer credit...');
-            await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount, invoiceNumber).timeout(
-              const Duration(seconds: 10),
-            );
+            // Calculate actual credit amount: totalAmount - cashReceived
+            // If paymentMode is 'Credit', customer might have paid partial amount
+            final creditAmount = widget.totalAmount - _cashReceived;
+            if (creditAmount > 0) {
+              await _updateCustomerCredit(widget.customerPhone!, creditAmount, invoiceNumber).timeout(
+                const Duration(seconds: 10),
+              );
+            }
           }
 
           print('🔵 [PaymentPage] Adding sale document...');
