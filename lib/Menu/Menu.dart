@@ -3046,10 +3046,7 @@ class SalesDetailPage extends StatelessWidget {
 
 // ==========================================
 // 4. CUSTOMER RELATED PAGES
-// ==========================================
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:intl/intl.dart';
+
 
 // --- Global Theme Constants (Pure White BG, Standard Blue AppBar) ---
 const Color kPrimaryBlue = Color(0xFF2196F3);
@@ -3417,7 +3414,60 @@ class CreditNoteDetailPage extends StatelessWidget {
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kErrorRed))),
             ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () async {
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                Navigator.pop(ctx); // Close dialog
+
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(child: CircularProgressIndicator()),
+                );
+
+                try {
+                  debugPrint('🔵 [Refund] Starting refund process...');
+                  debugPrint('🔵 [Refund] Document ID: $documentId');
+                  debugPrint('🔵 [Refund] Amount: ${creditNoteData['amount']}');
+                  debugPrint('🔵 [Refund] Customer Phone: ${creditNoteData['customerPhone']}');
+
+                  // Process refund - Update backend
+                  await _processRefund(mode);
+
+                  debugPrint('🔵 [Refund] Refund completed successfully');
+
+                  // Always close loading first
+                  navigator.pop(); // Close loading
+
+                  // Then close detail page
+                  navigator.pop(); // Close detail page
+
+                  // Show success message
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Refund processed successfully'),
+                      backgroundColor: kSuccessGreen,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } catch (e) {
+                  debugPrint('🔴 [Refund] Error: $e');
+
+                  // Always close loading
+                  navigator.pop(); // Close loading
+
+                  // Show error message
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: kErrorRed,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
               style: ElevatedButton.styleFrom(backgroundColor: kSuccessGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
               child: const Text('CONFIRM'),
             ),
@@ -3425,6 +3475,70 @@ class CreditNoteDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Process refund - Update credit note status and customer balance in backend
+  Future<void> _processRefund(String paymentMode) async {
+    try {
+      debugPrint('🔵 [Refund] Step 1: Getting credit note data...');
+      final amount = (creditNoteData['amount'] ?? 0.0) as num;
+      final customerPhone = creditNoteData['customerPhone'] as String?;
+      debugPrint('🔵 [Refund] Amount: $amount, Customer Phone: $customerPhone');
+
+      // Update credit note status to 'Used' in backend
+      debugPrint('🔵 [Refund] Step 2: Updating credit note status...');
+      await FirestoreService().updateDocument('creditNotes', documentId, {
+        'status': 'Used',
+        'refundMethod': paymentMode,
+        'refundedAt': FieldValue.serverTimestamp(),
+      });
+      debugPrint('🔵 [Refund] Credit note status updated');
+
+      // Update customer balance - reduce by refund amount
+      if (customerPhone != null && customerPhone.isNotEmpty) {
+        debugPrint('🔵 [Refund] Step 3: Getting customer reference...');
+        final customerRef = await FirestoreService().getDocumentReference('customers', customerPhone);
+
+        debugPrint('🔵 [Refund] Step 4: Starting transaction to update balance...');
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          final customerDoc = await transaction.get(customerRef);
+          if (customerDoc.exists) {
+            final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0;
+            final newBalance = (currentBalance - amount.toDouble()).clamp(0.0, double.infinity);
+
+            debugPrint('🔵 [Refund] Current balance: $currentBalance, New balance: $newBalance');
+
+            transaction.update(customerRef, {
+              'balance': newBalance,
+              'lastUpdated': FieldValue.serverTimestamp()
+            });
+          }
+        });
+        debugPrint('🔵 [Refund] Customer balance updated');
+
+        // Add refund record to credits collection
+        debugPrint('🔵 [Refund] Step 5: Adding refund record to credits...');
+        await FirestoreService().addDocument('credits', {
+          'customerId': customerPhone,
+          'customerName': creditNoteData['customerName'] ?? 'Unknown',
+          'amount': -amount.toDouble(),  // Negative for refund
+          'type': 'refund',
+          'method': paymentMode,
+          'creditNoteNumber': creditNoteData['creditNoteNumber'],
+          'invoiceNumber': creditNoteData['invoiceNumber'],
+          'timestamp': FieldValue.serverTimestamp(),
+          'date': DateTime.now().toIso8601String(),
+          'note': 'Refund for Credit Note #${creditNoteData['creditNoteNumber']}',
+        });
+        debugPrint('🔵 [Refund] Refund record added to credits');
+      }
+
+      debugPrint('🔵 [Refund] Process completed successfully');
+    } catch (e, stackTrace) {
+      debugPrint('🔴 [Refund] Error processing refund: $e');
+      debugPrint('🔴 [Refund] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }
 
@@ -3484,6 +3598,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ),
           ),
 
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16),
             child: Container(
@@ -3545,11 +3660,30 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           stream: collectionSnapshot.data!.where('balance', isGreaterThan: 0).snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+
             final filtered = (snapshot.data?.docs ?? []).where((d) => (d.data() as Map<String, dynamic>)['name'].toString().toLowerCase().contains(_searchQuery)).toList();
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) => _buildContactCard(filtered[index], kSuccessGreen, "DUE FROM CUST"),
+
+            // Calculate total sales credit
+            double totalSalesCredit = 0.0;
+            for (var doc in filtered) {
+              final data = doc.data() as Map<String, dynamic>;
+              totalSalesCredit += (data['balance'] ?? 0.0) as num;
+            }
+
+            return Column(
+              children: [
+                // Total Sales Credit Header
+                _buildTotalCreditHeader(totalSalesCredit, kSuccessGreen, 'Total Sales Credit'),
+
+                // Customer List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) => _buildContactCard(filtered[index], kSuccessGreen, "DUE FROM CUST"),
+                  ),
+                ),
+              ],
             );
           },
         );
@@ -3567,14 +3701,86 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
             final filtered = (snapshot.data?.docs ?? []).where((d) => (d.data() as Map<String, dynamic>)['supplierName'].toString().toLowerCase().contains(_searchQuery)).toList();
-            return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: filtered.length,
-              itemBuilder: (context, index) => _buildPurchaseCard(filtered[index]),
+
+            // Calculate total purchase credit
+            double totalPurchaseCredit = 0.0;
+            for (var doc in filtered) {
+              final data = doc.data() as Map<String, dynamic>;
+              totalPurchaseCredit += (data['amount'] ?? 0.0) as num;
+            }
+
+            return Column(
+              children: [
+                // Total Purchase Credit Header
+                _buildTotalCreditHeader(totalPurchaseCredit, kErrorRed, 'Total Purchase Credit'),
+
+                // Purchase Credit Notes List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) => _buildPurchaseCard(filtered[index]),
+                  ),
+                ),
+              ],
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildTotalCreditHeader(double totalAmount, Color color, String label) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [color, color.withOpacity(0.7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: color.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '₹${totalAmount.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.account_balance_wallet, color: Colors.white, size: 32),
+          ),
+        ],
+      ),
     );
   }
 
@@ -3609,6 +3815,10 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildPurchaseCard(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final total = (data['amount'] ?? 0.0) as num;
+    final paid = (data['paidAmount'] ?? 0.0) as num;
+    final remaining = total - paid;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -3617,14 +3827,254 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        title: Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(data['supplierName'] ?? 'Supplier', style: TextStyle(color: Colors.grey[600])),
-        trailing: Text("₹${(data['amount'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kWarningOrange)),
-        onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => PurchaseCreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text(data['supplierName'] ?? 'Supplier', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text("₹${remaining.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: kErrorRed)),
+                    Text("of ₹${total.toStringAsFixed(0)}", style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  ],
+                ),
+              ],
+            ),
+            if (remaining > 0) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showSettleDialog(doc.id, data, remaining.toDouble()),
+                      icon: const Icon(Icons.payment, size: 18),
+                      label: const Text('Settle Amount'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kSuccessGreen,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => PurchaseCreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+                    icon: const Icon(Icons.visibility, color: kPrimaryBlue),
+                    style: IconButton.styleFrom(
+                      backgroundColor: kPrimaryBlue.withOpacity(0.1),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
+  }
+
+  /// Show dialog to settle partial or full amount for purchase credit
+  void _showSettleDialog(String docId, Map<String, dynamic> data, double remaining) {
+    final TextEditingController amountController = TextEditingController();
+    String paymentMode = 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Settle Amount', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Remaining: ₹${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorRed, fontWeight: FontWeight.bold, fontSize: 16)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: 'Amount to Pay',
+                  prefixText: '₹',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  hintText: remaining.toStringAsFixed(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Align(alignment: Alignment.centerLeft, child: Text('Payment Method:', style: TextStyle(fontWeight: FontWeight.bold))),
+              const SizedBox(height: 12),
+              // Cash Option
+              InkWell(
+                onTap: () => setDialogState(() => paymentMode = "Cash"),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: paymentMode == 'Cash' ? kSuccessGreen.withOpacity(0.1) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: paymentMode == 'Cash' ? kSuccessGreen : Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.payments, color: paymentMode == 'Cash' ? kSuccessGreen : Colors.grey),
+                      const SizedBox(width: 12),
+                      Text('Cash', style: TextStyle(color: paymentMode == 'Cash' ? kSuccessGreen : Colors.grey[700], fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      if (paymentMode == 'Cash') const Icon(Icons.check_circle, color: kSuccessGreen),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              // Online Option
+              InkWell(
+                onTap: () => setDialogState(() => paymentMode = "Online"),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: paymentMode == 'Online' ? kPrimaryBlue.withOpacity(0.1) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: paymentMode == 'Online' ? kPrimaryBlue : Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.account_balance, color: paymentMode == 'Online' ? kPrimaryBlue : Colors.grey),
+                      const SizedBox(width: 12),
+                      Text('Online', style: TextStyle(color: paymentMode == 'Online' ? kPrimaryBlue : Colors.grey[700], fontWeight: FontWeight.bold)),
+                      const Spacer(),
+                      if (paymentMode == 'Online') const Icon(Icons.check_circle, color: kPrimaryBlue),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kErrorRed))),
+            ElevatedButton(
+              onPressed: () async {
+                debugPrint('🟢 [Settle] Button clicked');
+
+                final amount = double.tryParse(amountController.text);
+                if (amount == null || amount <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a valid amount'), backgroundColor: kErrorRed),
+                  );
+                  return;
+                }
+                if (amount > remaining) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Amount cannot exceed remaining balance'), backgroundColor: kErrorRed),
+                  );
+                  return;
+                }
+
+                debugPrint('🟢 [Settle] Amount validated: $amount');
+
+                // Capture navigators before async operations
+                final navigator = Navigator.of(context);
+                final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+                Navigator.pop(ctx); // Close dialog
+
+                // Show loading
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (_) => const Center(child: CircularProgressIndicator())
+                );
+
+                try {
+                  debugPrint('🟢 [Settle] Starting settlement process...');
+                  await _settlePurchaseCredit(docId, data, amount, paymentMode);
+                  debugPrint('🟢 [Settle] Settlement completed successfully');
+
+                  // Close loading
+                  navigator.pop();
+
+                  // Show success
+                  scaffoldMessenger.showSnackBar(
+                    const SnackBar(
+                      content: Text('Payment settled successfully'),
+                      backgroundColor: kSuccessGreen,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                } catch (e, stackTrace) {
+                  debugPrint('🔴 [Settle] Error: $e');
+                  debugPrint('🔴 [Settle] Stack: $stackTrace');
+
+                  // Close loading
+                  navigator.pop();
+
+                  // Show error
+                  scaffoldMessenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: kErrorRed,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: kSuccessGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              child: const Text('SETTLE'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Settle purchase credit - Update paid amount in backend
+  Future<void> _settlePurchaseCredit(String docId, Map<String, dynamic> data, double amount, String paymentMode) async {
+    try {
+      debugPrint('🟢 [Settle] Step 1: Getting current paid amount...');
+      final currentPaid = (data['paidAmount'] ?? 0.0) as num;
+      final newPaidAmount = currentPaid + amount;
+      debugPrint('🟢 [Settle] Current paid: $currentPaid, New paid: $newPaidAmount');
+
+      // Update purchase credit note with new paid amount
+      debugPrint('🟢 [Settle] Step 2: Updating purchase credit note...');
+      await FirestoreService().updateDocument('purchaseCreditNotes', docId, {
+        'paidAmount': newPaidAmount,
+        'lastPaymentDate': FieldValue.serverTimestamp(),
+        'lastPaymentMethod': paymentMode,
+      });
+      debugPrint('🟢 [Settle] Purchase credit note updated');
+
+      // Add payment record
+      debugPrint('🟢 [Settle] Step 3: Adding payment record...');
+      await FirestoreService().addDocument('purchasePayments', {
+        'creditNoteId': docId,
+        'creditNoteNumber': data['creditNoteNumber'],
+        'supplierName': data['supplierName'],
+        'amount': amount,
+        'paymentMode': paymentMode,
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Partial payment for ${data['creditNoteNumber']}',
+      });
+      debugPrint('🟢 [Settle] Payment record added successfully');
+    } catch (e, stackTrace) {
+      debugPrint('🔴 [Settle] Error settling purchase credit: $e');
+      debugPrint('🔴 [Settle] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 }
 
@@ -3853,8 +4303,12 @@ Widget _buildDialogOption({required VoidCallback onSelect, required String mode,
   );
 }
 
+
+// ==========================================
+// 1. CUSTOMERS MANAGEMENT PAGE
+// ==========================================
 class CustomersPage extends StatefulWidget {
-  final String uid; // Kept your uid parameter
+  final String uid;
   final VoidCallback onBack;
 
   const CustomersPage({super.key, required this.uid, required this.onBack});
@@ -3879,52 +4333,32 @@ class _CustomersPageState extends State<CustomersPage> {
     super.dispose();
   }
 
-  /// Calculate total sales from all sales documents for a customer
-  /// Traverses all sales in backend and sums up totals for this customer
   Future<double> _calculateTotalSalesFromBackend(String customerPhone) async {
     try {
-      // Fetch all sales for this customer from backend
       final salesCollection = await FirestoreService().getStoreCollection('sales');
-      final salesSnapshot = await salesCollection
-          .where('customerPhone', isEqualTo: customerPhone)
-          .get();
-
+      final salesSnapshot = await salesCollection.where('customerPhone', isEqualTo: customerPhone).get();
       double totalSales = 0.0;
-
-      // Traverse all sales documents and sum the totals
       for (var saleDoc in salesSnapshot.docs) {
         final saleData = saleDoc.data() as Map<String, dynamic>;
-        final saleTotal = (saleData['total'] ?? 0.0) as num;
-        totalSales += saleTotal.toDouble();
+        totalSales += (saleData['total'] ?? 0.0).toDouble();
       }
-
       return totalSales;
     } catch (e) {
-      debugPrint('Error calculating total sales for $customerPhone: $e');
       return 0.0;
     }
   }
 
-  /// Fetch customer data and calculate totalSales from sales documents
   Future<Map<String, dynamic>> _fetchCustomerDataWithTotalSales(String customerPhone) async {
     try {
-      // Fetch customer document
       final customerDoc = await FirestoreService().getDocument('customers', customerPhone);
       Map<String, dynamic> customerData = {};
-
       if (customerDoc.exists) {
         customerData = customerDoc.data() as Map<String, dynamic>;
       }
-
-      // Calculate totalSales from all sales documents (fresh from backend)
       final calculatedTotalSales = await _calculateTotalSalesFromBackend(customerPhone);
-
-      // Replace totalSales with calculated value from backend
       customerData['totalSales'] = calculatedTotalSales;
-
       return customerData;
     } catch (e) {
-      debugPrint('Error fetching customer data with total sales: $e');
       return {};
     }
   }
@@ -3934,41 +4368,46 @@ class _CustomersPageState extends State<CustomersPage> {
     final phoneController = TextEditingController();
     final gstController = TextEditingController();
 
-    showDialog(context: context, builder: (context) {
-      return AlertDialog(
-        title: Text(context.tr('addnewcustomer')),
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: kWhite,
+        title: Text(context.tr('addnewcustomer'),
+            style: const TextStyle(fontWeight: FontWeight.w900, color: kDeepNavy, fontSize: 20)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: nameController, decoration: InputDecoration(labelText: context.tr('customername'))),
-            const SizedBox(height: 8),
-            TextField(controller: phoneController, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: context.tr('customerphone'))),
-            const SizedBox(height: 8),
-            TextField(controller: gstController, decoration: InputDecoration(labelText: context.tr('gstin'))),
+            _buildCustomerDialogField(nameController, context.tr('customername'), Icons.person_outline),
+            const SizedBox(height: 12),
+            _buildCustomerDialogField(phoneController, context.tr('customerphone'), Icons.phone_android_outlined, type: TextInputType.phone),
+            const SizedBox(height: 12),
+            _buildCustomerDialogField(gstController, context.tr('gstin'), Icons.assignment_outlined),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("CANCEL", style: TextStyle(color: kErrorRed, fontWeight: FontWeight.bold))
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3)),
-            child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryBlue,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(context.tr('add'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
             onPressed: () async {
               final name = nameController.text.trim();
               final phone = phoneController.text.trim();
               final gst = gstController.text.trim();
+              if (name.isEmpty || phone.isEmpty) return;
 
-              if (name.isEmpty || phone.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('name_phone_required'))));
-                return;
-              }
-
-              // Save to Firestore with initial 0 balance and 0 total sales
               await FirestoreService().setDocument('customers', phone, {
                 'name': name,
                 'phone': phone,
                 'gst': gst.isEmpty ? null : gst,
-                'balance': 0.0,     // Initial Credit Balance
-                'totalSales': 0.0,  // Initial Total Sales
+                'balance': 0.0,
+                'totalSales': 0.0,
                 'lastUpdated': FieldValue.serverTimestamp(),
                 'timestamp': FieldValue.serverTimestamp(),
               });
@@ -3976,267 +4415,270 @@ class _CustomersPageState extends State<CustomersPage> {
             },
           ),
         ],
-      );
-    });
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],// Light background for better card contrast
+      backgroundColor: kWhite,
       appBar: AppBar(
-        title: Text(context.tr('customer_management'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        title: Text(context.tr('customer_management'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite),
+          onPressed: widget.onBack,
+        ),
       ),
       body: Column(
         children: [
-          // 1. Search Bar and Add Button Area
+          // Search Header Area
           Container(
-            padding: const EdgeInsets.all(12.0),
-            color: Colors.white,
-            child: Row(children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    hintText: context.tr('search'),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(16.0),
+            decoration: const BoxDecoration(
+              color: kWhite,
+              border: Border(bottom: BorderSide(color: kSoftAzure, width: 2)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: kSoftAzure),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: kDeepNavy, fontWeight: FontWeight.w600, fontSize: 14),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search, color: kPrimaryBlue, size: 22),
+                        hintText: context.tr('search'),
+                        hintStyle: const TextStyle(color: kMediumBlue, fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              // Square Add Button
-              Container(
-                decoration: BoxDecoration(color: const Color(0xFFEAF4FF), borderRadius: BorderRadius.circular(8)),
-                child: IconButton(
-                  icon: const Icon(Icons.add, color: Color(0xFF2196F3)),
-                  onPressed: _showAddCustomer,
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: _showAddCustomer,
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: kPrimaryBlue,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [BoxShadow(color: kPrimaryBlue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                    ),
+                    child: const Icon(Icons.add, color: kWhite, size: 28),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ),
 
-          // 2. Customer List
+          // List
           Expanded(
             child: FutureBuilder<Stream<QuerySnapshot>>(
               future: FirestoreService().getCollectionStream('customers'),
               builder: (context, streamSnapshot) {
-                if (!streamSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
+                if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
                 return StreamBuilder<QuerySnapshot>(
                   stream: streamSnapshot.data,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Text(context.tr('no_customers_found')));
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildManagerNoDataState(context.tr('no_customers_found'));
 
-                final docs = snapshot.data!.docs.where((d) {
-                  if (_searchQuery.isEmpty) return true;
-                  final data = d.data() as Map<String, dynamic>;
-                  final name = (data['name'] ?? '').toString().toLowerCase();
-                  final phone = (data['phone'] ?? '').toString().toLowerCase();
-                  return name.contains(_searchQuery) || phone.contains(_searchQuery);
-                }).toList();
+                    final docs = snapshot.data!.docs.where((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      final name = (data['name'] ?? '').toString().toLowerCase();
+                      final phone = (data['phone'] ?? '').toString().toLowerCase();
+                      return name.contains(_searchQuery) || phone.contains(_searchQuery);
+                    }).toList();
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final docId = docs[index].id; // Customer phone number
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: docs.length,
+                      itemBuilder: (context, index) {
+                        final docId = docs[index].id;
+                        final data = docs[index].data() as Map<String, dynamic>;
 
-                    // Fetch fresh data AND calculate totalSales from all sales documents
-                    return FutureBuilder<Map<String, dynamic>>(
-                      future: _fetchCustomerDataWithTotalSales(docId),
-                      builder: (context, freshSnapshot) {
-                        // Use fresh calculated data if available, otherwise use cached stream data
-                        final freshData = freshSnapshot.hasData && freshSnapshot.data!.isNotEmpty
-                            ? freshSnapshot.data!
-                            : data;
-
-                        return GestureDetector(
-                          onTap: () {
-                            // Navigate to the External File Page
-                            Navigator.push(
-                                context,
-                                PageRouteBuilder(
-                                  pageBuilder: (context, animation, secondaryAnimation) => CustomerDetailsPage(
-                                    customerId: docId,
-                                    customerData: freshData,
-                                  ),
-                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                    return FadeTransition(
-                                      opacity: animation,
-                                      child: child,
-                                    );
-                                  },
-                                  transitionDuration: const Duration(milliseconds: 100),
-                                )
-                            );
+                        return FutureBuilder<Map<String, dynamic>>(
+                          future: _fetchCustomerDataWithTotalSales(docId),
+                          builder: (context, freshSnapshot) {
+                            final freshData = freshSnapshot.data ?? data;
+                            return _buildCustomerCard(docId, freshData);
                           },
-                          child: Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Customer Name
-                                  Text(freshData['name'] ?? 'Unknown', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
-                                  const SizedBox(height: 4),
-                                  // Phone
-                                  Text("Phone Number\n${freshData['phone'] ?? '--'}", style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                                  const SizedBox(height: 12),
-                                  // Stats Row - FRESH DATA FROM BACKEND
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text("Total Sales :", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                          Text(" ${freshData['totalSales'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                                        ],
-                                      ),
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.end,
-                                        children: [
-                                          Text("Credit Amount", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
-                                          Text(" ${freshData['balance'] ?? 0}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2196F3))),
-                                        ],
-                                      ),
-                                    ],
-                                  )
-                                ],
-                              ),
-                            ),
-                          ),
-                        ); // Close Card
+                        );
                       },
-                    );
-                  }, // Close ListView itemBuilder
-                ); // Close ListView
-                  }, // Close StreamBuilder builder
-                ); // Close StreamBuilder
-              }, // Close FutureBuilder builder
-            ), // Close FutureBuilder
-          ), // Close Expanded widget
-          ], // Close Column children
-        ), // Close Column widget (body parameter)
-    ); // Close Scaffold
-  } // Close build method
-} // Close CustomersPage class
-
-
-// ==========================================
-// 5. STAFF RELATED PAGES
-// ==========================================
-
-class StaffManagementList extends StatelessWidget {
-  final String adminUid;
-  final VoidCallback onBack;
-  final VoidCallback onAddStaff;
-  final FirestoreService _firestoreService = FirestoreService();
-
-  StaffManagementList({super.key, required this.adminUid, required this.onBack, required this.onAddStaff});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text(context.tr('staffmanagement'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: OutlinedButton.icon(
-                onPressed: onAddStaff, // Calls Parent Switch
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text("Add New Staff"),
-                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFF2196F3), side: const BorderSide(color: Color(0xFF2196F3))),
-              ),
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: FutureBuilder<String?>(
-              future: _firestoreService.getCurrentStoreId(),
-              builder: (context, storeIdSnapshot) {
-                if (!storeIdSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final storeId = storeIdSnapshot.data;
-
-                return StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('users')
-                      .where('storeId', isEqualTo: storeId)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                return ListView.separated(
-                  itemCount: snapshot.data!.docs.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-                    String name = data['name'] ?? 'Unknown';
-                    String email = data['email'] ?? '';
-                    String role = data['role'] ?? 'Staff';
-                    bool isActive = (data['status'] ?? '') == 'Active';
-
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.grey.shade100,
-                        child: Text(name.isNotEmpty ? name.substring(0, 2).toUpperCase() : "NA", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87)),
-                      ),
-                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2196F3))),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(email, style: const TextStyle(fontSize: 12)),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text("Role: $role", style: const TextStyle(fontSize: 12)),
-                              const SizedBox(width: 8),
-                              const Text("|", style: TextStyle(color: Colors.grey)),
-                              const SizedBox(width: 8),
-                              Text(isActive ? "Active" : "Inactive", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? Colors.green : Colors.red)),
-                            ],
-                          )
-                        ],
-                      ),
                     );
                   },
                 );
               },
-            );
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomerCard(String docId, Map<String, dynamic> data) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kSoftAzure, width: 1.5),
+        boxShadow: [
+          BoxShadow(color: kPrimaryBlue.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
+        ],
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (context) => CustomerDetailsPage(customerId: docId, customerData: data)),
+          );
+        },
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: kSoftAzure,
+                    radius: 22,
+                    child: Text((data['name'] ?? 'U')[0].toUpperCase(),
+                        style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900, fontSize: 18)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(data['name'] ?? 'Unknown',
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kDeepNavy)),
+                        Text(data['phone'] ?? '--',
+                            style: const TextStyle(color: kMediumBlue, fontSize: 13, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_ios, color: kSoftAzure, size: 16),
+                ],
+              ),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1, color: kSoftAzure, thickness: 1.5)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildManagerStatItem("TOTAL SALES", "₹${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kSuccessGreen),
+                  _buildManagerStatItem("CREDIT DUE", "₹${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// 2. STAFF MANAGEMENT LIST
+// ==========================================
+class StaffManagementList extends StatelessWidget {
+  final String adminUid;
+  final VoidCallback onBack;
+  final VoidCallback onAddStaff;
+
+  const StaffManagementList({super.key, required this.adminUid, required this.onBack, required this.onAddStaff});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kWhite,
+      appBar: AppBar(
+        title: Text(context.tr('staffmanagement'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: onBack),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Staff Overview", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kMediumBlue, letterSpacing: 0.5)),
+                TextButton.icon(
+                  onPressed: onAddStaff,
+                  icon: const Icon(Icons.add_circle_outline, size: 20, color: kWhite),
+                  label: const Text("ADD NEW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kWhite)),
+                  style: TextButton.styleFrom(
+                      backgroundColor: kPrimaryBlue,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: kSoftAzure, thickness: 2),
+          Expanded(
+            child: FutureBuilder<String?>(
+              future: FirestoreService().getCurrentStoreId(),
+              builder: (context, storeIdSnapshot) {
+                if (!storeIdSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                return StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').where('storeId', isEqualTo: storeIdSnapshot.data).snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                    if (snapshot.data!.docs.isEmpty) return _buildManagerNoDataState("No staff members registered");
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        var data = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+                        bool isActive = (data['status'] ?? '') == 'Active';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: kWhite,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: kSoftAzure, width: 1.5),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: CircleAvatar(
+                              backgroundColor: kPrimaryBlue.withOpacity(0.1),
+                              child: Text((data['name'] ?? 'S')[0].toUpperCase(),
+                                  style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900)),
+                            ),
+                            title: Text(data['name'] ?? 'Unknown',
+                                style: const TextStyle(fontWeight: FontWeight.w900, color: kDeepNavy, fontSize: 15)),
+                            subtitle: Text("${data['role'] ?? 'Staff'} • ${data['email'] ?? ''}",
+                                style: const TextStyle(fontSize: 12, color: kMediumBlue, fontWeight: FontWeight.w600)),
+                            trailing: _buildManagerStatusPill(isActive ? "ACTIVE" : "INACTIVE", isActive ? kSuccessGreen : kErrorRed),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
               },
             ),
           ),
@@ -4246,6 +4688,9 @@ class StaffManagementList extends StatelessWidget {
   }
 }
 
+// ==========================================
+// 3. ADD STAFF PAGE
+// ==========================================
 class AddStaffPage extends StatefulWidget {
   final String adminUid;
   final VoidCallback onBack;
@@ -4258,96 +4703,84 @@ class AddStaffPage extends StatefulWidget {
 
 class _AddStaffPageState extends State<AddStaffPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   String _selectedRole = "Administrator";
-  final List<String> _roles = ["Administrator", "Cashier", "Sales"];
-
-  Map<String, Map<String, dynamic>> permissions = {
-    "Bill History": {
-      "enabled": true,
-      "desc": "This role enables user to view bill history, return bills etc.",
-      "sub": {"View Bill History": true, "Block Others Bill": true, "Return Bill": true, "Cancel bill": true}
-    },
-    "Inventory Management": {
-      "enabled": true,
-      "desc": "Manage stock.",
-      "sub": {"View Inventory": true, "Edit Inventory": true, "Delete Inventory": true}
-    },
-    // ... add other permissions as needed
-  };
-
-  Future<void> _saveStaff() async {
-    if(!_formKey.currentState!.validate()) return;
-    try {
-      // Get current user's storeId
-      final storeId = await FirestoreService().getCurrentStoreId();
-
-      await FirebaseFirestore.instance.collection('users').add({
-        'name': _nameController.text,
-        'email': _emailController.text,
-        'role': _selectedRole,
-        'status': 'Active',
-        'parentAdmin': widget.adminUid,
-        'storeId': storeId,
-        'createdAt': FieldValue.serverTimestamp(),
-        'permissions': permissions,
-      });
-
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff Added Successfully")));
-        widget.onBack(); // Go back to Staff List
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: kWhite,
       appBar: AppBar(
-        title: Text(context.tr('addnewstaff'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+        title: Text(context.tr('addnewstaff'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
+        backgroundColor: kPrimaryBlue,
+        elevation: 0,
         centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: widget.onBack),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField("Name", _nameController),
-              const SizedBox(height: 12),
-              _buildTextField("Login Mail id", _emailController, isEmail: true),
-              const SizedBox(height: 12),
-              _buildTextField("Password", _passwordController, isPassword: true),
-              const SizedBox(height: 20),
-
-              DropdownButtonFormField<String>(
-                value: _selectedRole,
-                decoration: InputDecoration(
-                  labelText: context.tr('role'),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(4)),
+              _buildManagerSectionTitle("LOGIN INFORMATION"),
+              _buildManagerFormTextField(_nameCtrl, "Staff Full Name", Icons.badge_outlined),
+              const SizedBox(height: 16),
+              _buildManagerFormTextField(_emailCtrl, "Email Address / User ID", Icons.alternate_email_outlined),
+              const SizedBox(height: 16),
+              _buildManagerFormTextField(_passCtrl, "Password", Icons.vpn_key_outlined, isObscure: true),
+              const SizedBox(height: 32),
+              _buildManagerSectionTitle("ACCESS PERMISSIONS"),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: kSoftAzure),
                 ),
-                items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-                onChanged: (val) => setState(() => _selectedRole = val!),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedRole,
+                    isExpanded: true,
+                    dropdownColor: kWhite,
+                    icon: const Icon(Icons.expand_more, color: kPrimaryBlue),
+                    items: ["Administrator", "Cashier", "Sales"].map((r) => DropdownMenuItem(
+                        value: r,
+                        child: Text(r, style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy))
+                    )).toList(),
+                    onChanged: (val) => setState(() => _selectedRole = val!),
+                  ),
+                ),
               ),
-
-              const SizedBox(height: 30),
+              const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
-                height: 50,
+                height: 60,
                 child: ElevatedButton(
-                  onPressed: _saveStaff,
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2196F3), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  child: const Text("Save Staff", style: TextStyle(color: Colors.white, fontSize: 16)),
+                  onPressed: () async {
+                    if (!_formKey.currentState!.validate()) return;
+                    final storeId = await FirestoreService().getCurrentStoreId();
+                    await FirebaseFirestore.instance.collection('users').add({
+                      'name': _nameCtrl.text,
+                      'email': _emailCtrl.text,
+                      'role': _selectedRole,
+                      'status': 'Active',
+                      'storeId': storeId,
+                      'createdAt': FieldValue.serverTimestamp(),
+                    });
+                    widget.onBack();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryBlue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text("CREATE STAFF ACCOUNT",
+                      style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.2)),
                 ),
               ),
             ],
@@ -4357,366 +4790,95 @@ class _AddStaffPageState extends State<AddStaffPage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {bool isEmail = false, bool isPassword = false}) {
+  Widget _buildManagerFormTextField(TextEditingController ctrl, String hint, IconData icon, {bool isObscure = false}) {
     return Container(
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.shade300)),
+      decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kSoftAzure)
+      ),
       child: TextFormField(
-        controller: controller,
-        obscureText: isPassword,
-        keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
-        decoration: InputDecoration(labelText: label, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-        validator: (val) => val!.isEmpty ? "Required" : null,
+        controller: ctrl,
+        obscureText: isObscure,
+        style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: kPrimaryBlue, size: 22),
+          hintText: hint,
+          hintStyle: const TextStyle(color: kMediumBlue, fontWeight: FontWeight.w500),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        ),
       ),
     );
   }
 }
 
-// ==========================================
-// 6. BILL PAGE (Initiation point for Settle Bill)
-// Note: This class uses the CartItem model and is the 'Sales/Bill.dart' reference
-// ==========================================
+// --- Common UI Helper Widgets ---
 
-
-// Customer Selection Dialog
-class _CustomerSelectionDialog extends StatefulWidget {
-  final String uid;
-  final Function(String phone, String name, String? gst) onCustomerSelected;
-
-  const _CustomerSelectionDialog({
-    required this.uid,
-    required this.onCustomerSelected,
-  });
-
-  @override
-  State<_CustomerSelectionDialog> createState() =>
-      _CustomerSelectionDialogState();
+Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
+  return Container(
+    height: 54,
+    decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kSoftAzure)
+    ),
+    child: TextField(
+      controller: ctrl,
+      keyboardType: type,
+      style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: kPrimaryBlue, size: 20),
+        hintText: label,
+        hintStyle: const TextStyle(color: kMediumBlue, fontSize: 13),
+        border: InputBorder.none,
+        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+    ),
+  );
 }
 
-class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
+Widget _buildManagerStatItem(String label, String value, Color color, {CrossAxisAlignment align = CrossAxisAlignment.start}) {
+  return Column(
+    crossAxisAlignment: align,
+    children: [
+      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kMediumBlue, letterSpacing: 1)),
+      const SizedBox(height: 4),
+      Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: color)),
+    ],
+  );
+}
 
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
-    });
-  }
+Widget _buildManagerStatusPill(String text, Color color) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withOpacity(0.1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: color.withOpacity(0.2), width: 1),
+    ),
+    child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+  );
+}
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+Widget _buildManagerNoDataState(String msg) {
+  return Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.folder_open_outlined, size: 60, color: kSoftAzure),
+        const SizedBox(height: 12),
+        Text(msg, style: TextStyle(color: kMediumBlue.withOpacity(0.6), fontWeight: FontWeight.w800)),
+      ],
+    ),
+  );
+}
 
-  void _showAddCustomerDialog() {
-    final TextEditingController nameController = TextEditingController();
-    final TextEditingController phoneController = TextEditingController();
-    final TextEditingController gstController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(context.tr('addnewcustomer')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: InputDecoration(
-                labelText: context.tr('customername'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: context.tr('customerphone'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: gstController,
-              decoration: InputDecoration(
-                labelText: context.tr('gstin'),
-                border: const OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final phone = phoneController.text.trim();
-              final gst = gstController.text.trim();
-
-              if (name.isEmpty || phone.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(context.tr('name_phone_required')),
-                    backgroundColor: const Color(0xFFFF5252),
-                  ),
-                );
-                return;
-              }
-
-              try {
-                await FirestoreService().setDocument('customers', phone, {
-                  'name': name,
-                  'phone': phone,
-                  'gst': gst.isEmpty ? null : gst,
-                  'balance': 0.0,
-                  'lastUpdated': FieldValue.serverTimestamp(),
-                });
-
-                if (mounted) {
-                  Navigator.pop(context);
-                  widget.onCustomerSelected(
-                      phone, name, gst.isEmpty ? null : gst);
-                  Navigator.pop(context);
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${context.tr('error')}: $e'),
-                      backgroundColor: const Color(0xFFFF5252),
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2196F3),
-            ),
-            child: Text(context.tr('add')),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: screenWidth * 0.9,
-        height: screenHeight * 0.7,
-        padding: EdgeInsets.all(screenWidth * 0.04),
-        child: Column(
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Existing Customer',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.05,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-
-            SizedBox(height: screenHeight * 0.02),
-
-            // Search Bar
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: context.tr('search'),
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                    ),
-                  ),
-                ),
-                SizedBox(width: screenWidth * 0.02),
-                GestureDetector(
-                  onTap: _showAddCustomerDialog,
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF2196F3),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.person_add,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(height: screenHeight * 0.02),
-
-            // Customer List
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('customers')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Text(context.tr('no_customers_found')),
-                    );
-                  }
-
-                  final customers = snapshot.data!.docs.where((doc) {
-                    if (_searchQuery.isEmpty) return true;
-
-                    final data = doc.data() as Map<String, dynamic>;
-                    final name = (data['name'] ?? '').toString().toLowerCase();
-                    final phone =
-                    (data['phone'] ?? '').toString().toLowerCase();
-                    final gst = (data['gst'] ?? '').toString().toLowerCase();
-
-                    return name.contains(_searchQuery) ||
-                        phone.contains(_searchQuery) ||
-                        gst.contains(_searchQuery);
-                  }).toList();
-
-                  if (customers.isEmpty) {
-                    return Center(
-                      child: Text(context.tr('no_matching_customers')),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: customers.length,
-                    itemBuilder: (context, index) {
-                      final customerData =
-                      customers[index].data() as Map<String, dynamic>;
-                      final name = customerData['name'] ?? 'Unknown';
-                      final phone = customerData['phone'] ?? '';
-                      final gst = customerData['gst'];
-
-                      return GestureDetector(
-                        onTap: () {
-                          widget.onCustomerSelected(phone, name, gst);
-                          Navigator.pop(context);
-                        },
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF2196F3),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Phone Number',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                    Text(
-                                      phone,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    if (gst != null) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'GST No:',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey[600],
-                                        ),
-                                      ),
-                                      Text(
-                                        gst,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Current Bal:',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                  Text(
-                                    (customerData['balance'] ?? 0.0).toStringAsFixed(2),
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+Widget _buildManagerSectionTitle(String title) {
+  return Padding(
+      padding: const EdgeInsets.only(bottom: 12, left: 4),
+      child: Text(title, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kMediumBlue, letterSpacing: 2))
+  );
 }
 
 

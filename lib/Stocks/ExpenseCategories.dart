@@ -5,6 +5,12 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
+// --- UI CONSTANTS ---
+const Color _primaryColor = Color(0xFF2196F3);
+const Color _errorColor = Color(0xFFFF5252);
+const Color _cardBorder = Color(0xFFE3F2FD);
+const Color _scaffoldBg = Colors.white;
+
 class ExpenseCategoriesPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -23,9 +29,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
   @override
   void initState() {
     super.initState();
-    // Optimization: Initialize stream once
     _categoriesStreamFuture = FirestoreService().getCollectionStream('expenseCategories');
-
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -42,56 +46,65 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: Text(context.tr('expense_categories'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('expense_categories'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
+        elevation: 0,
       ),
       body: Column(
         children: [
-          // Search Bar and Add Button
+          // Search Bar and Add Button Section
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ],
+            ),
             child: Row(
               children: [
                 Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: context.tr('search'),
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFFF5F5F5),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide.none,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: _primaryColor.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: context.tr('search'),
+                        prefixIcon: const Icon(Icons.search, color: _primaryColor),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    _showAddCategoryDialog(context);
-                  },
-                  icon: const Icon(Icons.add, color: Colors.white),
+                  onPressed: () => _showAddCategoryDialog(context),
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
                   label: const Text(
                     'Add',
                     style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
+                    backgroundColor: _primaryColor,
+                    elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
@@ -119,19 +132,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.category_outlined, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No categories found',
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildEmptyState();
                     }
 
                     final categories = snapshot.data!.docs.where((doc) {
@@ -160,19 +161,17 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                         final description = data['description'] ?? '';
                         final timestamp = data['timestamp'] as Timestamp?;
                         final date = timestamp?.toDate();
-                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+                        final dateString =
+                        date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _cardBorder),
                             boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
+                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
                             ],
                           ),
                           child: ListTile(
@@ -181,12 +180,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2196F3).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
+                                color: _primaryColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
-                                Icons.category,
-                                color: Color(0xFF2196F3),
+                                Icons.category_outlined,
+                                color: _primaryColor,
                                 size: 24,
                               ),
                             ),
@@ -205,10 +204,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                                   const SizedBox(height: 4),
                                   Text(
                                     description,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                    ),
+                                    style: const TextStyle(fontSize: 14, color: Colors.black54),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -216,14 +212,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                                 const SizedBox(height: 4),
                                 Text(
                                   'Created: $dateString',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
                               ],
                             ),
                             trailing: PopupMenuButton<String>(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               onSelected: (value) {
                                 if (value == 'edit') {
                                   _showEditCategoryDialog(context, categories[index].id, data);
@@ -236,7 +230,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                                   value: 'edit',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.edit, size: 20, color: Colors.black87),
+                                      Icon(Icons.edit_outlined, size: 20, color: Colors.black87),
                                       SizedBox(width: 8),
                                       Text('Edit'),
                                     ],
@@ -246,9 +240,9 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                                   value: 'delete',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.delete, size: 20, color: Colors.red),
+                                      Icon(Icons.delete_outline, size: 20, color: _errorColor),
                                       SizedBox(width: 8),
-                                      Text('Delete', style: TextStyle(color: Colors.red)),
+                                      Text('Delete', style: TextStyle(color: _errorColor)),
                                     ],
                                   ),
                                 ),
@@ -268,6 +262,22 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.category_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
+          const SizedBox(height: 16),
+          const Text(
+            'No categories found',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showAddCategoryDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
@@ -276,34 +286,22 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
             children: [
-              Icon(Icons.category_outlined, color: Color(0xFF2196F3)),
+              Icon(Icons.category_outlined, color: _primaryColor),
               SizedBox(width: 8),
-              const Text('Add Category'),
+              Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category Name *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
+                _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
+                _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
+                    lines: 3),
               ],
             ),
           ),
@@ -344,10 +342,11 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: _primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
+              child:
+              Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -357,40 +356,29 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
 
   void _showEditCategoryDialog(BuildContext context, String categoryId, Map<String, dynamic> data) {
     final TextEditingController nameController = TextEditingController(text: data['name'] ?? '');
-    final TextEditingController descriptionController = TextEditingController(text: data['description'] ?? '');
+    final TextEditingController descriptionController =
+    TextEditingController(text: data['description'] ?? '');
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
             children: [
-              Icon(Icons.edit_outlined, color: Color(0xFF2196F3)),
+              Icon(Icons.edit_outlined, color: _primaryColor),
               SizedBox(width: 8),
-              const Text('Edit Category'),
+              Text('Edit Category', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Category Name *',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
+                _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                ),
+                _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
+                    lines: 3),
               ],
             ),
           ),
@@ -429,10 +417,11 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: _primaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white)),
+              child: Text(context.tr('update'),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -445,12 +434,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Row(
             children: [
-              Icon(Icons.delete_outline, color: Colors.red),
+              Icon(Icons.delete_outline, color: _errorColor),
               SizedBox(width: 8),
-              const Text('Delete Category'),
+              Text('Delete Category', style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: Text('Are you sure you want to delete "$categoryName"?'),
@@ -479,14 +468,30 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                backgroundColor: _errorColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white)),
+              child:
+              Text(context.tr('delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon,
+      {int lines = 1}) {
+    return TextField(
+      controller: ctrl,
+      maxLines: lines,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: _primaryColor, size: 20),
+        filled: true,
+        fillColor: _primaryColor.withOpacity(0.04),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
     );
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:maxbillup/Stocks/Products.dart';
+import 'package:maxbillup/Stocks/Products.dart' hide AddProductPage;
 import 'package:maxbillup/Stocks/Category.dart';
 import 'package:maxbillup/Stocks/Components/stock_app_bar.dart';
 import 'package:maxbillup/Stocks/AddProduct.dart';

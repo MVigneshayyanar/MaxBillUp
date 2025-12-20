@@ -241,7 +241,7 @@ class _ReportsPageState extends State<ReportsPage> {
 
 AppBar _buildModernAppBar(String title, VoidCallback onBack) {
   return AppBar(
-    leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20), onPressed: onBack),
+    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20), onPressed: onBack),
     title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
     backgroundColor: kPrimaryColor,
     elevation: 0,

@@ -6,6 +6,11 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 
+// --- UI CONSTANTS ---
+const Color _primaryColor = Color(0xFF2196F3);
+const Color _cardBorder = Color(0xFFE3F2FD);
+const Color _scaffoldBg = Colors.white;
+
 class StockPurchasePage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -21,13 +26,11 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Store the future to prevent re-fetching on every setState
   late Future<Stream<QuerySnapshot>> _purchasesStreamFuture;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the stream future once
     _purchasesStreamFuture = FirestoreService().getCollectionStream('stockPurchases');
 
     _searchController.addListener(() {
@@ -49,6 +52,12 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: _primaryColor),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -60,22 +69,29 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: Text(context.tr('stock_purchase'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('stock_purchase'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
+        elevation: 0,
       ),
       body: Column(
         children: [
-          // Date Picker and Create New Button
+          // Filter & Add Button Section
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
+              ],
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -84,61 +100,74 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        color: _primaryColor.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _cardBorder),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
+                          const Icon(Icons.calendar_month_outlined, color: _primaryColor, size: 20),
                           const SizedBox(width: 12),
                           Text(
                             DateFormat('dd - MM - yyyy').format(_selectedDate),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to create new stock purchase
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => CreateStockPurchasePage(
-                            uid: widget.uid,
-                            onBack: () => Navigator.pop(context),
-                          ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) => CreateStockPurchasePage(
+                          uid: widget.uid,
+                          onBack: () => Navigator.pop(context),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'Create New',
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
+                    );
+                  },
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  label: const Text(
+                    'New',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
             ),
           ),
 
-          // List of Stock Purchases
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _cardBorder),
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: context.tr('search'),
+                  prefixIcon: const Icon(Icons.search, color: _primaryColor),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            ),
+          ),
+
+          // List of Purchases
           Expanded(
             child: FutureBuilder<Stream<QuerySnapshot>>(
               future: _purchasesStreamFuture,
@@ -148,7 +177,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                 }
 
                 if (!futureSnapshot.hasData) {
-                  return const Center(child: Text("Unable to load stock purchases"));
+                  return const Center(child: Text("Unable to load purchases"));
                 }
 
                 return StreamBuilder<QuerySnapshot>(
@@ -159,19 +188,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No stock purchases found',
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildEmptyState();
                     }
 
                     final purchases = snapshot.data!.docs.where((doc) {
@@ -184,10 +201,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
 
                     if (purchases.isEmpty) {
                       return const Center(
-                        child: Text(
-                          'No matching purchases found',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
-                        ),
+                        child: Text('No matching purchases found', style: TextStyle(fontSize: 16, color: Colors.grey)),
                       );
                     }
 
@@ -196,78 +210,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                       itemCount: purchases.length,
                       itemBuilder: (context, index) {
                         final data = purchases[index].data() as Map<String, dynamic>;
-                        final supplierName = data['supplierName'] ?? 'Unknown Supplier';
-                        final invoiceNumber = data['invoiceNumber'] ?? 'N/A';
-                        final amount = (data['totalAmount'] ?? 0.0) as num;
-                        final timestamp = data['timestamp'] as Timestamp?;
-                        final date = timestamp?.toDate();
-                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            title: Text(
-                              supplierName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Invoice: $invoiceNumber',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black54,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  dateString,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            trailing: Text(
-                              ' ${amount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2196F3),
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => StockPurchaseDetailsPage(
-                                    purchaseId: purchases[index].id,
-                                    purchaseData: data,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        );
+                        return _buildPurchaseCard(context, purchases[index].id, data);
                       },
                     );
                   },
@@ -279,9 +222,68 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
       ),
     );
   }
+
+  Widget _buildPurchaseCard(BuildContext context, String id, Map<String, dynamic> data) {
+    final date = (data['timestamp'] as Timestamp?)?.toDate();
+    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _cardBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => StockPurchaseDetailsPage(
+                purchaseId: id,
+                purchaseData: data,
+              ),
+            ),
+          );
+        },
+        title: Text(
+          data['supplierName'] ?? 'Unknown Supplier',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Text('Invoice: ${data['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
+            const SizedBox(height: 4),
+            Text(dateString, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+        trailing: Text(
+          '₹${(data['totalAmount'] ?? 0.0).toStringAsFixed(2)}',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryColor),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.shopping_cart_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
+          const SizedBox(height: 16),
+          const Text('No stock purchases found',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
 }
 
-// Create Stock Purchase Page
 class CreateStockPurchasePage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -318,25 +320,23 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _primaryColor)),
+        child: child!,
+      ),
     );
     if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+      setState(() => _selectedDate = picked);
     }
   }
 
   Future<void> _savePurchase() async {
     if (_supplierNameController.text.isEmpty || _amountController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill in required fields')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in required fields')));
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final amount = double.parse(_amountController.text);
@@ -344,7 +344,6 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           ? 'INV${DateTime.now().millisecondsSinceEpoch}'
           : _invoiceNumberController.text;
 
-      // Save the stock purchase
       await FirestoreService().addDocument('stockPurchases', {
         'supplierName': _supplierNameController.text,
         'supplierPhone': _supplierPhoneController.text,
@@ -356,14 +355,12 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         'uid': widget.uid,
       });
 
-      // If payment mode is Credit, create a purchase credit note
       if (_paymentMode == 'Credit') {
         final creditNoteNumber = await NumberGeneratorService.generatePurchaseCreditNoteNumber();
-
         await FirestoreService().addDocument('purchaseCreditNotes', {
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': invoiceNumber,
-          'purchaseNumber': invoiceNumber, // For consistency with detail page
+          'purchaseNumber': invoiceNumber,
           'supplierName': _supplierNameController.text,
           'supplierPhone': _supplierPhoneController.text,
           'amount': amount,
@@ -372,28 +369,24 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           'notes': _notesController.text,
           'uid': widget.uid,
           'type': 'Purchase Credit',
-          'items': [], // Empty array for now, can be expanded later with item details
+          'items': [],
         });
 
-        // Update supplier's credit balance if supplier phone is provided - store-scoped
         if (_supplierPhoneController.text.isNotEmpty) {
           final suppliersCollection = await FirestoreService().getStoreCollection('suppliers');
           final supplierRef = suppliersCollection.doc(_supplierPhoneController.text);
 
           await FirebaseFirestore.instance.runTransaction((transaction) async {
             final supplierDoc = await transaction.get(supplierRef);
-
             if (supplierDoc.exists) {
-              // Update existing supplier
-              final supplierData = supplierDoc.data() as Map<String, dynamic>?;
-              final currentBalance = (supplierData?['creditBalance'] ?? 0.0) as num;
-              final newBalance = currentBalance.toDouble() + amount;
+              // Fix: Explicitly cast data() to Map<String, dynamic>? to use the [] operator
+              final data = supplierDoc.data() as Map<String, dynamic>?;
+              final currentBalance = (data?['creditBalance'] ?? 0.0) as num;
               transaction.update(supplierRef, {
-                'creditBalance': newBalance,
+                'creditBalance': currentBalance.toDouble() + amount,
                 'lastUpdated': FieldValue.serverTimestamp(),
               });
             } else {
-              // Create new supplier record
               transaction.set(supplierRef, {
                 'name': _supplierNameController.text,
                 'phone': _supplierPhoneController.text,
@@ -408,141 +401,97 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _paymentMode == 'Credit'
-                  ? 'Stock purchase saved and credit note created'
-                  : 'Stock purchase saved successfully'
-            ),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(_paymentMode == 'Credit'
+                ? 'Stock purchase saved and credit note created'
+                : 'Stock purchase saved successfully')));
         widget.onBack();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${context.tr('error')}: $e')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(context.tr('new_stock_purchase'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('new_stock_purchase'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
         ),
         centerTitle: true,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField('Supplier Name *', _supplierNameController),
+            _buildInputField('Supplier Name *', _supplierNameController, Icons.person_outline),
             const SizedBox(height: 16),
-            _buildTextField('Supplier Phone', _supplierPhoneController, keyboardType: TextInputType.phone),
+            _buildInputField('Supplier Phone', _supplierPhoneController, Icons.phone_outlined,
+                keyboardType: TextInputType.phone),
             const SizedBox(height: 16),
-            _buildTextField('Invoice Number', _invoiceNumberController),
+            _buildInputField('Invoice Number', _invoiceNumberController, Icons.receipt_long_outlined),
             const SizedBox(height: 16),
-            _buildTextField('Amount *', _amountController, keyboardType: TextInputType.number),
+            _buildInputField('Amount *', _amountController, Icons.currency_rupee, keyboardType: TextInputType.number),
             const SizedBox(height: 16),
-
-            // Date Picker
-            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _selectDate(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
-                ),
+                decoration: BoxDecoration(color: _primaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
+                    const Icon(Icons.calendar_today_outlined, color: _primaryColor, size: 18),
                     const SizedBox(width: 12),
-                    Text(
-                      DateFormat('dd MMM yyyy').format(_selectedDate),
-                      style: const TextStyle(fontSize: 16, color: Colors.black87),
-                    ),
+                    Text(DateFormat('dd MMM yyyy').format(_selectedDate),
+                        style: const TextStyle(fontSize: 16, color: Colors.black87)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
-
-            // Payment Mode
-            const Text('Payment Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Payment Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+            _buildDropdownContainer(
               child: DropdownButton<String>(
                 value: _paymentMode,
                 isExpanded: true,
                 underline: const SizedBox(),
                 items: ['Cash', 'Credit', 'UPI', 'Card'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
                 }).toList(),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _paymentMode = newValue;
-                    });
-                  }
+                  if (newValue != null) setState(() => _paymentMode = newValue);
                 },
               ),
             ),
             const SizedBox(height: 16),
-
-            _buildTextField('Notes', _notesController, maxLines: 3),
-            const SizedBox(height: 24),
-
-            // Save Button
+            _buildInputField('Notes', _notesController, Icons.notes_outlined, lines: 3),
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _savePurchase,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  backgroundColor: _primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Save Purchase',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Save Purchase',
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -551,141 +500,116 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     );
   }
 
-  Widget _buildTextField(
-    String label,
-    TextEditingController controller, {
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-  }) {
+  Widget _buildInputField(String label, TextEditingController ctrl, IconData icon,
+      {TextInputType keyboardType = TextInputType.text, int lines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
+          controller: ctrl,
+          maxLines: lines,
           keyboardType: keyboardType,
-          maxLines: maxLines,
           decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: _primaryColor, size: 20),
             filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2196F3)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            fillColor: _primaryColor.withOpacity(0.04),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
       ],
     );
   }
+
+  Widget _buildDropdownContainer({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(color: _primaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
+      child: child,
+    );
+  }
 }
 
-// Stock Purchase Details Page
 class StockPurchaseDetailsPage extends StatelessWidget {
   final String purchaseId;
   final Map<String, dynamic> purchaseData;
 
-  const StockPurchaseDetailsPage({
-    super.key,
-    required this.purchaseId,
-    required this.purchaseData,
-  });
+  const StockPurchaseDetailsPage({super.key, required this.purchaseId, required this.purchaseData});
 
   @override
   Widget build(BuildContext context) {
-    final timestamp = purchaseData['timestamp'] as Timestamp?;
-    final date = timestamp?.toDate();
+    final date = (purchaseData['timestamp'] as Timestamp?)?.toDate();
     final dateString = date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(context.tr('purchase_details'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('purchase_details'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _cardBorder),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15)],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                purchaseData['supplierName'] ?? 'Unknown Supplier',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Divider(height: 32, color: _cardBorder),
+              _buildDetailRow('Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
+              _buildDetailRow('Phone', purchaseData['supplierPhone'] ?? 'N/A'),
+              _buildDetailRow('Date', dateString),
+              _buildDetailRow('Payment Mode', purchaseData['paymentMode'] ?? 'N/A'),
+              if (purchaseData['notes'] != null && purchaseData['notes'].toString().isNotEmpty)
+                _buildDetailRow('Notes', purchaseData['notes']),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    purchaseData['supplierName'] ?? 'Unknown Supplier',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                    ),
+                    "₹${(purchaseData['totalAmount'] ?? 0.0).toStringAsFixed(2)}",
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDetailRow('Invoice Number', purchaseData['invoiceNumber'] ?? 'N/A'),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Phone', purchaseData['supplierPhone'] ?? 'N/A'),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Date', dateString),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Payment Mode', purchaseData['paymentMode'] ?? 'N/A'),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Amount', ' ${(purchaseData['totalAmount'] ?? 0.0).toStringAsFixed(2)}'),
-                  if (purchaseData['notes'] != null && purchaseData['notes'].toString().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildDetailRow('Notes', purchaseData['notes']),
-                  ],
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            '$label:',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
-            ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text('$label:', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
           ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
-            ),
+          Expanded(
+            child: Text(value, style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold)),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
-

@@ -9,13 +9,13 @@ import 'package:maxbillup/utils/translation_helper.dart';
 // CONSTANTS & STYLES
 // ==========================================
 const Color kPrimaryColor = Color(0xFF2196F3);
-const Color kBackgroundColor = Color(0xFFF2F2F7);
+const Color kBackgroundColor = Color(0xFFFFFFFF); // White background like SaleAllPage
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1C1C1E);
 const Color kTextSecondary = Color(0xFF8E8E93);
-const Color kSuccessColor = Color(0xFF34C759);
-const Color kErrorColor = Color(0xFFFF3B30);
-const Color kWarningColor = Color(0xFFFF9500);
+const Color kSuccessColor = Color(0xFF4CAF50);
+const Color kErrorColor = Color(0xFFFF5252);
+const Color kWarningColor = Color(0xFFFF9800);
 const Color kInvitedColor = Color(0xFF8E8E93);
 
 class StaffManagementPage extends StatefulWidget {
@@ -271,12 +271,14 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Staff Management',
-          style: TextStyle(color: Colors.white, fontSize: 18),
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -304,29 +306,27 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       ),
       body: Column(
         children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          // Search Bar - matching SaleAllPage style
+          Container(
+            color: Colors.white,
+            padding: EdgeInsets.fromLTRB(w * 0.04, 12, w * 0.04, 12),
             child: Container(
+              height: 48,
               decoration: BoxDecoration(
-                color: kSurfaceColor,
+                color: const Color(0xFFF5F5F5),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                border: Border.all(color: Colors.grey.shade200),
               ),
               child: TextField(
                 controller: _searchController,
+                textAlignVertical: TextAlignVertical.center,
+                style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  hintStyle: const TextStyle(color: kTextSecondary),
-                  prefixIcon: const Icon(Icons.search, color: kTextSecondary),
+                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 22),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
             ),
@@ -338,7 +338,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               stream: _getStaffStream(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(child: CircularProgressIndicator(color: kPrimaryColor));
                 }
 
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -350,17 +350,25 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   final data = doc.data() as Map<String, dynamic>;
                   final name = (data['name'] ?? '').toString().toLowerCase();
                   final role = (data['role'] ?? '').toString().toLowerCase();
-                  return name.contains(_searchQuery) || role.contains(_searchQuery);
+                  final email = (data['email'] ?? '').toString().toLowerCase();
+                  return name.contains(_searchQuery) || role.contains(_searchQuery) || email.contains(_searchQuery);
                 }).toList();
 
                 if (staffDocs.isEmpty) {
                   return Center(
-                    child: Text('No results for "$_searchQuery"', style: const TextStyle(color: kTextSecondary)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.search_off, size: 48, color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        Text('No results for "$_searchQuery"', style: TextStyle(color: Colors.grey[500])),
+                      ],
+                    ),
                   );
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
+                  padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 80),
                   itemCount: staffDocs.length,
                   physics: const BouncingScrollPhysics(),
                   itemBuilder: (context, index) {
@@ -376,7 +384,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       role: data['role'] ?? 'Staff',
                       isActive: data['isActive'] ?? false,
                       isEmailVerified: data['isEmailVerified'] ?? false,
-                      tempPassword: data['tempPassword'], // Retrieve hidden temp password
+                      tempPassword: data['tempPassword'],
                       permissions: data['permissions'] as Map<String, dynamic>? ?? {},
                     );
                   },
@@ -394,11 +402,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline, size: 64, color: kTextSecondary.withOpacity(0.5)),
+          Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
           const SizedBox(height: 16),
-          const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87)),
           const SizedBox(height: 4),
-          const Text('Invite someone to get started', style: TextStyle(color: kTextSecondary)),
+          Text('Invite someone to get started', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
         ],
       ),
     );
@@ -437,116 +445,130 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => _showStaffDetailsDialog(context, staffId, name, phone, email, role, isActive, permissions),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      radius: 24,
-                      backgroundColor: roleColor.withOpacity(0.1),
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: roleColor),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(role, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: roleColor)),
-                          const SizedBox(height: 4),
-                          Text(email, style: const TextStyle(fontSize: 12, color: kTextSecondary)),
-                        ],
-                      ),
-                    ),
-                    _buildPopupMenu(context, staffId, name, phone, email, isActive, isEmailVerified, permissions, role),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _showStaffDetailsDialog(context, staffId, name, phone, email, role, isActive, permissions),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(statusIcon, size: 16, color: statusColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        statusText,
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: roleColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: roleColor),
+                          ),
+                        ),
                       ),
-                      const Spacer(),
-
-                      // Action Buttons Logic
-                      if (!isActive && isEmailVerified)
-                        SizedBox(
-                          height: 28,
-                          child: ElevatedButton(
-                            onPressed: () => _activateStaff(staffId),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kSuccessColor,
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              elevation: 0,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black87),
                             ),
-                            child: const Text("Add to Store", style: TextStyle(fontSize: 11, color: Colors.white)),
-                          ),
+                            const SizedBox(height: 2),
+                            Text(role, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: roleColor)),
+                            const SizedBox(height: 2),
+                            Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          ],
                         ),
-
-                      if (!isActive && !isEmailVerified)
-                        SizedBox(
-                          height: 28,
-                          child: OutlinedButton.icon(
-                            onPressed: () => _manualCheckVerification(staffId, email, tempPassword),
-                            icon: const Icon(Icons.refresh, size: 12),
-                            label: const Text("Status", style: TextStyle(fontSize: 11)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                            ),
-                          ),
-                        ),
+                      ),
+                      _buildPopupMenu(context, staffId, name, phone, email, isActive, isEmailVerified, permissions, role),
                     ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(statusIcon, size: 16, color: statusColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          statusText,
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor),
+                        ),
+                        const Spacer(),
+
+                        // Action Buttons Logic
+                        if (!isActive && isEmailVerified)
+                          SizedBox(
+                            height: 28,
+                            child: ElevatedButton(
+                              onPressed: () => _activateStaff(staffId),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kSuccessColor,
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                              child: const Text("Add to Store", style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+
+                        if (!isActive && !isEmailVerified)
+                          SizedBox(
+                            height: 28,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _manualCheckVerification(staffId, email, tempPassword),
+                              icon: const Icon(Icons.refresh, size: 12),
+                              label: const Text("Status", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                side: BorderSide(color: kPrimaryColor),
+                                foregroundColor: kPrimaryColor,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      )
+        )
     );
   }
 
   Widget _buildPopupMenu(BuildContext context, String staffId, String name, String phone, String email, bool isActive, bool isVerified, Map<String, dynamic> permissions, String role) {
     return PopupMenuButton<String>(
       padding: EdgeInsets.zero,
-      icon: const Icon(Icons.more_vert, color: kTextSecondary),
+      icon: Icon(Icons.more_vert, color: Colors.grey[600], size: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 3,
+      offset: const Offset(0, 8),
       onSelected: (value) {
         switch (value) {
           case 'edit':
@@ -557,7 +579,15 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             break;
           case 'toggle_active':
             if (!isVerified && !isActive) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff must verify email before activation.")));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text("Staff must verify email before activation."),
+                  backgroundColor: kWarningColor,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  margin: const EdgeInsets.all(16),
+                ),
+              );
             } else {
               _toggleStaffStatus(staffId, !isActive);
             }
@@ -571,58 +601,109 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem(
+        PopupMenuItem(
           value: 'edit',
+          height: 44,
           child: Row(
             children: [
-              Icon(Icons.edit, size: 20, color: kPrimaryColor),
-              SizedBox(width: 12),
-              Text('Edit Details'),
-            ],
-          ),
-        ),
-        const PopupMenuItem(
-          value: 'permissions',
-          child: Row(
-            children: [
-              Icon(Icons.security, size: 20, color: kPrimaryColor),
-              SizedBox(width: 12),
-              Text('Manage Permissions'),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.edit_outlined, size: 16, color: kPrimaryColor),
+              ),
+              const SizedBox(width: 12),
+              const Text('Edit Details', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
         PopupMenuItem(
-          value: 'toggle_active',
+          value: 'permissions',
+          height: 44,
           child: Row(
             children: [
-              Icon(
-                isActive ? Icons.block : Icons.check_circle,
-                color: isActive ? kErrorColor : kSuccessColor,
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.security, size: 16, color: kPrimaryColor),
               ),
               const SizedBox(width: 12),
-              Text(isActive ? 'Deactivate' : 'Approve / Activate'),
+              const Text('Permissions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
             ],
           ),
         ),
-        if (!isVerified)
-          const PopupMenuItem(
+        const PopupMenuDivider(height: 8),
+        PopupMenuItem(
+          value: 'toggle_active',
+          height: 44,
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: (isActive ? kErrorColor : kSuccessColor).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  isActive ? Icons.block : Icons.check_circle_outline,
+                  color: isActive ? kErrorColor : kSuccessColor,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                isActive ? 'Deactivate' : 'Activate',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: isActive ? kErrorColor : kSuccessColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isVerified) ...[
+          const PopupMenuDivider(height: 8),
+          PopupMenuItem(
             value: 'resend_info',
+            height: 44,
             child: Row(
               children: [
-                Icon(Icons.help_outline, size: 20, color: kWarningColor),
-                SizedBox(width: 12),
-                Text('Verification Help'),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: kWarningColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(Icons.help_outline, size: 16, color: kWarningColor),
+                ),
+                const SizedBox(width: 12),
+                const Text('Verification Help', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-        const PopupMenuItem(
+        ],
+        const PopupMenuDivider(height: 8),
+        PopupMenuItem(
           value: 'delete',
+          height: 44,
           child: Row(
             children: [
-              Icon(Icons.delete_outline, color: kErrorColor, size: 20),
-              SizedBox(width: 12),
-              Text('Remove Staff', style: TextStyle(color: kErrorColor)),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: kErrorColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.delete_outline, color: kErrorColor, size: 16),
+              ),
+              const SizedBox(width: 12),
+              const Text('Remove Staff', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kErrorColor)),
             ],
           ),
         ),
@@ -634,6 +715,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
             Icon(Icons.email, color: kWarningColor),
@@ -694,6 +776,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(context.tr('invite_new_staff')),
           content: SingleChildScrollView(
             child: Column(
@@ -718,7 +801,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
-                  decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
+                  decoration: InputDecoration(
+                    labelText: 'Role',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                  ),
                   items: ['Staff', 'Manager', 'Admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
                   onChanged: (v) => setState(() => selectedRole = v!),
                 ),
@@ -729,8 +816,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('cancel'))),
             ElevatedButton(
               onPressed: () => _handleInvite(context, nameController, phoneController, emailController, passwordController, selectedRole),
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: const Text('Send Invite', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Send Invite', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -839,6 +929,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(context.tr('edit_staff_member')),
           content: SingleChildScrollView(
             child: Column(
@@ -846,19 +937,21 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               children: [
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Full Name',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    prefixIcon: const Icon(Icons.person),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                   ),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   value: selectedRole,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Role',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.work),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    prefixIcon: const Icon(Icons.work),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                   ),
                   items: ['Staff', 'Manager', 'Admin'].map((role) {
                     return DropdownMenuItem(value: role, child: Text(role));
@@ -894,8 +987,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   // handle error
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(context.tr('update'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -939,6 +1035,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('Permissions for $staffName'),
           content: SizedBox(
             width: double.maxFinite,
@@ -1026,8 +1123,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -1103,6 +1203,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(context.tr('remove_staff')),
         content: Text('Remove $name? They will not be able to login.'),
         actions: [
@@ -1116,8 +1217,11 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
               if(context.mounted) Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor),
-            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kErrorColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: Text(context.tr('delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1142,6 +1246,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(name),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1192,4 +1297,3 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     };
   }
 }
-

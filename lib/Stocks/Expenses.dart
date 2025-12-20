@@ -6,6 +6,12 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 
+// --- UI CONSTANTS ---
+const Color _primaryColor = Color(0xFF2196F3);
+const Color _errorColor = Color(0xFFFF5252);
+const Color _cardBorder = Color(0xFFE3F2FD);
+const Color _scaffoldBg = Colors.white;
+
 class ExpensesPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -21,13 +27,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  // Optimization: Store the future to prevent re-fetching on every setState
   late Future<Stream<QuerySnapshot>> _expensesStreamFuture;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the stream future once
+    // Optimization: Initialize stream future once
     _expensesStreamFuture = FirestoreService().getCollectionStream('expenses');
 
     _searchController.addListener(() {
@@ -49,6 +54,12 @@ class _ExpensesPageState extends State<ExpensesPage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: _primaryColor),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -60,22 +71,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: Text(context.tr('expenses'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('expenses'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
+        elevation: 0,
       ),
       body: Column(
         children: [
-          // Date Picker and Create New Button
+          // Filter & Add Button Section
           Container(
-            color: Colors.white,
             padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4))
+              ],
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -84,74 +105,72 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        color: _primaryColor.withOpacity(0.04),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _cardBorder),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
+                          const Icon(Icons.calendar_month_outlined, color: _primaryColor, size: 20),
                           const SizedBox(width: 12),
                           Text(
                             DateFormat('dd - MM - yyyy').format(_selectedDate),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.black87,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (context) => CreateExpensePage(
-                            uid: widget.uid,
-                            onBack: () => Navigator.pop(context),
-                          ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) => CreateExpensePage(
+                          uid: widget.uid,
+                          onBack: () => Navigator.pop(context),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'Create New',
-                      style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ),
+                    );
+                  },
+                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                  label: const Text(
+                    'New',
+                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Search Bar (Optional addition based on your controller usage)
-          if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          // Search Bar Section
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _cardBorder),
+              ),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  prefixIcon: const Icon(Icons.search),
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  prefixIcon: const Icon(Icons.search, color: _primaryColor),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
+          ),
 
           // List of Expenses
           Expanded(
@@ -174,19 +193,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     }
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(
-                              'No expenses found',
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildEmptyState();
                     }
 
                     final expenses = snapshot.data!.docs.where((doc) {
@@ -216,23 +223,32 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         final amount = (data['amount'] ?? 0.0) as num;
                         final timestamp = data['timestamp'] as Timestamp?;
                         final date = timestamp?.toDate();
-                        final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+                        final dateString =
+                        date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: _cardBorder),
                             boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 5,
-                                offset: const Offset(0, 2),
-                              ),
+                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
                             ],
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.all(16),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                CupertinoPageRoute(
+                                  builder: (context) => ExpenseDetailsPage(
+                                    expenseId: expenses[index].id,
+                                    expenseData: data,
+                                  ),
+                                ),
+                              );
+                            },
                             title: Text(
                               title,
                               style: const TextStyle(
@@ -245,42 +261,34 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 8),
-                                Text(
-                                  'Category: $category',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.black54,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                      color: _primaryColor.withOpacity(0.05),
+                                      borderRadius: BorderRadius.circular(6)),
+                                  child: Text(
+                                    category,
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        color: _primaryColor,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   dateString,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
+                                  style: const TextStyle(fontSize: 12, color: Colors.grey),
                                 ),
                               ],
                             ),
                             trailing: Text(
-                              ' ${amount.toStringAsFixed(2)}',
+                              '₹${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFFEF4444),
+                                color: _errorColor,
                               ),
                             ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => ExpenseDetailsPage(
-                                    expenseId: expenses[index].id,
-                                    expenseData: data,
-                                  ),
-                                ),
-                              );
-                            },
                           ),
                         );
                       },
@@ -289,6 +297,22 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
+          const SizedBox(height: 16),
+          const Text(
+            'No expenses found',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
           ),
         ],
       ),
@@ -326,7 +350,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   Future<void> _loadCategories() async {
     try {
       final stream = await FirestoreService().getCollectionStream('expenseCategories');
-      // We only take the first snapshot to populate the list initially
       final snapshot = await stream.first;
 
       if (mounted) {
@@ -337,12 +360,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
             return (data['name'] ?? 'General').toString();
           })
               .toList();
-          if (_categories.isEmpty) {
-            _categories = ['General'];
-          }
-          if (!_categories.contains(_selectedCategory)) {
-            _selectedCategory = _categories.first;
-          }
+          if (_categories.isEmpty) _categories = ['General'];
+          if (!_categories.contains(_selectedCategory)) _selectedCategory = _categories.first;
         });
       }
     } catch (e) {
@@ -364,6 +383,12 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
+      builder: (context, child) => Theme(
+        data: ThemeData.light().copyWith(
+          colorScheme: const ColorScheme.light(primary: _primaryColor),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
@@ -380,15 +405,12 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final amount = double.parse(_amountController.text);
       final referenceNumber = 'EXP${DateTime.now().millisecondsSinceEpoch}';
 
-      // Save the expense
       await FirestoreService().addDocument('expenses', {
         'title': _titleController.text,
         'amount': amount,
@@ -400,7 +422,6 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         'referenceNumber': referenceNumber,
       });
 
-      // If payment mode is Credit, create an expense credit note
       if (_paymentMode == 'Credit') {
         final creditNoteNumber = await NumberGeneratorService.generateExpenseCreditNoteNumber();
 
@@ -424,11 +445,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                _paymentMode == 'Credit'
-                    ? 'Expense saved and credit note created'
-                    : 'Expense saved successfully'
-            ),
+            content: Text(_paymentMode == 'Credit'
+                ? 'Expense saved and credit note created'
+                : 'Expense saved successfully'),
           ),
         );
         widget.onBack();
@@ -440,83 +459,64 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(context.tr('new_expense'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('new_expense'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack,
         ),
         centerTitle: true,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField('Expense Title *', _titleController),
+            _buildInputField('Expense Title *', _titleController, Icons.title_outlined),
             const SizedBox(height: 16),
-            _buildTextField('Amount *', _amountController, keyboardType: TextInputType.number),
+            _buildInputField('Amount *', _amountController, Icons.currency_rupee,
+                keyboardType: TextInputType.number),
             const SizedBox(height: 16),
-
-            // Category Dropdown
-            const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+            _buildDropdownContainer(
               child: DropdownButton<String>(
                 value: _selectedCategory,
                 isExpanded: true,
                 underline: const SizedBox(),
                 items: _categories.map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
                 }).toList(),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _selectedCategory = newValue;
-                    });
-                  }
+                  if (newValue != null) setState(() => _selectedCategory = newValue);
                 },
               ),
             ),
             const SizedBox(height: 16),
-
-            // Date Picker
-            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             GestureDetector(
               onTap: () => _selectDate(context),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey.shade300),
+                  color: _primaryColor.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.calendar_today, color: Color(0xFF2196F3), size: 20),
+                    const Icon(Icons.calendar_today_outlined, color: _primaryColor, size: 18),
                     const SizedBox(width: 12),
                     Text(
                       DateFormat('dd MMM yyyy').format(_selectedDate),
@@ -527,62 +527,38 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Payment Mode
-            const Text('Payment Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            const Text('Payment Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+            _buildDropdownContainer(
               child: DropdownButton<String>(
                 value: _paymentMode,
                 isExpanded: true,
                 underline: const SizedBox(),
                 items: ['Cash', 'Credit', 'UPI', 'Card'].map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
+                  return DropdownMenuItem<String>(value: value, child: Text(value));
                 }).toList(),
                 onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      _paymentMode = newValue;
-                    });
-                  }
+                  if (newValue != null) setState(() => _paymentMode = newValue);
                 },
               ),
             ),
             const SizedBox(height: 16),
-
-            _buildTextField('Notes', _notesController, maxLines: 3),
-            const SizedBox(height: 24),
-
-            // Save Button
+            _buildInputField('Notes', _notesController, Icons.notes_outlined, lines: 3),
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveExpense,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  backgroundColor: _primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: _isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                )
+                    ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   'Save Expense',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -592,54 +568,45 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     );
   }
 
-  Widget _buildTextField(
-      String label,
-      TextEditingController controller, {
-        TextInputType keyboardType = TextInputType.text,
-        int maxLines = 1,
-      }) {
+  Widget _buildInputField(String label, TextEditingController ctrl, IconData icon,
+      {TextInputType keyboardType = TextInputType.text, int lines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         TextField(
-          controller: controller,
+          controller: ctrl,
+          maxLines: lines,
           keyboardType: keyboardType,
-          maxLines: maxLines,
           decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: _primaryColor, size: 20),
             filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2196F3)),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            fillColor: _primaryColor.withOpacity(0.04),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           ),
         ),
       ],
     );
   }
+
+  Widget _buildDropdownContainer({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: _primaryColor.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: child,
+    );
+  }
 }
 
-// Expense Details Page
 class ExpenseDetailsPage extends StatelessWidget {
   final String expenseId;
   final Map<String, dynamic> expenseData;
 
-  const ExpenseDetailsPage({
-    super.key,
-    required this.expenseId,
-    required this.expenseData,
-  });
+  const ExpenseDetailsPage({super.key, required this.expenseId, required this.expenseData});
 
   @override
   Widget build(BuildContext context) {
@@ -648,82 +615,80 @@ class ExpenseDetailsPage extends StatelessWidget {
     final dateString = date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: Text(context.tr('expense_details'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        title: Text(context.tr('expense_details'),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
+        elevation: 0,
       ),
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: _cardBorder),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                expenseData['title'] ?? 'Expense',
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              const Divider(height: 32, color: _cardBorder),
+              _buildDetailRow('Category', expenseData['category'] ?? 'Uncategorized'),
+              _buildDetailRow('Date', dateString),
+              _buildDetailRow('Payment Mode', expenseData['paymentMode'] ?? 'Cash'),
+              if (expenseData['notes'] != null && expenseData['notes'].toString().isNotEmpty)
+                _buildDetailRow('Notes', expenseData['notes']),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    expenseData['title'] ?? 'Expense',
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2196F3),
-                    ),
+                    "₹${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}",
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _errorColor),
                   ),
-                  const SizedBox(height: 16),
-                  _buildDetailRow('Category', expenseData['category'] ?? 'Uncategorized'),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Date', dateString),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Payment Mode', expenseData['paymentMode'] ?? 'Cash'),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('Amount', ' ${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}'),
-                  if (expenseData['notes'] != null && expenseData['notes'].toString().isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    _buildDetailRow('Notes', expenseData['notes']),
-                  ],
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 120,
-          child: Text(
-            '$label:',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontWeight: FontWeight.w500,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
             ),
           ),
-        ),
-        Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

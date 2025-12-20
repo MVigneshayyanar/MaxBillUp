@@ -1,22 +1,30 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:maxbillup/models/cart_item.dart';
 import 'package:intl/intl.dart';
-import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart' show Color;
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
+
+// Project specific imports
+import 'package:maxbillup/Sales/NewSale.dart';
+import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
-// local primary color used in this file
-const Color _primaryColor = Color(0xFF2196F3);
+// Updated UI Color Palette
+const Color _primaryColor = Color(0xFF2196F3);     // Professional Blue
+const Color _successColor = Color(0xFF4CAF50);     // Emerald Green
+const Color _warningColor = Color(0xFFF59E0B);     // Amber Orange
+const Color _dangerColor = Color(0xFFEF4444);      // Rose Red
+const Color _secondaryColor = Color(0xFF64748B);   // Slate Grey
+const Color _backgroundColor = Color(0xFFF8FAFC);
+const Color _cardBorder = Color(0xFFE2E8F0);
 
 class QuotationPreviewPage extends StatefulWidget {
   final String uid;
@@ -29,7 +37,7 @@ class QuotationPreviewPage extends StatefulWidget {
   final String? customerName;
   final String? customerPhone;
   final String? staffName;
-  final String? quotationDocId; // store doc id of the created quotation
+  final String? quotationDocId;
 
   const QuotationPreviewPage({
     super.key,
@@ -57,32 +65,64 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
   String businessPhone = '';
   String? businessGSTIN;
 
+  // Customer details from backend
+  String? customerName;
+  String? customerPhone;
+  String? customerGSTIN;
+
   @override
   void initState() {
     super.initState();
-    _loadBusinessData();
+    _loadBusinessAndCustomerData();
   }
 
-  Future<void> _loadBusinessData() async {
+  Future<void> _loadBusinessAndCustomerData() async {
+    // Fetch store details
     final storeDoc = await FirestoreService().getCurrentStoreDoc();
     if (storeDoc != null && storeDoc.exists) {
       final data = storeDoc.data() as Map<String, dynamic>?;
-      setState(() {
-        businessName = data?['businessName'] ?? 'Business';
-        businessLocation = data?['businessAddress'] ?? 'Location';
-        businessPhone = data?['businessPhone'] ?? '';
-        businessGSTIN = data?['gstin'];
-        _isLoading = false;
-      });
+      businessName = data?['businessName'] ?? 'Business';
+      businessLocation = data?['businessAddress'] ?? 'Location';
+      businessPhone = data?['businessPhone'] ?? '';
+      businessGSTIN = data?['gstin'];
     } else {
-      setState(() {
-        businessName = 'Business';
-        businessLocation = 'Location';
-        businessPhone = '';
-        businessGSTIN = null;
-        _isLoading = false;
-      });
+      businessName = 'Business';
+      businessLocation = 'Location';
+      businessPhone = '';
+      businessGSTIN = null;
     }
+
+    // Fetch customer details from backend if customerId is available
+    String? customerId = null;
+    // Try to get customerId from widget.items or widget.quotationDocId if possible
+    if (widget.quotationDocId != null) {
+      // Try to fetch quotation doc and get customerId
+      final quotationSnap = await FirebaseFirestore.instance.collection('quotations').doc(widget.quotationDocId).get();
+      if (quotationSnap.exists) {
+        final qData = quotationSnap.data();
+        customerId = qData?['customerId'] ?? qData?['customerID'] ?? qData?['customer_id'];
+        if (qData?['customerName'] != null) customerName = qData?['customerName'];
+        if (qData?['customerPhone'] != null) customerPhone = qData?['customerPhone'];
+        if (qData?['customerGSTIN'] != null) customerGSTIN = qData?['customerGSTIN'];
+      }
+    }
+    if (customerId != null) {
+      final customerSnap = await FirebaseFirestore.instance.collection('customers').doc(customerId).get();
+      if (customerSnap.exists) {
+        final cData = customerSnap.data();
+        customerName = cData?['name'] ?? customerName;
+        customerPhone = cData?['phone'] ?? customerPhone;
+        customerGSTIN = cData?['gstin'] ?? customerGSTIN;
+      }
+    } else {
+      // fallback to widget values
+      customerName = widget.customerName;
+      customerPhone = widget.customerPhone;
+      customerGSTIN = null;
+    }
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _handleShare(BuildContext context) async {
@@ -97,9 +137,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(color: _primaryColor),
                   SizedBox(height: 16),
-                  Text('Generating PDF...', style: TextStyle(fontSize: 16)),
+                  Text('Generating PDF...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -108,6 +148,13 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
       );
       final pdf = pw.Document();
       final now = DateTime.now();
+
+      // Define PDF Colors to match UI
+      const pdfPrimary = PdfColor.fromInt(0xFF2196F3);
+      const pdfSuccess = PdfColor.fromInt(0xFF10B981);
+      const pdfWarning = PdfColor.fromInt(0xFFF59E0B);
+      const pdfDanger = PdfColor.fromInt(0xFFEF4444);
+
       pdf.addPage(
         pw.Page(
           pageFormat: PdfPageFormat.a4,
@@ -116,116 +163,163 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
             return pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
+                // Header Container
                 pw.Container(
                   padding: const pw.EdgeInsets.all(16),
                   decoration: pw.BoxDecoration(
-                    color: PdfColors.blue,
+                    color: pdfPrimary,
                     borderRadius: pw.BorderRadius.circular(8),
                   ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text(businessName.toUpperCase(), style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
-                      pw.SizedBox(height: 4),
-                      pw.Text(businessLocation, style: const pw.TextStyle(fontSize: 12, color: PdfColors.white)),
-                      pw.Text('Phone: $businessPhone', style: const pw.TextStyle(fontSize: 12, color: PdfColors.white)),
-                      if (businessGSTIN != null) pw.Text('GSTIN: $businessGSTIN', style: const pw.TextStyle(fontSize: 12, color: PdfColors.white)),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(businessName.toUpperCase(), style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                          pw.SizedBox(height: 4),
+                          pw.Text(businessLocation, style: const pw.TextStyle(fontSize: 10, color: PdfColors.white)),
+                          pw.Text('Phone: $businessPhone', style: const pw.TextStyle(fontSize: 10, color: PdfColors.white)),
+                          if (businessGSTIN != null) pw.Text('GSTIN: $businessGSTIN', style: const pw.TextStyle(fontSize: 10, color: PdfColors.white)),
+                        ],
+                      ),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: pw.BoxDecoration(
+                          color: PdfColors.white,
+                          borderRadius: pw.BorderRadius.circular(4),
+                        ),
+                        child: pw.Text("QUOTATION", style: pw.TextStyle(color: pdfSuccess, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      ),
                     ],
                   ),
                 ),
-                pw.SizedBox(height: 20),
+                pw.SizedBox(height: 24),
+
+                // Quote Info Row
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('QUOTATION', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.blue)),
-                        pw.SizedBox(height: 4),
-                        pw.Text('QTN-${widget.quotationNumber}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Quotation Number', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                        pw.Text('QTN-${widget.quotationNumber}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: pdfPrimary)),
                       ],
                     ),
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        pw.Text('Date', style: const pw.TextStyle(fontSize: 12, color: PdfColors.grey700)),
-                        pw.Text(DateFormat('dd-MM-yyyy').format(now), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                        pw.Text(DateFormat('hh:mm a').format(now), style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                        pw.Text('Date & Time', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                        pw.Text(DateFormat('dd-MM-yyyy hh:mm a').format(now), style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
                       ],
                     ),
                   ],
                 ),
                 pw.SizedBox(height: 20),
-                if (widget.customerName != null || widget.customerPhone != null) ...[
+
+                // Bill To Container (Amber Accent)
+                if (customerName != null || customerPhone != null) ...[
                   pw.Container(
+                    width: double.infinity,
                     padding: const pw.EdgeInsets.all(12),
                     decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey400),
+                      // Using hex with alpha channel for transparency (0x33 is ~20%, 0x0D is ~5%)
+                      border: pw.Border.all(color: const PdfColor.fromInt(0x33F59E0B)),
+                      color: const PdfColor.fromInt(0x0DF59E0B),
                       borderRadius: pw.BorderRadius.circular(8),
                     ),
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.Text('BILL TO', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blue)),
+                        pw.Text('BILL TO', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: pdfWarning)),
                         pw.SizedBox(height: 4),
-                        if (widget.customerName != null) pw.Text(widget.customerName!, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                        if (widget.customerPhone != null) pw.Text('Phone: ${widget.customerPhone}', style: const pw.TextStyle(fontSize: 12)),
+                        if (customerName != null) pw.Text(customerName!, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+                        if (customerPhone != null) pw.Text('Phone: ${customerPhone}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey800)),
                       ],
                     ),
                   ),
                   pw.SizedBox(height: 20),
                 ],
+
+                // Table
                 pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey400),
+                  border: pw.TableBorder(
+                    horizontalInside: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                    bottom: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                  ),
                   children: [
                     pw.TableRow(
-                      decoration: const pw.BoxDecoration(color: PdfColors.blue100),
+                      decoration: const pw.BoxDecoration(color: PdfColors.grey100),
                       children: [
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Item', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Qty', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.center)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Rate', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Amount', style: pw.TextStyle(fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Item Description', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: pdfPrimary))),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Qty', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: pdfPrimary), textAlign: pw.TextAlign.center)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Rate', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: pdfPrimary), textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('Amount', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: pdfPrimary), textAlign: pw.TextAlign.right)),
                       ],
                     ),
                     ...widget.items.map((item) => pw.TableRow(
                       children: [
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(item.name)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('${item.quantity}', textAlign: pw.TextAlign.center)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(' ${item.price.toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
-                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(' ${item.total.toStringAsFixed(2)}', textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(item.name, style: const pw.TextStyle(fontSize: 10))),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text('${item.quantity}', style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.center)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(item.price.toStringAsFixed(2), style: const pw.TextStyle(fontSize: 10), textAlign: pw.TextAlign.right)),
+                        pw.Padding(padding: const pw.EdgeInsets.all(8), child: pw.Text(item.total.toStringAsFixed(2), style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right)),
                       ],
                     )),
                   ],
                 ),
-                pw.SizedBox(height: 20),
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey200,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Column(
-                    children: [
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Subtotal'), pw.Text(' ${widget.subtotal.toStringAsFixed(2)}')]),
-                      if (widget.discount > 0) ...[
-                        pw.SizedBox(height: 4),
-                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [pw.Text('Discount'), pw.Text('- ${widget.discount.toStringAsFixed(2)}', style: const pw.TextStyle(color: PdfColors.red))]),
-                      ],
-                      pw.Divider(thickness: 2),
-                      pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-                        pw.Text('TOTAL', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                        pw.Text(' ${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                      ]),
-                    ],
-                  ),
+                pw.SizedBox(height: 24),
+
+                // Summary Column
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.end,
+                  children: [
+                    pw.Container(
+                      width: 200,
+                      child: pw.Column(
+                        children: [
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('Subtotal:', style: const pw.TextStyle(fontSize: 10)),
+                              pw.Text('Rs ${widget.subtotal.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                            ],
+                          ),
+                          if (widget.discount > 0) ...[
+                            pw.SizedBox(height: 4),
+                            pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text('Discount:', style: pw.TextStyle(fontSize: 10, color: pdfDanger)),
+                                pw.Text('- Rs ${widget.discount.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, color: pdfDanger)),
+                              ],
+                            ),
+                          ],
+                          pw.SizedBox(height: 8),
+                          pw.Divider(color: PdfColors.grey400),
+                          pw.SizedBox(height: 4),
+                          pw.Row(
+                            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                            children: [
+                              pw.Text('GRAND TOTAL:', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                              pw.Text('Rs ${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: pdfSuccess)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+
                 pw.Spacer(),
+                pw.Divider(color: PdfColors.grey300),
+                pw.SizedBox(height: 10),
                 pw.Center(
                   child: pw.Column(
                     children: [
-                      pw.Text('Thank You For Your Business!', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: PdfColors.blue)),
+                      pw.Text('THANK YOU FOR YOUR BUSINESS!', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: pdfPrimary)),
                       pw.SizedBox(height: 4),
-                      pw.Text('We appreciate your trust and look forward to serving you again', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                      pw.Text('This is a computer-generated quotation.', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
                     ],
                   ),
                 ),
@@ -252,10 +346,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
             title: Text(context.tr('share_error')),
             content: Text('Failed to share quotation: ${e.toString()}'),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(context.tr('ok')),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('ok'))),
             ],
           ),
         );
@@ -275,9 +366,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
+                  CircularProgressIndicator(color: _warningColor),
                   SizedBox(height: 16),
-                  Text('Printing...', style: TextStyle(fontSize: 16)),
+                  Text('Printing...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -294,10 +385,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
             title: Text(context.tr('no_printer_selected')),
             content: const Text('Please select a printer from Settings > Printer Setup before printing.'),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(context.tr('ok')),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('ok'))),
             ],
           ),
         );
@@ -305,7 +393,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
       }
       final devices = await FlutterBluePlus.bondedDevices;
       final device = devices.firstWhere(
-        (d) => d.remoteId.toString() == selectedPrinterId,
+            (d) => d.remoteId.toString() == selectedPrinterId,
         orElse: () => throw Exception('Printer not found. Please reconnect in Settings.'),
       );
       if (device.isConnected == false) {
@@ -313,7 +401,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           await device.connect(timeout: const Duration(seconds: 10));
           await Future.delayed(const Duration(milliseconds: 500));
         } catch (e) {
-          throw Exception('Failed to connect to printer. Please make sure:\n1. Printer is turned on\n2. Printer is not connected to another device\n3. Bluetooth is enabled\nError: $e');
+          throw Exception('Failed to connect to printer.');
         }
       }
       List<int> bytes = [];
@@ -341,54 +429,20 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
       final dateLine = DateFormat('dd/MM/yy hh:mm a').format(DateTime.now());
       bytes.addAll(utf8.encode(invoiceLine.padRight(16) + dateLine));
       bytes.add(lf);
-      bytes.addAll(utf8.encode('Cust: ${widget.customerName ?? "Walk-in"}'));
-      bytes.add(lf);
-      if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
-        bytes.addAll(utf8.encode('Ph: ${widget.customerPhone}'));
-        bytes.add(lf);
-      }
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-      bytes.addAll([esc, 0x21, 0x08]);
-      bytes.addAll(utf8.encode('Item      Qty  Rate    Amount'));
+      bytes.addAll(utf8.encode('Cust: ${customerName ?? "Walk-in"}'));
       bytes.add(lf);
       bytes.addAll(utf8.encode('--------------------------------'));
       bytes.add(lf);
-      bytes.addAll([esc, 0x21, 0x00]);
       for (var item in widget.items) {
-        final itemName = item.name;
-        final quantity = item.quantity;
-        final price = item.price;
-        final amount = item.total;
-        bytes.addAll(utf8.encode(itemName.length > 32 ? itemName.substring(0, 32) : itemName));
+        bytes.addAll(utf8.encode(item.name));
         bytes.add(lf);
-        final qtyStr = '$quantity'.padLeft(3);
-        final priceStr = price.toStringAsFixed(2).padLeft(7);
-        final amountStr = amount.toStringAsFixed(2).padLeft(9);
-        bytes.addAll(utf8.encode('          $qtyStr  $priceStr $amountStr'));
-        bytes.add(lf);
-      }
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-      bytes.addAll(utf8.encode('Subtotal:'.padRight(20) + widget.subtotal.toStringAsFixed(2).padLeft(12)));
-      bytes.add(lf);
-      if (widget.discount > 0) {
-        bytes.addAll(utf8.encode('Discount:'.padRight(20) + ('-' + widget.discount.toStringAsFixed(2)).padLeft(12)));
+        bytes.addAll(utf8.encode('         ${item.quantity}  ${item.price.toStringAsFixed(2)}  ${item.total.toStringAsFixed(2)}'));
         bytes.add(lf);
       }
       bytes.addAll(utf8.encode('--------------------------------'));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x30]);
-      bytes.addAll(utf8.encode('TOTAL:'.padRight(15) + widget.total.toStringAsFixed(2).padLeft(17)));
-      bytes.add(lf);
-      bytes.addAll([esc, 0x21, 0x00]);
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-      bytes.addAll([esc, 0x61, 0x01]);
-      bytes.addAll([esc, 0x21, 0x08]);
-      bytes.addAll(utf8.encode('Thank You! Visit Again'));
-      bytes.add(lf);
-      bytes.add(lf);
+      bytes.addAll(utf8.encode('TOTAL: ${widget.total.toStringAsFixed(2)}'));
       bytes.add(lf);
       bytes.addAll([gs, 0x56, 0x00]);
       final services = await device.discoverServices();
@@ -410,16 +464,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           await Future.delayed(const Duration(milliseconds: 20));
         }
       }
-      try {
-        if (device.isConnected) {
-          await device.disconnect();
-        }
-      } catch (e) {}
       Navigator.pop(context);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quotation printed successfully!'), backgroundColor: Color(0xFF4CAF50)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quotation printed successfully!'), backgroundColor: _successColor));
       }
     } catch (e) {
       Navigator.pop(context);
@@ -428,12 +475,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           context: context,
           builder: (context) => AlertDialog(
             title: Text(context.tr('print_error')),
-            content: Text('Failed to print quotation: ${e.toString()}'),
+            content: Text('Failed to print: ${e.toString()}'),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(context.tr('ok')),
-              ),
+              TextButton(onPressed: () => Navigator.pop(context), child: Text(context.tr('ok'))),
             ],
           ),
         );
@@ -443,518 +487,330 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    final now = DateTime.now();
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF5F5F5),
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(backgroundColor: _backgroundColor, body: Center(child: CircularProgressIndicator()));
     }
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                child: Container(
-                  margin: EdgeInsets.all(screenWidth * 0.04),
-                  padding: EdgeInsets.all(screenWidth * 0.05),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header Section
-                      Container(
-                        padding: EdgeInsets.all(screenWidth * 0.04),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF2196F3), Color(0xFF1976D2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: _backgroundColor,
+      appBar: AppBar(
+        backgroundColor: _primaryColor,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Quotation Preview', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // 1. Quotation Meta (No & Date) with Status Badge
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              businessName.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.055,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                letterSpacing: 1.2,
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Quotation No", style: TextStyle(color: _secondaryColor, fontSize: 11, fontWeight: FontWeight.w500)),
+                                Text("QTN-${widget.quotationNumber}", style: const TextStyle(color: _primaryColor, fontSize: 15, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            // Small Green Status Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _successColor.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _successColor.withOpacity(0.2)),
                               ),
-                            ),
-                            SizedBox(height: screenHeight * 0.01),
-                            Row(
-                              children: [
-                                Icon(Icons.location_on, color: Colors.white70, size: screenWidth * 0.04),
-                                SizedBox(width: screenWidth * 0.02),
-                                Expanded(
-                                  child: Text(
-                                    businessLocation,
-                                    style: TextStyle(
-                                      fontSize: screenWidth * 0.035,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: screenHeight * 0.005),
-                            Row(
-                              children: [
-                                Icon(Icons.phone, color: Colors.white70, size: screenWidth * 0.04),
-                                SizedBox(width: screenWidth * 0.02),
-                                Text(
-                                  businessPhone,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.035,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (businessGSTIN != null) ...[
-                              SizedBox(height: screenHeight * 0.005),
-                              Row(
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.account_balance, color: Colors.white70, size: screenWidth * 0.04),
-                                  SizedBox(width: screenWidth * 0.02),
-                                  Text(
-                                    'GSTIN: $businessGSTIN',
-                                    style: TextStyle(
-                                      fontSize: screenWidth * 0.035,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
+                                  Icon(Icons.check_circle, size: 12, color: _successColor),
+                                  SizedBox(width: 4),
+                                  Text("GENERATED", style: TextStyle(color: _successColor, fontSize: 10, fontWeight: FontWeight.bold)),
                                 ],
                               ),
-                            ],
+                            ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: screenHeight * 0.025),
-                      // Quotation Title and Details
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'QUOTATION',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.055,
-                                  fontWeight: FontWeight.w900,
-                                  color: const Color(0xFF2196F3),
-                                  letterSpacing: 1.5,
-                                ),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: _cardBorder)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Date", style: TextStyle(color: _secondaryColor, fontSize: 12)),
+                            Text(DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now()), style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ],
+                        )
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 2. Business & Customer Info with Colored Icons
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Business From (Green Accent)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: _successColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.storefront_rounded, size: 20, color: _successColor),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("FROM", style: TextStyle(color: _successColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                                  const SizedBox(height: 4),
+                                  Text(businessName, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  Text(businessLocation, style: const TextStyle(color: _secondaryColor, fontSize: 12)),
+                                  if(businessGSTIN != null) Text("GSTIN: $businessGSTIN", style: const TextStyle(color: _secondaryColor, fontSize: 11, fontWeight: FontWeight.w500)),
+                                ],
                               ),
-                              SizedBox(height: screenHeight * 0.008),
-                              Text(
-                                'QTN-${widget.quotationNumber}',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.038,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
-                                ),
+                            ),
+                          ],
+                        ),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1, color: _cardBorder, indent: 40)),
+                        // Customer To (Orange Accent)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(color: _warningColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: const Icon(Icons.person_pin_rounded, size: 20, color: _warningColor),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text("BILL TO", style: TextStyle(color: _warningColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                                  const SizedBox(height: 4),
+                                  Text(customerName ?? "Walk-in Customer", style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 15)),
+                                  if(customerPhone != null) Text(customerPhone!, style: const TextStyle(color: _secondaryColor, fontSize: 12)),
+                                ],
                               ),
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Date',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.032,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              SizedBox(height: screenHeight * 0.008),
-                              Text(
-                                DateFormat('dd-MM-yyyy').format(now),
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.035,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              SizedBox(height: screenHeight * 0.006),
-                              Text(
-                                DateFormat('hh:mm a').format(now),
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.035,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: screenHeight * 0.02),
-                      // Customer Details
-                      if (widget.customerName != null || widget.customerPhone != null) ...[
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Items Table
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: Column(
+                      children: [
                         Container(
-                          padding: EdgeInsets.all(screenWidth * 0.04),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F5F5),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.grey[300]!),
+                            color: _primaryColor.withOpacity(0.04),
+                            borderRadius: const BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
+                            border: const Border(bottom: BorderSide(color: _cardBorder)),
+                          ),
+                          child: const Row(
+                            children: [
+                              Expanded(flex: 4, child: Text("ITEM", style: TextStyle(color: _primaryColor, fontSize: 10, fontWeight: FontWeight.w900))),
+                              Expanded(flex: 1, child: Text("QTY", textAlign: TextAlign.center, style: TextStyle(color: _primaryColor, fontSize: 10, fontWeight: FontWeight.w900))),
+                              Expanded(flex: 2, child: Text("AMOUNT", textAlign: TextAlign.right, style: TextStyle(color: _primaryColor, fontSize: 10, fontWeight: FontWeight.w900))),
+                            ],
+                          ),
+                        ),
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: widget.items.length,
+                          separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                          itemBuilder: (context, index) {
+                            final item = widget.items[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                      flex: 4,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(item.name, style: const TextStyle(color: Colors.black87, fontSize: 13, fontWeight: FontWeight.w600)),
+                                          Text("Rate: ${item.price.toStringAsFixed(2)}", style: const TextStyle(color: _secondaryColor, fontSize: 11)),
+                                        ],
+                                      )
+                                  ),
+                                  Expanded(flex: 1, child: Text("${item.quantity}", textAlign: TextAlign.center, style: const TextStyle(color: Colors.black87, fontSize: 13))),
+                                  Expanded(flex: 2, child: Text(item.total.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold))),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        // Totals Section
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFFDFDFD),
+                            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(16), bottomRight: Radius.circular(16)),
+                            border: Border(top: BorderSide(color: _cardBorder)),
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'BILL TO',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.035,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF2196F3),
-                                  letterSpacing: 1,
-                                ),
-                              ),
-                              SizedBox(height: screenHeight * 0.01),
-                              if (widget.customerName != null)
-                                Text(
-                                  widget.customerName!,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.042,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              if (widget.customerPhone != null)
-                                Text(
-                                  'Phone: ${widget.customerPhone}',
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.035,
-                                    color: Colors.grey[700],
-                                  ),
-                                ),
+                              _summaryRow("Subtotal", widget.subtotal),
+                              if (widget.discount > 0) ...[
+                                const SizedBox(height: 8),
+                                _summaryRow("Discount Applied", -widget.discount, color: _dangerColor),
+                              ],
+                              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: _cardBorder)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text("Grand Total", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w900, fontSize: 16)),
+                                  // Grand Total in Green to signal revenue/success
+                                  Text("Rs ${widget.total.toStringAsFixed(2)}", style: const TextStyle(color: _successColor, fontWeight: FontWeight.w900, fontSize: 22)),
+                                ],
+                              )
                             ],
                           ),
-                        ),
-                        SizedBox(height: screenHeight * 0.02),
+                        )
                       ],
-                      Divider(thickness: 1.5, color: Colors.grey[300]),
-                      SizedBox(height: screenHeight * 0.015),
-                      // Table Header
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: screenHeight * 0.012, horizontal: screenWidth * 0.02),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE3F2FD),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 4,
-                              child: Text(
-                                'Item',
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.038,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1976D2),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'Qty',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.038,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1976D2),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Rate',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.038,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1976D2),
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Amount',
-                                textAlign: TextAlign.right,
-                                style: TextStyle(
-                                  fontSize: screenWidth * 0.038,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1976D2),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.01),
-                      // Items List
-                      ...widget.items.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-                        return Container(
-                          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.012, horizontal: screenWidth * 0.02),
-                          decoration: BoxDecoration(
-                            color: index % 2 == 0 ? Colors.white : const Color(0xFFFAFAFA),
-                            border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                flex: 4,
-                                child: Text(
-                                  item.name,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.038,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 1,
-                                child: Text(
-                                  item.quantity.toString(),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.038,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  ' ${item.price.toStringAsFixed(2)}',
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.038,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  ' ${item.total.toStringAsFixed(2)}',
-                                  textAlign: TextAlign.right,
-                                  style: TextStyle(
-                                    fontSize: screenWidth * 0.038,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                      SizedBox(height: screenHeight * 0.02),
-                      // Summary Section
-                      Container(
-                        padding: EdgeInsets.all(screenWidth * 0.04),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey[300]!),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildSummaryRow('Subtotal', widget.subtotal, screenWidth, isBold: false),
-                            if (widget.discount > 0) ...[
-                              SizedBox(height: screenHeight * 0.008),
-                              _buildSummaryRow('Discount', -widget.discount, screenWidth, isBold: false, isDiscount: true),
-                            ],
-                            SizedBox(height: screenHeight * 0.015),
-                            Divider(thickness: 1.5, color: Colors.grey[400]),
-                            SizedBox(height: screenHeight * 0.01),
-                            _buildSummaryRow('Total Amount', widget.total, screenWidth, isBold: true, isTotal: true),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: screenHeight * 0.025),
-                      // Footer Message
-                      Center(
-                        child: Column(
-                          children: [
-                            Text(
-                              'Thank You For Your Business!',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.042,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF2196F3),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: screenHeight * 0.008),
-                            Text(
-                              'We appreciate your trust and look forward to serving you again',
-                              style: TextStyle(
-                                fontSize: screenWidth * 0.032,
-                                fontStyle: FontStyle.italic,
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 32),
+                  const Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.verified_user_outlined, color: _successColor, size: 24),
+                        SizedBox(height: 8),
+                        Text(
+                          'Thank You For Your Business!',
+                          style: TextStyle(fontWeight: FontWeight.bold, color: _primaryColor, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
             ),
-            // Bottom Action Buttons
-            _buildActionBar(context, screenWidth),
+          ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildActionBtn(
+                onPressed: () => _handlePrint(context),
+                icon: Icons.print_rounded,
+                label: "Print",
+                accentColor: _warningColor, // Orange for printing
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildActionBtn(
+                onPressed: () => _handleShare(context),
+                icon: Icons.ios_share_rounded,
+                label: "Share",
+                accentColor: _primaryColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    CupertinoPageRoute(builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail)),
+                        (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: _successColor, // Green for New Sale
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text("New Sale", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, double screenWidth, {bool isBold = false, bool isTotal = false, bool isDiscount = false}) {
+  Widget _buildActionBtn({required VoidCallback onPressed, required IconData icon, required String label, required Color accentColor}) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        side: BorderSide(color: accentColor.withOpacity(0.3), width: 1.5),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        foregroundColor: accentColor,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, double amount, {Color color = Colors.black87}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        Text(label, style: const TextStyle(color: _secondaryColor, fontWeight: FontWeight.w500, fontSize: 14)),
         Text(
-          label,
-          style: TextStyle(
-            fontSize: isTotal ? screenWidth * 0.048 : screenWidth * 0.038,
-            fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
-            color: isTotal ? const Color(0xFF1976D2) : Colors.black87,
-          ),
-        ),
-        Text(
-          ' ${amount.abs().toStringAsFixed(2)}',
-          style: TextStyle(
-            fontSize: isTotal ? screenWidth * 0.048 : screenWidth * 0.038,
-            fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
-            color: isDiscount
-                ? const Color(0xFFFF5252)
-                : isTotal
-                ? const Color(0xFF1976D2)
-                : Colors.black87,
-          ),
+            '${amount < 0 ? "-" : ""}Rs ${amount.abs().toStringAsFixed(2)}',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)
         ),
       ],
     );
   }
-
-  Widget _buildActionBar(BuildContext context, double screenWidth) {
-    return Container(
-      padding: EdgeInsets.all(screenWidth * 0.04),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildActionButton(
-              context: context,
-              icon: Icons.home,
-              label: 'New Sale',
-              color: const Color(0xFF4CAF50),
-              onTap: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-            ),
-          ),
-          SizedBox(width: screenWidth * 0.02),
-          Expanded(
-            child: _buildActionButton(
-              context: context,
-              icon: Icons.share,
-              label: 'Share',
-              color: const Color(0xFF2196F3),
-              onTap: () => _handleShare(context),
-            ),
-          ),
-          SizedBox(width: screenWidth * 0.02),
-          Expanded(
-            child: _buildActionButton(
-              context: context,
-              icon: Icons.print,
-              label: 'Print',
-              color: const Color(0xFFFF9800),
-              onTap: () => _handlePrint(context),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: screenWidth * 0.035),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color, width: 1.5),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: screenWidth * 0.07),
-            SizedBox(height: screenWidth * 0.01),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: screenWidth * 0.032,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
+

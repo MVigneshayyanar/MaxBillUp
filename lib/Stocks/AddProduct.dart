@@ -11,12 +11,16 @@ class AddProductPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final String? preSelectedCategory;
+  final String? productId; // <-- NEW
+  final Map<String, dynamic>? existingData; // <-- NEW
 
   const AddProductPage({
     super.key,
     required this.uid,
     this.userEmail,
     this.preSelectedCategory,
+    this.productId,
+    this.existingData,
   });
 
   @override
@@ -58,6 +62,24 @@ class _AddProductPageState extends State<AddProductPage> {
     _fetchUnits();
     _fetchTaxes();
     _fetchDefaultTaxType();
+    // If editing, pre-fill form
+    if (widget.existingData != null) {
+      final d = widget.existingData!;
+      _itemNameController.text = d['itemName'] ?? '';
+      _priceController.text = d['price']?.toString() ?? '';
+      _costPriceController.text = d['costPrice']?.toString() ?? '';
+      _mrpController.text = d['mrp']?.toString() ?? '';
+      _productCodeController.text = d['productCode'] ?? '';
+      _hsnController.text = d['hsn'] ?? '';
+      _barcodeController.text = d['barcode'] ?? '';
+      _quantityController.text = d['currentStock']?.toString() ?? '';
+      _selectedCategory = d['category'] ?? widget.preSelectedCategory;
+      _selectedStockUnit = d['stockUnit'] ?? 'Piece';
+      _stockEnabled = d['stockEnabled'] ?? false;
+      _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
+      // Tax selections
+      if (d['taxId'] != null) _taxSelections[d['taxId']] = true;
+    }
   }
 
   // Fetch taxes from backend
@@ -564,7 +586,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                 '${percentage.toStringAsFixed(1)}%',
                                 name,
                                 _taxSelections[taxId] ?? false,
-                                (value) {
+                                    (value) {
                                   setState(() {
                                     // Only allow one tax to be selected
                                     _taxSelections.forEach((key, _) {
@@ -724,57 +746,57 @@ class _AddProductPageState extends State<AddProductPage> {
           builder: (context, snapshot) {
             List<String> categories = ['UnCategorised'];
 
-        if (snapshot.hasData) {
-          final fetchedCategories = snapshot.data!.docs
-              .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
-              .toList();
-          categories.addAll(fetchedCategories);
-        }
+            if (snapshot.hasData) {
+              final fetchedCategories = snapshot.data!.docs
+                  .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
+                  .toList();
+              categories.addAll(fetchedCategories);
+            }
 
-        if (_selectedCategory == null && widget.preSelectedCategory != null) {
-          _selectedCategory = widget.preSelectedCategory;
-        }
+            if (_selectedCategory == null && widget.preSelectedCategory != null) {
+              _selectedCategory = widget.preSelectedCategory;
+            }
 
-        if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
-          if (_selectedCategory == widget.preSelectedCategory) {
-            categories.add(_selectedCategory!);
-          } else {
-            _selectedCategory = categories.first;
-          }
-        }
+            if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
+              if (_selectedCategory == widget.preSelectedCategory) {
+                categories.add(_selectedCategory!);
+              } else {
+                _selectedCategory = categories.first;
+              }
+            }
 
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0F0F0),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: _selectedCategory,
-              hint: Text(
-                context.tr('category'),
-                style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F0F0),
+                borderRadius: BorderRadius.circular(8),
               ),
-              isExpanded: true,
-              icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
-              items: categories.map((category) {
-                return DropdownMenuItem<String>(
-                  value: category,
-                  child: Text(
-                    category,
-                    style: const TextStyle(fontSize: 15, color: Colors.black87),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedCategory,
+                  hint: Text(
+                    context.tr('category'),
+                    style: TextStyle(color: Colors.grey[400], fontSize: 15),
                   ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCategory = value;
-                });
-              },
-            ),
-          ),
-        );
+                  isExpanded: true,
+                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
+                  items: categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(
+                        category,
+                        style: const TextStyle(fontSize: 15, color: Colors.black87),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedCategory = value;
+                    });
+                  },
+                ),
+              ),
+            );
           },
         );
       },
@@ -861,7 +883,6 @@ class _AddProductPageState extends State<AddProductPage> {
     if (!_formKey.currentState!.validate()) {
       return;
     }
-
     try {
       // Get selected tax information
       String? selectedTaxId;
@@ -905,38 +926,57 @@ class _AddProductPageState extends State<AddProductPage> {
         'taxes': selectedTaxPercentage > 0 ? [selectedTaxPercentage] : [],
         'createdAt': FieldValue.serverTimestamp(),
       };
-
-      final docRef = await FirestoreService().addDocument('Products', productData);
-
-      // Update product count for the tax
-      if (selectedTaxId != null) {
-        try {
-          final taxDoc = await FirestoreService().getDocument('taxes', selectedTaxId);
-          if (taxDoc.exists) {
-            final currentCount = (taxDoc.data() as Map<String, dynamic>?)?['productCount'] ?? 0;
-            await FirestoreService().updateDocument('taxes', selectedTaxId, {
-              'productCount': currentCount + 1,
-            });
-          }
-        } catch (e) {
-          debugPrint('Error updating tax product count: $e');
+      if (widget.productId != null) {
+        // Editing: update existing product
+        await FirestoreService().updateDocument('Products', widget.productId!, productData);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.tr('product_updated')),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
+            ),
+          );
         }
-      }
+      } else {
+        // Adding: create new product
+        final docRef = await FirestoreService().addDocument('Products', productData);
+        // Update product count for the tax
+        if (selectedTaxId != null) {
+          try {
+            final taxDoc = await FirestoreService().getDocument('taxes', selectedTaxId);
+            if (taxDoc.exists) {
+              final currentCount = (taxDoc.data() as Map<String, dynamic>?)?['productCount'] ?? 0;
+              await FirestoreService().updateDocument('taxes', selectedTaxId, {
+                'productCount': currentCount + 1,
+              });
+            }
+          } catch (e) {
+            debugPrint('Error updating tax product count: $e');
+          }
+        }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('product_added')),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.tr('product_added')),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -951,3 +991,6 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 }
+
+
+//in this page update its ui and then remove the dropdwon option , stock toggle button abvoe the quatity input if by default the  stcock button will be enabled and option to enter the inpout stock if it got off it must display unlimed stock and then add a tax type gst vat or add new and then tax rate 5% 12% 17% add new update it backend too
