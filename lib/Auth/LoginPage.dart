@@ -14,6 +14,7 @@ import 'package:maxbillup/utils/plan_provider.dart';
 // Ensure these imports match your file structure
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Auth/BusinessDetailsPage.dart';
+import 'package:maxbillup/Admin/Home.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -64,13 +65,24 @@ class _LoginPageState extends State<LoginPage> {
 
     if (!mounted) return;
 
-    // Navigate to NewSalePage
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => NewSalePage(uid: uid, userEmail: identifier),
-      ),
-    );
+    // Check if the logged-in email is the admin email
+    if (identifier != null && identifier.toLowerCase() == 'maxmybillapp@gmail.com') {
+      // Navigate to Admin Home page
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => HomePage(uid: uid, userEmail: identifier),
+        ),
+      );
+    } else {
+      // Navigate to NewSalePage for regular users
+      Navigator.pushReplacement(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => NewSalePage(uid: uid, userEmail: identifier),
+        ),
+      );
+    }
   }
 
   void _showDialog({
@@ -256,6 +268,29 @@ class _LoginPageState extends State<LoginPage> {
       final user = userCred.user;
 
       if (user != null) {
+        // Get email from Google Sign-In
+        final userEmail = user.email?.toLowerCase().trim();
+
+        // Check if admin email before checking user doc
+        if (userEmail == 'maxmybillapp@gmail.com') {
+          if (mounted) setState(() => _loading = false);
+
+          // Initialize plan provider and navigate to admin home
+          final planProvider = Provider.of<PlanProvider>(context, listen: false);
+          await planProvider.initialize();
+
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => HomePage(uid: user.uid, userEmail: user.email),
+              ),
+            );
+          }
+          return;
+        }
+
+        // For regular users, check if they have a user document
         final userDoc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)

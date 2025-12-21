@@ -28,6 +28,11 @@ const Color kWarningOrange = Color(0xFFFF9800);
 const Color kPurpleCharts = Color(0xFF9C27B0);
 const Color kTealCharts = Color(0xFF009688);
 
+// Colorful Icon Palette (Diverse & Vibrant)
+const Color kIndigoColor = Color(0xFF5C6BC0);
+const Color kAmberColor = Color(0xFFFFA726);
+const Color kCyanColor = Color(0xFF26C6DA);
+
 // ==========================================
 // 1. MAIN REPORTS MENU (ROUTER)
 // ==========================================
@@ -116,29 +121,29 @@ class _ReportsPageState extends State<ReportsPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
             children: [
               _sectionHeader(context.tr('analytics_overview')),
-              _buildModernTile(context.tr('analytics'), Icons.bar_chart_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !isFeatureAvailable('analytics')),
-              _buildModernTile(context.tr('daybook_today'), Icons.calendar_today_rounded, kPrimaryColor, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE
-              _buildModernTile(context.tr('sales_summary'), Icons.dashboard_customize_rounded, kPrimaryColor, 'Summary', isLocked: !isFeatureAvailable('salesSummary')),
+              _buildModernTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !isFeatureAvailable('analytics')),
+              _buildModernTile(context.tr('daybook_today'), Icons.menu_book_rounded, kTealCharts, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE
+              _buildModernTile(context.tr('sales_summary'), Icons.analytics_rounded, kIndigoColor, 'Summary', isLocked: !isFeatureAvailable('salesSummary')),
 
               const SizedBox(height: 12),
               _sectionHeader(context.tr('sales_transactions')),
-              _buildModernTile(context.tr('sales_report'), Icons.receipt_long_rounded, kPrimaryColor, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
-              _buildModernTile(context.tr('item_sales_report'), Icons.category_rounded, kPrimaryColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
-              _buildModernTile(context.tr('top_customers'), Icons.people_alt_rounded, kPrimaryColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
+              _buildModernTile(context.tr('sales_report'), Icons.shopping_cart_rounded, kPurpleCharts, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
+              _buildModernTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, kCyanColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
+              _buildModernTile(context.tr('top_customers'), Icons.emoji_events_rounded, kAmberColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
 
               const SizedBox(height: 12),
               _sectionHeader(context.tr('inventory_products')),
-              _buildModernTile(context.tr('stock_report'), Icons.inventory_2_rounded, kPrimaryColor, 'StockReport', isLocked: !isFeatureAvailable('stockReport')),
-              _buildModernTile(context.tr('low_stock_products'), Icons.warning_amber_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !isFeatureAvailable('lowStockProduct')),
-              _buildModernTile(context.tr('top_products'), Icons.star_rounded, kPrimaryColor, 'TopProducts', isLocked: !isFeatureAvailable('topProducts')),
-              _buildModernTile(context.tr('top_categories'), Icons.folder_copy_rounded, kPrimaryColor, 'TopCategories', isLocked: !isFeatureAvailable('topCategory')),
+              _buildModernTile(context.tr('stock_report'), Icons.warehouse_rounded, kIndigoColor, 'StockReport', isLocked: !isFeatureAvailable('stockReport')),
+              _buildModernTile(context.tr('low_stock_products'), Icons.inventory_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !isFeatureAvailable('lowStockProduct')),
+              _buildModernTile(context.tr('top_products'), Icons.trending_up_rounded, kIncomeGreen, 'TopProducts', isLocked: !isFeatureAvailable('topProducts')),
+              _buildModernTile(context.tr('top_categories'), Icons.category_rounded, kPurpleCharts, 'TopCategories', isLocked: !isFeatureAvailable('topCategory')),
 
               const SizedBox(height: 12),
               _sectionHeader(context.tr('financials_tax')),
-              _buildModernTile(context.tr('expense_report'), Icons.money_off_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
-              _buildModernTile(context.tr('tax_report'), Icons.percent_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
-              _buildModernTile(context.tr('hsn_report'), Icons.description_rounded, kPrimaryColor, 'HSNReport', isLocked: !isFeatureAvailable('hsnReport')),
-              _buildModernTile(context.tr('staff_sale_report'), Icons.badge_rounded, kPrimaryColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
+              _buildModernTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
+              _buildModernTile(context.tr('tax_report'), Icons.receipt_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
+              _buildModernTile(context.tr('hsn_report'), Icons.assignment_rounded, kTealCharts, 'HSNReport', isLocked: !isFeatureAvailable('hsnReport')),
+              _buildModernTile(context.tr('staff_sale_report'), Icons.person_rounded, kCyanColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
             ],
           ),
           bottomNavigationBar: CommonBottomNav(
@@ -189,7 +194,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
+                    color: iconColor.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(icon, color:  iconColor, size: 24),
@@ -950,29 +955,84 @@ class FullSalesHistoryPage extends StatelessWidget {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
               List<DocumentSnapshot> docs = snapshot.data!.docs;
 
-              return ListView.separated(
+              // Calculate daily sales for chart
+              Map<String, double> dailySales = {};
+              for (var doc in docs) {
+                var d = doc.data() as Map<String, dynamic>;
+                if (d['timestamp'] != null) {
+                  DateTime dt = (d['timestamp'] as Timestamp).toDate();
+                  String dateKey = DateFormat('MMM dd').format(dt);
+                  double total = double.tryParse(d['total']?.toString() ?? '0') ?? 0;
+                  dailySales[dateKey] = (dailySales[dateKey] ?? 0) + total;
+                }
+              }
+              var sortedDays = dailySales.entries.toList().take(7).toList();
+
+              return SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
-                itemCount: docs.length,
-                separatorBuilder: (c, i) => const SizedBox(height: 8),
-                itemBuilder: (c, i) {
-                  var d = docs[i].data() as Map<String, dynamic>;
-                  DateTime? dt;
-                  if (d['timestamp'] != null) dt = (d['timestamp'] as Timestamp).toDate();
-                  String dateStr = dt != null ? DateFormat('dd MMM, h:mm a').format(dt) : 'N/A';
-                  return Container(
-                    decoration: BoxDecoration(
-                      color: kSurfaceColor,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: kBorderColor),
+                child: Column(
+                  children: [
+                    // Line Chart
+                    Container(
+                      height: 250,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Sales Trend (Last 7 Days)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: LineChart(
+                              LineChartData(
+                                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (value, meta) {
+                                    if (value.toInt() < 0 || value.toInt() >= sortedDays.length) return const Text('');
+                                    return Text(sortedDays[value.toInt()].key, style: const TextStyle(fontSize: 9));
+                                  })),
+                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 50, getTitlesWidget: (value, meta) => Text('₹${(value / 1000).toStringAsFixed(0)}k', style: const TextStyle(fontSize: 9, color: kTextSecondary)))),
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                                borderData: FlBorderData(show: false),
+                                lineBarsData: [
+                                  LineChartBarData(
+                                    spots: List.generate(sortedDays.length, (index) => FlSpot(index.toDouble(), sortedDays[index].value)),
+                                    isCurved: true,
+                                    color: kIncomeGreen,
+                                    barWidth: 3,
+                                    dotData: FlDotData(show: true),
+                                    belowBarData: BarAreaData(show: true, color: kIncomeGreen.withValues(alpha: 0.1)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      title: Text(d['customerName'] ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                      subtitle: Text(dateStr, style: const TextStyle(fontSize: 12, color: kTextSecondary)),
-                      trailing: Text("₹${d['total']}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15)),
-                    ),
-                  );
-                },
+                    const SizedBox(height: 16),
+                    // Sales List
+                    ...docs.map((doc) {
+                      var d = doc.data() as Map<String, dynamic>;
+                      DateTime? dt;
+                      if (d['timestamp'] != null) dt = (d['timestamp'] as Timestamp).toDate();
+                      String dateStr = dt != null ? DateFormat('dd MMM, h:mm a').format(dt) : 'N/A';
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          title: Text(d['customerName'] ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          subtitle: Text(dateStr, style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+                          trailing: Text("₹${d['total']}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15)),
+                        ),
+                      );
+                    }).toList(),
+                  ],
+                ),
               );
             },
           );
@@ -1006,12 +1066,10 @@ class TopCustomersPage extends StatelessWidget {
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
               Map<String, double> spend = {};
-              double totalSales = 0;
               for (var d in snapshot.data!.docs) {
                 var data = d.data() as Map<String, dynamic>;
                 double amt = double.tryParse(data['total'].toString()) ?? 0;
                 spend[data['customerName'] ?? 'Unknown'] = (spend[data['customerName'] ?? 'Unknown'] ?? 0) + amt;
-                totalSales += amt;
               }
               var sorted = spend.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
               var top5 = sorted.take(5).toList();
@@ -1025,30 +1083,95 @@ class TopCustomersPage extends StatelessWidget {
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Customer Share", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const Text("Top Customers by Sales", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 20),
                           Expanded(
-                            child: PieChart(PieChartData(
-                              sections: top5.map((e) {
-                                return PieChartSectionData(
-                                  value: e.value,
-                                  title: '${((e.value/totalSales)*100).toStringAsFixed(0)}%',
-                                  color: Colors.primaries[top5.indexOf(e) % Colors.primaries.length],
-                                  radius: 80,
-                                  titleStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                                );
-                              }).toList(),
-                              sectionsSpace: 2,
-                              centerSpaceRadius: 40,
-                            )),
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: top5.isEmpty ? 100 : top5.first.value * 1.2,
+                                barTouchData: BarTouchData(enabled: false),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      getTitlesWidget: (value, meta) {
+                                        if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                        String name = top5[value.toInt()].key;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 8),
+                                          child: Text(
+                                            name.length > 8 ? '${name.substring(0, 8)}...' : name,
+                                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  leftTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      reservedSize: 40,
+                                      getTitlesWidget: (value, meta) {
+                                        return Text(
+                                          '₹${(value / 1000).toStringAsFixed(0)}k',
+                                          style: const TextStyle(fontSize: 10, color: kTextSecondary),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                                gridData: FlGridData(
+                                  show: true,
+                                  drawVerticalLine: false,
+                                  horizontalInterval: top5.isEmpty ? 20 : top5.first.value / 4,
+                                  getDrawingHorizontalLine: (value) {
+                                    return FlLine(color: kBorderColor, strokeWidth: 1);
+                                  },
+                                ),
+                                borderData: FlBorderData(show: false),
+                                barGroups: List.generate(top5.length, (index) {
+                                  return BarChartGroupData(
+                                    x: index,
+                                    barRods: [
+                                      BarChartRodData(
+                                        toY: top5[index].value,
+                                        color: Colors.primaries[index % Colors.primaries.length],
+                                        width: 30,
+                                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                                      ),
+                                    ],
+                                  );
+                                }),
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ...sorted.map((e) => ListTile(
-                      title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      trailing: Text("₹${e.value.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor)),
+                    ...sorted.map((e) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.primaries[sorted.indexOf(e) % Colors.primaries.length].withOpacity(0.1),
+                          child: Text(
+                            e.key[0].toUpperCase(),
+                            style: TextStyle(
+                              color: Colors.primaries[sorted.indexOf(e) % Colors.primaries.length],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        trailing: Text("₹${e.value.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor)),
+                      ),
                     )).toList(),
                   ],
                 ),
@@ -1196,18 +1319,63 @@ class ItemSalesPage extends StatelessWidget {
               }
             }
             var sorted = qty.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+            var top5 = sorted.take(5).toList();
 
-            return ListView.separated(
+            return SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              itemCount: sorted.length,
-              separatorBuilder: (c, i) => const SizedBox(height: 8),
-              itemBuilder: (c, i) => Container(
-                decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
-                child: ListTile(
-                  leading: Text("#${i+1}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kTextSecondary)),
-                  title: Text(sorted[i].key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  trailing: Text("${sorted[i].value} Sold", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
-                ),
+              child: Column(
+                children: [
+                  Container(
+                    height: 300,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Top Selling Items", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        const SizedBox(height: 20),
+                        Expanded(
+                          child: BarChart(
+                            BarChartData(
+                              alignment: BarChartAlignment.spaceAround,
+                              maxY: top5.isEmpty ? 100 : top5.first.value * 1.2,
+                              barTouchData: BarTouchData(enabled: false),
+                              titlesData: FlTitlesData(
+                                show: true,
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                      String name = top5[value.toInt()].key;
+                                      return Padding(padding: const EdgeInsets.only(top: 8), child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
+                                    },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
+                                topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                              ),
+                              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                              borderData: FlBorderData(show: false),
+                              barGroups: List.generate(top5.length, (index) => BarChartGroupData(x: index, barRods: [BarChartRodData(toY: top5[index].value.toDouble(), color: Colors.primaries[index % Colors.primaries.length], width: 30, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)))])),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ...sorted.map((e) => Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                    child: ListTile(
+                      leading: CircleAvatar(backgroundColor: kPrimaryColor.withValues(alpha: 0.1), child: Text("#${sorted.indexOf(e) + 1}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 12))),
+                      title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      trailing: Text("${e.value} Sold", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
+                    ),
+                  )).toList(),
+                ],
               ),
             );
           },
@@ -1219,18 +1387,90 @@ class ItemSalesPage extends StatelessWidget {
 
 class LowStockPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
   LowStockPage({super.key, required this.onBack});
   @override
-  Widget build(BuildContext context) => _SimpleListReport("Low Stock Alert", onBack, 'Products', (docs) {
-    return docs.where((d) => (double.tryParse((d.data() as Map)['currentStock'].toString()) ?? 0) < 5).map((d) {
-      var map = d.data() as Map<String, dynamic>;
-      return MapEntry(map['itemName'], map['currentStock']);
-    }).toList();
-  }, (item) => Row(mainAxisSize: MainAxisSize.min, children: [
-    Container(height: 8, width: 60, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: 0.3, child: Container(decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(4))))),
-    const SizedBox(width: 8),
-    Text("${item.value} Left", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
-  ]));
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: _buildModernAppBar("Low Stock Alert", onBack),
+      body: FutureBuilder<Stream<QuerySnapshot>>(
+        future: _firestoreService.getCollectionStream('Products'),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return StreamBuilder<QuerySnapshot>(
+            stream: snapshot.data!,
+            builder: (context, snap) {
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+              var lowStock = snap.data!.docs.where((d) => (double.tryParse((d.data() as Map)['currentStock'].toString()) ?? 0) < 5).toList();
+              var sorted = lowStock.map((d) {
+                var map = d.data() as Map<String, dynamic>;
+                return MapEntry(map['itemName'] ?? 'Unknown', (map['currentStock'] ?? 0) as num);
+              }).toList()..sort((a, b) => a.value.compareTo(b.value));
+              var top5 = sorted.take(5).toList();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 300,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Critical Stock Levels", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: 10,
+                                barTouchData: BarTouchData(enabled: false),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
+                                    if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                    String name = top5[value.toInt()].key;
+                                    return Padding(padding: const EdgeInsets.only(top: 8), child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
+                                  })),
+                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                                borderData: FlBorderData(show: false),
+                                barGroups: List.generate(top5.length, (index) => BarChartGroupData(x: index, barRods: [BarChartRodData(toY: top5[index].value.toDouble(), color: kExpenseRed, width: 30, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)))])),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...sorted.map((e) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                      child: ListTile(
+                        leading: const Icon(Icons.warning_amber_rounded, color: kExpenseRed),
+                        title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Container(height: 8, width: 60, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: (e.value.toDouble() / 10).clamp(0, 1), child: Container(decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(4))))),
+                          const SizedBox(width: 8),
+                          Text("${e.value} Left", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                        ]),
+                      ),
+                    )).toList(),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }
 
 class TopProductsPage extends StatelessWidget {
@@ -1242,17 +1482,88 @@ class TopProductsPage extends StatelessWidget {
 
 class TopCategoriesPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
   TopCategoriesPage({super.key, required this.onBack});
   @override
-  Widget build(BuildContext context) => _SimpleListReport("Top Categories (By Inventory)", onBack, 'Products', (docs) {
-    Map<String, int> catCount = {};
-    for (var d in docs) {
-      var data = d.data() as Map<String, dynamic>;
-      String cat = data['category'] ?? 'Uncategorized';
-      catCount[cat] = (catCount[cat] ?? 0) + 1;
-    }
-    return catCount.entries.toList()..sort((a,b) => b.value.compareTo(a.value));
-  }, (item) => Text("${item.value} Products"));
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: _buildModernAppBar("Top Categories", onBack),
+      body: FutureBuilder<Stream<QuerySnapshot>>(
+        future: _firestoreService.getCollectionStream('Products'),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return StreamBuilder<QuerySnapshot>(
+            stream: snapshot.data!,
+            builder: (context, snap) {
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+              Map<String, int> catCount = {};
+              for (var d in snap.data!.docs) {
+                var data = d.data() as Map<String, dynamic>;
+                String cat = data['category'] ?? 'Uncategorized';
+                catCount[cat] = (catCount[cat] ?? 0) + 1;
+              }
+              var sorted = catCount.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+              var top5 = sorted.take(5).toList();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 300,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Product Distribution by Category", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: top5.isEmpty ? 100 : top5.first.value * 1.2,
+                                barTouchData: BarTouchData(enabled: false),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
+                                    if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                    String name = top5[value.toInt()].key;
+                                    return Padding(padding: const EdgeInsets.only(top: 8), child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
+                                  })),
+                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                                borderData: FlBorderData(show: false),
+                                barGroups: List.generate(top5.length, (index) => BarChartGroupData(x: index, barRods: [BarChartRodData(toY: top5[index].value.toDouble(), color: kTealCharts, width: 30, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)))])),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...sorted.map((e) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                      child: ListTile(
+                        leading: CircleAvatar(backgroundColor: kTealCharts.withValues(alpha: 0.1), child: const Icon(Icons.category, color: kTealCharts, size: 20)),
+                        title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        trailing: Text("${e.value} Products", style: const TextStyle(color: kTealCharts, fontWeight: FontWeight.bold)),
+                      ),
+                    )).toList(),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }
 
 class ExpenseReportPage extends StatelessWidget {
@@ -1294,18 +1605,141 @@ class ExpenseReportPage extends StatelessWidget {
                     all.add({'title': 'Stock Purchase', 'amount': amt, 'type': 'Stock'});
                   }
 
+                  double totalExpenses = totalOp + totalStock;
+
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
+                        // Summary Cards
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: kSurfaceColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: kBorderColor),
+                                  boxShadow: [BoxShadow(color: kExpenseRed.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.money_off, color: kExpenseRed, size: 20),
+                                        const SizedBox(width: 8),
+                                        const Text('Operational', style: TextStyle(fontSize: 12, color: kTextSecondary)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text('₹${totalOp.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kExpenseRed)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: kSurfaceColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: kBorderColor),
+                                  boxShadow: [BoxShadow(color: kWarningOrange.withValues(alpha: 0.1), blurRadius: 4, offset: const Offset(0, 2))],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(Icons.inventory, color: kWarningOrange, size: 20),
+                                        const SizedBox(width: 8),
+                                        const Text('Stock', style: TextStyle(fontSize: 12, color: kTextSecondary)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text('₹${totalStock.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kWarningOrange)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                         Container(
-                          height: 250,
+                          height: 300,
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
-                          child: PieChart(PieChartData(sections: [
-                            PieChartSectionData(color: kExpenseRed, value: totalOp, title: 'Op', radius: 50, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            PieChartSectionData(color: kWarningOrange, value: totalStock, title: 'Stock', radius: 50, titleStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                          ], centerSpaceRadius: 40)),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Expense Breakdown", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(height: 8),
+                              Text("Total: ₹${totalExpenses.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, color: kTextSecondary)),
+                              const SizedBox(height: 20),
+                              Expanded(
+                                child: BarChart(
+                                  BarChartData(
+                                    alignment: BarChartAlignment.spaceAround,
+                                    maxY: totalExpenses > 0 ? totalExpenses * 1.2 : 100,
+                                    minY: 0,
+                                    barTouchData: BarTouchData(enabled: false),
+                                    titlesData: FlTitlesData(
+                                      show: true,
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          getTitlesWidget: (value, meta) {
+                                            if (value == 0) return const Padding(padding: EdgeInsets.only(top: 8), child: Text('Operational', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)));
+                                            if (value == 1) return const Padding(padding: EdgeInsets.only(top: 8), child: Text('Stock', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500)));
+                                            return const Text('');
+                                          },
+                                        ),
+                                      ),
+                                      leftTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: true,
+                                          reservedSize: 50,
+                                          getTitlesWidget: (value, meta) {
+                                            if (value >= 1000) {
+                                              return Text('₹${(value / 1000).toStringAsFixed(0)}k', style: const TextStyle(fontSize: 10, color: kTextSecondary));
+                                            }
+                                            return Text('₹${value.toStringAsFixed(0)}', style: const TextStyle(fontSize: 10, color: kTextSecondary));
+                                          },
+                                        ),
+                                      ),
+                                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    ),
+                                    gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                                    borderData: FlBorderData(show: false),
+                                    barGroups: [
+                                      BarChartGroupData(
+                                        x: 0,
+                                        barRods: [BarChartRodData(
+                                          toY: totalOp > 0 ? totalOp : 0.1,
+                                          color: kExpenseRed,
+                                          width: 60,
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(8))
+                                        )]
+                                      ),
+                                      BarChartGroupData(
+                                        x: 1,
+                                        barRods: [BarChartRodData(
+                                          toY: totalStock > 0 ? totalStock : 0.1,
+                                          color: kWarningOrange,
+                                          width: 60,
+                                          borderRadius: const BorderRadius.vertical(top: Radius.circular(8))
+                                        )]
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                         const SizedBox(height: 16),
                         ...all.map((e) => Container(
@@ -1559,17 +1993,87 @@ class TaxReportPage extends StatelessWidget {
 
 class HSNReportPage extends StatelessWidget {
   final VoidCallback onBack;
+  final FirestoreService _firestoreService = FirestoreService();
   HSNReportPage({super.key, required this.onBack});
   @override
-  Widget build(BuildContext context) => _SimpleListReport("HSN Summary", onBack, 'Products', (docs) {
-    Map<String, int> hsnMap = {};
-    for(var d in docs) {
-      var data = d.data() as Map<String, dynamic>;
-      String h = data['hsnCode']?.toString() ?? data['hsn']?.toString() ?? 'N/A'; // Check both keys
-      if(h.isNotEmpty && h != 'N/A') hsnMap[h] = (hsnMap[h]??0)+1;
-    }
-    return hsnMap.entries.toList();
-  }, (item) => Text("${item.value} Products"));
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: _buildModernAppBar("HSN Summary", onBack),
+      body: FutureBuilder<Stream<QuerySnapshot>>(
+        future: _firestoreService.getCollectionStream('Products'),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return StreamBuilder<QuerySnapshot>(
+            stream: snapshot.data!,
+            builder: (context, snap) {
+              if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+              Map<String, int> hsnMap = {};
+              for (var d in snap.data!.docs) {
+                var data = d.data() as Map<String, dynamic>;
+                String h = data['hsnCode']?.toString() ?? data['hsn']?.toString() ?? 'N/A';
+                if (h.isNotEmpty && h != 'N/A') hsnMap[h] = (hsnMap[h] ?? 0) + 1;
+              }
+              var sorted = hsnMap.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+              var top5 = sorted.take(5).toList();
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      height: 300,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Top HSN Codes", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const SizedBox(height: 20),
+                          Expanded(
+                            child: BarChart(
+                              BarChartData(
+                                alignment: BarChartAlignment.spaceAround,
+                                maxY: top5.isEmpty ? 100 : top5.first.value * 1.2,
+                                barTouchData: BarTouchData(enabled: false),
+                                titlesData: FlTitlesData(
+                                  show: true,
+                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
+                                    if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                    return Padding(padding: const EdgeInsets.only(top: 8), child: Text(top5[value.toInt()].key, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
+                                  })),
+                                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
+                                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                ),
+                                gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor, strokeWidth: 1)),
+                                borderData: FlBorderData(show: false),
+                                barGroups: List.generate(top5.length, (index) => BarChartGroupData(x: index, barRods: [BarChartRodData(toY: top5[index].value.toDouble(), color: kPurpleCharts, width: 30, borderRadius: const BorderRadius.vertical(top: Radius.circular(6)))])),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ...sorted.map((e) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
+                      child: ListTile(
+                        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPurpleCharts.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.tag, color: kPurpleCharts, size: 20)),
+                        title: Text('HSN: ${e.key}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        trailing: Text("${e.value} Products", style: const TextStyle(color: kPurpleCharts, fontWeight: FontWeight.bold)),
+                      ),
+                    )).toList(),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
 }
 
 class StaffSaleReportPage extends StatelessWidget {

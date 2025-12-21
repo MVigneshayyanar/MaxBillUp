@@ -13,12 +13,14 @@ import 'Auth/SplashPage.dart';
 import 'Auth/LoginPage.dart';
 import 'firebase_options.dart';
 import 'Sales/NewSale.dart';
+import 'Admin/Home.dart';
 import 'package:maxbillup/utils/theme_notifier.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
+import 'package:maxbillup/services/direct_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +49,10 @@ void main() async {
 
   // Initialize PlanProvider for real-time plan updates
   final planProvider = PlanProvider();
+
+  // Initialize DirectNotificationService for push notifications
+  final notificationService = DirectNotificationService();
+  await notificationService.initialize();
 
   runApp(
     MultiProvider(
@@ -128,14 +134,30 @@ class _SplashGateState extends State<SplashGate> {
         await planProvider.initialize();
 
         if (!mounted) return;
-        Navigator.of(context).push(
-          CupertinoPageRoute(
-            builder: (_) => NewSalePage(
-              uid: user.uid,
-              userEmail: user.email,
+
+        // Check if the logged-in user is admin
+        final userEmail = user.email?.toLowerCase() ?? '';
+        if (userEmail == 'maxmybillapp@gmail.com') {
+          // Navigate to Admin Home page
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (_) => HomePage(
+                uid: user.uid,
+                userEmail: user.email,
+              ),
             ),
-          ),
-        );
+          );
+        } else {
+          // Navigate to NewSalePage for regular users
+          Navigator.of(context).push(
+            CupertinoPageRoute(
+              builder: (_) => NewSalePage(
+                uid: user.uid,
+                userEmail: user.email,
+              ),
+            ),
+          );
+        }
       } else {
         // User is NOT logged in
         Navigator.of(context).push(

@@ -41,11 +41,11 @@ class CommonBottomNav extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(context, 0, Icons.menu, context.tr('menu')),
-              _buildNavItem(context, 1, Icons.bar_chart, context.tr('reports')),
-              _buildNavItem(context, 2, Icons.shopping_bag, context.tr('new_sale')),
-              _buildNavItem(context, 3, Icons.inventory_2_outlined, context.tr('stock')),
-              _buildNavItem(context, 4, Icons.settings, context.tr('settings')),
+              _buildNavItem(context, 0, Icons.menu_rounded, context.tr('menu')),
+              _buildNavItem(context, 1, Icons.assessment_rounded, context.tr('reports')),
+              _buildNavItem(context, 2, Icons.receipt_long_rounded, context.tr('new_sale')),
+              _buildNavItem(context, 3, Icons.inventory_2_rounded, context.tr('stock')),
+              _buildNavItem(context, 4, Icons.settings_rounded, context.tr('settings')),
             ],
           ),
         ),

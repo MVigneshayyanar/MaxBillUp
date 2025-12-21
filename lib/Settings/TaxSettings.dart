@@ -313,7 +313,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
               const Divider(),
               Expanded(
                 child: FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('products'),
+                  future: FirestoreService().getCollectionStream('Products'),
                   builder: (context, streamFutureSnapshot) {
                     if (streamFutureSnapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -345,15 +345,25 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                           );
                         }
 
-                        // Filter products for this tax locally
-                        // Assumes products have 'taxPercentage' or 'taxName' field
-                        // Adjust 'taxPercentage' to match your actual Product schema field
+                        // Filter products for this tax using taxId (primary) and fallback to percentage/name
+                        final taxId = taxData['id'] as String?;
+                        final taxPercentage = taxData['percentage'];
+                        final taxName = taxData['name'];
+
                         final products = snapshot.data!.docs.where((doc) {
                           final data = doc.data() as Map<String, dynamic>;
-                          // Check against percentage or name
-                          return (data['taxPercentage'] == taxData['percentage']) ||
-                              (data['tax'] == taxData['percentage']) || // Common field name alternative
-                              (data['taxName'] == taxData['name']);
+                          // Primary check: taxId match
+                          if (taxId != null && data['taxId'] == taxId) {
+                            return true;
+                          }
+                          // Fallback checks for backward compatibility
+                          if (data['taxPercentage'] == taxPercentage) {
+                            return true;
+                          }
+                          if (data['taxName'] == taxName) {
+                            return true;
+                          }
+                          return false;
                         }).toList();
 
                         if (products.isEmpty) {
@@ -402,6 +412,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                                 'Price: ${product['price'] ?? 0}',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
+                              trailing: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
                             );
                           },
                         );

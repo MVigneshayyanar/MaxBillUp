@@ -9,6 +9,7 @@ import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
+import 'package:maxbillup/Menu/KnowledgePage.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
@@ -309,6 +310,10 @@ class _MenuPageState extends State<MenuPage> {
                 return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
               },
             );
+
+          // Knowledge
+          case 'Knowledge':
+            return KnowledgePage(onBack: _reset);
 
           // ==========================================
           // REPORTS SECTION
@@ -698,65 +703,77 @@ class _MenuPageState extends State<MenuPage> {
                 // New Sale (First item)
 
                 // Quotation
-                // Quotation
-                // Quotation
-                // Quotation
                 if (_hasPermission('quotation') || isAdmin)
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/q.png',
-                      width: 30,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.description_outlined, color: Color(0xFF1976D2), size: 24),
                     ),
                     context.tr('quotation'),
                     'Quotation',
                   ),
 
-// Bill History
+                // Bill History
                 if (_hasPermission('billHistory') || isAdmin)
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/bh.png',
-                      width: 30,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF388E3C), size: 24),
                     ),
                     context.tr('billhistory'),
                     'BillHistory',
                   ),
 
-// Credit Notes
+                // Credit Notes
                 if (_hasPermission('creditNotes') || isAdmin)
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/cn.png',
-                      width: 30,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFF3E0),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.note_alt_outlined, color: Color(0xFFF57C00), size: 24),
                     ),
                     context.tr('credit_notes'),
                     'CreditNotes',
                   ),
 
-// Customer Management
+                // Customer Management
                 if (_hasPermission('customerManagement') || isAdmin)
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/cm.png',
-                      width:30 ,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E5F5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.people_outline, color: Color(0xFF7B1FA2), size: 24),
                     ),
                     context.tr('customer_management'),
                     'Customers',
                   ),
 
-// Expenses (Expansion Tile)
+                // Expenses (Expansion Tile)
                 if (_hasPermission('expenses') || isAdmin)
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
-                      leading: Image.asset(
-                        'assets/e.png',
-                        width: 30,
-                      height: 30,
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFEBEE),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD32F2F), size: 24),
                       ),
                       title: Text(
                         context.tr('expenses'),
@@ -776,29 +793,49 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                   ),
 
-// Credit Details
+                // Credit Details
                 if (_hasPermission('creditDetails') || isAdmin)
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/cd.png',
-                      width: 30,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0F2F1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.credit_card_outlined, color: Color(0xFF00796B), size: 24),
                     ),
                     context.tr('creditdetails'),
                     'CreditDetails',
                   ),
 
-// Staff Management
+                // Staff Management
                 if (isAdmin || _hasPermission('staffManagement'))
                   _buildMenuItem(
-                    Image.asset(
-                      'assets/sm.png',
-                      width: 30,
-                      height: 30,
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFCE4EC),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.badge_outlined, color: Color(0xFFC2185B), size: 24),
                     ),
                     context.tr('staffmanagement'),
                     'StaffManagement',
                   ),
+
+                // Knowledge
+                _buildMenuItem(
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.school_rounded, color: Color(0xFFFFA000), size: 24),
+                  ),
+                  'Knowledge',
+                  'Knowledge',
+                ),
 
 
 
@@ -1020,6 +1057,9 @@ class _MenuPageState extends State<MenuPage> {
         // StaffReport requires async checks, handle separately
         _navigateToStaffReport();
         return null;
+
+      case 'Knowledge':
+        return KnowledgePage(onBack: () => Navigator.pop(context));
 
       case 'Stock':
         return StockPage(uid: widget.uid, userEmail: widget.userEmail);
