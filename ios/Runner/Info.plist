@@ -50,8 +50,8 @@
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>This app needs photos access to scan barcodes</string>
 		<key>UIStatusBarHidden</key>
-		<key>NSContactsUsageDescription</key>
-        <string>We need access to your contacts to import customer details.</string>
+		<false/>
+		<string>We need access to your contacts to import customer details.</string>
 		<false/>
 	</dict>
 </plist>

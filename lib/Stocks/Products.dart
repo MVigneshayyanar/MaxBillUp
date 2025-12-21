@@ -190,7 +190,7 @@ class _ProductsPageState extends State<ProductsPage> {
         if (products.isEmpty) return _buildNoResultsState();
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100), // Extra bottom padding for FAB
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           itemCount: products.length,
           separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
@@ -208,6 +208,9 @@ class _ProductsPageState extends State<ProductsPage> {
     final price = (data['price'] ?? 0.0).toDouble();
     final stockEnabled = data['stockEnabled'] ?? false;
     final stock = (data['currentStock'] ?? 0.0).toDouble();
+    final category = data['category'] ?? 'UnCategorised';
+    final taxType = data['taxName'] ?? 'GST';
+    final taxPercent = (data['taxPercentage'] ?? 0.0).toDouble();
 
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
@@ -236,57 +239,56 @@ class _ProductsPageState extends State<ProductsPage> {
               child: const Icon(Icons.inventory_2_outlined, color: _primaryColor, size: 24),
             ),
             const SizedBox(width: 16),
-            // Name and Price
+            // Info Column
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Line 1: Title
                   Text(
                     name,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _navyColor),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Rs ${price.toStringAsFixed(2)}",
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: _secondaryColor),
+                  const SizedBox(height: 6),
+                  // Line 2: Category (Orange) and Quantity (End)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        category,
+                        style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
+                      ),
+                      if (stockEnabled)
+                        Text(
+                          isOutOfStock ? 'Out of Stock' : 'Qty: ${stock.toInt()}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isOutOfStock ? _errorColor : (isLowStock ? _warningColor : _successColor),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Line 3: Amount and Tax (End)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "Rs ${price.toStringAsFixed(2)}",
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: _primaryColor),
+                      ),
+                      Text(
+                        '$taxType (${taxPercent.toStringAsFixed(1)}%)',
+                        style: const TextStyle(fontSize: 11, color: _secondaryColor, fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 12),
-            // Stock Info
-            if (stockEnabled) ...[
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isOutOfStock ? _errorColor.withOpacity(0.1) : (isLowStock ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      isOutOfStock ? 'Out of Stock' : '${stock.toStringAsFixed(0)} in stock',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isOutOfStock ? _errorColor : (isLowStock ? _warningColor : _successColor),
-                      ),
-                    ),
-                  ),
-                  if (isLowStock)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4.0),
-                      child: Text(
-                        "Low Stock",
-                        style: TextStyle(fontSize: 10, color: _warningColor, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                ],
-              ),
-            ],
             const SizedBox(width: 8),
             const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
@@ -482,44 +484,16 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  void _showEditDetailsDialog(BuildContext context, QueryDocumentSnapshot productDoc) {
-    final data = productDoc.data() as Map<String, dynamic>;
-    final nameCtrl = TextEditingController(text: data['itemName']);
-    final priceCtrl = TextEditingController(text: data['price']?.toString() ?? '');
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Edit Product', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDialogInput(nameCtrl, "Product Name", Icons.edit_note),
-            const SizedBox(height: 12),
-            _buildDialogInput(priceCtrl, "Price", Icons.currency_rupee, isNum: true),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: _primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () async {
-              final newName = nameCtrl.text.trim();
-              final newPrice = double.tryParse(priceCtrl.text.trim()) ?? 0.0;
-              if (newName.isNotEmpty) {
-                await FirestoreService().updateDocument('Products', productDoc.id, {
-                  'itemName': newName,
-                  'price': newPrice,
-                });
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('SAVE'),
-          )
-        ],
+  Widget _buildToggle(bool target, bool current, String lbl, VoidCallback onTap) {
+    bool active = target == current;
+    return Expanded(child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(color: active ? _primaryColor : Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: active ? _primaryColor : _cardBorder)),
+        child: Center(child: Text(lbl, style: TextStyle(fontWeight: FontWeight.bold, color: active ? Colors.white : _secondaryColor, fontSize: 12))),
       ),
-    );
+    ));
   }
 
   void _showDeleteConfirmDialog(BuildContext context, QueryDocumentSnapshot productDoc) {
@@ -545,37 +519,14 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  Widget _buildDialogInput(TextEditingController ctrl, String lbl, IconData icon, {bool isNum = false}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: isNum ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(
-        labelText: lbl, prefixIcon: Icon(icon, color: _primaryColor),
-        filled: true, fillColor: _primaryColor.withOpacity(0.04),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      ),
-    );
-  }
-
-  Widget _buildToggle(bool target, bool current, String lbl, VoidCallback onTap) {
-    bool active = target == current;
-    return Expanded(child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(color: active ? _primaryColor : Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: active ? _primaryColor : _cardBorder)),
-        child: Center(child: Text(lbl, style: TextStyle(fontWeight: FontWeight.bold, color: active ? Colors.white : _secondaryColor, fontSize: 12))),
-      ),
-    ));
-  }
-
   // --- LOGIC HELPERS ---
 
   List<QueryDocumentSnapshot> _filterAndSortProducts(List<QueryDocumentSnapshot> items) {
     var list = items.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
       final name = (data['itemName'] ?? '').toString().toLowerCase();
-      if (!name.contains(_searchQuery)) return false;
+      final barcode = (data['barcode'] ?? '').toString().toLowerCase();
+      if (!name.contains(_searchQuery) && !barcode.contains(_searchQuery)) return false;
       if (_filterStock == 'all') return true;
       final stock = (data['currentStock'] ?? 0.0).toDouble();
       if (_filterStock == 'outOfStock') return stock <= 0;

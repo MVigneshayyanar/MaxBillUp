@@ -51,9 +51,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
   // UI Constants
   final Color _primaryColor = const Color(0xFF2196F3);
   final Color _successColor = const Color(0xFF4CAF50);
+  final Color _secondaryColor = Color(0xFF64748B);
   final Color _errorColor = const Color(0xFFFF5252);
   final Color _warningColor = const Color(0xFFFF9800);
   final Color _bgColor = Colors.white; // Changed to white
+  final Color _cardBorder = Color(0xFFE3F2FD);
 
   @override
   void initState() {
@@ -386,20 +388,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
+                color: _primaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade200),
+                border: Border.all(color: _cardBorder),
               ),
               child: TextField(
                 controller: _searchCtrl,
-                textAlignVertical: TextAlignVertical.center,
-                style: const TextStyle(color: Colors.black87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 22),
+                  hintStyle: TextStyle(color: _secondaryColor, fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: _primaryColor, size: 22),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -488,7 +488,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: _cardBorder),
                       boxShadow: [
                         BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
                       ],
@@ -562,7 +562,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   color: isSelected ? _primaryColor : Colors.white,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected ? _primaryColor : Colors.grey.shade300,
+                    color: isSelected ? _primaryColor : _cardBorder,
                   ),
                 ),
                 child: Center(
@@ -697,7 +697,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: _cardBorder),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.02),

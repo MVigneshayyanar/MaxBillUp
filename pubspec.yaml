@@ -69,16 +69,16 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/logo.png
+  image: assets/Max_my_bill.png
   android: true
   ios: true
   android_gravity: center
   ios_content_mode: scaleAspectFit
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/app_logo.jpg"
+  image_path: "assets/Max_my_bill.png"
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
@@ -114,3 +114,4 @@ flutter:
     - assets/cn.png
     - assets/bh.png
     - assets/q.png
+    - assets/Max_my_bill.png

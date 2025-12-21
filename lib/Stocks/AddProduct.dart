@@ -11,8 +11,8 @@ class AddProductPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
   final String? preSelectedCategory;
-  final String? productId; // <-- NEW
-  final Map<String, dynamic>? existingData; // <-- NEW
+  final String? productId;
+  final Map<String, dynamic>? existingData;
 
   const AddProductPage({
     super.key,
@@ -30,7 +30,7 @@ class AddProductPage extends StatefulWidget {
 class _AddProductPageState extends State<AddProductPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Form controllers
+  // Controllers
   final TextEditingController _itemNameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _costPriceController = TextEditingController();
@@ -39,20 +39,18 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _hsnController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
-  TextEditingController _unitController = TextEditingController();
 
+  // State
   String? _selectedCategory;
-  bool _moreDetailsExpanded = false;
-  bool _stockEnabled = false;
-
-  // Tax switches - dynamic from backend
-  Map<String, bool> _taxSelections = {};
-  List<Map<String, dynamic>> _availableTaxes = [];
-  String _selectedTaxType = 'Price is without Tax';
-
-  List<String> units = [];
-  String? _selectedStockUnit;
+  bool _stockEnabled = true;
+  String? _selectedStockUnit = 'Piece';
   Stream<List<String>>? _unitsStream;
+
+  // Tax State (Synced with Firestore store > {id} > taxes)
+  String _selectedTaxType = 'Price is without Tax';
+  List<Map<String, dynamic>> _fetchedTaxes = [];
+  String? _selectedTaxId;
+  double _currentTaxPercentage = 0.0;
 
   @override
   void initState() {
@@ -60,47 +58,38 @@ class _AddProductPageState extends State<AddProductPage> {
     _selectedCategory = widget.preSelectedCategory;
     _checkPermission();
     _fetchUnits();
-    _fetchTaxes();
-    _fetchDefaultTaxType();
-    // If editing, pre-fill form
+    _fetchTaxesFromBackend();
+
     if (widget.existingData != null) {
-      final d = widget.existingData!;
-      _itemNameController.text = d['itemName'] ?? '';
-      _priceController.text = d['price']?.toString() ?? '';
-      _costPriceController.text = d['costPrice']?.toString() ?? '';
-      _mrpController.text = d['mrp']?.toString() ?? '';
-      _productCodeController.text = d['productCode'] ?? '';
-      _hsnController.text = d['hsn'] ?? '';
-      _barcodeController.text = d['barcode'] ?? '';
-      _quantityController.text = d['currentStock']?.toString() ?? '';
-      _selectedCategory = d['category'] ?? widget.preSelectedCategory;
-      _selectedStockUnit = d['stockUnit'] ?? 'Piece';
-      _stockEnabled = d['stockEnabled'] ?? false;
-      _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
-      // Tax selections
-      if (d['taxId'] != null) _taxSelections[d['taxId']] = true;
+      _loadExistingData();
     }
   }
 
-  // Fetch taxes from backend
-  Future<void> _fetchTaxes() async {
+  // --- Firestore Logic: Fetch Taxes from store > {id} > taxes ---
+  Future<void> _fetchTaxesFromBackend() async {
     try {
-      final taxesCollection = await FirestoreService().getStoreCollection('taxes');
-      final snapshot = await taxesCollection.where('isActive', isEqualTo: true).get();
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('taxes')
+          .get();
 
       setState(() {
-        _availableTaxes = snapshot.docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
+        _fetchedTaxes = snapshot.docs.map((doc) {
+          final data = doc.data();
           return {
             'id': doc.id,
-            'name': data['name'] ?? '',
-            'percentage': data['percentage'] ?? 0.0,
+            'name': data['name'] ?? 'Unnamed',
+            'percentage': (data['percentage'] ?? 0.0).toDouble(),
           };
         }).toList();
 
-        // Initialize tax selections
-        for (var tax in _availableTaxes) {
-          _taxSelections[tax['id']] = false;
+        if (widget.existingData != null && widget.existingData!['taxId'] != null) {
+          _selectedTaxId = widget.existingData!['taxId'];
+          _currentTaxPercentage = (widget.existingData!['taxPercentage'] ?? 0.0).toDouble();
         }
       });
     } catch (e) {
@@ -108,18 +97,63 @@ class _AddProductPageState extends State<AddProductPage> {
     }
   }
 
-  // Fetch default tax type
-  Future<void> _fetchDefaultTaxType() async {
+  // --- Logic: Add New Tax to Backend ---
+  Future<void> _addNewTaxToBackend(String name, double percentage) async {
     try {
-      final doc = await FirestoreService().getDocument('settings', 'taxSettings');
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
-        setState(() {
-          _selectedTaxType = data?['defaultTaxType'] ?? 'Price is without Tax';
-        });
-      }
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return;
+
+      final newTaxDoc = {
+        'name': name,
+        'percentage': percentage,
+        'isActive': true,
+        'productCount': 0,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      final docRef = await FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('taxes')
+          .add(newTaxDoc);
+
+      await _fetchTaxesFromBackend();
+      setState(() {
+        _selectedTaxId = docRef.id;
+        _currentTaxPercentage = percentage;
+      });
     } catch (e) {
-      debugPrint('Error fetching default tax type: $e');
+      debugPrint('Error adding tax: $e');
+    }
+  }
+
+  // --- Logic: Increment Tax Product Count ---
+  Future<void> _incrementTaxProductCount(String taxId) async {
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return;
+
+      await FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('taxes')
+          .doc(taxId)
+          .update({'productCount': FieldValue.increment(1)});
+    } catch (e) {
+      debugPrint('Error incrementing tax count: $e');
+    }
+  }
+
+  // --- Original Logic Maintenance ---
+  Future<void> _checkPermission() async {
+    final userData = await PermissionHelper.getUserPermissions(widget.uid);
+    final role = userData['role'] as String;
+    final permissions = userData['permissions'] as Map<String, dynamic>;
+    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+    if (permissions['addProduct'] != true && !isAdmin && mounted) {
+      Navigator.pop(context);
+      await PermissionHelper.showPermissionDeniedDialog(context);
     }
   }
 
@@ -134,88 +168,34 @@ class _AddProductPageState extends State<AddProductPage> {
     });
   }
 
-  Future<void> _addUnitToBackend(String unit) async {
-    final storeId = await FirestoreService().getCurrentStoreId();
-    if (storeId == null) return;
-    await FirestoreService().storeCollection.doc(storeId)
-        .collection('units').doc(unit).set({'createdAt': FieldValue.serverTimestamp()});
+  void _generateProductCode() {
+    final code = 'PRD${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    setState(() => _productCodeController.text = code);
   }
 
-  Future<void> _checkPermission() async {
-    final userData = await PermissionHelper.getUserPermissions(widget.uid);
-    final role = userData['role'] as String;
-    final permissions = userData['permissions'] as Map<String, dynamic>;
-
-    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
-    final hasPermission = permissions['addProduct'] == true;
-
-    if (!hasPermission && !isAdmin && mounted) {
-      Navigator.pop(context);
-      await PermissionHelper.showPermissionDeniedDialog(context);
-    }
-  }
-
-  @override
-  void dispose() {
-    _itemNameController.dispose();
-    _priceController.dispose();
-    _costPriceController.dispose();
-    _mrpController.dispose();
-    _productCodeController.dispose();
-    _hsnController.dispose();
-    _barcodeController.dispose();
-    _quantityController.dispose();
-    super.dispose();
-  }
-
-  // Barcode Scanner Function
   Future<void> _scanBarcode() async {
-    final result = await Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => BarcodeScannerPage(
-          title: 'Scan Product Barcode',
-          onBarcodeScanned: (barcode) {
-            Navigator.pop(context, barcode);
-          },
-        ),
+    final result = await Navigator.push(context, CupertinoPageRoute(
+      builder: (context) => BarcodeScannerPage(
+        title: 'Scan Product Barcode',
+        onBarcodeScanned: (barcode) => Navigator.pop(context, barcode),
       ),
-    );
-
-    if (result != null && mounted) {
-      setState(() {
-        _barcodeController.text = result;
-      });
-    }
+    ));
+    if (result != null && mounted) setState(() => _barcodeController.text = result);
   }
+
+  // --- UI Components ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
         backgroundColor: const Color(0xFF2196F3),
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.push(
-              context,
-              CupertinoPageRoute(
-                builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
-              ),
-            );
-          },
-        ),
-        title: Text(
-          context.tr('addproduct'),
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -223,503 +203,317 @@ class _AddProductPageState extends State<AddProductPage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 children: [
-                  // Item Information Section
-                  Text(
-                    context.tr('item_information'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Item Name
-                  _buildTextField(
-                    controller: _itemNameController,
-                    hint: context.tr('item_name'),
-                    isRequired: true,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Category Dropdown
-                  _buildCategoryDropdown(),
-                  const SizedBox(height: 16),
-
-                  // Price
-                  _buildTextField(
-                    controller: _priceController,
-                    hint: context.tr('price'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Quantity
-                  _buildTextField(
-                    controller: _quantityController,
-                    hint: context.tr('quantity'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Info message
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildSectionCard(
+                    title: "General Information",
+                    icon: Icons.info_outline,
                     children: [
-                      const Icon(
-                        Icons.info,
-                        color: Color(0xFF2196F3),
-                        size: 18,
+                      _buildTextField(controller: _itemNameController, label: context.tr('item_name'), isRequired: true),
+                      const SizedBox(height: 12),
+                      _buildCategoryDropdown(),
+                    ],
+                  ),
+                  _buildSectionCard(
+                    title: "Inventory & Stock",
+                    icon: Icons.inventory_2_outlined,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Track Stock Level", style: TextStyle(fontWeight: FontWeight.w600)),
+                          Switch.adaptive(value: _stockEnabled, activeColor: Colors.blue, onChanged: (v) => setState(() => _stockEnabled = v)),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          context.tr('leave_blank_for_price'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: const Color(0xFF2196F3),
-                          ),
-                        ),
+                      const SizedBox(height: 12),
+                      if (_stockEnabled)
+                        _buildTextField(controller: _quantityController, label: "Initial Stock Quantity", keyboardType: TextInputType.number)
+                      else
+                        _buildUnlimitedStockIndicator(),
+                      const SizedBox(height: 12),
+                      _buildUnitDropdown(),
+                    ],
+                  ),
+                  _buildSectionCard(
+                    title: "Pricing & Taxation",
+                    icon: Icons.payments_outlined,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildTextField(controller: _costPriceController, label: "Cost Price", keyboardType: TextInputType.number)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTaxDropdown(),
+                      const SizedBox(height: 12),
+                      _buildTaxTypeSelector(),
+                    ],
+                  ),
+                  _buildSectionCard(
+                    title: "Advanced Details",
+                    icon: Icons.more_horiz,
+                    children: [
+                      _buildTextField(controller: _mrpController, label: "MRP", keyboardType: TextInputType.number),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _buildTextField(controller: _productCodeController, label: "Product Code")),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _generateProductCode,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[50],
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text("Generate", style: TextStyle(color: Colors.blue)),
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTextField(controller: _hsnController, label: "HSN/SAC"),
+                      const SizedBox(height: 12),
+                      _buildTextField(
+                          controller: _barcodeController,
+                          label: "Barcode",
+                          suffixIcon: Icons.qr_code_scanner,
+                          onSuffixTap: _scanBarcode
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // More Details Section Header
-                  InkWell(
-                    onTap: () {
-                      setState(() {
-                        _moreDetailsExpanded = !_moreDetailsExpanded;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            context.tr('more_details'),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
-                            ),
-                          ),
-                          Icon(
-                            _moreDetailsExpanded
-                                ? Icons.keyboard_arrow_up
-                                : Icons.keyboard_arrow_down,
-                            color: Colors.black,
-                            size: 28,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // More Details Content
-                  AnimatedCrossFade(
-                    firstChild: const SizedBox.shrink(),
-                    secondChild: Column(
-                      children: [
-                        const SizedBox(height: 20),
-
-                        // Cost Price
-                        _buildTextField(
-                          controller: _costPriceController,
-                          hint: context.tr('cost_price_optional'),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // MRP
-                        _buildTextField(
-                          controller: _mrpController,
-                          hint: context.tr('mrp_optional'),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Product Code with Generate button
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _productCodeController,
-                                hint: context.tr('product_code'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: _generateProductCode,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2196F3),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 18,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                context.tr('generate'),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // HSN/SCN with Find button
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildTextField(
-                                controller: _hsnController,
-                                hint: context.tr('hsn_scn'),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            ElevatedButton(
-                              onPressed: () {
-                                // Implement HSN finder
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF2196F3),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 18,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Text(
-                                context.tr('find'),
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Barcode with scanner icon - UPDATED
-                        _buildTextField(
-                          controller: _barcodeController,
-                          hint: context.tr('barcode'),
-                          suffixIcon: Icons.qr_code_scanner,
-                          onSuffixTap: _scanBarcode, // Calls scanner
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Barcode info
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.info,
-                              color: Color(0xFF2196F3),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                context.tr('barcode_info'),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: const Color(0xFF2196F3),
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Stock Unit Dropdown
-                        Row(
-                          children: [
-                            Expanded(
-                              child: StreamBuilder<List<String>>(
-                                stream: _unitsStream,
-                                builder: (context, snapshot) {
-                                  // Always start with the default 5 units
-                                  final defaultUnits = ['Piece', 'Kg', 'Liter', 'Box', 'Meter'];
-                                  final backendUnits = snapshot.data ?? [];
-                                  // Merge, keeping only unique values
-                                  final availableUnits = [
-                                    ...defaultUnits,
-                                    ...backendUnits.where((u) => !defaultUnits.contains(u)),
-                                  ];
-                                  return Row(
-                                    children: [
-                                      Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                          value: _selectedStockUnit,
-                                          items: availableUnits.map((unit) => DropdownMenuItem(
-                                            value: unit,
-                                            child: Text(unit),
-                                          )).toList(),
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedStockUnit = value;
-                                            });
-                                          },
-                                          decoration: InputDecoration(
-                                            labelText: context.tr('unit'),
-                                            border: OutlineInputBorder(),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.add),
-                                        tooltip: context.tr('add_new_unit'),
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (context) => AlertDialog(
-                                              title: Text(context.tr('add_new_unit')),
-                                              content: TextField(
-                                                controller: _unitController,
-                                                decoration: const InputDecoration(
-                                                  labelText: 'Unit Name',
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(context),
-                                                  child: Text(context.tr('cancel')),
-                                                ),
-                                                ElevatedButton(
-                                                  onPressed: () async {
-                                                    final newUnit = _unitController.text.trim();
-                                                    if (newUnit.isNotEmpty && !availableUnits.contains(newUnit)) {
-                                                      await _addUnitToBackend(newUnit);
-                                                      setState(() {
-                                                        _selectedStockUnit = newUnit;
-                                                      });
-                                                    }
-                                                    _unitController.clear();
-                                                    Navigator.pop(context);
-                                                  },
-                                                  child: Text(context.tr('add')),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Tax Section
-                        Text(
-                          context.tr('tax'),
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Tax Type Dropdown
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[300]!),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedTaxType,
-                              isExpanded: true,
-                              items: [
-                                'Price includes Tax',
-                                'Price is without Tax',
-                                'Zero Rated Tax',
-                                'Exempt Tax',
-                              ].map((type) {
-                                return DropdownMenuItem(value: type, child: Text(type));
-                              }).toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  _selectedTaxType = value!;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Dynamic Tax options from backend
-                        ..._availableTaxes.map((tax) {
-                          final taxId = tax['id'] as String;
-                          final percentage = tax['percentage'] as double;
-                          final name = tax['name'] as String;
-
-                          return Column(
-                            children: [
-                              _buildTaxSwitch(
-                                '${percentage.toStringAsFixed(1)}%',
-                                name,
-                                _taxSelections[taxId] ?? false,
-                                    (value) {
-                                  setState(() {
-                                    // Only allow one tax to be selected
-                                    _taxSelections.forEach((key, _) {
-                                      _taxSelections[key] = false;
-                                    });
-                                    _taxSelections[taxId] = value;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 8),
-                            ],
-                          );
-                        }).toList(),
-                        const SizedBox(height: 12),
-
-                        // Stock Section
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              context.tr('stock'),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Switch(
-                              value: _stockEnabled,
-                              onChanged: (value) {
-                                setState(() {
-                                  _stockEnabled = value;
-                                });
-                              },
-                              activeColor: const Color(0xFF2196F3),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    crossFadeState: _moreDetailsExpanded
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    duration: const Duration(milliseconds: 300),
-                    sizeCurve: Curves.easeInOut,
-                  ),
-
-                  const SizedBox(height: 100),
                 ],
               ),
             ),
-
-            // Add Button
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              color: const Color(0xFFF5F5F5),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saveProduct,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    context.tr('add'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            _buildBottomSaveButton(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    bool isRequired = false,
-    TextInputType keyboardType = TextInputType.text,
-    IconData? suffixIcon,
-    VoidCallback? onSuffixTap,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15),
-      decoration: InputDecoration(
-        hintText: hint + (isRequired ? '*' : ''),
-        hintStyle: TextStyle(
-          color: Colors.grey[400],
-          fontSize: 15,
-        ),
-        suffixIcon: suffixIcon != null
-            ? IconButton(
-          icon: Icon(suffixIcon, color: Colors.grey[400], size: 22),
-          onPressed: onSuffixTap,
-        )
-            : null,
-        filled: true,
-        fillColor: const Color(0xFFF0F0F0),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  // --- Helper Widgets ---
+
+  Widget _buildSectionCard({required String title, required IconData icon, required List<Widget> children}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [Icon(icon, size: 18, color: Colors.blue), const SizedBox(width: 8), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))]),
+          const Divider(height: 24),
+          ...children,
+        ],
       ),
-      validator: isRequired
-          ? (value) {
-        if (value == null || value.isEmpty) {
-          return context.tr('this_field_is_required');
-        }
-        return null;
-      }
-          : null,
+    );
+  }
+
+  Widget _buildTextField({required TextEditingController controller, required String label, bool isRequired = false, TextInputType keyboardType = TextInputType.text, IconData? suffixIcon, VoidCallback? onSuffixTap}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 4),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          decoration: InputDecoration(
+            hintText: label + (isRequired ? ' *' : ''),
+            suffixIcon: suffixIcon != null ? IconButton(icon: Icon(suffixIcon, size: 20), onPressed: onSuffixTap) : null,
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+          validator: isRequired ? (v) => v!.isEmpty ? 'Required' : null : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnlimitedStockIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+      child: const Row(children: [Icon(Icons.all_inclusive, color: Colors.green), SizedBox(width: 8), Text("Unlimited Stock Enabled", style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold))]),
+    );
+  }
+
+  Widget _buildTaxDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Tax Rate", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.only(left: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _selectedTaxId,
+                    hint: const Text("Select Rate"),
+                    isExpanded: true,
+                    icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                    // Menu Styling
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    items: _fetchedTaxes.map((tax) {
+                      return DropdownMenuItem<String>(
+                        value: tax['id'],
+                        child: Text("${tax['name']} (${tax['percentage']}%)"),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      setState(() {
+                        _selectedTaxId = val;
+                        _currentTaxPercentage = _fetchedTaxes.firstWhere((t) => t['id'] == val)['percentage'];
+                      });
+                    },
+                  ),
+                ),
+              ),
+              IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 20), onPressed: _showAddTaxDialog),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAddTaxDialog() {
+    final nameC = TextEditingController();
+    final rateC = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Create New Tax"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tax Name (e.g. GST)")),
+            TextField(controller: rateC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Percentage (%)")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(onPressed: () {
+            if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
+              _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
+              Navigator.pop(ctx);
+            }
+          }, child: const Text("Add")),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaxTypeSelector() {
+    final items = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Tax Treatment", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: items.contains(_selectedTaxType) ? _selectedTaxType : items[1],
+              isExpanded: true,
+              icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+              // Menu Styling
+              dropdownColor: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+              onChanged: (v) => setState(() => _selectedTaxType = v!),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnitDropdown() {
+    return StreamBuilder<List<String>>(
+      stream: _unitsStream,
+      builder: (context, snapshot) {
+        final availableUnits = ['Piece', 'Kg', 'Liter', 'Box', ...(snapshot.data ?? [])].cast<String>();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Unit", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.only(left: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: availableUnits.contains(_selectedStockUnit) ? _selectedStockUnit : availableUnits.first,
+                        isExpanded: true,
+                        icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                        // Menu Styling
+                        dropdownColor: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        items: availableUnits.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                        onChanged: (v) => setState(() => _selectedStockUnit = v),
+                      ),
+                    ),
+                  ),
+                  IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.blue, size: 20), onPressed: () => _showAddUnitDialog()),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAddUnitDialog() {
+    final c = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text("Add Unit"),
+        content: TextField(controller: c, decoration: const InputDecoration(hintText: "Enter Unit Name")),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(onPressed: () async {
+            if(c.text.isNotEmpty) {
+              final storeId = await FirestoreService().getCurrentStoreId();
+              if (storeId != null) {
+                await FirestoreService().storeCollection.doc(storeId).collection('units').doc(c.text.trim()).set({'createdAt': FieldValue.serverTimestamp()});
+              }
+              Navigator.pop(ctx);
+            }
+          }, child: const Text("Add")),
+        ],
+      ),
     );
   }
 
@@ -727,75 +521,39 @@ class _AddProductPageState extends State<AddProductPage> {
     return FutureBuilder<Stream<QuerySnapshot>>(
       future: FirestoreService().getCollectionStream('categories'),
       builder: (context, streamSnapshot) {
-        if (!streamSnapshot.hasData) {
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0F0F0),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              context.tr('category'),
-              style: TextStyle(color: Colors.grey[400], fontSize: 15),
-            ),
-          );
-        }
-
+        if (!streamSnapshot.hasData) return const LinearProgressIndicator();
         return StreamBuilder<QuerySnapshot>(
           stream: streamSnapshot.data,
           builder: (context, snapshot) {
             List<String> categories = ['UnCategorised'];
-
             if (snapshot.hasData) {
-              final fetchedCategories = snapshot.data!.docs
-                  .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
-                  .toList();
-              categories.addAll(fetchedCategories);
+              categories.addAll(snapshot.data!.docs.map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String).toList());
             }
-
-            if (_selectedCategory == null && widget.preSelectedCategory != null) {
-              _selectedCategory = widget.preSelectedCategory;
-            }
-
-            if (_selectedCategory != null && !categories.contains(_selectedCategory)) {
-              if (_selectedCategory == widget.preSelectedCategory) {
-                categories.add(_selectedCategory!);
-              } else {
-                _selectedCategory = categories.first;
-              }
-            }
-
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F0F0),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCategory,
-                  hint: Text(
-                    context.tr('category'),
-                    style: TextStyle(color: Colors.grey[400], fontSize: 15),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Category", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  isExpanded: true,
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
-                  items: categories.map((category) {
-                    return DropdownMenuItem<String>(
-                      value: category,
-                      child: Text(
-                        category,
-                        style: const TextStyle(fontSize: 15, color: Colors.black87),
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedCategory = value;
-                    });
-                  },
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
+                      isExpanded: true,
+                      icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                      // Menu Styling
+                      dropdownColor: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      items: categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      onChanged: (v) => setState(() => _selectedCategory = v),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             );
           },
         );
@@ -803,194 +561,89 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  Widget _buildStockUnitDropdown() {
-    final units = ['Piece', 'Kg', 'Liter', 'Box', 'Meter'];
-
+  Widget _buildBottomSaveButton() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedStockUnit,
-          hint: Text(
-            context.tr('stock_unit'),
-            style: TextStyle(color: Colors.grey[400], fontSize: 15),
-          ),
-          isExpanded: true,
-          icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[400]),
-          items: units.map((unit) {
-            return DropdownMenuItem<String>(
-              value: unit,
-              child: Text(unit, style: const TextStyle(fontSize: 15)),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedStockUnit = value;
-            });
-          },
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
+      child: ElevatedButton(
+        onPressed: _saveProduct,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2196F3),
+          minimumSize: const Size(double.infinity, 54),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
+        child: Text(context.tr(widget.productId != null ? 'update' : 'add'),
+            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
 
-  Widget _buildTaxSwitch(String percentage, String type, bool value, Function(bool) onChanged) {
-    return Row(
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              Text(
-                percentage,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                type,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Switch(
-          value: value,
-          onChanged: onChanged,
-          activeColor: const Color(0xFF2196F3),
-        ),
-      ],
-    );
+  void _loadExistingData() {
+    final d = widget.existingData!;
+    _itemNameController.text = d['itemName'] ?? '';
+    _priceController.text = d['price']?.toString() ?? '';
+    _costPriceController.text = d['costPrice']?.toString() ?? '';
+    _mrpController.text = d['mrp']?.toString() ?? '';
+    _productCodeController.text = d['productCode'] ?? '';
+    _hsnController.text = d['hsn'] ?? '';
+    _barcodeController.text = d['barcode'] ?? '';
+    _quantityController.text = d['currentStock']?.toString() ?? '';
+    _selectedCategory = d['category'];
+    _stockEnabled = d['stockEnabled'] ?? true;
+    _selectedStockUnit = d['stockUnit'];
+    _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
   }
 
-  void _generateProductCode() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final code = 'PRD${timestamp.toString().substring(timestamp.toString().length - 8)}';
-    setState(() {
-      _productCodeController.text = code;
-    });
-  }
-
+  // --- Final Save Logic ---
   Future<void> _saveProduct() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
     try {
-      // Get selected tax information
-      String? selectedTaxId;
-      double selectedTaxPercentage = 0.0;
+      // Find the specific tax name from the fetched list based on selection
       String? selectedTaxName;
-
-      for (var entry in _taxSelections.entries) {
-        if (entry.value == true) {
-          selectedTaxId = entry.key;
-          final tax = _availableTaxes.firstWhere((t) => t['id'] == entry.key);
-          selectedTaxPercentage = tax['percentage'] as double;
-          selectedTaxName = tax['name'] as String;
-          break;
+      if (_selectedTaxId != null) {
+        try {
+          selectedTaxName = _fetchedTaxes.firstWhere((t) => t['id'] == _selectedTaxId)['name'];
+        } catch (e) {
+          selectedTaxName = null;
         }
       }
 
       final productData = {
         'itemName': _itemNameController.text.trim(),
-        'price': _priceController.text.isNotEmpty
-            ? double.tryParse(_priceController.text)
-            : null,
+        'price': double.tryParse(_priceController.text) ?? 0.0,
+        'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
+        'mrp': double.tryParse(_mrpController.text) ?? 0.0,
         'category': _selectedCategory ?? 'UnCategorised',
-        'costPrice': _costPriceController.text.isNotEmpty
-            ? double.tryParse(_costPriceController.text)
-            : null,
-        'mrp': _mrpController.text.isNotEmpty
-            ? double.tryParse(_mrpController.text)
-            : null,
         'productCode': _productCodeController.text.trim(),
         'hsn': _hsnController.text.trim(),
         'barcode': _barcodeController.text.trim(),
         'stockUnit': _selectedStockUnit ?? 'Piece',
         'stockEnabled': _stockEnabled,
-        'currentStock': _quantityController.text.isNotEmpty
-            ? double.tryParse(_quantityController.text) ?? 0.0
-            : 0.0,
+        'currentStock': _stockEnabled ? (double.tryParse(_quantityController.text) ?? 0.0) : 0.0,
+        'taxId': _selectedTaxId,
+        'taxName': selectedTaxName, // Added taxName
+        'taxPercentage': _currentTaxPercentage,
         'taxType': _selectedTaxType,
-        'taxId': selectedTaxId,
-        'taxPercentage': selectedTaxPercentage,
-        'taxName': selectedTaxName,
-        'taxes': selectedTaxPercentage > 0 ? [selectedTaxPercentage] : [],
-        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       };
-      if (widget.productId != null) {
-        // Editing: update existing product
-        await FirestoreService().updateDocument('Products', widget.productId!, productData);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('product_updated')),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
-            ),
-          );
-        }
-      } else {
-        // Adding: create new product
-        final docRef = await FirestoreService().addDocument('Products', productData);
-        // Update product count for the tax
-        if (selectedTaxId != null) {
-          try {
-            final taxDoc = await FirestoreService().getDocument('taxes', selectedTaxId);
-            if (taxDoc.exists) {
-              final currentCount = (taxDoc.data() as Map<String, dynamic>?)?['productCount'] ?? 0;
-              await FirestoreService().updateDocument('taxes', selectedTaxId, {
-                'productCount': currentCount + 1,
-              });
-            }
-          } catch (e) {
-            debugPrint('Error updating tax product count: $e');
-          }
-        }
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('product_added')),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
-            ),
-          );
+      if (widget.productId != null) {
+        await FirestoreService().updateDocument('Products', widget.productId!, productData);
+      } else {
+        productData['createdAt'] = FieldValue.serverTimestamp();
+        await FirestoreService().addDocument('Products', productData);
+
+        if (_selectedTaxId != null) {
+          await _incrementTaxProductCount(_selectedTaxId!);
         }
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Success!"), backgroundColor: Colors.green));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('error')),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
+      debugPrint("Save error: $e");
     }
   }
 }
-
-
-//in this page update its ui and then remove the dropdwon option , stock toggle button abvoe the quatity input if by default the  stcock button will be enabled and option to enter the inpout stock if it got off it must display unlimed stock and then add a tax type gst vat or add new and then tax rate 5% 12% 17% add new update it backend too

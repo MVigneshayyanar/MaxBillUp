@@ -558,8 +558,6 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             decoration: BoxDecoration(color: (stock > 0 ? _successColor : _errorColor).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
             child: Text("${stock.toStringAsFixed(0)} Stock", style: TextStyle(color: stock > 0 ? _successColor : _errorColor, fontWeight: FontWeight.bold, fontSize: 11)),
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
         ],
       ),
     );
