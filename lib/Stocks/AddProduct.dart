@@ -148,100 +148,107 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
-        appBar: AppBar(
-          backgroundColor: const Color(0xFF2196F3),
-          elevation: 0,
-          centerTitle: true,
-          title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
-          bottom: const TabBar(
-            indicatorColor: Colors.white,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            tabs: [
-              Tab(text: "Basic Details"),
-              Tab(text: "Advanced"),
-            ],
-          ),
-        ),
-        body: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _buildBasicTab(),
-                    _buildAdvancedTab(),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF2196F3),
+        elevation: 0,
+        centerTitle: true,
+        title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // --- Section 1: Basic Details ---
+                  _buildSectionHeader("Basic Details"),
+                  const SizedBox(height: 12),
+                  // 1. Category
+                  _buildCategoryDropdown(),
+                  const SizedBox(height: 16),
+                  // 2. Item Name
+                  _buildTextField(controller: _itemNameController, label: context.tr('item_name'), isRequired: true),
+                  const SizedBox(height: 16),
+                  // 3. Selling Price
+                  _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number, isRequired: true),
+                  const SizedBox(height: 16),
+                  // 4. Quantity
+                  if (_stockEnabled) ...[
+                    _buildTextField(controller: _quantityController, label: "Initial Stock Quantity", keyboardType: TextInputType.number, isRequired: true),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    _buildInfinityStockIndicator(),
+                    const SizedBox(height: 16),
                   ],
-                ),
+                  // 5. Product Code
+                  _buildProductCodeField(),
+                  const SizedBox(height: 16),
+
+                  // Track Stock Switch & Units (Remained in Basic as per flow)
+                  _buildInventorySwitch(),
+                  const SizedBox(height: 16),
+                  _buildUnitDropdown(),
+
+                  const SizedBox(height: 24),
+
+                  // --- Section 2: Advanced Dropdown ---
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: EdgeInsets.zero,
+                      title: _buildSectionHeader("Advanced Details"),
+                      children: [
+                        const SizedBox(height: 16),
+                        _buildTextField(controller: _costPriceController, label: "Cost Price", keyboardType: TextInputType.number),
+                        const SizedBox(height: 16),
+                        _buildTextField(controller: _mrpController, label: "MRP", keyboardType: TextInputType.number),
+                        const SizedBox(height: 16),
+                        _buildTaxDropdown(),
+                        const SizedBox(height: 16),
+                        _buildTaxTypeSelector(),
+                        const SizedBox(height: 16),
+                        _buildTextField(controller: _hsnController, label: "HSN/SAC"),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                            controller: _barcodeController,
+                            label: "Barcode",
+                            suffixIcon: Icons.qr_code_scanner,
+                            onSuffixTap: _scanBarcode
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              _buildBottomSaveButton(),
-            ],
-          ),
+            ),
+            _buildBottomSaveButton(),
+          ],
         ),
       ),
     );
   }
 
-  // --- Tab 1: Basics ---
-  Widget _buildBasicTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildTextField(controller: _itemNameController, label: context.tr('item_name'), isRequired: true),
-        const SizedBox(height: 16),
-        _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number, isRequired: true),
-        const SizedBox(height: 16),
-        _buildCategoryDropdown(),
-        const SizedBox(height: 16),
-        _buildProductCodeField(),
-        const SizedBox(height: 16),
-        _buildInventorySwitch(),
-        const SizedBox(height: 16),
-        if (_stockEnabled) ...[
-          _buildTextField(controller: _quantityController, label: "Initial Stock Quantity", keyboardType: TextInputType.number),
-          const SizedBox(height: 16),
-        ] else ...[
-          _buildInfinityStockIndicator(),
-          const SizedBox(height: 16),
-        ],
-        _buildUnitDropdown(),
-      ],
-    );
-  }
-
-  // --- Tab 2: Advanced ---
-  Widget _buildAdvancedTab() {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildTextField(controller: _costPriceController, label: "Cost Price", keyboardType: TextInputType.number),
-        const SizedBox(height: 16),
-        _buildTextField(controller: _mrpController, label: "MRP", keyboardType: TextInputType.number),
-        const SizedBox(height: 16),
-        _buildTaxDropdown(),
-        const SizedBox(height: 16),
-        _buildTaxTypeSelector(),
-        const SizedBox(height: 16),
-        _buildTextField(controller: _hsnController, label: "HSN/SAC"),
-        const SizedBox(height: 16),
-        _buildTextField(
-            controller: _barcodeController,
-            label: "Barcode",
-            suffixIcon: Icons.qr_code_scanner,
-            onSuffixTap: _scanBarcode
-        ),
-      ],
-    );
-  }
-
   // --- UI Component Helpers ---
+
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF1F2937),
+        letterSpacing: 0.5,
+      ),
+    );
+  }
 
   Widget _buildInfinityStockIndicator() {
     return Container(
@@ -273,7 +280,7 @@ class _AddProductPageState extends State<AddProductPage> {
       controller: controller,
       keyboardType: keyboardType,
       decoration: InputDecoration(
-        labelText: label + (isRequired ? ' *' : ''),
+        labelText: label, // Removed '*' from label
         suffixIcon: suffixIcon != null ? IconButton(icon: Icon(suffixIcon, size: 20), onPressed: onSuffixTap) : null,
         filled: true,
         fillColor: const Color(0xFFF8F9FA),

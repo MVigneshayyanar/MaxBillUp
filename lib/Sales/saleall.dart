@@ -18,6 +18,7 @@ class SaleAllPage extends StatefulWidget {
   final List<CartItem>? initialCartItems;
   final Function(List<CartItem>)? onCartChanged;
   final String? savedOrderId;
+  final bool isQuotationMode; // New parameter to indicate quotation mode
 
   const SaleAllPage({
     super.key,
@@ -27,6 +28,7 @@ class SaleAllPage extends StatefulWidget {
     this.initialCartItems,
     this.onCartChanged,
     this.savedOrderId,
+    this.isQuotationMode = false, // Default to false for normal bill mode
   });
 
   @override
@@ -370,6 +372,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               // 4. Action Buttons
               CommonWidgets.buildActionButtons(
                 context: context,
+                isQuotationMode: widget.isQuotationMode, // Pass the quotation mode flag
                 onSaveOrder: () {
                   CommonWidgets.showSaveOrderDialog(
                     context: context,

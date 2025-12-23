@@ -27,18 +27,23 @@ class CommonWidgets {
     required VoidCallback onBill,
     required double totalBill,
     VoidCallback? onQuotation,
+    bool isQuotationMode = false, // New parameter for quotation mode
   }) {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          _buildIconButton(
-            Icons.bookmark_border,
-            onSaveOrder,
-          ),
-          const SizedBox(width: 12),
-          if (onQuotation != null) ...[
+          // Only show save order button if not in quotation mode
+          if (!isQuotationMode) ...[
+            _buildIconButton(
+              Icons.bookmark_border,
+              onSaveOrder,
+            ),
+            const SizedBox(width: 12),
+          ],
+          // Show quotation icon button only if not in quotation mode and onQuotation is provided
+          if (!isQuotationMode && onQuotation != null) ...[
             _buildIconButton(
               Icons.description_outlined,
               onQuotation,
@@ -47,7 +52,7 @@ class CommonWidgets {
           ],
           const Spacer(),
           GestureDetector(
-            onTap: onBill,
+            onTap: isQuotationMode ? onQuotation : onBill,
             child: Container(
               height: 56,
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -75,7 +80,7 @@ class CommonWidgets {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    context.tr('bill'),
+                    isQuotationMode ? 'Quotation' : context.tr('bill'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 18,

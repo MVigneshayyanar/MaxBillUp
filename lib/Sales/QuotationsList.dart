@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
+import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/quotation_migration_helper.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'nq.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2196F3);
@@ -172,6 +174,25 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => NewQuotationPage(
+                uid: widget.uid,
+                userEmail: widget.userEmail,
+              ),
+            ),
+          );
+        },
+        backgroundColor: _primaryColor,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          context.tr('create_quotation'),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
     );
   }

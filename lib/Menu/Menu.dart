@@ -9,6 +9,7 @@ import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
+import 'package:maxbillup/Menu/AddCustomer.dart';
 import 'package:maxbillup/Menu/KnowledgePage.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
@@ -1651,6 +1652,13 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   String _searchQuery = '';
   String _selectedFilter = 'All Time';
 
+  // Enhanced filter options
+  String _paymentFilter = 'all'; // all, cash, online, credit, split
+  String _statusFilter = 'all'; // all, settled, unsettled, edited, cancelled
+  String _customerTypeFilter = 'all'; // all, walk-in, customer
+  String? _selectedStaff;
+  DateTimeRange? _customDateRange;
+
   @override
   void initState() {
     super.initState();
@@ -1743,6 +1751,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     if (docs.isEmpty) return [];
 
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final startOfWeek = today.subtract(Duration(days: now.weekday - 1));
     final startOfThisMonth = DateTime(now.year, now.month, 1);
     final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
     final endOfLastMonth = DateTime(now.year, now.month, 0, 23, 59, 59);
@@ -1766,7 +1777,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       bool matchesSearch = true;
       if (_searchQuery.isNotEmpty) {
         final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
-        final customer = (data['customerName'] ?? '').toString().toLowerCase(); // Assuming customerName exists
+        final customer = (data['customerName'] ?? '').toString().toLowerCase();
         matchesSearch = inv.contains(_searchQuery) || customer.contains(_searchQuery);
       }
 
@@ -1774,14 +1785,66 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       bool matchesDate = true;
       if (timestamp != null) {
         final date = timestamp.toDate();
-        if (_selectedFilter == 'This Month') {
+        if (_selectedFilter == 'Today') {
+          matchesDate = date.isAfter(today) || date.isAtSameMomentAs(today);
+        } else if (_selectedFilter == 'Yesterday') {
+          matchesDate = date.isAfter(yesterday) && date.isBefore(today);
+        } else if (_selectedFilter == 'This Week') {
+          matchesDate = date.isAfter(startOfWeek) || date.isAtSameMomentAs(startOfWeek);
+        } else if (_selectedFilter == 'This Month') {
           matchesDate = date.isAfter(startOfThisMonth) || date.isAtSameMomentAs(startOfThisMonth);
         } else if (_selectedFilter == 'Last Month') {
           matchesDate = date.isAfter(startOfLastMonth) && date.isBefore(endOfLastMonth);
+        } else if (_selectedFilter == 'Custom Range' && _customDateRange != null) {
+          matchesDate = date.isAfter(_customDateRange!.start) &&
+                       date.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
         }
       }
 
-      return matchesSearch && matchesDate;
+      // 3. Payment Filter
+      bool matchesPayment = true;
+      if (_paymentFilter != 'all') {
+        final paymentMode = (data['paymentMode'] ?? '').toString().toLowerCase();
+        matchesPayment = paymentMode == _paymentFilter;
+      }
+
+      // 4. Status Filter
+      bool matchesStatus = true;
+      if (_statusFilter != 'all') {
+        final isSettled = data.containsKey('paymentMode') && data['paymentMode'] != null;
+        final editCount = data['editCount'] ?? 0;
+        final isCancelled = data['status'] == 'cancelled';
+
+        if (_statusFilter == 'settled') {
+          matchesStatus = isSettled && !isCancelled;
+        } else if (_statusFilter == 'unsettled') {
+          matchesStatus = !isSettled && !isCancelled;
+        } else if (_statusFilter == 'edited') {
+          matchesStatus = editCount > 0 && !isCancelled;
+        } else if (_statusFilter == 'cancelled') {
+          matchesStatus = isCancelled;
+        }
+      }
+
+      // 5. Customer Type Filter
+      bool matchesCustomerType = true;
+      if (_customerTypeFilter != 'all') {
+        final customerName = (data['customerName'] ?? '').toString();
+        if (_customerTypeFilter == 'walk-in') {
+          matchesCustomerType = customerName.isEmpty || customerName == 'Guest' || customerName == 'Walk-in Customer';
+        } else if (_customerTypeFilter == 'customer') {
+          matchesCustomerType = customerName.isNotEmpty && customerName != 'Guest' && customerName != 'Walk-in Customer';
+        }
+      }
+
+      // 6. Staff Filter
+      bool matchesStaff = true;
+      if (_selectedStaff != null && _selectedStaff!.isNotEmpty) {
+        final staffName = (data['staffName'] ?? '').toString();
+        matchesStaff = staffName == _selectedStaff;
+      }
+
+      return matchesSearch && matchesDate && matchesPayment && matchesStatus && matchesCustomerType && matchesStaff;
     }).toList();
   }
 
@@ -1832,23 +1895,52 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedFilter,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(
-                          0xFF2196F3)),
-                      items: <String>['All Time', 'This Month', 'Last Month']
-                          .map((String value) {
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
+                      items: <String>[
+                        'All Time',
+                        'Today',
+                        'Yesterday',
+                        'This Week',
+                        'This Month',
+                        'Last Month',
+                        'Custom Range'
+                      ].map((String value) {
                         String displayText = value;
                         if (value == 'All Time') displayText = context.tr('all');
+                        else if (value == 'Today') displayText = 'Today';
+                        else if (value == 'Yesterday') displayText = 'Yesterday';
+                        else if (value == 'This Week') displayText = 'This Week';
                         else if (value == 'This Month') displayText = context.tr('thismonth');
                         else if (value == 'Last Month') displayText = context.tr('lastmonth');
+                        else if (value == 'Custom Range') displayText = 'Custom Range';
                         return DropdownMenuItem<String>(
                           value: value,
                           child: Text(displayText, style: const TextStyle(fontSize: 14)),
                         );
                       }).toList(),
-                      onChanged: (newValue) {
-                        if (newValue != null) {
+                      onChanged: (newValue) async {
+                        if (newValue == 'Custom Range') {
+                          final DateTimeRange? picked = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                            builder: (context, child) => Theme(
+                              data: ThemeData.light().copyWith(
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF2196F3)),
+                              ),
+                              child: child!,
+                            ),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _customDateRange = picked;
+                              _selectedFilter = newValue!;
+                            });
+                          }
+                        } else if (newValue != null) {
                           setState(() {
                             _selectedFilter = newValue;
+                            _customDateRange = null;
                           });
                         }
                       },
@@ -1858,6 +1950,30 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
               ],
             ),
           ),
+
+          // Advanced Filters Row
+          Container(
+            height: 50,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildFilterChip('All', 'all', _statusFilter, (val) => setState(() => _statusFilter = val)),
+                _buildFilterChip('Settled', 'settled', _statusFilter, (val) => setState(() => _statusFilter = val)),
+                _buildFilterChip('Unsettled', 'unsettled', _statusFilter, (val) => setState(() => _statusFilter = val)),
+                _buildFilterChip('Edited', 'edited', _statusFilter, (val) => setState(() => _statusFilter = val)),
+                _buildFilterChip('Cancelled', 'cancelled', _statusFilter, (val) => setState(() => _statusFilter = val)),
+                const SizedBox(width: 8),
+                _buildFilterChip('Cash', 'cash', _paymentFilter, (val) => setState(() => _paymentFilter = val)),
+                _buildFilterChip('Online', 'online', _paymentFilter, (val) => setState(() => _paymentFilter = val)),
+                _buildFilterChip('Credit', 'credit', _paymentFilter, (val) => setState(() => _paymentFilter = val)),
+                const SizedBox(width: 8),
+                _buildFilterChip('Walk-in', 'walk-in', _customerTypeFilter, (val) => setState(() => _customerTypeFilter = val)),
+                _buildFilterChip('Customer', 'customer', _customerTypeFilter, (val) => setState(() => _customerTypeFilter = val)),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
 
           Expanded(
             child: _combinedStream == null
@@ -1938,6 +2054,34 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value, String currentValue, Function(String) onSelected) {
+    final isSelected = currentValue == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: FilterChip(
+        label: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black87,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        selected: isSelected,
+        onSelected: (selected) => onSelected(value),
+        selectedColor: const Color(0xFF2196F3),
+        backgroundColor: Colors.grey.shade200,
+        checkmarkColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isSelected ? const Color(0xFF2196F3) : Colors.grey.shade300,
+          ),
+        ),
       ),
     );
   }
@@ -4433,6 +4577,7 @@ class CustomersPage extends StatefulWidget {
 class _CustomersPageState extends State<CustomersPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _sortBy = 'sales'; // 'sales' or 'credit'
 
   @override
   void initState() {
@@ -4546,6 +4691,53 @@ class _CustomersPageState extends State<CustomersPage> {
           icon: const Icon(Icons.arrow_back, color: kWhite),
           onPressed: widget.onBack,
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.sort, color: kWhite),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onSelected: (value) => setState(() => _sortBy = value),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: 'sales',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_upward,
+                      color: _sortBy == 'sales' ? kPrimaryBlue : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Sort by Sales',
+                      style: TextStyle(
+                        fontWeight: _sortBy == 'sales' ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'credit',
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.arrow_downward,
+                      color: _sortBy == 'credit' ? kPrimaryBlue : Colors.grey,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Sort by Credit',
+                      style: TextStyle(
+                        fontWeight: _sortBy == 'credit' ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -4581,7 +4773,21 @@ class _CustomersPageState extends State<CustomersPage> {
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
-                  onTap: _showAddCustomer,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (context) => AddCustomerPage(
+                          uid: widget.uid,
+                          onBack: null,
+                        ),
+                      ),
+                    ).then((value) {
+                      if (value == true) {
+                        setState(() {}); // Refresh the list
+                      }
+                    });
+                  },
                   child: Container(
                     height: 50,
                     width: 50,
@@ -4615,6 +4821,21 @@ class _CustomersPageState extends State<CustomersPage> {
                       final phone = (data['phone'] ?? '').toString().toLowerCase();
                       return name.contains(_searchQuery) || phone.contains(_searchQuery);
                     }).toList();
+
+                    // Sort docs based on selected sort option
+                    docs.sort((a, b) {
+                      final dataA = a.data() as Map<String, dynamic>;
+                      final dataB = b.data() as Map<String, dynamic>;
+                      if (_sortBy == 'sales') {
+                        final salesA = (dataA['totalSales'] ?? 0).toDouble();
+                        final salesB = (dataB['totalSales'] ?? 0).toDouble();
+                        return salesB.compareTo(salesA); // Descending
+                      } else {
+                        final creditA = (dataA['balance'] ?? 0).toDouble();
+                        final creditB = (dataB['balance'] ?? 0).toDouble();
+                        return creditB.compareTo(creditA); // Descending
+                      }
+                    });
 
                     return ListView.builder(
                       padding: const EdgeInsets.all(16),
