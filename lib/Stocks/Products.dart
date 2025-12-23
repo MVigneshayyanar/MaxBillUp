@@ -220,25 +220,25 @@ class _ProductsPageState extends State<ProductsPage> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _cardBorder),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 6, offset: const Offset(0, 2)),
           ],
         ),
-          padding: EdgeInsets.fromLTRB(16,5,16,5) ,
+        padding: const EdgeInsets.all(10),
         child: Row(
           children: [
             // Product Icon
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: _primaryColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.inventory_2_outlined, color: _primaryColor, size: 24),
+              child: const Icon(Icons.inventory_2_outlined, color: _primaryColor, size: 18),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 10),
             // Info Column
             Expanded(
               child: Column(
@@ -247,42 +247,42 @@ class _ProductsPageState extends State<ProductsPage> {
                   // Line 1: Title
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: _navyColor),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   // Line 2: Category (Orange) and Quantity (End)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         category,
-                        style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 10, color: Colors.orange, fontWeight: FontWeight.bold),
                       ),
                       if (stockEnabled)
                         Text(
                           isOutOfStock ? 'Out of Stock' : 'Qty: ${stock.toInt()}',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: isOutOfStock ? _errorColor : (isLowStock ? _warningColor : _successColor),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 3),
+                  const SizedBox(height: 2),
                   // Line 3: Amount and Tax (End)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
                         "Rs ${price.toStringAsFixed(2)}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: _primaryColor),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: _primaryColor),
                       ),
                       Text(
                         '$taxType (${taxPercent.toStringAsFixed(1)}%)',
-                        style: const TextStyle(fontSize: 11, color: _secondaryColor, fontWeight: FontWeight.w500),
+                        style: const TextStyle(fontSize: 9, color: _secondaryColor, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -290,7 +290,7 @@ class _ProductsPageState extends State<ProductsPage> {
               ),
             ),
             const SizedBox(width: 3),
-            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
           ],
         ),
       ),

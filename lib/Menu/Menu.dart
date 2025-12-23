@@ -649,51 +649,124 @@ class _MenuPageState extends State<MenuPage> {
               // HEADER
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 25, left: 20, right: 20),
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 20, left: 20, right: 20),
                 color: _headerBlue,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Text(_businessName, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    // Logo on left side
+                    Image.asset(
+                      'assets/max_my_bill_sq.png',
+                      width: 175,
+                      height:175,
+                      fit: BoxFit.contain,
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        // Fetch fresh plan data from backend
-                        final planProvider = Provider.of<PlanProvider>(context, listen: false);
-                        final currentPlan = await planProvider.getCurrentPlan();
-
-                        if (!mounted) return;
-
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => SubscriptionPlanPage(
-                              uid: widget.uid,
-                              currentPlan: currentPlan,
+                    const SizedBox(width: 25),
+                    // Store info on right side
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Store name
+                          Text(
+                            _businessName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 10),
+                          // Role badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              _role.toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
-                        );
-                      },
-                      icon: const Icon(Icons.workspace_premium, size: 18, color: Colors.white),
-                      label: Text(context.tr('subscription_plan'), style: const TextStyle(color: Colors.white, fontSize: 14)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade700,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          const SizedBox(height: 10),
+                          // Email
+                          Row(
+                            children: [
+                              const Icon(Icons.email_outlined, color: Colors.white70, size: 12),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  _email,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height:10),
+                          // Plan info button
+                          FutureBuilder<String>(
+                            future: Provider.of<PlanProvider>(context, listen: false).getCurrentPlan(),
+                            builder: (context, snapshot) {
+                              final currentPlan = snapshot.data ?? 'Free';
+                              return InkWell(
+                                onTap: () async {
+                                  final planProvider = Provider.of<PlanProvider>(context, listen: false);
+                                  final plan = await planProvider.getCurrentPlan();
+                                  if (!mounted) return;
+                                  Navigator.push(
+                                    context,
+                                    CupertinoPageRoute(
+                                      builder: (context) => SubscriptionPlanPage(
+                                        uid: widget.uid,
+                                        currentPlan: plan,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: currentPlan == 'Free' ? Colors.orange.shade700 : Colors.green.shade600,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.workspace_premium, size: 12, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        currentPlan,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(_email, style: const TextStyle(color: Colors.white, fontSize: 14)),
-              ],
-            ),
-          ),
+              ),
 
           // MENU LIST
           Expanded(

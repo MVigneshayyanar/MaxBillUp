@@ -19,7 +19,7 @@ const Color kBackgroundColor = Colors.white; // Unified White Background
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1F2937); // Dark Grey
 const Color kTextSecondary = Color(0xFF6B7280); // Cool Grey
-final Color kBorderColor = Colors.grey.shade200; // Subtle Border
+final Color kBorderColor = Color(0xFFE3F2FD); // Subtle Border
 
 // Feature Colors
 const Color kIncomeGreen = Color(0xFF4CAF50);
@@ -118,27 +118,27 @@ class _ReportsPageState extends State<ReportsPage> {
             automaticallyImplyLeading: false,
           ),
           body: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
             children: [
               _sectionHeader(context.tr('analytics_overview')),
               _buildModernTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !isFeatureAvailable('analytics')),
               _buildModernTile(context.tr('daybook_today'), Icons.menu_book_rounded, kTealCharts, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE
               _buildModernTile(context.tr('sales_summary'), Icons.analytics_rounded, kIndigoColor, 'Summary', isLocked: !isFeatureAvailable('salesSummary')),
 
-              const SizedBox(height: 12),
+              // const SizedBox(height: 12),
               _sectionHeader(context.tr('sales_transactions')),
               _buildModernTile(context.tr('sales_report'), Icons.shopping_cart_rounded, kPurpleCharts, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
               _buildModernTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, kCyanColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
               _buildModernTile(context.tr('top_customers'), Icons.emoji_events_rounded, kAmberColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
 
-              const SizedBox(height: 12),
+              // const SizedBox(height: 12),
               _sectionHeader(context.tr('inventory_products')),
               _buildModernTile(context.tr('stock_report'), Icons.warehouse_rounded, kIndigoColor, 'StockReport', isLocked: !isFeatureAvailable('stockReport')),
               _buildModernTile(context.tr('low_stock_products'), Icons.inventory_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !isFeatureAvailable('lowStockProduct')),
               _buildModernTile(context.tr('top_products'), Icons.trending_up_rounded, kIncomeGreen, 'TopProducts', isLocked: !isFeatureAvailable('topProducts')),
               _buildModernTile(context.tr('top_categories'), Icons.category_rounded, kPurpleCharts, 'TopCategories', isLocked: !isFeatureAvailable('topCategory')),
 
-              const SizedBox(height: 12),
+              // const SizedBox(height: 12),
               _sectionHeader(context.tr('financials_tax')),
               _buildModernTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
               _buildModernTile(context.tr('tax_report'), Icons.receipt_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
@@ -166,16 +166,16 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildModernTile(String title, IconData icon, Color iconColor, String viewName, {String? subtitle, bool isLocked = false}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color : kBorderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1))],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: InkWell(
           onTap: () {
             if (isLocked) {
@@ -185,21 +185,21 @@ class _ReportsPageState extends State<ReportsPage> {
               setState(() => _currentView = viewName);
             }
           },
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(10.0),
             child: Row(
               children: [
                 Container(
-                  width: 48,
-                  height: 48,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Icon(icon, color:  iconColor, size: 24),
+                  child: Icon(icon, color: iconColor, size: 18),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,27 +209,27 @@ class _ReportsPageState extends State<ReportsPage> {
                           Expanded(
                             child: Text(
                               title,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                color:  kTextPrimary,
+                                fontSize: 13,
+                                color: kTextPrimary,
                               ),
                             ),
                           ),
                         ],
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: TextStyle(color: kTextSecondary, fontSize: 12)),
+                        const SizedBox(height: 1),
+                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 10)),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 4),
                 Icon(
                   Icons.chevron_right_rounded,
                   color: kTextSecondary.withOpacity(0.5),
-                  size: 24,
+                  size: 18,
                 ),
               ],
             ),
