@@ -1520,7 +1520,14 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
-              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.totalWithTax}).toList(),
+              items: widget.cartItems.map((e)=> {
+                'name':e.name,
+                'quantity':e.quantity,
+                'price':e.price,
+                'total':e.totalWithTax,
+                'taxPercentage':e.taxPercentage ?? 0,
+                'taxAmount':e.taxAmount, // Actual tax amount per item
+              }).toList(),
               subtotal: subtotalAmount,
               discount: widget.discountAmount,
               taxes: taxList, // Dynamic tax list grouped by name
@@ -2159,7 +2166,14 @@ class _PaymentPageState extends State<PaymentPage> {
               businessPhone: businessPhone ?? '',
               invoiceNumber: invoiceNumber,
               dateTime: DateTime.now(),
-              items: widget.cartItems.map((e)=> {'name':e.name,'quantity':e.quantity,'price':e.price,'total':e.totalWithTax}).toList(),
+              items: widget.cartItems.map((e)=> {
+                'name':e.name,
+                'quantity':e.quantity,
+                'price':e.price,
+                'total':e.totalWithTax,
+                'taxPercentage':e.taxPercentage ?? 0,
+                'taxAmount':e.taxAmount, // Actual tax amount per item
+              }).toList(),
               subtotal: subtotalAmount,
               discount: widget.discountAmount,
               taxes: taxList, // Dynamic tax list grouped by name

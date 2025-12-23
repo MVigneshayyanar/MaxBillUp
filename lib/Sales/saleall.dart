@@ -48,6 +48,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
   final List<String> _categories = ['All'];
   bool _isLoadingCategories = true;
 
+  // Cart expansion state
+  double _cartHeight = 180.0; // Initial height for 4 items
+  final double _minCartHeight = 180;
+  final double _maxCartHeight = 300.0;
+
+  // Newly added item tracking
+  String? _newlyAddedItemId;
+
   // UI Constants
   final Color _primaryColor = const Color(0xFF2196F3);
   final Color _successColor = const Color(0xFF4CAF50);
@@ -56,6 +64,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   final Color _warningColor = const Color(0xFFFF9800);
   final Color _bgColor = Colors.white; // Changed to white
   final Color _cardBorder = Color(0xFFE3F2FD);
+  final Color _cartHeaderColor = const Color(0xFFFFA726); // Orange color for header
 
   @override
   void initState() {
@@ -171,8 +180,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ));
     }
 
+    // Highlight newly added item
+    setState(() {
+      _newlyAddedItemId = id;
+    });
+
+    // Remove highlight after 1 second
+    Future.delayed(const Duration(seconds: 1), () {
+      if (mounted) {
+        setState(() {
+          _newlyAddedItemId = null;
+        });
+      }
+    });
+
     widget.onCartChanged?.call(_cart);
-    setState(() {});
   }
 
   void _removeFromCart(int idx) {
@@ -190,6 +212,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   void _showEditDialog(int idx) {
     final item = _cart[idx];
     final qtyCtrl = TextEditingController(text: item.quantity.toString());
+    final priceCtrl = TextEditingController(text: item.price.toStringAsFixed(0));
 
     showDialog(
       context: context,
@@ -199,9 +222,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Price: ${item.price.toStringAsFixed(0)}',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _primaryColor)),
-            const SizedBox(height: 20),
+            TextField(
+              controller: priceCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: context.tr('price'),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.currency_rupee),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: qtyCtrl,
               keyboardType: TextInputType.number,
@@ -229,8 +261,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ElevatedButton(
             onPressed: () {
               final qty = int.tryParse(qtyCtrl.text.trim());
-              if (qty != null && qty > 0) {
+              final price = double.tryParse(priceCtrl.text.trim());
+              if (qty != null && qty > 0 && price != null && price > 0) {
                 _cart[idx].quantity = qty;
+                _cart[idx].price = price;
                 widget.onCartChanged?.call(_cart);
                 setState(() {});
                 Navigator.pop(ctx);
@@ -303,76 +337,96 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Scaffold(
       backgroundColor: _bgColor,
-      body: Column(
+      body: Stack(
         children: [
-          // 1. Header
-          _buildHeader(w),
-
-          // 2. Cart Preview
-          if (_cart.isNotEmpty) _buildCartPreview(w),
-
-          // 3. Category & Product Grid
-          Expanded(
-            child: Container(
-              color: _bgColor,
-              child: Column(
-                children: [
-                  _buildCategorySelector(w),
-                  Expanded(child: _buildProductGrid(w)),
-                ],
+          // Main content layer
+          Column(
+            children: [
+              // 1. Dynamic spacer for cart - updates with cart height
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 0), // Instant update during drag
+                height: _cart.isNotEmpty ? _cartHeight : 0,
               ),
-            ),
+
+              // 2. Header (Search bar) with fixed top padding
+              Container(
+                padding: EdgeInsets.only(top: _cart.isEmpty ? 3 : 0),
+                child: _buildHeader(w),
+              ),
+
+              // 3. Category & Product Grid
+              Expanded(
+                child: Container(
+                  color: _bgColor,
+                  child: Column(
+                    children: [
+                      _buildCategorySelector(w),
+                      Expanded(child: _buildProductGrid(w)),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 4. Action Buttons
+              CommonWidgets.buildActionButtons(
+                context: context,
+                onSaveOrder: () {
+                  CommonWidgets.showSaveOrderDialog(
+                    context: context,
+                    uid: widget.uid,
+                    cartItems: _cart,
+                    totalBill: _total,
+                    onSuccess: () {
+                      _cart.clear();
+                      widget.onCartChanged?.call(_cart);
+                      setState(() {});
+                    },
+                  );
+                },
+                onQuotation: () {
+                  if (_cart.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (ctx) => QuotationPage(
+                          uid: widget.uid,
+                          userEmail: widget.userEmail,
+                          cartItems: _cart,
+                          totalAmount: _total,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                onBill: () {
+                  if (_cart.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (ctx) => BillPage(
+                          uid: widget.uid,
+                          userEmail: widget.userEmail,
+                          cartItems: _cart,
+                          totalAmount: _total,
+                          savedOrderId: widget.savedOrderId,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                totalBill: _total,
+              ),
+            ],
           ),
 
-          // 4. Action Buttons
-          CommonWidgets.buildActionButtons(
-            context: context,
-            onSaveOrder: () {
-              CommonWidgets.showSaveOrderDialog(
-                context: context,
-                uid: widget.uid,
-                cartItems: _cart,
-                totalBill: _total,
-                onSuccess: () {
-                  _cart.clear();
-                  widget.onCartChanged?.call(_cart);
-                  setState(() {});
-                },
-              );
-            },
-            onQuotation: () {
-              if (_cart.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (ctx) => QuotationPage(
-                      uid: widget.uid,
-                      userEmail: widget.userEmail,
-                      cartItems: _cart,
-                      totalAmount: _total,
-                    ),
-                  ),
-                );
-              }
-            },
-            onBill: () {
-              if (_cart.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (ctx) => BillPage(
-                      uid: widget.uid,
-                      userEmail: widget.userEmail,
-                      cartItems: _cart,
-                      totalAmount: _total,
-                      savedOrderId: widget.savedOrderId,
-                    ),
-                  ),
-                );
-              }
-            },
-            totalBill: _total,
-          ),
+          // Cart overlay - ALWAYS on top when cart has items
+          if (_cart.isNotEmpty)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _buildCartTable(w),
+            ),
         ],
       ),
     );
@@ -381,7 +435,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget _buildHeader(double w) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 0,w*0.04 , 12),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 5, w * 0.04, 12),
       child: Row(
         children: [
           Expanded(
@@ -429,109 +483,220 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 
-  Widget _buildCartPreview(double w) {
+  Widget _buildCartTable(double w) {
     return Container(
-      // REMOVED: color: Colors.white, (This caused the crash)
-      padding: const EdgeInsets.only(bottom: 12),
+      height: _cartHeight,
       decoration: BoxDecoration(
-        color: Colors.white, // The color must be here inside BoxDecoration
-        //border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: Colors.white,
+
       ),
       child: Column(
         children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 4),
+          // Orange Header with column names
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+            decoration: BoxDecoration(
+              color: _primaryColor,
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Icon(Icons.shopping_bag_outlined, size: 20, color: _primaryColor),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${_cart.length} ${context.tr('items')}',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    ),
-                  ],
-                ),
-                GestureDetector(
-                  onTap: _clearOrder,
+                Expanded(
+                  flex: 4,
                   child: Text(
-                    context.tr('clear'),
-                    style: TextStyle(color: _errorColor, fontSize: 13, fontWeight: FontWeight.w600),
+                    'PRODUCT',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'QTY',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'PRICE',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    'TOTAL',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(
-            height: 90,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              padding: EdgeInsets.symmetric(horizontal: w * 0.04),
-              itemCount: _cart.length,
-              itemBuilder: (ctx, idx) {
-                final item = _cart[idx];
-                return GestureDetector(
-                  onTap: () => _showEditDialog(idx),
-                  child: Container(
-                    width: 200,
-                    margin: const EdgeInsets.only(right: 12),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: _cardBorder),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: _primaryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${item.quantity}',
-                              style: TextStyle(color: _primaryColor, fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
+          // Cart Items - Scrollable
+          Expanded(
+            child: Container(
+              color: Colors.white,
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: _cart.length,
+                itemBuilder: (ctx, idx) {
+                  final item = _cart[idx];
+                  final isNewlyAdded = item.productId == _newlyAddedItemId;
+
+                  return GestureDetector(
+                    onTap: () => _showEditDialog(idx),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: isNewlyAdded
+                            ? _successColor.withOpacity(0.5)
+                            : Colors.white,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _primaryColor,
+                            width: 1,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(item.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${item.price.toStringAsFixed(0)} x ${item.quantity} = ${item.total.toStringAsFixed(0)}',
-                                style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 4,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 15,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  Icons.edit,
+                                  color: Colors.black45,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.quantity}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
                               ),
-                            ],
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              item.price.toStringAsFixed(0),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              item.total.toStringAsFixed(0),
+                              textAlign: TextAlign.right,
+                              style: TextStyle(
+                                color: _primaryColor,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          // Bottom control bar: Clear (left), Drag handle (center), Item count (right)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque, // Ensure the gesture detector captures all touches
+            onVerticalDragUpdate: (details) {
+              setState(() {
+                _cartHeight = (_cartHeight + details.delta.dy).clamp(_minCartHeight, _maxCartHeight);
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+              decoration: BoxDecoration(
+                color: _primaryColor,
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left: Clear button
+                  GestureDetector(
+                    onTap: _clearOrder,
+                    child: Row(
+                      children: [
+                        Icon(Icons.clear, color: Colors.white, size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          context.tr('clear'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
                           ),
                         ),
                       ],
                     ),
                   ),
-                );
-              },
+                  // Center: Drag handle
+                  Icon(Icons.drag_handle, color: Colors.white, size: 24),
+                  // Right: Item count
+                  Text(
+                    '${_cart.length} ${context.tr('items')}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -741,7 +906,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
-                      isOutOfStock ? 'Out' : '${stock.toInt()}$unit',
+                      isOutOfStock ? 'Out' : '${stock.toInt()} $unit',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -760,3 +925,4 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
+

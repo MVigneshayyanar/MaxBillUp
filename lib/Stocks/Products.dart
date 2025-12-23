@@ -226,7 +226,7 @@ class _ProductsPageState extends State<ProductsPage> {
             BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4)),
           ],
         ),
-        padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.fromLTRB(16,5,16,5) ,
         child: Row(
           children: [
             // Product Icon
@@ -251,7 +251,7 @@ class _ProductsPageState extends State<ProductsPage> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 3),
                   // Line 2: Category (Orange) and Quantity (End)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -271,7 +271,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 3),
                   // Line 3: Amount and Tax (End)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -289,7 +289,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 ],
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 3),
             const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
         ),

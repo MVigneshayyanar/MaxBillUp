@@ -1,7 +1,7 @@
 class CartItem {
   final String productId;
   final String name;
-  final double price;
+  double price; // Changed from final to allow editing
   int quantity;
 
   // Tax information

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'LoginPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -46,17 +45,11 @@ class _SplashPageState extends State<SplashPage> {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/logo.png',
-                width: 500,
-                height: 60,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 12),
-            ],
+          child: Image.asset(
+            'assets/Splash_Screen.gif',
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
           ),
         ),
       ),
