@@ -8,7 +8,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 // =============================================================================
 // UI CONSTANTS & THEME
 // =============================================================================
-const Color _primaryColor = Color(0xFF2196F3);
+const Color _primaryColor = Color(0xFF2F7CF6);
 const Color _drColor = Color(0xFFFF5252);     // RED: Debit / Balance Due
 const Color _crColor = Color(0xFF4CAF50);     // GREEN: Credit / Total Paid
 const Color _cardBorder = Color(0xFFE3F2FD);   // Soft high-end border

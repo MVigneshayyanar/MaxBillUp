@@ -18,7 +18,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // Updated UI Color Palette
-const Color _primaryColor = Color(0xFF2196F3);     // Professional Blue
+const Color _primaryColor = Color(0xFF2F7CF6);     // Professional Blue
 const Color _successColor = Color(0xFF4CAF50);     // Emerald Green
 const Color _warningColor = Color(0xFFF59E0B);     // Amber Orange
 const Color _dangerColor = Color(0xFFEF4444);      // Rose Red
@@ -150,7 +150,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
       final now = DateTime.now();
 
       // Define PDF Colors to match UI
-      const pdfPrimary = PdfColor.fromInt(0xFF2196F3);
+      const pdfPrimary = PdfColor.fromInt(0xFF2F7CF6);
       const pdfSuccess = PdfColor.fromInt(0xFF10B981);
       const pdfWarning = PdfColor.fromInt(0xFFF59E0B);
       const pdfDanger = PdfColor.fromInt(0xFFEF4444);

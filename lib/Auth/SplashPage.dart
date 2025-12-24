@@ -52,7 +52,7 @@ class _SplashPageState extends State<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF2196F3),
+      backgroundColor: const Color(0xFF2F7CF6),
       body: SafeArea(
         child: Center(
           child: AnimatedOpacity(

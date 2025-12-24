@@ -26,6 +26,10 @@ class CommonBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
+        // Add a thin top border to visually separate the bottom nav from page content
+        border: const Border(
+          top: BorderSide(color: Color(0xFFE3F2FD), width: 1),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -36,7 +40,7 @@ class CommonBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         child: Container(
-          height: 60,
+          height: 65,
           margin: const EdgeInsets.only(bottom: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -66,25 +70,15 @@ class CommonBottomNav extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeInOut,
-                height: 3,
-                width: isSelected ? 40 : 0,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2196F3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               AnimatedScale(
                 scale: isSelected ? 1.1 : 1.0,
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
                 child: Icon(
                   icon,
-                  color: isSelected ? const Color(0xFF2196F3) : Colors.grey[400],
-                  size: 24,
+                  color: isSelected ? const Color(0xFF2F7CF6) : Colors.black,
+                  size: 30,
                 ),
               ),
               const SizedBox(height: 4),
@@ -94,7 +88,7 @@ class CommonBottomNav extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? const Color(0xFF2196F3) : Colors.grey[400],
+                  color: isSelected ? const Color(0xFF2F7CF6) : Colors.black,
                 ),
                 child: Text(label),
               ),

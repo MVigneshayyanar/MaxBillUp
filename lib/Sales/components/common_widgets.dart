@@ -57,11 +57,11 @@ class CommonWidgets {
               height: 56,
               padding: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
-                color: const Color(0xFF2196F3),
+                color: const Color(0xFF2F7CF6),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2196F3).withOpacity(0.3),
+                    color: const Color(0xFF2F7CF6).withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -105,7 +105,7 @@ class CommonWidgets {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2196F3), width: 1),
+          border: Border.all(color: const Color(0xFF2F7CF6), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -114,7 +114,7 @@ class CommonWidgets {
             ),
           ],
         ),
-        child: Icon(icon, color: const Color(0xFF2196F3), size: 26),
+        child: Icon(icon, color: const Color(0xFF2F7CF6), size: 26),
       ),
     );
   }
@@ -215,7 +215,7 @@ class CommonWidgets {
                 onSuccess();
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2196F3),
+                backgroundColor: const Color(0xFF2F7CF6),
               ),
               child: Text(context.tr('save_order')),
             ),

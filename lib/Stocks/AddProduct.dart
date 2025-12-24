@@ -151,7 +151,7 @@ class _AddProductPageState extends State<AddProductPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF3F4F6),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         elevation: 0,
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
@@ -286,15 +286,15 @@ class _AddProductPageState extends State<AddProductPage> {
         fillColor: const Color(0xFFF8F9FA),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
+          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
+          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
@@ -331,7 +331,7 @@ class _AddProductPageState extends State<AddProductPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2196F3).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF2F7CF6).withOpacity(0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -442,15 +442,15 @@ class _AddProductPageState extends State<AddProductPage> {
       fillColor: const Color(0xFFF8F9FA),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
+        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1),
+        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
@@ -527,7 +527,7 @@ class _AddProductPageState extends State<AddProductPage> {
       child: ElevatedButton(
         onPressed: _saveProduct,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2196F3),
+          backgroundColor: const Color(0xFF2F7CF6),
           minimumSize: const Size(double.infinity, 54),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

@@ -24,15 +24,14 @@ import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 // ==========================================
 // CONSTANTS & STYLES (MATCHED TO REPORT UI)
 // ==========================================
-const Color kPrimaryColor = Color(0xFF2196F3); // Vibrant Blue
-const Color kBgColor = Colors.white;           // Unified White Background
+const Color kPrimaryColor = Color(0xFF2F7CF6);
+final Color kBgColor = const Color(0xFFF9FAFC);// Unified White Background
 const Color kSurfaceColor = Colors.white;      // Card/Container White
 const Color kInputFillColor = Color(0xFFF0F8FF); // Light Blue Tint
 const Color kDangerColor = Color(0xFFFF3B30);
 const Color kTextPrimary = Color(0xFF1D1D1D);
 const Color kTextSecondary = Color(0xFF8A8A8E);
-final Color kBorderColor = Colors.grey.shade200;
-
+final Color kBorderColor = Color(0xFFE3F2FD);
 // Feature Colors for Settings Icons
 const Color kColorBusiness = Color(0xFF1976D2);
 const Color kColorReceipt = Color(0xFFFF9800);

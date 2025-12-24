@@ -4,7 +4,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'Profile.dart';
 
-const Color kPrimaryColor = Color(0xFF2196F3);
+const Color kPrimaryColor = Color(0xFF2F7CF6);
 const Color kBgColor = Color(0xFFF5F5F5);
 
 class TaxSettingsPage extends StatefulWidget {

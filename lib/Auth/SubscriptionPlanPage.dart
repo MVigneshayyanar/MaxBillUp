@@ -214,7 +214,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     return Scaffold(
       backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         elevation: 0,
         title: Text(
           context.tr('upgrade'),

@@ -14,7 +14,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 // ==========================================
 // MODERN DESIGN SYSTEM TOKENS
 // ==========================================
-const Color kPrimaryColor = Color(0xFF2196F3); // Material Blue
+const Color kPrimaryColor = Color(0xFF2F7CF6); // Material Blue
 const Color kBackgroundColor = Colors.white; // Unified White Background
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1F2937); // Dark Grey

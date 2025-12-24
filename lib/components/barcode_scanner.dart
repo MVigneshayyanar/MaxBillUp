@@ -69,7 +69,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(context.tr('scanbarcode')),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -194,7 +194,7 @@ class ScannerOverlay extends CustomPainter {
 
     // Draw border corners
     final Paint borderPaint = Paint()
-      ..color = const Color(0xFF2196F3)
+      ..color = const Color(0xFF2F7CF6)
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke;
 

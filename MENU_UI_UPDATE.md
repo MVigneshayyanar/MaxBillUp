@@ -165,7 +165,7 @@ Container(
     borderRadius: BorderRadius.circular(12),
   ),
   child: const Icon(Icons.description_outlined, 
-    color: Color(0xFF2196F3), size: 24),
+    color: Color(0xFF2F7CF6), size: 24),
 )
 ```
 

@@ -1660,7 +1660,7 @@ class LanguageProvider extends ChangeNotifier {
       'menu': 'பட்டியல்',
 
       // Sales
-      'new_sale': 'புதிய விற்பனை',
+      'new_sale': 'விற்பனை',
       'sale_all': 'அனைத்து விற்பனை',
       'quick_sale': 'விரைவு விற்பனை',
       'saved_orders': 'சேமிக்கப்பட்ட ஆர்டர்கள்',

@@ -645,7 +645,7 @@ class GoogleGPainter extends CustomPainter {
     canvas.drawArc(rect, startAngle + sweep * 0.23, sweep * 0.23, false, paint);
     paint.color = const Color(0xFF34A853);
     canvas.drawArc(rect, startAngle + sweep * 0.46, sweep * 0.23, false, paint);
-    paint.color = const Color(0xFF2196F3);
+    paint.color = const Color(0xFF2F7CF6);
     canvas.drawArc(rect, startAngle + sweep * 0.69, sweep * 0.31, false, paint);
 
     final innerPaint = Paint()
@@ -654,7 +654,7 @@ class GoogleGPainter extends CustomPainter {
     canvas.drawCircle(center, radius - strokeWidth * 1.25, innerPaint);
 
     final tailPaint = Paint()
-      ..color = const Color(0xFF2196F3)
+      ..color = const Color(0xFF2F7CF6)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth * 0.9
       ..strokeCap = StrokeCap.round;

@@ -9,7 +9,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // UI Color Palette
-const Color _primaryColor = Color(0xFF2196F3);
+const Color _primaryColor = Color(0xFF2F7CF6);
 const Color _navyColor = Color(0xFF0F172A);
 const Color _secondaryColor = Color(0xFF64748B);
 const Color _backgroundColor = Colors.white;

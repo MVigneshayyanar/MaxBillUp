@@ -104,13 +104,13 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
         future: FirestoreService().getCollectionStream('savedOrders'),
         builder: (context, streamSnapshot) {
           if (!streamSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF2F7CF6)));
           }
           return StreamBuilder<QuerySnapshot>(
             stream: streamSnapshot.data,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: Color(0xFF2196F3)));
+                return const Center(child: CircularProgressIndicator(color: Color(0xFF2F7CF6)));
               }
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                 return Center(
@@ -120,10 +120,10 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3).withOpacity(0.1),
+                          color: const Color(0xFF2F7CF6).withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.bookmark_border, size: 64, color: Color(0xFF2196F3)),
+                        child: const Icon(Icons.bookmark_border, size: 64, color: Color(0xFF2F7CF6)),
                       ),
                       const SizedBox(height: 24),
                       Text(context.tr('no_saved_orders'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
@@ -171,10 +171,10 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF2196F3).withOpacity(0.1),
+                                    color: const Color(0xFF2F7CF6).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(Icons.person_outline, color: Color(0xFF2196F3), size: 24),
+                                  child: const Icon(Icons.person_outline, color: Color(0xFF2F7CF6), size: 24),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
@@ -216,7 +216,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                                   const Spacer(),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(color: const Color(0xFF2196F3), borderRadius: BorderRadius.circular(8)),
+                                    decoration: BoxDecoration(color: const Color(0xFF2F7CF6), borderRadius: BorderRadius.circular(8)),
                                     child: Text(
                                       ' ${total.toStringAsFixed(2)}',
                                       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white),

@@ -59,12 +59,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String? _newlyAddedItemId;
 
   // UI Constants
-  final Color _primaryColor = const Color(0xFF2196F3);
+  final Color _primaryColor = const Color(0xFF2F7CF6);
   final Color _successColor = const Color(0xFF4CAF50);
   final Color _secondaryColor = Color(0xFF64748B);
   final Color _errorColor = const Color(0xFFFF5252);
   final Color _warningColor = const Color(0xFFFF9800);
-  final Color _bgColor = Colors.white; // Changed to white
+  final Color _bgColor = const Color(0xFFF9FAFC); // Changed to white
   final Color _cardBorder = Color(0xFFE3F2FD);
   final Color _cartHeaderColor = const Color(0xFFFFA726); // Orange color for header
 
@@ -339,97 +339,77 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Scaffold(
       backgroundColor: _bgColor,
-      body: Stack(
+      body: Column(
         children: [
-          // Main content layer
-          Column(
-            children: [
-              // 1. Dynamic spacer for cart - updates with cart height
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 0), // Instant update during drag
-                height: _cart.isNotEmpty ? _cartHeight : 0,
-              ),
-
-              // 2. Header (Search bar) with fixed top padding
-              Container(
-                padding: EdgeInsets.only(top: _cart.isEmpty ? 3 : 0),
-                child: _buildHeader(w),
-              ),
-
-              // 3. Category & Product Grid
-              Expanded(
-                child: Container(
-                  color: _bgColor,
-                  child: Column(
-                    children: [
-                      _buildCategorySelector(w),
-                      Expanded(child: _buildProductGrid(w)),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 4. Action Buttons
-              CommonWidgets.buildActionButtons(
-                context: context,
-                isQuotationMode: widget.isQuotationMode, // Pass the quotation mode flag
-                onSaveOrder: () {
-                  CommonWidgets.showSaveOrderDialog(
-                    context: context,
-                    uid: widget.uid,
-                    cartItems: _cart,
-                    totalBill: _total,
-                    onSuccess: () {
-                      _cart.clear();
-                      widget.onCartChanged?.call(_cart);
-                      setState(() {});
-                    },
-                  );
-                },
-                onQuotation: () {
-                  if (_cart.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (ctx) => QuotationPage(
-                          uid: widget.uid,
-                          userEmail: widget.userEmail,
-                          cartItems: _cart,
-                          totalAmount: _total,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                onBill: () {
-                  if (_cart.isNotEmpty) {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (ctx) => BillPage(
-                          uid: widget.uid,
-                          userEmail: widget.userEmail,
-                          cartItems: _cart,
-                          totalAmount: _total,
-                          savedOrderId: widget.savedOrderId,
-                        ),
-                      ),
-                    );
-                  }
-                },
-                totalBill: _total,
-              ),
-            ],
+          // 1. Header (Search bar)
+          Container(
+            padding: EdgeInsets.only(top: 3),
+            child: _buildHeader(w),
           ),
 
-          // Cart overlay - ALWAYS on top when cart has items
-          if (_cart.isNotEmpty)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _buildCartTable(w),
+          // 2. Category & Product Grid
+          Expanded(
+            child: Container(
+              color: _bgColor,
+              child: Column(
+                children: [
+                  _buildCategorySelector(w),
+                  Expanded(child: _buildProductGrid(w)),
+                ],
+              ),
             ),
+          ),
+
+          // 3. Action Buttons
+          CommonWidgets.buildActionButtons(
+            context: context,
+            isQuotationMode: widget.isQuotationMode, // Pass the quotation mode flag
+            onSaveOrder: () {
+              CommonWidgets.showSaveOrderDialog(
+                context: context,
+                uid: widget.uid,
+                cartItems: _cart,
+                totalBill: _total,
+                onSuccess: () {
+                  _cart.clear();
+                  widget.onCartChanged?.call(_cart);
+                  setState(() {});
+                },
+              );
+            },
+            onQuotation: () {
+              if (_cart.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (ctx) => QuotationPage(
+                      uid: widget.uid,
+                      userEmail: widget.userEmail,
+                      cartItems: _cart,
+                      totalAmount: _total,
+                    ),
+                  ),
+                );
+              }
+            },
+            onBill: () {
+              if (_cart.isNotEmpty) {
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (ctx) => BillPage(
+                      uid: widget.uid,
+                      userEmail: widget.userEmail,
+                      cartItems: _cart,
+                      totalAmount: _total,
+                      savedOrderId: widget.savedOrderId,
+                    ),
+                  ),
+                );
+              }
+            },
+            totalBill: _total,
+          ),
         ],
       ),
     );
@@ -437,8 +417,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   Widget _buildHeader(double w) {
     return Container(
-      color: Colors.white,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 5, w * 0.04, 12),
+      color:_bgColor,
+      padding: EdgeInsets.fromLTRB(w * 0.04, 5, w * 0.04, 0),
       child: Row(
         children: [
           Expanded(
@@ -470,13 +450,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               decoration: BoxDecoration(
                 color: _primaryColor,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: _primaryColor.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
-                ],
+
               ),
               child: const Icon(Icons.qr_code_scanner, color: Colors.white),
             ),
@@ -506,10 +480,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 Expanded(
                   flex: 4,
                   child: Text(
-                    'PRODUCT',
+                    'Product',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       fontSize: 16,
                     ),
                   ),
@@ -521,7 +495,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       fontSize: 16,
                     ),
                   ),
@@ -529,11 +503,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'PRICE',
+                    'Price',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       fontSize: 16,
                     ),
                   ),
@@ -541,11 +515,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 Expanded(
                   flex: 2,
                   child: Text(
-                    'TOTAL',
+                    'Total',
                     textAlign: TextAlign.right,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                       fontSize: 16,
                     ),
                   ),
@@ -712,7 +686,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Container(
       color: _bgColor,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 0, 0, 12),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 8, 0, 8),
       child: SizedBox(
         height: 36,
         child: ListView.builder(
@@ -728,7 +702,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                 decoration: BoxDecoration(
                   color: isSelected ? _primaryColor : Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isSelected ? _primaryColor : _cardBorder,
                   ),
@@ -792,11 +766,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 20),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: w > 600 ? 5 : 3, // Increased columns for compact look
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            // On larger screens use wider max extent, on phones use narrower to fit 3 columns
+            maxCrossAxisExtent: w > 600 ? 200 : 140,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
-            childAspectRatio: 0.85,
+            childAspectRatio: 1.0, // Force square cells
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {
@@ -861,71 +836,68 @@ class _SaleAllPageState extends State<SaleAllPage> {
               taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
         }
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _cardBorder),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            )
-          ],
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            // Top: Name
-            Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.2, color: Colors.black87),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            // Bottom: Price and Stock
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  price.toStringAsFixed(0),
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: _primaryColor,
-                  ),
-                ),
-                if (stockEnabled) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: isOutOfStock
-                          ? _errorColor.withOpacity(0.1)
-                          : (isLowStock ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1)),
-                      borderRadius: BorderRadius.circular(4),
+      child: AspectRatio(
+        aspectRatio: 1.0, // Force square card
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: _cardBorder),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Top: Name
+              Text(
+                name,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.15, color: Colors.black87),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+              // Bottom: Price and Stock
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    price.toStringAsFixed(0),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: _primaryColor,
                     ),
-                    child: Text(
-                      isOutOfStock ? 'Out' : '${stock.toInt()} $unit',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  if (stockEnabled) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
                         color: isOutOfStock
-                            ? _errorColor
-                            : (isLowStock ? _warningColor : _successColor),
+                            ? _errorColor.withOpacity(0.1)
+                            : (isLowStock ? _warningColor.withOpacity(0.1) : _successColor.withOpacity(0.1)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        isOutOfStock ? 'Out' : '${stock.toInt()} $unit',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: isOutOfStock
+                              ? _errorColor
+                              : (isLowStock ? _warningColor : _successColor),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+
 

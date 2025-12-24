@@ -183,7 +183,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveCategory,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2196F3),
+                  backgroundColor: const Color(0xFF2F7CF6),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),

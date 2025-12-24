@@ -19,23 +19,25 @@ class SaleAppBar extends StatelessWidget {
     required this.uid,
     this.userEmail,
   });
-
+  final Color _bgColor = const Color(0xFFF9FAFC);
+  final Color _cardBorder = const Color(0xFFE3F2FD);
+  final Color _primaryColor = const Color(0xFF2F7CF6);
   @override
   Widget build(BuildContext context) {
     final tabPadding = screenWidth * 0.04;
     final tabHeight = screenHeight * 0.06;
 
     return Container(
-      color: Colors.white,
+      color: _bgColor,
       child: Container(
-        padding: EdgeInsets.fromLTRB(tabPadding-8, tabPadding + 30, tabPadding, tabPadding-15),
+        padding: EdgeInsets.fromLTRB(tabPadding-8, 5, tabPadding, tabPadding-15),
         child: Row(
           children: [
             // Menu Button
             SizedBox(width: screenWidth * 0.02),
-            _buildTab(context.tr('sale_all'), 0, screenWidth, tabHeight),
+            _buildTab(context.tr('View All'), 0, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
-            _buildTab(context.tr('quick_sale'), 1, screenWidth, tabHeight),
+            _buildTab(context.tr('Quick Bill'), 1, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
             _buildTab(context.tr('saved'), 2, screenWidth, tabHeight),
           ],
@@ -52,8 +54,9 @@ class SaleAppBar extends StatelessWidget {
         child: Container(
           height: tabHeight,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
+            color: isSelected ? const Color(0xFF2F7CF6) : _primaryColor.withOpacity(0.05),
             borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: _cardBorder),
           ),
           child: Center(
             child: Text(

@@ -58,7 +58,7 @@ class _ExampleProtectedPageState extends State<ExampleProtectedPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Permission Example'),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -178,7 +178,7 @@ class _ExampleProtectedPageState extends State<ExampleProtectedPage> {
 
     return [
       ListTile(
-        leading: const Icon(Icons.person, color: Color(0xFF2196F3)),
+        leading: const Icon(Icons.person, color: Color(0xFF2F7CF6)),
         title: Text('Role: $role'),
         dense: true,
       ),
@@ -429,7 +429,7 @@ class PermissionAwarePage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Text('Sales ($role)'),
-            backgroundColor: const Color(0xFF2196F3),
+            backgroundColor: const Color(0xFF2F7CF6),
           ),
           body: Center(
             child: Text('Sales content - You have access!'),

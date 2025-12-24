@@ -10,7 +10,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'nq.dart';
 
 // --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2196F3);
+const Color _primaryColor = Color(0xFF2F7CF6);
 const Color _successColor = Color(0xFF4CAF50);
 const Color _cardBorder = Color(0xFFE3F2FD);
 

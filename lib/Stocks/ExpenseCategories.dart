@@ -6,7 +6,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2196F3);
+const Color _primaryColor = Color(0xFF2F7CF6);
 const Color _errorColor = Color(0xFFFF5252);
 const Color _cardBorder = Color(0xFFE3F2FD);
 const Color _scaffoldBg = Colors.white;

@@ -4,8 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
 // Professional Corporate Palette
-const Color _primaryColor = Color(0xFF2196F3); // Slate 900 (Navy)
-const Color _accentColor = Color(0xFF2196F3);  // Professional Blue
+const Color _primaryColor = Color(0xFF2F7CF6); // Slate 900 (Navy)
+const Color _accentColor = Color(0xFF2F7CF6);  // Professional Blue
 const Color _secondaryColor = Color(0xFF64748B); // Slate 500 (Grey)
 const Color _cardBorder = Color(0xFFE2E8F0); // Slate 200
 const Color _scaffoldBg = Color(0xFFF1F5F9); // Slate 100

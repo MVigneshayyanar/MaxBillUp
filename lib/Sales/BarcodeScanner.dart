@@ -112,7 +112,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage>
       backgroundColor: Colors.black,
       appBar: AppBar(
         title: Text(widget.title),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -165,7 +165,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage>
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
+                        backgroundColor: const Color(0xFF2F7CF6),
                       ),
                       child: const Text('Go Back'),
                     ),
@@ -249,7 +249,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage>
                         const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
                       color: _isScanning
-                          ? const Color(0xFF2196F3).withValues(alpha: 0.9)
+                          ? const Color(0xFF2F7CF6).withValues(alpha: 0.9)
                           : const Color(0xFFFF9800).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -374,7 +374,7 @@ class ScannerOverlay extends CustomPainter {
 
     // Draw scanning line
     final Paint scanLinePaint = Paint()
-      ..color = const Color(0xFF2196F3).withValues(alpha: 0.8)
+      ..color = const Color(0xFF2F7CF6).withValues(alpha: 0.8)
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke;
 
@@ -389,7 +389,7 @@ class ScannerOverlay extends CustomPainter {
 
     // Draw glow effect on scan line
     final Paint glowPaint = Paint()
-      ..color = const Color(0xFF2196F3).withValues(alpha: 0.3)
+      ..color = const Color(0xFF2F7CF6).withValues(alpha: 0.3)
       ..strokeWidth = 8
       ..style = PaintingStyle.stroke
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
@@ -402,7 +402,7 @@ class ScannerOverlay extends CustomPainter {
 
     // Draw border (full frame)
     final Paint framePaint = Paint()
-      ..color = const Color(0xFF2196F3).withValues(alpha: 0.5)
+      ..color = const Color(0xFF2F7CF6).withValues(alpha: 0.5)
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
@@ -413,7 +413,7 @@ class ScannerOverlay extends CustomPainter {
 
     // Draw corner highlights
     final Paint cornerPaint = Paint()
-      ..color = const Color(0xFF2196F3)
+      ..color = const Color(0xFF2F7CF6)
       ..strokeWidth = 5
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

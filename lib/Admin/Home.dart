@@ -5,8 +5,8 @@ import 'package:maxbillup/services/direct_notification_service.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 
 // --- Modern Design Tokens ---
-const Color kBrandPrimary = Color(0xFF2196F3); // Indigo
-const Color kBrandSecondary = Color(0xFF2196F3);
+const Color kBrandPrimary = Color(0xFF2F7CF6); // Indigo
+const Color kBrandSecondary = Color(0xFF2F7CF6);
 const Color kBgColor = Color(0xFFF8FAFC);
 const Color kCardColor = Colors.white;
 const Color kTextDark = Color(0xFF1E293B);

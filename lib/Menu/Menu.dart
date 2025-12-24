@@ -651,7 +651,7 @@ class _MenuPageState extends State<MenuPage> {
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 20, left: 20, right: 20),
-                color: _headerBlue,
+                color: Color(0xFF2F7CF6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -1559,7 +1559,7 @@ class GenericListPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(title, style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
         centerTitle: true,
       ),
@@ -1854,7 +1854,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       appBar: AppBar(
 
         title: Text(context.tr('billhistory'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: widget.onBack, // Use the provided callback
@@ -1895,7 +1895,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _selectedFilter,
-                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2196F3)),
+                      icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2F7CF6)),
                       items: <String>[
                         'All Time',
                         'Today',
@@ -1926,7 +1926,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                             lastDate: DateTime.now(),
                             builder: (context, child) => Theme(
                               data: ThemeData.light().copyWith(
-                                colorScheme: const ColorScheme.light(primary: Color(0xFF2196F3)),
+                                colorScheme: const ColorScheme.light(primary: Color(0xFF2F7CF6)),
                               ),
                               child: child!,
                             ),
@@ -2073,13 +2073,13 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
         ),
         selected: isSelected,
         onSelected: (selected) => onSelected(value),
-        selectedColor: const Color(0xFF2196F3),
+        selectedColor: const Color(0xFF2F7CF6),
         backgroundColor: Colors.grey.shade200,
         checkmarkColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isSelected ? const Color(0xFF2196F3) : Colors.grey.shade300,
+            color: isSelected ? const Color(0xFF2F7CF6) : Colors.grey.shade300,
           ),
         ),
       ),
@@ -2183,7 +2183,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   children: [
                     Text(
                       '₹$total',
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2196F3)),
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2F7CF6)),
                     ),
                     Text(
                       '$itemsCount Items',
@@ -2256,7 +2256,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       style: const TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
+                      backgroundColor: const Color(0xFF2F7CF6),
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
@@ -2346,7 +2346,7 @@ class SalesDetailPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text('${context.tr('invoice')} ${initialData['invoiceNumber'] ?? ''}', style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
@@ -2404,7 +2404,7 @@ class SalesDetailPage extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2196F3),
+                                  color: Color(0xFF2F7CF6),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -2695,7 +2695,7 @@ class SalesDetailPage extends StatelessWidget {
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2196F3),
+                                    color: Color(0xFF2F7CF6),
                                   ),
                                 ),
                               ],
@@ -3022,7 +3022,7 @@ class SalesDetailPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 32, color: color ?? const Color(0xFF2196F3)),
+            Icon(icon, size: 32, color: color ?? const Color(0xFF2F7CF6)),
             const SizedBox(height: 8),
             Text(
               label,
@@ -3060,7 +3060,7 @@ class SalesDetailPage extends StatelessWidget {
             if (data['customerPhone'] != null && (data['total'] as num) > 0) ...[
               Text(
                 'A Credit Note will be created for customer ${data['customerName'] ?? data['customerPhone']}',
-                style: const TextStyle(fontSize: 14, color: Color(0xFF2196F3)),
+                style: const TextStyle(fontSize: 14, color: Color(0xFF2F7CF6)),
               ),
             ],
           ],
@@ -3306,7 +3306,7 @@ class SalesDetailPage extends StatelessWidget {
 
 
 // --- Global Theme Constants (Pure White BG, Standard Blue AppBar) ---
-const Color kPrimaryBlue = Color(0xFF2196F3);
+const Color kPrimaryBlue = Color(0xFF2F7CF6);
 const Color kDeepNavy = Color(0xFF1E293B);
 const Color kMediumBlue = Color(0xFF475569);
 const Color kWhite = Colors.white;
@@ -5261,7 +5261,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
         title: Text(context.tr('sale_return'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2196F3),
+        backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
@@ -5287,7 +5287,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
+                          color: Color(0xFF2F7CF6),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -5432,7 +5432,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                           }
                                         : null,
                                     icon: const Icon(Icons.remove_circle_outline),
-                                    color: const Color(0xFF2196F3),
+                                    color: const Color(0xFF2F7CF6),
                                   ),
                                   Container(
                                     width: 60,
@@ -5460,7 +5460,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                           }
                                         : null,
                                     icon: const Icon(Icons.add_circle_outline),
-                                    color: const Color(0xFF2196F3),
+                                    color: const Color(0xFF2F7CF6),
                                   ),
                                 ],
                               ),
@@ -5521,7 +5521,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2196F3),
+                          color: Color(0xFF2F7CF6),
                         ),
                       ),
                     ],
@@ -5585,7 +5585,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                       ? null
                       : () => _processSaleReturn(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2196F3),
+                    backgroundColor: const Color(0xFF2F7CF6),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

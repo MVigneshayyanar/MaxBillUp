@@ -66,6 +66,28 @@ class _QuickSalePageState extends State<QuickSalePage> {
     }
   }
 
+  @override
+  void didUpdateWidget(QuickSalePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync changes from parent when initialCartItems changes
+    if (widget.initialCartItems != oldWidget.initialCartItems) {
+      if (widget.initialCartItems != null) {
+        setState(() {
+          _items.clear();
+          for (var item in widget.initialCartItems!) {
+            _items.add(QuickSaleItem(
+              name: item.name,
+              price: item.price,
+              quantity: item.quantity,
+            ));
+          }
+          // Update counter to continue from the highest item number
+          _counter = _items.length + 1;
+        });
+      }
+    }
+  }
+
   Future<void> _loadDefaultTaxSettings() async {
     try {
       // Import FirestoreService at the top if not already imported
@@ -221,329 +243,368 @@ class _QuickSalePageState extends State<QuickSalePage> {
     }
   }
 
+  void _handleEnter() {
+    _addItem();
+  }
+
+  void _handleAdd() {
+    setState(() {
+      if (_input.isNotEmpty && !_input.endsWith('+')) _input += '+';
+    });
+  }
+
+  void _handleSubtract() {
+    setState(() {
+      if (_input.isNotEmpty && !_input.endsWith('-')) _input += '-';
+    });
+  }
+
+  void _handleDivide() {
+    setState(() {
+      if (_input.isNotEmpty && !_input.endsWith('/')) _input += '/';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Input Display at top
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF2196F3), width: 2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Text(
-                  _input.isEmpty ? '' : _input,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                if (editingIndex != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: ElevatedButton(
-                      onPressed: _confirmEditQuantity,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2196F3),
-                      ),
-                      child: Text(context.tr('update')),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-
-        // Scrollable Items List and Clear Button
+        // Combined Component: Input + Keypad + Action Buttons
         Expanded(
-          child: SingleChildScrollView(
+          child: Container(
+            color: Colors.white,
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               children: [
+                // Input Display
                 Container(
-                  color: Colors.white,
-                  constraints: BoxConstraints(
-                    minHeight: MediaQuery.of(context).size.height * 0.30,
-                    maxHeight: MediaQuery.of(context).size.height * 0.4,
-                  ),
-                  child: _items.isEmpty
-                      ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF2F7CF6), width: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Icon(
-                          Icons.shopping_cart_outlined,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        const SizedBox(height: 8),
                         Text(
-                          context.tr('no_items_in_cart'),
+                          _input.isEmpty ? '' : _input,
                           style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
                           ),
                         ),
+                        if (editingIndex != null)
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12),
+                            child: ElevatedButton(
+                              onPressed: _confirmEditQuantity,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF2F7CF6),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              ),
+                              child: Text(context.tr('update'), style: const TextStyle(fontSize: 12)),
+                            ),
+                          ),
                       ],
                     ),
-                  )
-                      : ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _items.length,
-                    itemBuilder: (context, idx) {
-                      final item = _items[idx];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity}',
-                                style: const TextStyle(fontSize: 16, color: Colors.black87),
-                              ),
-                            ),
-                            Text(
-                              '+ ${item.total.toStringAsFixed(1)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Color(0xFF4CAF50),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            GestureDetector(
-                              onTap: () => _startEditQuantity(idx),
-                              child: const Icon(Icons.edit, size: 20, color: Color(0xFF2196F3)),
-                            ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: Text(context.tr('delete')),
-                                    content: Text(context.tr('confirm_delete')),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: Text(context.tr('cancel')),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFFFF5252),
-                                        ),
-                                        child: Text(context.tr('delete')),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  setState(() => _items.removeAt(idx));
-                                  _notifyChange();
-                                }
-                              },
-                              child: const Icon(Icons.delete, size: 20, color: Color(0xFFFF5252)),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
                   ),
                 ),
+
+                const Spacer(),
+
+                // Calculator Keypad
                 Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-                  child: Row(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      GestureDetector(
-                        onTap: _items.isEmpty ? null : _clearOrder,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: _items.isEmpty ? Colors.grey[300] : const Color(0xFFFF5252),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Clear Order',
-                            style: TextStyle(
-                              color: _items.isEmpty ? Colors.grey[600] : Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                      Row(
+                        children: [
+                          _numBtn('7'),
+                          const SizedBox(width: 6),
+                          _numBtn('8'),
+                          const SizedBox(width: 6),
+                          _numBtn('9'),
+                          const SizedBox(width: 6),
+                          _actBtn(Icons.backspace_outlined, _handleBackspace),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          _numBtn('4'),
+                          const SizedBox(width: 6),
+                          _numBtn('5'),
+                          const SizedBox(width: 6),
+                          _numBtn('6'),
+                          const SizedBox(width: 6),
+                          _opBtn('×', _handleMultiply),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    _numBtn('1'),
+                                    const SizedBox(width: 6),
+                                    _numBtn('2'),
+                                    const SizedBox(width: 6),
+                                    _numBtn('3'),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    _numBtn('0'),
+                                    const SizedBox(width: 6),
+                                    _numBtn('00'),
+                                    const SizedBox(width: 6),
+                                    _numBtn('•'),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${_items.length} Items',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                          const SizedBox(width: 6),
+                          editingIndex == null
+                              ? _addBtn()
+                              : SizedBox(
+                                  width: (MediaQuery.of(context).size.width - 48) / 4,
+                                  height: 146,
+                                  child: GestureDetector(
+                                    onTap: _confirmEditQuantity,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2F7CF6),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text('Update', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+                                            SizedBox(height: 4),
+                                            Text('Qty', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                        ],
                       ),
                     ],
                   ),
                 ),
+
+                // Action Buttons
+                CommonWidgets.buildActionButtons(
+                  context: context,
+                  onSaveOrder: () {
+                    CommonWidgets.showSaveOrderDialog(
+                      context: context,
+                      uid: widget.uid,
+                      cartItems: _cartItems,
+                      totalBill: _total,
+                      onSuccess: () {
+                        setState(() {
+                          _items.clear();
+                          _input = '';
+                          _counter = 1;
+                          editingIndex = null;
+                        });
+                      },
+                    );
+                  },
+                  onQuotation: () {
+                    if (_items.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => QuotationPage(
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            cartItems: _cartItems,
+                            totalAmount: _total,
+                          ),
+                        ),
+                      );
+                    } else {
+                      CommonWidgets.showSnackBar(
+                        context,
+                        'Cart is empty!',
+                        bgColor: const Color(0xFFFF9800),
+                      );
+                    }
+                  },
+                  onBill: () {
+                    if (_items.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (context) => BillPage(
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            cartItems: _cartItems,
+                            totalAmount: _total,
+                            savedOrderId: widget.savedOrderId,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  totalBill: _total,
+                ),
+
+                // Bottom spacer - 150px above bottom nav
               ],
             ),
           ),
         ),
 
-        // Calculator Keypad at Bottom (Fixed Position)
-        Container(
-          color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  _numBtn('7'),
-                  const SizedBox(width: 8),
-                  _numBtn('8'),
-                  const SizedBox(width: 8),
-                  _numBtn('9'),
-                  const SizedBox(width: 8),
-                  _actBtn(Icons.backspace_outlined, _handleBackspace),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _numBtn('4'),
-                  const SizedBox(width: 8),
-                  _numBtn('5'),
-                  const SizedBox(width: 8),
-                  _numBtn('6'),
-                  const SizedBox(width: 8),
-                  _opBtn('×', _handleMultiply),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            _numBtn('1'),
-                            const SizedBox(width: 8),
-                            _numBtn('2'),
-                            const SizedBox(width: 8),
-                            _numBtn('3'),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            _numBtn('0'),
-                            const SizedBox(width: 8),
-                            _numBtn('00'),
-                            const SizedBox(width: 8),
-                            _numBtn('•'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  editingIndex == null ? _addBtn() : SizedBox(
-                    width: (MediaQuery.of(context).size.width - 56) / 4,
-                    height: 148,
-                    child: GestureDetector(
-                      onTap: _confirmEditQuantity,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2196F3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text('Update', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-                              Text('Quantity', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
+        // Scrollable Items List and Clear Button (commented out)
+        // Expanded(
+        //   child: SingleChildScrollView(
+        //     child: Column(
+        //       mainAxisSize: MainAxisSize.min,
+        //       children: [
+        //         Container(
+        //           color: Colors.white,
+        //           constraints: BoxConstraints(
+        //             minHeight: MediaQuery.of(context).size.height * 0.30,
+        //             maxHeight: MediaQuery.of(context).size.height * 0.4,
+        //           ),
+        //           child: _items.isEmpty
+        //               ? Center(
+        //             child: Column(
+        //               mainAxisAlignment: MainAxisAlignment.center,
+        //               children: [
+        //                 const Icon(
+        //                   Icons.shopping_cart_outlined,
+        //                   size: 48,
+        //                   color: Colors.grey,
+        //                 ),
+        //                 const SizedBox(height: 8),
+        //                 Text(
+        //                   context.tr('no_items_in_cart'),
+        //                   style: const TextStyle(
+        //                     fontSize: 16,
+        //                     color: Colors.grey,
+        //                   ),
+        //                 ),
+        //               ],
+        //             ),
+        //           )
+        //               : ListView.builder(
+        //             shrinkWrap: true,
+        //             physics: const NeverScrollableScrollPhysics(),
+        //             padding: const EdgeInsets.symmetric(horizontal: 16),
+        //             itemCount: _items.length,
+        //             itemBuilder: (context, idx) {
+        //               final item = _items[idx];
+        //               return Padding(
+        //                 padding: const EdgeInsets.symmetric(vertical: 8),
+        //                 child: Row(
+        //                   children: [
+        //                     Expanded(
+        //                       child: Text(
+        //                         '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity}',
+        //                         style: const TextStyle(fontSize: 16, color: Colors.black87),
+        //                       ),
+        //                     ),
+        //                     Text(
+        //                       '+ ${item.total.toStringAsFixed(1)}',
+        //                       style: const TextStyle(
+        //                         fontSize: 16,
+        //                         color: Color(0xFF4CAF50),
+        //                         fontWeight: FontWeight.w600,
+        //                       ),
+        //                     ),
+        //                     const SizedBox(width: 12),
+        //                     GestureDetector(
+        //                       onTap: () => _startEditQuantity(idx),
+        //                       child: const Icon(Icons.edit, size: 20, color: Color(0xFF2F7CF6)),
+        //                     ),
+        //                     const SizedBox(width: 8),
+        //                     GestureDetector(
+        //                       onTap: () async {
+        //                         final confirm = await showDialog<bool>(
+        //                           context: context,
+        //                           builder: (context) => AlertDialog(
+        //                             title: Text(context.tr('delete')),
+        //                             content: Text(context.tr('confirm_delete')),
+        //                             actions: [
+        //                               TextButton(
+        //                                 onPressed: () => Navigator.pop(context, false),
+        //                                 child: Text(context.tr('cancel')),
+        //                               ),
+        //                               ElevatedButton(
+        //                                 onPressed: () => Navigator.pop(context, true),
+        //                                 style: ElevatedButton.styleFrom(
+        //                                   backgroundColor: const Color(0xFFFF5252),
+        //                                 ),
+        //                                 child: Text(context.tr('delete')),
+        //                               ),
+        //                             ],
+        //                           ),
+        //                         );
+        //                         if (confirm == true) {
+        //                           setState(() => _items.removeAt(idx));
+        //                           _notifyChange();
+        //                         }
+        //                       },
+        //                       child: const Icon(Icons.delete, size: 20, color: Color(0xFFFF5252)),
+        //                     ),
+        //                   ],
+        //                 ),
+        //               );
+        //             },
+        //           ),
+        //         ),
+        //         Container(
+        //           color: Colors.white,
+        //           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        //           child: Row(
+        //             children: [
+        //               GestureDetector(
+        //                 onTap: _items.isEmpty ? null : _clearOrder,
+        //                 child: Container(
+        //                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        //                   decoration: BoxDecoration(
+        //                     color: _items.isEmpty ? Colors.grey[300] : const Color(0xFFFF5252),
+        //                     borderRadius: BorderRadius.circular(6),
+        //                   ),
+        //                   child: Text(
+        //                     'Clear Order',
+        //                     style: TextStyle(
+        //                       color: _items.isEmpty ? Colors.grey[600] : Colors.white,
+        //                       fontSize: 14,
+        //                       fontWeight: FontWeight.w600,
+        //                     ),
+        //                   ),
+        //                 ),
+        //               ),
+        //               const Spacer(),
+        //               Text(
+        //                 '${_items.length} Items',
+        //                 style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+        //               ),
+        //             ],
+        //           ),
+        //         ),
+        //       ],
+        //     ),
+        //   ),
+        // ),
 
-        // Action Buttons at Bottom
-        CommonWidgets.buildActionButtons(
-          context: context,
-          onSaveOrder: () {
-            CommonWidgets.showSaveOrderDialog(
-              context: context,
-              uid: widget.uid,
-              cartItems: _cartItems,
-              totalBill: _total,
-              onSuccess: () {
-                setState(() {
-                  _items.clear();
-                  _input = '';
-                  _counter = 1;
-                  editingIndex = null;
-                });
-              },
-            );
-          },
-          onQuotation: () {
-            if (_items.isNotEmpty) {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => QuotationPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cartItems,
-                    totalAmount: _total,
-                  ),
-                ),
-              );
-            } else {
-              CommonWidgets.showSnackBar(
-                context,
-                'Cart is empty!',
-                bgColor: const Color(0xFFFF9800),
-              );
-            }
-          },
-          onBill: () {
-            if (_items.isNotEmpty) {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => BillPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                    cartItems: _cartItems,
-                    totalAmount: _total,
-                    savedOrderId: widget.savedOrderId,
-                  ),
-                ),
-              );
-            }
-          },
-          totalBill: _total,
-        ),
       ],
     );
   }
@@ -597,21 +658,95 @@ class _QuickSalePageState extends State<QuickSalePage> {
   );
 
   Widget _addBtn() => SizedBox(
-    width: (MediaQuery.of(context).size.width - 56) / 4,
-    height: 148,
+    width: (MediaQuery.of(context).size.width - 48) / 4,
+    height: 146,
     child: GestureDetector(
       onTap: _addItem,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF2196F3),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFF2F7CF6),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('Add', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-              Text('Item', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              Text('Add', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+              SizedBox(height: 4),
+              Text('Item', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+
+  // Dynamic button widgets with adaptive height
+  Widget _numBtnDynamic(String num, double height) => Expanded(
+    child: GestureDetector(
+      onTap: () => _handleInput(num == '•' ? '.' : num),
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(num,
+              style: TextStyle(fontSize: height * 0.38, fontWeight: FontWeight.w500, color: Colors.black87)),
+        ),
+      ),
+    ),
+  );
+
+  Widget _opBtnDynamic(String op, VoidCallback onTap, double height) => Expanded(
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(op,
+              style: TextStyle(fontSize: height * 0.38, fontWeight: FontWeight.w500, color: Colors.black87)),
+        ),
+      ),
+    ),
+  );
+
+  Widget _actBtnDynamic(IconData icon, VoidCallback onTap, double height) => Expanded(
+    child: GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(child: Icon(icon, size: height * 0.38, color: Colors.black87)),
+      ),
+    ),
+  );
+
+  Widget _addBtnDynamic(double height) => SizedBox(
+    width: (MediaQuery.of(context).size.width - 48) / 4,
+    height: height,
+    child: GestureDetector(
+      onTap: _addItem,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF2F7CF6),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Add', style: TextStyle(fontSize: height * 0.13, fontWeight: FontWeight.w600, color: Colors.white)),
+              SizedBox(height: 2),
+              Text('Item', style: TextStyle(fontSize: height * 0.13, fontWeight: FontWeight.w600, color: Colors.white)),
             ],
           ),
         ),

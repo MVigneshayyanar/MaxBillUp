@@ -62,7 +62,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: isError ? Colors.red : const Color(0xFF2196F3),
+        backgroundColor: isError ? Colors.red : const Color(0xFF2F7CF6),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -287,7 +287,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+                      borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
@@ -317,11 +317,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   child: ElevatedButton(
                     onPressed: _loading ? null : _saveBusinessDetails,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
+                      backgroundColor: const Color(0xFF2F7CF6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      disabledBackgroundColor: const Color(0xFF2196F3).withValues(alpha: 0.6),
+                      disabledBackgroundColor: const Color(0xFF2F7CF6).withValues(alpha: 0.6),
                     ),
                     child: _loading
                         ? const SizedBox(
@@ -357,7 +357,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         width: 4,
         height: 20,
         decoration: BoxDecoration(
-          color: const Color(0xFF2196F3),
+          color: const Color(0xFF2F7CF6),
           borderRadius: BorderRadius.circular(2),
         ),
       ),
@@ -413,7 +413,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

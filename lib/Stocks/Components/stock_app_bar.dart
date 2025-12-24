@@ -97,7 +97,7 @@ class StockAppBar extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2196F3) : const Color(0xFFF5F5F5),
+            color: isSelected ? const Color(0xFF2F7CF6) : const Color(0xFFF5F5F5),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(

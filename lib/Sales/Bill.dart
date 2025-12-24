@@ -19,7 +19,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 
 // --- CONSTANTS FOR STYLING ---
-const Color kPrimaryColor = Color(0xFF2196F3);
+const Color kPrimaryColor = Color(0xFF2F7CF6);
 const Color kBackgroundColor = Color(0xFFF8F9FA);
 const Color kCardColor = Colors.white;
 const Color kTextColor = Color(0xFF333333);

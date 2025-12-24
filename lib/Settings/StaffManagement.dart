@@ -8,7 +8,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 // ==========================================
 // CONSTANTS & STYLES
 // ==========================================
-const Color kPrimaryColor = Color(0xFF2196F3);
+const Color kPrimaryColor = Color(0xFF2F7CF6);
 const Color kBackgroundColor = Color(0xFFFFFFFF); // White background like SaleAllPage
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1C1C1E);
