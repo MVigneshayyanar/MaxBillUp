@@ -211,6 +211,7 @@ class _ProductsPageState extends State<ProductsPage> {
     final category = data['category'] ?? 'UnCategorised';
     final taxType = data['taxName'] ?? 'GST';
     final taxPercent = (data['taxPercentage'] ?? 0.0).toDouble();
+    final isFavorite = data['isFavorite'] ?? false;
 
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
@@ -244,12 +245,20 @@ class _ProductsPageState extends State<ProductsPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Line 1: Title
-                  Text(
-                    name,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  // Line 1: Title with favorite star
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _navyColor),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isFavorite)
+                        const Icon(Icons.star, color: Colors.amber, size: 14),
+                    ],
                   ),
                   const SizedBox(height: 2),
                   // Line 2: Category (Orange) and Quantity (End)

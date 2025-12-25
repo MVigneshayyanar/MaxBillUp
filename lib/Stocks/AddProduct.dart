@@ -52,6 +52,9 @@ class _AddProductPageState extends State<AddProductPage> {
   String? _selectedTaxId;
   double _currentTaxPercentage = 0.0;
 
+  // Favorite State
+  bool _isFavorite = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,6 +65,9 @@ class _AddProductPageState extends State<AddProductPage> {
 
     if (widget.existingData != null) {
       _loadExistingData();
+    } else {
+      // Auto-generate product code for new products
+      _generateProductCode();
     }
   }
 
@@ -134,9 +140,46 @@ class _AddProductPageState extends State<AddProductPage> {
     });
   }
 
-  void _generateProductCode() {
-    final code = 'PRD${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-    setState(() => _productCodeController.text = code);
+  void _generateProductCode() async {
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return;
+
+      // Get the products collection
+      final productsCollection = await FirestoreService().getStoreCollection('Products');
+
+      // Check existing products to find the highest PRT number
+      int highestNumber = 1000; // Start from 1000, so first product will be 1001
+
+      // Get all products and check for PRT codes
+      final productsSnapshot = await productsCollection.get();
+      for (var doc in productsSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>?;
+        final productCode = data?['productCode'] as String?;
+
+        if (productCode != null && productCode.startsWith('PRT')) {
+          // Extract number from PRT code (e.g., "PRT1001" -> 1001)
+          final numberStr = productCode.substring(3);
+          final number = int.tryParse(numberStr);
+          if (number != null && number > highestNumber) {
+            highestNumber = number;
+          }
+        }
+      }
+
+      // Generate next number (only display, don't save to backend yet)
+      final nextNumber = highestNumber + 1;
+
+      // Set the product code with PRT prefix
+      if (mounted) {
+        setState(() => _productCodeController.text = 'PRT$nextNumber');
+      }
+    } catch (e) {
+      debugPrint('Error generating product code: $e');
+      // Fallback to timestamp-based code
+      final code = 'PRT${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      setState(() => _productCodeController.text = code);
+    }
   }
 
   Future<void> _scanBarcode() async {
@@ -310,17 +353,26 @@ class _AddProductPageState extends State<AddProductPage> {
         const SizedBox(width: 8),
         Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: ElevatedButton(
-            onPressed: _generateProductCode,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[50],
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: InkWell(
+            onTap: () => setState(() => _isFavorite = !_isFavorite),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: _isFavorite ? Colors.amber[50] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: _isFavorite ? Colors.amber : Colors.grey[300]!,
+                  width: 1,
+                ),
+              ),
+              child: Icon(
+                _isFavorite ? Icons.star : Icons.star_border,
+                color: _isFavorite ? Colors.amber : Colors.grey[600],
+                size: 20,
+              ),
             ),
-            child: const Text("Generate", style: TextStyle(color: Colors.blue, fontSize: 12)),
           ),
-        )
+        ),
       ],
     );
   }
@@ -551,6 +603,7 @@ class _AddProductPageState extends State<AddProductPage> {
     _stockEnabled = d['stockEnabled'] ?? true;
     _selectedStockUnit = d['stockUnit'];
     _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
+    _isFavorite = d['isFavorite'] ?? false;
   }
 
   Future<void> _saveProduct() async {
@@ -577,6 +630,7 @@ class _AddProductPageState extends State<AddProductPage> {
         'taxName': selectedTaxName,
         'taxPercentage': _currentTaxPercentage,
         'taxType': _selectedTaxType,
+        'isFavorite': _isFavorite,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 

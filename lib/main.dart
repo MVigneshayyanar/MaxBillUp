@@ -50,9 +50,9 @@ void main() async {
   // Initialize PlanProvider for real-time plan updates
   final planProvider = PlanProvider();
 
-  // Initialize DirectNotificationService for push notifications
+  // Initialize DirectNotificationService in background (non-blocking)
   final notificationService = DirectNotificationService();
-  await notificationService.initialize();
+  notificationService.initialize(); // Run in background, don't await
 
   runApp(
     MultiProvider(
@@ -123,57 +123,55 @@ class _SplashGateState extends State<SplashGate> {
   @override
   void initState() {
     super.initState();
-    _clearFlutterCache();
+    // Run heavy operations in background without blocking UI
     _requestBluetoothPermissions();
-    Future.delayed(const Duration(milliseconds: 1500), () async {
-      if (!mounted) return;
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // User is logged in - Initialize PlanProvider
-        final planProvider = Provider.of<PlanProvider>(context, listen: false);
-        await planProvider.initialize();
-
-        if (!mounted) return;
-
-        // Check if the logged-in user is admin
-        final userEmail = user.email?.toLowerCase() ?? '';
-        if (userEmail == 'maxmybillapp@gmail.com') {
-          // Navigate to Admin Home page
-          Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (_) => HomePage(
-                uid: user.uid,
-                userEmail: user.email,
-              ),
-            ),
-          );
-        } else {
-          // Navigate to NewSalePage for regular users
-          Navigator.of(context).push(
-            CupertinoPageRoute(
-              builder: (_) => NewSalePage(
-                uid: user.uid,
-                userEmail: user.email,
-              ),
-            ),
-          );
-        }
-      } else {
-        // User is NOT logged in
-        Navigator.of(context).push(
-          CupertinoPageRoute(builder: (_) => const LoginPage()),
-        );
+    // Show splash screen for 2 seconds
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _navigateToNextScreen();
       }
     });
   }
 
-  void _clearFlutterCache() {
-    try {
-      // Clear image and memory cache
-      PaintingBinding.instance.imageCache.clear();
-      PaintingBinding.instance.imageCache.clearLiveImages();
-    } catch (e) {
-      // Ignore errors if cache is already clear or PaintingBinding is not available
+  Future<void> _navigateToNextScreen() async {
+    if (!mounted) return;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Initialize PlanProvider in background (non-blocking)
+      final planProvider = Provider.of<PlanProvider>(context, listen: false);
+      planProvider.initialize(); // Don't await - let it run in background
+
+      if (!mounted) return;
+
+      // Check if the logged-in user is admin
+      final userEmail = user.email?.toLowerCase() ?? '';
+      if (userEmail == 'maxmybillapp@gmail.com') {
+        // Navigate to Admin Home page
+        Navigator.of(context).pushReplacement(
+          CupertinoPageRoute(
+            builder: (_) => HomePage(
+              uid: user.uid,
+              userEmail: user.email,
+            ),
+          ),
+        );
+      } else {
+        // Navigate to NewSalePage for regular users
+        Navigator.of(context).pushReplacement(
+          CupertinoPageRoute(
+            builder: (_) => NewSalePage(
+              uid: user.uid,
+              userEmail: user.email,
+            ),
+          ),
+        );
+      }
+    } else {
+      // User is NOT logged in
+      Navigator.of(context).pushReplacement(
+        CupertinoPageRoute(builder: (_) => const LoginPage()),
+      );
     }
   }
 

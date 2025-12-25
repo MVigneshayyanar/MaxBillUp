@@ -20,7 +20,7 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
     debugPrint('Splash screen started at: \\${DateTime.now()}');
     // Navigate after 3 seconds
-    Timer(const Duration(seconds: 4), () {
+    Timer(const Duration(seconds: 40), () {
       debugPrint('Splash screen ended at: \\${DateTime.now()}');
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;

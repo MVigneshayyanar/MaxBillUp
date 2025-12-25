@@ -341,6 +341,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Scaffold(
       backgroundColor: _bgColor,
+      resizeToAvoidBottomInset: false, // Keyboard will be highest index, won't push components
       body: Column(
         children: [
           // 1. Header (Search bar)
@@ -766,6 +767,24 @@ class _SaleAllPageState extends State<SaleAllPage> {
           );
         }
 
+        // Sort products: favorites first, then by name
+        filtered.sort((a, b) {
+          final dataA = a.data() as Map<String, dynamic>;
+          final dataB = b.data() as Map<String, dynamic>;
+
+          final isFavA = dataA['isFavorite'] ?? false;
+          final isFavB = dataB['isFavorite'] ?? false;
+
+          // If one is favorite and other is not, favorite comes first
+          if (isFavA && !isFavB) return -1;
+          if (!isFavA && isFavB) return 1;
+
+          // If both have same favorite status, sort by name
+          final nameA = (dataA['itemName'] ?? '').toString().toLowerCase();
+          final nameB = (dataB['itemName'] ?? '').toString().toLowerCase();
+          return nameA.compareTo(nameB);
+        });
+
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(w * 0.04, 0, w * 0.04, 20),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
@@ -793,6 +812,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final stockEnabled = data['stockEnabled'] ?? false;
     final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
     final unit = data['stockUnit'] ?? '';
+    final isFavorite = data['isFavorite'] ?? false;
 
     // Get tax information
     final taxName = data['taxName'] as String?;
@@ -820,6 +840,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
           id, name, price, stockEnabled, stock, unit,
           taxName, taxPercentage, taxType,
           isOutOfStock, isLowStock,
+          isFavorite: isFavorite,
         );
       },
     );
@@ -829,6 +850,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       String id, String name, double price, bool stockEnabled, double stock, String unit,
       String? taxName, double? taxPercentage, String? taxType,
       bool isOutOfStock, bool isLowStock,
+      {bool isFavorite = false}
       ) {
 
     return GestureDetector(
@@ -851,12 +873,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Top: Name
-              Text(
-                name,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.15, color: Colors.black87),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
+              // Top: Name with favorite star
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, height: 1.15, color: Colors.black87),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (isFavorite)
+                    const Icon(Icons.star, color: Colors.amber, size: 14),
+                ],
               ),
               // Bottom: Price and Stock
               Column(
