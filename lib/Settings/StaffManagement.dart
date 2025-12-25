@@ -1029,6 +1029,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       'staffSalesReport': currentPermissions['staffSalesReport'] ?? false,
       'addProduct': currentPermissions['addProduct'] ?? false,
       'addCategory': currentPermissions['addCategory'] ?? false,
+      // Bill Actions permissions
+      'saleReturn': currentPermissions['saleReturn'] ?? false,
+      'cancelBill': currentPermissions['cancelBill'] ?? false,
+      'editBill': currentPermissions['editBill'] ?? false,
     };
 
     showDialog(
@@ -1086,6 +1090,17 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                     [
                       {'key': 'addProduct', 'label': 'Add Product'},
                       {'key': 'addCategory', 'label': 'Add Category'},
+                    ],
+                    permissions,
+                    setState,
+                  ),
+                  const Divider(height: 24),
+                  _buildPermissionSection(
+                    'Bill Actions',
+                    [
+                      {'key': 'saleReturn', 'label': 'Sale Return'},
+                      {'key': 'cancelBill', 'label': 'Cancel Bill'},
+                      {'key': 'editBill', 'label': 'Edit Bill'},
                     ],
                     permissions,
                     setState,

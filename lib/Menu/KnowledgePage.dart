@@ -38,7 +38,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 25),
           onPressed: widget.onBack,
         ),
       ),

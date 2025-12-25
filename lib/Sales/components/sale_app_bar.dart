@@ -34,7 +34,7 @@ class SaleAppBar extends StatelessWidget {
     return Container(
       color: _bgColor,
       child: Container(
-        padding: EdgeInsets.fromLTRB(tabPadding-8, 5, tabPadding, tabPadding-15),
+        padding: EdgeInsets.fromLTRB(tabPadding-8, 0, tabPadding, tabPadding-15),
         child: Row(
           children: [
             // Back button (if enabled)
@@ -47,9 +47,9 @@ class SaleAppBar extends StatelessWidget {
               SizedBox(width: screenWidth * 0.02),
             ],
             // Tabs
-            _buildTab(context.tr('View All'), 0, screenWidth, tabHeight),
-            SizedBox(width: screenWidth * 0.02),
             _buildTab(context.tr('Quick Bill'), 1, screenWidth, tabHeight),
+            SizedBox(width: screenWidth * 0.02),
+            _buildTab(context.tr('View All'), 0, screenWidth, tabHeight),
             if (!hideSavedTab) ...[
               SizedBox(width: screenWidth * 0.02),
               _buildTab(context.tr('saved'), 2, screenWidth, tabHeight),

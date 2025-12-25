@@ -153,7 +153,7 @@ class _NewSalePageState extends State<NewSalePage> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: const Color(0xFFFFFFFF),
       resizeToAvoidBottomInset: false, // Prevent keyboard from pushing widgets
       body: Column(
         spacing: 0,
@@ -213,7 +213,7 @@ class _NewSalePageState extends State<NewSalePage> {
   Widget _buildCartSection(double w) {
     final primaryColor = const Color(0xFF2F7CF6);
     return Padding(
-      padding: const EdgeInsets.only(top: 0), // Padding handled by SizedBox in Column
+      padding: const EdgeInsets.only(top: 0,bottom: 5), // Padding handled by SizedBox in Column
       child: GestureDetector(
         onVerticalDragUpdate: (details) {
           setState(() {

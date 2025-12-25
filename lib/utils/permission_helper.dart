@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 // ==========================================
 // PERMISSION HELPER
@@ -67,6 +69,11 @@ class PermissionHelper {
       // Stock Items (2)
       'addProduct': true,
       'addCategory': true,
+
+      // Bill Actions (3)
+      'saleReturn': true,
+      'cancelBill': true,
+      'editBill': true,
     };
   }
 
@@ -101,6 +108,62 @@ class PermissionHelper {
       print('Error checking active status: $e');
     }
     return true;
+  }
+
+  // Check if current logged-in user is admin (without uid parameter)
+  static Future<bool> isCurrentUserAdmin() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return false;
+
+      // Get store ID
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return false;
+
+      // Check if user is the store owner
+      final storeDoc = await FirebaseFirestore.instance
+          .collection('stores')
+          .doc(storeId)
+          .get();
+
+      if (!storeDoc.exists) return false;
+
+      final storeData = storeDoc.data() as Map<String, dynamic>;
+      final ownerId = storeData['ownerId'] as String?;
+
+      return currentUser.uid == ownerId;
+    } catch (e) {
+      print('Error checking admin status: $e');
+      return false;
+    }
+  }
+
+  // Get current user's staff permissions
+  static Future<Map<String, dynamic>> getCurrentUserPermissions() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return {};
+
+      // Get store ID
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return {};
+
+      // Get staff document
+      final staffDoc = await FirebaseFirestore.instance
+          .collection('stores')
+          .doc(storeId)
+          .collection('staff')
+          .doc(currentUser.uid)
+          .get();
+
+      if (!staffDoc.exists) return {};
+
+      final staffData = staffDoc.data() as Map<String, dynamic>;
+      return staffData['permissions'] as Map<String, dynamic>? ?? {};
+    } catch (e) {
+      print('Error getting staff permissions: $e');
+      return {};
+    }
   }
 
   static Future<void> showPermissionDeniedDialog(context) async {
