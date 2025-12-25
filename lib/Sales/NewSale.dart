@@ -86,6 +86,8 @@ class _NewSalePageState extends State<NewSalePage> {
     final qtyController = TextEditingController(text: item.quantity.toString());
     await showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.8), // Dark overlay to hide background
+      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (context) {
         return AlertDialog(
           title: const Text('Edit Cart Item'),
@@ -152,6 +154,7 @@ class _NewSalePageState extends State<NewSalePage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      resizeToAvoidBottomInset: false, // Prevent keyboard from pushing widgets
       body: Column(
         spacing: 0,
         children: [

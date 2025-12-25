@@ -52,7 +52,15 @@ class CommonWidgets {
           ],
           const Spacer(),
           GestureDetector(
-            onTap: isQuotationMode ? onQuotation : onBill,
+            onTap: () {
+              // In quotation mode, use onQuotation if provided, otherwise onBill
+              // In normal mode, use onBill
+              if (isQuotationMode && onQuotation != null) {
+                onQuotation();
+              } else {
+                onBill();
+              }
+            },
             child: Container(
               height: 56,
               padding: const EdgeInsets.symmetric(horizontal: 32),

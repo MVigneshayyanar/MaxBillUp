@@ -218,6 +218,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.8), // Dark overlay to hide background
+      barrierDismissible: false, // Prevent dismissing by tapping outside
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(item.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

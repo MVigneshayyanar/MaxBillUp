@@ -15,19 +15,13 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
-  double _opacity = 0.0;
-
   @override
   void initState() {
     super.initState();
-    // Start fade-in animation
-    Future.delayed(const Duration(milliseconds: 100), () {
-      setState(() {
-        _opacity = 1.0;
-      });
-    });
+    debugPrint('Splash screen started at: \\${DateTime.now()}');
     // Navigate after 3 seconds
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 4), () {
+      debugPrint('Splash screen ended at: \\${DateTime.now()}');
       if (!mounted) return;
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -53,19 +47,10 @@ class _SplashPageState extends State<SplashPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF2F7CF6),
-      body: SafeArea(
-        child: Center(
-          child: AnimatedOpacity(
-            opacity: _opacity,
-            duration: const Duration(seconds: 3),
-            curve: Curves.easeInOut,
-            child: Image.asset(
-              'assets/max_my_bill_sq.png',
-              fit: BoxFit.contain,
-              width: 300,
-              height: 300,
-            ),
-          ),
+      body: SizedBox.expand(
+        child: Image.asset(
+          'assets/Splash_Screen.png',
+          fit: BoxFit.contain,
         ),
       ),
     );

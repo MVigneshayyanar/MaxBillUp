@@ -269,14 +269,17 @@ class _QuickSalePageState extends State<QuickSalePage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Combined Component: Input + Keypad + Action Buttons
-        Expanded(
-          child: Container(
-            color: Colors.white,
-            child: Column(
-              children: [
-                // Input Display
-                Container(
+        // Spacer to push content to bottom
+        const Spacer(),
+
+        // Fixed components at bottom: Input + Keypad + Action Buttons
+        Container(
+          color: Colors.white,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Input Display
+              Container(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -312,7 +315,6 @@ class _QuickSalePageState extends State<QuickSalePage> {
                   ),
                 ),
 
-                const Spacer(),
 
                 // Calculator Keypad
                 Container(
@@ -468,145 +470,8 @@ class _QuickSalePageState extends State<QuickSalePage> {
               ],
             ),
           ),
-        ),
-
-        // Scrollable Items List and Clear Button (commented out)
-        // Expanded(
-        //   child: SingleChildScrollView(
-        //     child: Column(
-        //       mainAxisSize: MainAxisSize.min,
-        //       children: [
-        //         Container(
-        //           color: Colors.white,
-        //           constraints: BoxConstraints(
-        //             minHeight: MediaQuery.of(context).size.height * 0.30,
-        //             maxHeight: MediaQuery.of(context).size.height * 0.4,
-        //           ),
-        //           child: _items.isEmpty
-        //               ? Center(
-        //             child: Column(
-        //               mainAxisAlignment: MainAxisAlignment.center,
-        //               children: [
-        //                 const Icon(
-        //                   Icons.shopping_cart_outlined,
-        //                   size: 48,
-        //                   color: Colors.grey,
-        //                 ),
-        //                 const SizedBox(height: 8),
-        //                 Text(
-        //                   context.tr('no_items_in_cart'),
-        //                   style: const TextStyle(
-        //                     fontSize: 16,
-        //                     color: Colors.grey,
-        //                   ),
-        //                 ),
-        //               ],
-        //             ),
-        //           )
-        //               : ListView.builder(
-        //             shrinkWrap: true,
-        //             physics: const NeverScrollableScrollPhysics(),
-        //             padding: const EdgeInsets.symmetric(horizontal: 16),
-        //             itemCount: _items.length,
-        //             itemBuilder: (context, idx) {
-        //               final item = _items[idx];
-        //               return Padding(
-        //                 padding: const EdgeInsets.symmetric(vertical: 8),
-        //                 child: Row(
-        //                   children: [
-        //                     Expanded(
-        //                       child: Text(
-        //                         '${item.name} (${item.price.toStringAsFixed(1)}) x ${item.quantity}',
-        //                         style: const TextStyle(fontSize: 16, color: Colors.black87),
-        //                       ),
-        //                     ),
-        //                     Text(
-        //                       '+ ${item.total.toStringAsFixed(1)}',
-        //                       style: const TextStyle(
-        //                         fontSize: 16,
-        //                         color: Color(0xFF4CAF50),
-        //                         fontWeight: FontWeight.w600,
-        //                       ),
-        //                     ),
-        //                     const SizedBox(width: 12),
-        //                     GestureDetector(
-        //                       onTap: () => _startEditQuantity(idx),
-        //                       child: const Icon(Icons.edit, size: 20, color: Color(0xFF2F7CF6)),
-        //                     ),
-        //                     const SizedBox(width: 8),
-        //                     GestureDetector(
-        //                       onTap: () async {
-        //                         final confirm = await showDialog<bool>(
-        //                           context: context,
-        //                           builder: (context) => AlertDialog(
-        //                             title: Text(context.tr('delete')),
-        //                             content: Text(context.tr('confirm_delete')),
-        //                             actions: [
-        //                               TextButton(
-        //                                 onPressed: () => Navigator.pop(context, false),
-        //                                 child: Text(context.tr('cancel')),
-        //                               ),
-        //                               ElevatedButton(
-        //                                 onPressed: () => Navigator.pop(context, true),
-        //                                 style: ElevatedButton.styleFrom(
-        //                                   backgroundColor: const Color(0xFFFF5252),
-        //                                 ),
-        //                                 child: Text(context.tr('delete')),
-        //                               ),
-        //                             ],
-        //                           ),
-        //                         );
-        //                         if (confirm == true) {
-        //                           setState(() => _items.removeAt(idx));
-        //                           _notifyChange();
-        //                         }
-        //                       },
-        //                       child: const Icon(Icons.delete, size: 20, color: Color(0xFFFF5252)),
-        //                     ),
-        //                   ],
-        //                 ),
-        //               );
-        //             },
-        //           ),
-        //         ),
-        //         Container(
-        //           color: Colors.white,
-        //           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        //           child: Row(
-        //             children: [
-        //               GestureDetector(
-        //                 onTap: _items.isEmpty ? null : _clearOrder,
-        //                 child: Container(
-        //                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        //                   decoration: BoxDecoration(
-        //                     color: _items.isEmpty ? Colors.grey[300] : const Color(0xFFFF5252),
-        //                     borderRadius: BorderRadius.circular(6),
-        //                   ),
-        //                   child: Text(
-        //                     'Clear Order',
-        //                     style: TextStyle(
-        //                       color: _items.isEmpty ? Colors.grey[600] : Colors.white,
-        //                       fontSize: 14,
-        //                       fontWeight: FontWeight.w600,
-        //                     ),
-        //                   ),
-        //                 ),
-        //               ),
-        //               const Spacer(),
-        //               Text(
-        //                 '${_items.length} Items',
-        //                 style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
-        //               ),
-        //             ],
-        //           ),
-        //         ),
-        //       ],
-        //     ),
-        //   ),
-        // ),
-
-      ],
-    );
+        ],
+      );
   }
 
   Widget _numBtn(String num) => Expanded(

@@ -9,6 +9,8 @@ class SaleAppBar extends StatelessWidget {
   final double screenHeight;
   final String uid;
   final String? userEmail;
+  final bool hideSavedTab; // New parameter to hide saved tab
+  final bool showBackButton; // New parameter to show back button
 
   const SaleAppBar({
     super.key,
@@ -18,6 +20,8 @@ class SaleAppBar extends StatelessWidget {
     required this.screenHeight,
     required this.uid,
     this.userEmail,
+    this.hideSavedTab = false, // Default to false
+    this.showBackButton = false, // Default to false
   });
   final Color _bgColor = const Color(0xFFF9FAFC);
   final Color _cardBorder = const Color(0xFFE3F2FD);
@@ -33,13 +37,23 @@ class SaleAppBar extends StatelessWidget {
         padding: EdgeInsets.fromLTRB(tabPadding-8, 5, tabPadding, tabPadding-15),
         child: Row(
           children: [
-            // Menu Button
-            SizedBox(width: screenWidth * 0.02),
+            // Back button (if enabled)
+            if (showBackButton) ...[
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.of(context).pop(),
+                padding: EdgeInsets.zero,
+              ),
+              SizedBox(width: screenWidth * 0.02),
+            ],
+            // Tabs
             _buildTab(context.tr('View All'), 0, screenWidth, tabHeight),
             SizedBox(width: screenWidth * 0.02),
             _buildTab(context.tr('Quick Bill'), 1, screenWidth, tabHeight),
-            SizedBox(width: screenWidth * 0.02),
-            _buildTab(context.tr('saved'), 2, screenWidth, tabHeight),
+            if (!hideSavedTab) ...[
+              SizedBox(width: screenWidth * 0.02),
+              _buildTab(context.tr('saved'), 2, screenWidth, tabHeight),
+            ],
           ],
         ),
       ),
@@ -54,7 +68,7 @@ class SaleAppBar extends StatelessWidget {
         child: Container(
           height: tabHeight,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2F7CF6) : _primaryColor.withOpacity(0.05),
+            color: isSelected ? const Color(0xFF2F7CF6) : _primaryColor.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: _cardBorder),
           ),
