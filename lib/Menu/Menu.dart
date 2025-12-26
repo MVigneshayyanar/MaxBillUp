@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/Sales/Bill.dart';
@@ -2155,6 +2156,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
     final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
     final timeString = time != null ? DateFormat('h:mm a').format(time) : '-';
+    final dateString = time != null ? DateFormat('dd MMM, yyyy').format(time) : '-';
 
     // Status Logic
     final isSettled = data.containsKey('paymentMode') && data['paymentMode'] != null;
@@ -2320,9 +2322,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _infoRow(Icons.calendar_today, dateString),
+                        const SizedBox(height: 4),
                         _infoRow(Icons.access_time, timeString),
                         const SizedBox(height: 4),
-                        _infoRow(Icons.person_outline, customerName),
+                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kGoogleYellow, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -2350,7 +2354,20 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${context.tr('by')}: $staffName', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Billed by ',
+                          style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500),
+                        ),
+                        TextSpan(
+                          text: staffName,
+                          style: TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
 
                   // View Details Button
                   SizedBox(
@@ -2392,12 +2409,12 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   }
 
   // Helper widget for small info rows
-  Widget _infoRow(IconData icon, String text) {
+  Widget _infoRow(IconData icon, String text, {TextStyle? textStyle}) {
     return Row(
       children: [
         Icon(icon, size: 14, color: Colors.grey),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+        Text(text, style: textStyle ?? const TextStyle(fontSize: 13, color: Colors.black87)),
       ],
     );
   }

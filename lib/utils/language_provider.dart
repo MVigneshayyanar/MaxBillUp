@@ -131,6 +131,7 @@ class LanguageProvider extends ChangeNotifier {
       'addproduct': 'Add Product',
       'price': 'Price',
       'cost_price': 'Cost Price',
+      'expense_names':'Expense Names',
       'mrp': 'MRP',
       'quantity': 'Quantity',
       'barcode': 'Barcode',

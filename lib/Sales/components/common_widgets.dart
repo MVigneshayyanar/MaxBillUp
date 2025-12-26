@@ -60,54 +60,58 @@ class CommonWidgets {
             const SizedBox(width: 12),
           ],
           const Spacer(),
-          GestureDetector(
-            onTap: () {
-              // In quotation mode, use onQuotation if provided, otherwise onBill
-              // In normal mode, use onBill
-              if (isQuotationMode && onQuotation != null) {
-                onQuotation();
-              } else {
-                onBill();
-              }
-            },
-            child: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2F7CF6),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF2F7CF6).withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    totalBill.toStringAsFixed(2),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+          IntrinsicWidth(
+            child: GestureDetector(
+              onTap: () {
+                if (isQuotationMode && onQuotation != null) {
+                  onQuotation();
+                } else {
+                  onBill();
+                }
+              },
+              child: Container(
+                height: 64, // ✅ height stays fixed
+                padding: const EdgeInsets.symmetric(horizontal: 24), // ✅ width grows
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2F7CF6),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2F7CF6).withAlpha((0.3 * 255).toInt()),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    isQuotationMode ? 'Quotation' : context.tr('bill'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min, // 👈 prevents height growth
+                  children: [
+                    Text(
+                      totalBill.toStringAsFixed(0),
+                      maxLines: 1,
+                      softWrap: false,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 3),
+                    Text(
+                      isQuotationMode ? 'Quotation' : context.tr('bill'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
+          )
+
         ],
       ),
     );
@@ -125,7 +129,7 @@ class CommonWidgets {
           border: Border.all(color: const Color(0xFF2F7CF6), width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withAlpha((0.1 * 255).toInt()),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),

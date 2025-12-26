@@ -287,7 +287,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(email, style: const TextStyle(fontSize: 13, color: kTextSecondary)),
-                    if (plan != 'Max') ...[
+                    if (plan != 'Pro') ...[
                       const SizedBox(height: 8),
                       InkWell(
                         onTap: () async {

@@ -3,7 +3,6 @@ import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/Settings/Profile.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 
 class SubscriptionPlanPage extends StatefulWidget {
   final String uid;
@@ -22,40 +21,42 @@ class SubscriptionPlanPage extends StatefulWidget {
 class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   late Razorpay _razorpay;
   String _selectedPlan = '';
-  int _selectedDuration = 1; // 1: month, 6: 6 months, 12: year
-
-  // 0.000ms Loading Strategy:
-  // We initialize as 'false' immediately so the UI builds instantly.
-  // We don't block the UI for the Firestore call.
-  bool _isLoading = false;
+  int _selectedDuration = 1;
 
   Map<String, dynamic>? _storeData;
 
-  // Define App Colors for consistency
-  final Color _primaryColor = Colors.blue;
-  final Color _backgroundColor = const Color(0xFFF8F9FA);
+  // Professional Color Palette
+  final Color _primaryColor = const Color(0xFF2F7CF6);
+  final Color _accentColor = const Color(0xFF2F7CF6);
+  final Color _bgColor = const Color(0xFFF4F7FA);
+  final Color _surfaceColor = Colors.white;
+  final Color _darkTextColor = const Color(0xFF1A1C1E);
 
+  // MAXmybill Freemium SaaS Model Plan Data
   final List<Map<String, dynamic>> plans = [
     {
-      'name': 'Elite',
-      'price': {'1': 199, '6': 999, '12': 1599},
-      'features': ['Daybook', 'Report', 'All Free Features'],
-      'staff': 0,
-      'description': 'Perfect for starters',
+      'name': 'Starter',
+      'price': {'1': 0, '12': 0},
+      'features': ['Basic Billing', '7-Day History', '1 Device'],
+      'description': 'Free Trial',
     },
     {
-      'name': 'Prime',
-      'price': {'1': 399, '6': 1699, '12': 2499},
-      'features': ['User/Staff - 3', 'All Elite Features', 'Priority Support'],
-      'staff': 3,
-      'description': 'Best for growing shops',
+      'name': 'Essential',
+      'price': {'1': 249, '12': 1999},
+      'features': ['Pro Reports', 'Daybook', 'Admin Only'],
+      'description': 'Solo Shop',
     },
     {
-      'name': 'Max',
-      'price': {'1': 499, '6': 2199, '12': 3499},
-      'features': ['User/Staff - 10', 'All Prime Features', 'Bulk Tools'],
-      'staff': 10,
-      'description': 'For large businesses',
+      'name': 'Growth',
+      'price': {'1': 429, '12': 3499},
+      'features': ['3 Staff Users', 'Credit Control', 'Analytics'],
+      'description': 'Growing Team',
+    },
+    {
+      'name': 'Pro',
+      'price': {'1': 549, '12': 4499},
+      'features': ['15 Staff Users', 'GST Reports', 'Bulk Tools'],
+      'description': 'Enterprise',
     },
   ];
 
@@ -63,17 +64,13 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void initState() {
     super.initState();
     _razorpay = Razorpay();
-
-    // Instant Initialization: Use passed widget data immediately
-    _selectedPlan = plans.any((p) => p['name'] == widget.currentPlan)
-        ? widget.currentPlan
-        : 'Elite';
+    _selectedPlan = (widget.currentPlan == 'Starter' || widget.currentPlan == 'Free')
+        ? 'Growth'
+        : widget.currentPlan;
 
     _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
     _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
     _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-
-    // Background Fetch: Updates UI silently when data arrives
     _loadStorePlan();
   }
 
@@ -83,93 +80,53 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     super.dispose();
   }
 
-  // "Fetched Fetching Algorithm": Render first, fetch later, update silently.
   Future<void> _loadStorePlan() async {
     try {
       final storeDoc = await FirestoreService().getCurrentStoreDoc();
-
-      // Safety check: Ensure widget is still on screen
       if (!mounted) return;
-
       if (storeDoc != null && storeDoc.exists) {
-        final data = storeDoc.data() as Map<String, dynamic>?;
-        final planFromStore = data?['plan']?.toString();
-
         setState(() {
-          _storeData = data;
-          // Only override if the plan from store is valid and different
-          if (planFromStore != null &&
-              planFromStore.isNotEmpty &&
-              plans.any((p) => p['name'] == planFromStore)) {
-            _selectedPlan = planFromStore;
-          }
+          _storeData = storeDoc.data() as Map<String, dynamic>?;
         });
       }
     } catch (e) {
-      debugPrint("Error loading store plan silently: $e");
-      // No setState needed here as we want to keep the default UI rather than showing an error
+      debugPrint("Error: $e");
     }
   }
 
   void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    try {
-      final now = DateTime.now();
-      DateTime expiryDate;
-      if (_selectedDuration == 1) {
-        expiryDate = DateTime(now.year, now.month + 1, now.day);
-      } else if (_selectedDuration == 6) {
-        expiryDate = DateTime(now.year, now.month + 6, now.day);
-      } else {
-        expiryDate = DateTime(now.year + 1, now.month, now.day);
-      }
+    _showSuccessAndPop(response.paymentId ?? 'TXN_SUCCESS');
+  }
 
-      final storeDoc = await FirestoreService().getCurrentStoreDoc();
-      if (storeDoc == null) return;
+  void _showSuccessAndPop(String paymentId) async {
+    final now = DateTime.now();
+    DateTime expiryDate = _selectedDuration == 1
+        ? DateTime(now.year, now.month + 1, now.day)
+        : DateTime(now.year + 1, now.month, now.day);
 
-      await FirestoreService().storeCollection.doc(storeDoc.id).update({
-        'plan': _selectedPlan,
-        'subscriptionStartDate': now.toIso8601String(),
-        'subscriptionExpiryDate': expiryDate.toIso8601String(),
-        'paymentId': response.paymentId,
-        'lastPaymentDate': now.toIso8601String(),
-      });
+    final storeDoc = await FirestoreService().getCurrentStoreDoc();
+    if (storeDoc == null) return;
 
-      // Plan changes are now reflected immediately (no cache)
-      // Navigate back to trigger Menu refresh
+    await FirestoreService().storeCollection.doc(storeDoc.id).update({
+      'plan': _selectedPlan,
+      'subscriptionStartDate': now.toIso8601String(),
+      'subscriptionExpiryDate': expiryDate.toIso8601String(),
+      'paymentId': paymentId,
+      'lastPaymentDate': now.toIso8601String(),
+    });
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('paymentsuccessful')),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 2),
-          ),
-        );
-
-        // Wait a moment for Firestore to sync
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        if (mounted) {
-          // Just pop back to the previous screen (Settings/Profile)
-          // The Menu listener will detect the plan change and refresh automatically
-          Navigator.of(context).pop();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('${context.tr('error')}: $e')));
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Success! Plan Activated"), backgroundColor: Colors.green),
+      );
+      Navigator.of(context).pop();
     }
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${context.tr('paymentfailed')}: ${response.message}'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Payment Failed: ${response.message}'), backgroundColor: Colors.red),
       );
     }
   }
@@ -180,16 +137,18 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     final plan = plans.firstWhere((p) => p['name'] == _selectedPlan);
     final amount = plan['price'][_selectedDuration.toString()] * 100;
 
-    const razorpayKey = 'rzp_test_1DP5mmOlF5G5ag';
+    if (amount <= 0) {
+      _showSuccessAndPop('FREE_PLAN_ACTIVATION');
+      return;
+    }
 
     var options = {
-      'key': razorpayKey,
+      'key': 'rzp_test_1DP5mmOlF5G5ag',
       'amount': amount,
       'name': 'MAXmybill',
-      'description': '$_selectedPlan Plan',
-      'prefill': {'contact': '', 'email': ''},
+      'description': '$_selectedPlan Upgrade',
       'currency': 'INR',
-      'theme': {'color': '#1565C0'}
+      'theme': {'color': '#2F7CF6'}
     };
 
     try {
@@ -201,488 +160,363 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine Current Price for Bottom Bar
     final currentPlanObj = plans.firstWhere(
-          (p) => p['name'] == _selectedPlan,
-      orElse: () => plans[0],
+            (p) => p['name'] == _selectedPlan,
+        orElse: () => plans[2]
     );
     final currentPrice = currentPlanObj['price'][_selectedDuration.toString()] ?? 0;
-
-    // Check active status safely
     final isCurrentPlanActive = _selectedPlan == widget.currentPlan;
 
     return Scaffold(
-      backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CF6),
-        elevation: 0,
-        title: Text(
-          context.tr('upgrade'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.of(context).pushAndRemoveUntil(
-              MaterialPageRoute(
-                builder: (_) => SettingsPage(uid: widget.uid),
-              ),
-                  (route) => false,
-            );
-          },
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1.0),
-          child: Container(color: Colors.grey.shade200, height: 1.0),
-        ),
-      ),
-      body: WillPopScope(
-        onWillPop: () async {
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => SettingsPage(uid: widget.uid),
+      backgroundColor: _bgColor,
+      body: Column(
+        children: [
+          // Header Section
+          Container(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 5, bottom: 10),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [_accentColor, _primaryColor]),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
             ),
-                (route) => false,
-          );
-          return false;
-        },
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildStoreHeader(),
-                const SizedBox(height: 24),
-                _buildDurationToggle(),
-                const SizedBox(height: 24),
-                _buildPlanList(),
-                const SizedBox(height: 32),
-                _buildComparisonSection(),
-                const SizedBox(height: 100), // Space for bottom bar
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        "Upgrade MAXmybill",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
+                ),
+                _buildCompactToggle(),
               ],
             ),
           ),
-        ),
-      ),
-      bottomNavigationBar: _buildBottomBar(currentPrice, isCurrentPlanActive),
-    );
-  }
 
-  Widget _buildStoreHeader() {
-    // If store data hasn't loaded yet (0ms load), we hide this section gracefully
-    // or you could show a placeholder. For now, we hide it to prevent layout jumps.
-    if (_storeData == null) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              height: 40,
-              width: 40,
-              decoration: BoxDecoration(
-                color: _primaryColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.store, color: _primaryColor),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _storeData?['businessName'] ?? context.tr('businessname'),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (_storeData?['subscriptionExpiryDate'] != null)
-                    Text(
-                      '${context.tr('subscription_expiry')}: ${_storeData!['subscriptionExpiryDate'].toString().split('T')[0]}',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 12,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isPlanActive(widget.currentPlan) ? Colors.green.shade50 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                widget.currentPlan,
-                style: TextStyle(
-                  color: isPlanActive(widget.currentPlan) ? Colors.green.shade700 : Colors.grey.shade700,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
-  }
-
-  bool isPlanActive(String planName) {
-    return planName != 'Free';
-  }
-
-  Widget _buildDurationToggle() {
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        padding: const EdgeInsets.all(4),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _toggleOption(context.tr('permonth'), 1),
-            _toggleOption(context.tr('six_months'), 6),
-            _toggleOption(context.tr('peryear'), 12, discount: context.tr('save_20')),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _toggleOption(String title, int value, {String? discount}) {
-    final bool isSelected = _selectedDuration == value;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedDuration = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: isSelected
-              ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]
-              : [],
-        ),
-        child: Row(
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.black87 : Colors.grey.shade600,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 13,
-              ),
-            ),
-            if (discount != null && !isSelected) ...[
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  discount,
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                ),
-              )
-            ]
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlanList() {
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: plans.length,
-      itemBuilder: (context, index) {
-        final plan = plans[index];
-        final isSelected = _selectedPlan == plan['name'];
-        final price = plan['price'][_selectedDuration.toString()];
-
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? _primaryColor : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-              BoxShadow(
-                color: _primaryColor.withOpacity(0.15),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              )
-            ]
-                : [],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () => setState(() => _selectedPlan = plan['name']),
-              borderRadius: BorderRadius.circular(16),
+          // Scrollable Body
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              plan['name'],
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              plan['description'],
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '₹$price',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: _primaryColor,
-                              ),
-                            ),
-                            Text(
-                              _selectedDuration == 1 ? context.tr('permonth') : context.tr('perperiod'),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Divider(color: Colors.grey.shade200),
+                    // 2x2 Plan Grid
+                    _buildPlanGrid(),
                     const SizedBox(height: 12),
-                    ...plan['features'].map<Widget>((feature) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        children: [
-                          Icon(Icons.check_circle, size: 18, color: Colors.green.shade600),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              feature,
-                              style: const TextStyle(fontSize: 14, color: Colors.black87),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )).toList(),
+                    // Full Feature Comparison Table
+                    _buildFullComparisonTable(),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
             ),
-          )
-          );
-        },
-      );
+          ),
+
+          _buildCompactBottomBar(currentPrice, isCurrentPlanActive),
+        ],
+      ),
+    );
   }
 
-  Widget _buildComparisonSection() {
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
+  Widget _buildCompactToggle() {
+    return Container(
+      width: 180,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(2),
+      child: Row(
+        children: [
+          _toggleItem("Monthly", 1),
+          _toggleItem("Yearly", 12),
+        ],
+      ),
+    );
+  }
+
+  Widget _toggleItem(String label, int value) {
+    bool isSelected = _selectedDuration == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedDuration = value),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          alignment: Alignment.center,
           child: Text(
-            "Full Feature Comparison",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            label,
+            style: TextStyle(
+              color: isSelected ? _primaryColor : Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
           ),
         ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ],
-          ),
-          child: Column(
-            children: [
-              // Header
-              _buildTableRow(
-                context.tr('features'),
-                context.tr('freeplan'),
-                'Elite',
-                'Prime',
-                'Max',
-                isHeader: true,
-              ),
-              // Data Rows
-              _buildTableRow(context.tr('staff'), "No", "No", "3", "10"),
-              _buildTableRow(context.tr('billhistory'), "7 days", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('daybook'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('report'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('quotation'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('bulk_inventory'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('logo_on_bill'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('customer_credit'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('edit_bill'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('taxreport'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('import_contacts'), "No", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('pos_billing'), "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('expense'), "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('purchase'), "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('credit'), "Yes", "Yes", "Yes", "Yes"),
-              _buildTableRow(context.tr('cloud_storage'), "Yes", "Yes", "Yes", "Yes"),
-            ],
-          ),
+      ),
+    );
+  }
+
+  Widget _buildPlanGrid() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            _buildCompactPlanCard(plans[0]),
+            _buildCompactPlanCard(plans[1]),
+          ],
+        ),
+        Row(
+          children: [
+            _buildCompactPlanCard(plans[2]),
+            _buildCompactPlanCard(plans[3]),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildTableRow(String f, String v0, String v1, String v2, String v3, {bool isHeader = false}) {
+  Widget _buildCompactPlanCard(Map<String, dynamic> plan) {
+    bool isSelected = _selectedPlan == plan['name'];
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedPlan = plan['name']),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+          decoration: BoxDecoration(
+            color: _surfaceColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? _primaryColor : Colors.grey.shade200,
+              width: isSelected ? 2 : 1,
+            ),
+            boxShadow: isSelected
+                ? [BoxShadow(color: _primaryColor.withOpacity(0.1), blurRadius: 6, offset: const Offset(0, 3))]
+                : [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 2)],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                plan['name'],
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: isSelected ? _primaryColor : _darkTextColor),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '₹${plan['price'][_selectedDuration.toString()]}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    '/${_selectedDuration == 1 ? 'mo' : 'yr'}',
+                    style: TextStyle(fontSize: 7, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ... (plan['features'] as List).map((f) => Padding(
+                padding: const EdgeInsets.only(bottom: 1),
+                child: Row(
+                  children: [
+                    Icon(Icons.check, size: 8, color: isSelected ? _primaryColor : Colors.green),
+                    const SizedBox(width: 3),
+                    Expanded(child: Text(f, style: const TextStyle(fontSize: 7.5, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              )).toList(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFullComparisonTable() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: const Text(
+              "Full Feature Comparison",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blueAccent),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Column(
+              children: [
+                _buildTableRow("Features", "Starter", "Essent.", "Growth", "Pro", isHeader: true),
+                _buildTableRow("Staff Users", "Admin", "Admin", "3", "15"),
+                _buildTableRow("Bill History", "7 Days", "Yes", "Yes", "Yes"),
+                _buildTableRow("Daybook", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Reports", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Quotation", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Bulk Inventory", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Logo on Bill", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Customer Credit", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Edit Bill", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Tax Report", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("Import Contacts", "No", "Yes", "Yes", "Yes"),
+                _buildTableRow("POS Billing", "Yes", "Yes", "Yes", "Yes"),
+                _buildTableRow("Expense", "Yes", "Yes", "Yes", "Yes"),
+                _buildTableRow("Purchase", "Yes", "Yes", "Yes", "Yes"),
+                _buildTableRow("Khata/Credit", "Yes", "Yes", "Yes", "Yes"),
+                _buildTableRow("Cloud Storage", "Yes", "Yes", "Yes", "Yes"),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableRow(String feature, String v1, String v2, String v3, String v4, {bool isHeader = false}) {
     final style = TextStyle(
-      fontWeight: isHeader ? FontWeight.bold : FontWeight.w500,
-      fontSize: isHeader ? 12 : 11,
+      fontWeight: isHeader ? FontWeight.bold : FontWeight.w600,
+      fontSize: 8,
       color: isHeader ? Colors.black87 : Colors.grey.shade700,
     );
 
-    final checkIcon = Icon(Icons.check, size: 16, color: Colors.green.shade600);
-    final closeIcon = Icon(Icons.close, size: 16, color: Colors.red.shade400);
-
-    Widget buildValue(String val) {
-      if (val == "Yes") return checkIcon;
-      if (val == "No") return closeIcon;
-      if (val == "7 days") {
-        return Text(val,
-          style: style.copyWith(color: Colors.orange, fontWeight: FontWeight.bold),
-          textAlign: TextAlign.center,
-        );
-      }
-      return Text(
-          val,
-          style: style.copyWith(
-              color: _primaryColor,
-              fontWeight: FontWeight.bold
-          )
-      );
-    }
+    const double colTitle = 100.0;
+    const double colVal = 60.0;
 
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
         color: isHeader ? Colors.grey.shade50 : Colors.white,
       ),
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Feature Name
-          Expanded(flex: 2, child: Text(f, style: style.copyWith(fontWeight: FontWeight.w600))),
-          // Free
-          Expanded(child: Center(child: isHeader ? Text(v0, style: style) : buildValue(v0))),
-          // Elite
-          Expanded(child: Center(child: isHeader ? Text(v1, style: style) : buildValue(v1))),
-          // Prime
-          Expanded(child: Center(child: isHeader ? Text(v2, style: style) : buildValue(v2))),
-          // Max
-          Expanded(child: Center(child: isHeader ? Text(v3, style: style) : buildValue(v3))),
+          SizedBox(width: colTitle, child: Text(feature, style: style.copyWith(color: isHeader ? _accentColor : _primaryColor))),
+          _buildCompValue(v1, style, colVal),
+          _buildCompValue(v2, style, colVal),
+          _buildCompValue(v3, style, colVal),
+          _buildCompValue(v4, style, colVal),
         ],
       ),
     );
   }
 
-  Widget _buildBottomBar(dynamic price, bool isCurrent) {
+  Widget _buildCompValue(String val, TextStyle style, double width) {
+    Widget content;
+    if (val == "Yes") {
+      content = const Icon(Icons.check_circle, size: 10, color: Colors.green);
+    } else if (val == "No") {
+      content = Icon(Icons.close, size: 10, color: Colors.red.shade300);
+    } else {
+      content = Text(val, style: style, textAlign: TextAlign.center);
+    }
+
+    return SizedBox(
+      width: width,
+      child: Center(child: content),
+    );
+  }
+
+  Widget _buildCompactBottomBar(dynamic price, bool isCurrent) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.zero, // 🔴 remove all padding
       decoration: BoxDecoration(
         color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          )
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -3),
+          ),
         ],
       ),
       child: SafeArea(
+        top: false,     // 🔴 remove top safe padding
+        bottom: false,  // 🔴 remove bottom safe padding
         child: Row(
           children: [
-            Expanded(
+            // Price Info
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Total Payable", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const Text(
+                    "Total Payable",
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
                   Text(
-                    "₹$price.0",
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                    price == 0 ? "Free" : "₹$price",
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: _primaryColor,
+                    ),
                   ),
                 ],
               ),
             ),
+
+            // Action Button
             Expanded(
-              child: ElevatedButton(
-                onPressed: isCurrent ? null : _startPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  disabledBackgroundColor: Colors.grey.shade300,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.only(right: 20),
+                child: SizedBox(
+                  height: 40,
+                  child: ElevatedButton(
+                    onPressed: isCurrent ? null : _startPayment,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                      isCurrent ? Colors.grey.shade300 : _primaryColor,
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: Colors.grey.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                      shadowColor: Colors.black.withOpacity(0.15),
+                    ),
+                    child: Text(
+                      isCurrent
+                          ? "Active"
+                          : (price == 0 ? 'Activate' : "Upgrade Now"),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  isCurrent ? context.tr('currentplan') : context.tr('pay_now'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -691,4 +525,5 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       ),
     );
   }
+
 }

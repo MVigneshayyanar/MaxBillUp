@@ -4,13 +4,18 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/models/sale.dart';
 import 'package:maxbillup/Sales/Bill.dart' hide kPrimaryColor;
 import 'package:maxbillup/Sales/Quotation.dart';
+import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/sale_sync_service.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
@@ -72,6 +77,20 @@ class _SaleAllPageState extends State<SaleAllPage> {
         });
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(SaleAllPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Sync cart changes from parent when initialCartItems changes
+    if (widget.initialCartItems != oldWidget.initialCartItems) {
+      if (widget.initialCartItems != null) {
+        setState(() {
+          _cart.clear();
+          _cart.addAll(widget.initialCartItems!);
+        });
+      }
+    }
   }
 
   Future<void> _initializeProductsStream() async {
@@ -176,18 +195,30 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   void _showEditDialog(int idx) {
     final item = _cart[idx];
+    final nameCtrl = TextEditingController(text: item.name);
     final qtyCtrl = TextEditingController(text: item.quantity.toString());
     final priceCtrl = TextEditingController(text: item.price.toStringAsFixed(0));
 
     showDialog(
       context: context,
-      barrierColor: kBlack87.withOpacity(0.8),
+      barrierColor: kBlack87.withAlpha((0.8 * 255).toInt()),
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(item.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        title: Text(context.tr('edit_item'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            TextField(
+              controller: nameCtrl,
+              decoration: InputDecoration(
+                labelText: context.tr('product_name'),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                prefixIcon: const Icon(Icons.shopping_bag, color: kPrimaryColor),
+                filled: true,
+                fillColor: kGreyBg,
+              ),
+            ),
+            const SizedBox(height: 16),
             TextField(
               controller: priceCtrl,
               keyboardType: TextInputType.number,
@@ -210,7 +241,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 filled: true,
                 fillColor: kGreyBg,
               ),
-              autofocus: true,
             ),
           ],
         ),
@@ -226,11 +256,20 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ),
           ElevatedButton(
             onPressed: () {
+              final name = nameCtrl.text.trim();
               final qty = int.tryParse(qtyCtrl.text.trim());
               final price = double.tryParse(priceCtrl.text.trim());
-              if (qty != null && qty > 0 && price != null && price > 0) {
-                _cart[idx].quantity = qty;
-                _cart[idx].price = price;
+              if (name.isNotEmpty && qty != null && qty > 0 && price != null && price > 0) {
+                // Create a new CartItem with updated values
+                _cart[idx] = CartItem(
+                  productId: item.productId,
+                  name: name,
+                  price: price,
+                  quantity: qty,
+                  taxName: item.taxName,
+                  taxPercentage: item.taxPercentage,
+                  taxType: item.taxType,
+                );
                 widget.onCartChanged?.call(_cart);
                 setState(() {});
                 Navigator.pop(ctx);
@@ -290,6 +329,230 @@ class _SaleAllPageState extends State<SaleAllPage> {
     }
   }
 
+  Future<void> _directPrintWithCash() async {
+    if (_cart.isEmpty) {
+      CommonWidgets.showSnackBar(context, 'Cart is empty!', bgColor: kOrange);
+      return;
+    }
+
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Generate invoice number
+      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
+
+      // Check connectivity
+      bool isOnline = false;
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => [ConnectivityResult.none],
+        );
+        isOnline = !connectivityResult.contains(ConnectivityResult.none);
+      } catch (e) {
+        isOnline = false;
+      }
+
+      // Fetch business details
+      final businessDetails = await _fetchBusinessDetails();
+      final staffName = await _fetchStaffName(widget.uid);
+      final businessName = businessDetails['businessName'];
+      final businessLocation = businessDetails['location'];
+      final businessPhone = businessDetails['businessPhone'];
+
+      debugPrint('✅ Using Business Name: $businessName');
+      debugPrint('✅ Using Location: $businessLocation');
+      debugPrint('✅ Using Phone: $businessPhone');
+      debugPrint('✅ Staff Name: $staffName');
+
+      // Calculate tax information
+      final Map<String, double> taxMap = {};
+      for (var item in _cart) {
+        if (item.taxAmount > 0 && item.taxName != null) {
+          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        }
+      }
+      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+      final subtotalAmount = _cart.fold(0.0, (sum, item) {
+        if (item.taxType == 'Price includes Tax') {
+          return sum + (item.basePrice * item.quantity);
+        } else {
+          return sum + item.total;
+        }
+      });
+      final totalWithTax = _cart.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
+      // Base sale data
+      final baseSaleData = {
+        'invoiceNumber': invoiceNumber,
+        'items': _cart.map((e) => {
+          'productId': e.productId,
+          'name': e.name,
+          'quantity': e.quantity,
+          'price': e.price,
+          'total': e.total
+        }).toList(),
+        'subtotal': _total,
+        'discount': 0.0,
+        'total': _total,
+        'taxes': taxList,
+        'totalTax': totalTax,
+        'paymentMode': 'Cash',
+        'cashReceived': _total,
+        'change': 0.0,
+        'creditAmount': 0.0,
+        'date': DateTime.now().toIso8601String(),
+        'staffId': widget.uid,
+        'staffName': staffName ?? 'Staff',
+        'businessLocation': businessLocation ?? 'Location',
+        'businessPhone': businessPhone ?? '',
+        'businessName': businessName ?? 'Business',
+      };
+
+      if (isOnline) {
+        // Save online
+        final saleData = {...baseSaleData, 'timestamp': FieldValue.serverTimestamp()};
+        await FirestoreService().addDocument('sales', saleData).timeout(const Duration(seconds: 10));
+        await _updateProductStock();
+      } else {
+        // Save offline
+        final saleSyncService = context.read<SaleSyncService>();
+        final sale = Sale(
+          id: invoiceNumber,
+          data: baseSaleData,
+          isSynced: false,
+        );
+        await saleSyncService.saveSale(sale);
+        final localStockService = context.read<LocalStockService>();
+        for (var item in _cart) {
+          if (item.productId.isNotEmpty) {
+            final currentStock = localStockService.getStock(item.productId);
+            final newStock = currentStock - item.quantity;
+            localStockService.cacheStock(item.productId, newStock);
+          }
+        }
+      }
+
+      // Close loading dialog
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+
+      // Navigate to Invoice
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => InvoicePage(
+              uid: widget.uid,
+              userEmail: widget.userEmail,
+              businessName: businessName ?? 'Business',
+              businessLocation: businessLocation ?? 'Location',
+              businessPhone: businessPhone ?? '',
+              invoiceNumber: invoiceNumber,
+              dateTime: DateTime.now(),
+              items: _cart.map((e) => {
+                'name': e.name,
+                'quantity': e.quantity,
+                'price': e.price,
+                'total': e.totalWithTax,
+                'taxPercentage': e.taxPercentage ?? 0,
+                'taxAmount': e.taxAmount,
+              }).toList(),
+              subtotal: subtotalAmount,
+              discount: 0.0,
+              taxes: taxList,
+              total: totalWithTax,
+              paymentMode: 'Cash',
+              cashReceived: _total,
+            ),
+          ),
+        ).then((_) {
+          // Clear cart after invoice
+          _cart.clear();
+          widget.onCartChanged?.call(_cart);
+          if (mounted) setState(() {});
+        });
+      }
+    } catch (e) {
+      debugPrint('Error in direct print: $e');
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        CommonWidgets.showSnackBar(context, 'Error: ${e.toString()}', bgColor: kErrorColor);
+      }
+    }
+  }
+
+  Future<Map<String, String?>> _fetchBusinessDetails() async {
+    try {
+      debugPrint('🔍 Fetching business details for uid: ${widget.uid}');
+
+      // Use FirestoreService to get current store document
+      final firestoreService = FirestoreService();
+      final storeDoc = await firestoreService.getCurrentStoreDoc();
+
+      debugPrint('📄 Store doc exists: ${storeDoc?.exists}');
+
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        debugPrint('📦 Store data: $data');
+        debugPrint('🏢 Business Name: ${data?['businessName']}');
+        debugPrint('📍 Location: ${data?['location']} or ${data?['businessLocation']}');
+        debugPrint('📞 Phone: ${data?['businessPhone']}');
+
+        return {
+          'businessName': data?['businessName'] as String?,
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String?,
+          'businessPhone': data?['businessPhone'] as String?,
+        };
+      }
+
+      debugPrint('⚠️ Returning null business details - store doc not found');
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    } catch (e) {
+      debugPrint('❌ Error fetching business details: $e');
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    }
+  }
+
+  Future<String?> _fetchStaffName(String uid) async {
+    try {
+      debugPrint('👤 Fetching staff name for uid: $uid');
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final staffName = userDoc.data()?['name'];
+      debugPrint('👤 Staff name: $staffName');
+      return staffName;
+    } catch (e) {
+      debugPrint('❌ Error fetching staff name: $e');
+      return null;
+    }
+  }
+
+  Future<void> _updateProductStock() async {
+    final localStockService = context.read<LocalStockService>();
+    for (var item in _cart) {
+      if (item.productId.isNotEmpty) {
+        try {
+          final productRef = await FirestoreService().getStoreCollection('Products');
+          final doc = await productRef.doc(item.productId).get();
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            final currentStock = (data['currentStock'] ?? 0.0).toDouble();
+            final newStock = currentStock - item.quantity;
+            await productRef.doc(item.productId).update({'currentStock': newStock});
+            localStockService.cacheStock(item.productId, newStock.toInt());
+          }
+        } catch (e) {
+          debugPrint('Error updating stock for ${item.productId}: $e');
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
@@ -328,6 +591,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
               if (_cart.isNotEmpty) {
                 Navigator.push(context, CupertinoPageRoute(builder: (ctx) => QuotationPage(uid: widget.uid, userEmail: widget.userEmail, cartItems: _cart, totalAmount: _total)));
               }
+            },
+            onPrint: () async {
+              await _directPrintWithCash();
             },
             onBill: () {
               if (_cart.isNotEmpty) {
@@ -376,7 +642,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               decoration: BoxDecoration(
                 color: kPrimaryColor,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: kPrimaryColor.withAlpha((0.2 * 255).toInt()), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: const Icon(Icons.qr_code_scanner, color: kWhite),
             ),
@@ -409,7 +675,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   color: isSelected ? kPrimaryColor : kWhite,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
-                  boxShadow: isSelected ? [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 3))] : null,
+                  boxShadow: isSelected ? [BoxShadow(color: kPrimaryColor.withAlpha((0.2 * 255).toInt()), blurRadius: 6, offset: const Offset(0, 3))] : null,
                 ),
                 child: Center(
                   child: cat == 'Favorite'
@@ -548,7 +814,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: isOutOfStock ? kErrorColor.withOpacity(0.1) : (isLowStock ? kGoogleYellow.withOpacity(0.1) : kGoogleGreen.withOpacity(0.1)),
+                            color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kGoogleYellow.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -571,4 +837,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
 

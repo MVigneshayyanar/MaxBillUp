@@ -166,16 +166,16 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildModernTile(String title, IconData icon, Color iconColor, String viewName, {String? subtitle, bool isLocked = false}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: kBorderColor),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1))],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
           onTap: () {
             if (isLocked) {
@@ -185,21 +185,21 @@ class _ReportsPageState extends State<ReportsPage> {
               setState(() => _currentView = viewName);
             }
           },
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: const EdgeInsets.all(14.0),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
                     color: iconColor.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(11),
                   ),
-                  child: Icon(icon, color: iconColor, size: 18),
+                  child: Icon(icon, color: iconColor, size: 20),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +211,7 @@ class _ReportsPageState extends State<ReportsPage> {
                               title,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                                fontSize: 14,
                                 color: kTextPrimary,
                               ),
                             ),
@@ -219,17 +219,17 @@ class _ReportsPageState extends State<ReportsPage> {
                         ],
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 1),
-                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 10)),
+                        const SizedBox(height: 2),
+                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 11)),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 6),
                 Icon(
                   Icons.chevron_right_rounded,
                   color: kTextSecondary.withOpacity(0.5),
-                  size: 18,
+                  size: 20,
                 ),
               ],
             ),

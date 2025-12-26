@@ -83,7 +83,7 @@ class _ProductsPageState extends State<ProductsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kGrey100,
+      backgroundColor: kGreyBg,
       floatingActionButton: (isAdmin || _hasPermission('addProduct'))
           ? FloatingActionButton.extended(
         onPressed: () => Navigator.push(

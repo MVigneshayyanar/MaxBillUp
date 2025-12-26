@@ -7,9 +7,9 @@ import 'package:maxbillup/utils/firestore_service.dart';
 /// NO CACHING - Every access fetches from backend
 class PlanProvider extends ChangeNotifier {
   static const String PLAN_FREE = 'Free';
-  static const String PLAN_ELITE = 'Elite';
-  static const String PLAN_PRIME = 'Prime';
-  static const String PLAN_MAX = 'Max';
+  static const String PLAN_Essential = 'Essential';
+  static const String PLAN_Growth = 'Growth';
+  static const String PLAN_MAX = 'Pro';
 
   StreamSubscription<DocumentSnapshot>? _planSubscription;
   String? _storeId;
@@ -156,16 +156,16 @@ class PlanProvider extends ChangeNotifier {
 
   Future<bool> canAccessStaffManagementAsync() async {
     final plan = await getCurrentPlan();
-    return plan == PLAN_PRIME || plan == PLAN_MAX;
+    return plan == PLAN_Growth || plan == PLAN_MAX;
   }
 
   Future<int> getMaxStaffCountAsync() async {
     final plan = await getCurrentPlan();
     switch (plan) {
       case PLAN_FREE:
-      case PLAN_ELITE:
+      case PLAN_Essential:
         return 0;
-      case PLAN_PRIME:
+      case PLAN_Growth:
         return 3;
       case PLAN_MAX:
         return 10;

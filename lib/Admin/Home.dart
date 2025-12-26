@@ -212,7 +212,7 @@ class StoresTab extends StatelessWidget {
   }
 
   Widget _buildPlanBadge(String plan) {
-    bool isMax = plan.toLowerCase() == 'max';
+    bool isMax = plan.toLowerCase() == 'Pro';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(

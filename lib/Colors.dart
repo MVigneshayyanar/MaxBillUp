@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 const Color kPrimaryColor = Color(0xFF2F7CF6);
 const Color kErrorColor = Color(0xFFFF3B30);
-const Color kGreyBg = Color(0xFFF5F5F5);
+const Color kGreyBg = Color(0xFFF4F7FA);
 const Color kWhite = Colors.white;
 const Color kBlack87 = Colors.black87;
 const Color kBlack54 = Colors.black54;

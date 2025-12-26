@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
-import 'package:maxbillup/Stocks/CreateExpense.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2F7CF6);
@@ -413,9 +412,10 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     try {
       final amount = double.parse(_amountController.text);
       final referenceNumber = 'EXP${DateTime.now().millisecondsSinceEpoch}';
+      final expenseTitle = _titleController.text.trim();
 
       await FirestoreService().addDocument('expenses', {
-        'title': _titleController.text,
+        'title': expenseTitle,
         'amount': amount,
         'category': _selectedCategory,
         'paymentMode': _paymentMode,
@@ -425,6 +425,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         'referenceNumber': referenceNumber,
       });
 
+      // Add or update expense name in expenseNames collection
+      await _saveExpenseName(expenseTitle);
+
       if (_paymentMode == 'Credit') {
         final creditNoteNumber = await NumberGeneratorService.generateExpenseCreditNoteNumber();
 
@@ -432,7 +435,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': referenceNumber,
           'purchaseNumber': referenceNumber,
-          'supplierName': 'Expense: ${_titleController.text}',
+          'supplierName': 'Expense: $expenseTitle',
           'supplierPhone': '',
           'amount': amount,
           'timestamp': Timestamp.fromDate(_selectedDate),
@@ -466,6 +469,156 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     }
   }
 
+  Future<void> _saveExpenseName(String expenseName) async {
+    try {
+      final expenseNamesCollection = await FirestoreService().getStoreCollection('expenseNames');
+
+      // Check if expense name already exists
+      final querySnapshot = await expenseNamesCollection
+          .where('name', isEqualTo: expenseName)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        // Update existing expense name with incremented usage count
+        final docId = querySnapshot.docs.first.id;
+        final docData = querySnapshot.docs.first.data() as Map<String, dynamic>?;
+        final currentCount = docData?['usageCount'] ?? 0;
+
+        await expenseNamesCollection.doc(docId).update({
+          'usageCount': currentCount + 1,
+          'lastUsed': FieldValue.serverTimestamp(),
+        });
+      } else {
+        // Create new expense name entry
+        await expenseNamesCollection.add({
+          'name': expenseName,
+          'usageCount': 1,
+          'lastUsed': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error saving expense name: $e');
+    }
+  }
+
+  Future<List<String>> _getExpenseNameSuggestions(String query) async {
+    try {
+      final expenseNamesCollection = await FirestoreService().getStoreCollection('expenseNames');
+      final snapshot = await expenseNamesCollection
+          .orderBy('usageCount', descending: true)
+          .limit(10)
+          .get();
+
+      final List<String> suggestions = snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>?;
+            return (data?['name'] ?? '').toString();
+          })
+          .where((name) => name.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+
+      return suggestions;
+    } catch (e) {
+      debugPrint('Error fetching expense name suggestions: $e');
+      return [];
+    }
+  }
+
+  Widget _buildAutocompleteExpenseTitle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Expense Title *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          optionsBuilder: (TextEditingValue textEditingValue) async {
+            if (textEditingValue.text.isEmpty) {
+              return const Iterable<String>.empty();
+            }
+            return await _getExpenseNameSuggestions(textEditingValue.text);
+          },
+          onSelected: (String selection) {
+            _titleController.text = selection;
+          },
+          fieldViewBuilder: (BuildContext context, TextEditingController fieldTextEditingController,
+              FocusNode fieldFocusNode, VoidCallback onFieldSubmitted) {
+            // Sync the field controller with our main controller
+            if (fieldTextEditingController.text.isEmpty && _titleController.text.isNotEmpty) {
+              fieldTextEditingController.text = _titleController.text;
+            }
+            fieldTextEditingController.addListener(() {
+              _titleController.text = fieldTextEditingController.text;
+            });
+
+            return TextField(
+              controller: fieldTextEditingController,
+              focusNode: fieldFocusNode,
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.title_outlined, color: _primaryColor, size: 20),
+                hintText: 'Enter or select expense title',
+                filled: true,
+                fillColor: _primaryColor.withOpacity(0.04),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+              ),
+            );
+          },
+          optionsViewBuilder: (BuildContext context, AutocompleteOnSelected<String> onSelected,
+              Iterable<String> options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4.0,
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  width: MediaQuery.of(context).size.width - 40,
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final String option = options.elementAt(index);
+                      return InkWell(
+                        onTap: () => onSelected(option),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: index == options.length - 1 ? Colors.transparent : _cardBorder,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.history, size: 18, color: _primaryColor),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  option,
+                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -486,7 +639,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInputField('Expense Title *', _titleController, Icons.title_outlined),
+            _buildAutocompleteExpenseTitle(),
             const SizedBox(height: 16),
             _buildInputField('Amount *', _amountController, Icons.currency_rupee,
                 keyboardType: TextInputType.number),
@@ -762,3 +915,4 @@ class ExpenseDetailsPage extends StatelessWidget {
     );
   }
 }
+
