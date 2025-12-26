@@ -68,16 +68,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  flutter_native_splash: ^2.3.10
   flutter_launcher_icons: ^0.13.1
 
-flutter_native_splash:
-  color: "#ffffff"
-  image: assets/Max_my_bill.png
-  android: true
-  ios: true
-  android_gravity: center
-  ios_content_mode: scaleAspectFit
 
 flutter_launcher_icons:
   android: true

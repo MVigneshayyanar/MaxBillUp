@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Stocks/Products.dart' hide AddProductPage;
 import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/Stocks/AddCategoryPopup.dart';
@@ -92,7 +93,7 @@ class _CategoryPageState extends State<CategoryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _backgroundColor,
+      backgroundColor: kGreyBg,
       floatingActionButton: (_hasPermission('addCategory') || isAdmin)
           ? FloatingActionButton.extended(
         onPressed: () => _showAddCategoryDialog(context),
@@ -127,7 +128,7 @@ class _CategoryPageState extends State<CategoryPage> {
       child: Container(
         height: 48,
         decoration: BoxDecoration(
-          color: _primaryColor.withOpacity(0.04),
+          color: kGreyBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: _cardBorder),
         ),
@@ -237,19 +238,21 @@ class _CategoryPageState extends State<CategoryPage> {
                 ),
                 title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 subtitle: Text('$count ${count == 1 ? "Product" : "Products"}', style: const TextStyle(color: _secondaryColor, fontSize: 13)),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit_outlined, size: 20, color: _secondaryColor),
-                      onPressed: () => _showEditCategoryDialog(context, categoryDoc.id, name),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 20, color: _errorColor),
-                      onPressed: () => _showDeleteConfirmation(context, categoryDoc.id, name),
-                    ),
-                  ],
-                ),
+                trailing: (_hasPermission('addCategory') || isAdmin)
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit_outlined, size: 20, color: _secondaryColor),
+                          onPressed: () => _showEditCategoryDialog(context, categoryDoc.id, name),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 20, color: _errorColor),
+                          onPressed: () => _showDeleteConfirmation(context, categoryDoc.id, name),
+                        ),
+                      ],
+                    )
+                  : null,
               ),
               const Divider(height: 1, color: _cardBorder),
               Container(
@@ -257,45 +260,47 @@ class _CategoryPageState extends State<CategoryPage> {
                   color: _primaryColor.withOpacity(0.02),
                   borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _showAddExistingProductDialog(context, name),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_box_outlined, size: 16, color: _primaryColor),
-                              const SizedBox(width: 8),
-                              Text(context.tr('add_existing'), style: const TextStyle(color: _primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
+                child: (_hasPermission('addCategory') || isAdmin)
+                  ? Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => _showAddExistingProductDialog(context, name),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.add_box_outlined, size: 16, color: _primaryColor),
+                                  const SizedBox(width: 8),
+                                  Text(context.tr('add_existing'), style: const TextStyle(color: _primaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    Container(width: 1, height: 20, color: _cardBorder),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: _userEmail, preSelectedCategory: name)));
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.add_circle_outline, size: 16, color: _successColor),
-                              const SizedBox(width: 8),
-                              Text(context.tr('create_new'), style: const TextStyle(color: _successColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
+                        Container(width: 1, height: 20, color: _cardBorder),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: _userEmail, preSelectedCategory: name)));
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.add_circle_outline, size: 16, color: _successColor),
+                                  const SizedBox(width: 8),
+                                  Text(context.tr('create_new'), style: const TextStyle(color: _successColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
+                      ],
+                    )
+                  : null,
               ),
             ],
           ),
@@ -473,27 +478,40 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _backgroundColor,
-      appBar: AppBar(
-        title: Text(widget.categoryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        elevation: 0,
-        centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddOptions(context),
-        backgroundColor: _successColor,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Add Item", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-      body: Column(
-        children: [
-          _buildSearchHeader(),
-          Expanded(child: _buildProductList()),
-        ],
-      ),
+    final canAddCategory = PermissionHelper.getUserPermissions(widget.uid).then((userData) {
+      final permissions = userData['permissions'] as Map<String, dynamic>;
+      final role = userData['role'] as String;
+      return permissions['addCategory'] == true || role.toLowerCase().contains('admin');
+    });
+    return FutureBuilder<bool>(
+      future: canAddCategory,
+      builder: (context, snapshot) {
+        final showAddButton = snapshot.data == true;
+        return Scaffold(
+          backgroundColor: _backgroundColor,
+          appBar: AppBar(
+            title: Text(widget.categoryName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            backgroundColor: _primaryColor,
+            elevation: 0,
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          floatingActionButton: showAddButton
+              ? FloatingActionButton.extended(
+                  onPressed: () => _showAddOptions(context),
+                  backgroundColor: _successColor,
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text("Add Item", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                )
+              : null,
+          body: Column(
+            children: [
+              _buildSearchHeader(),
+              Expanded(child: _buildProductList()),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -503,7 +521,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))]),
       child: Container(
         height: 48,
-        decoration: BoxDecoration(color: _primaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12), border: Border.all(color: _cardBorder)),
+        decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: _cardBorder)),
         child: TextField(
           controller: _searchController,
           decoration: InputDecoration(
@@ -639,3 +657,4 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 }
+

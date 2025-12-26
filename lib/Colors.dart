@@ -1,0 +1,21 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+
+const Color kPrimaryColor = Color(0xFF2F7CF6);
+const Color kErrorColor = Color(0xFFFF3B30);
+const Color kGreyBg = Color(0xFFF5F5F5);
+const Color kWhite = Colors.white;
+const Color kBlack87 = Colors.black87;
+const Color kBlack54 = Colors.black54;
+const Color kGrey400 = Color(0xFFBDBDBD); // Colors.grey[400]
+const Color kGrey300 = Color(0xFFE0E0E0); // Colors.grey[300]
+const Color kGrey200 = Color(0xFFEEEEEE); // Colors.grey[200]
+const Color kGrey100 = Color(0xFFF5F5F5); // Colors.grey[100]
+const Color kOrange = Colors.orange;
+final Color kBorderColor = Color(0xFFE3F2FD);
+
+// --- GOOGLE LOGO COLORS ---
+const Color kGoogleRed = Color(0xFFEA4335);
+const Color kGoogleYellow = Color(0xFFFBBC05);
+const Color kGoogleGreen = Color(0xFF34A853);
+

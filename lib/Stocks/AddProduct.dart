@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../Sales/BarcodeScanner.dart';
+import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:maxbillup/Stocks/Stock.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/Colors.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -58,7 +58,13 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void initState() {
     super.initState();
-    _selectedCategory = widget.preSelectedCategory;
+    // Default fallback to Favorite
+    _selectedCategory = widget.preSelectedCategory ?? 'Favorite';
+
+    if (_selectedCategory == 'Favorite') {
+      _isFavorite = true;
+    }
+
     _checkPermission();
     _fetchUnits();
     _fetchTaxesFromBackend();
@@ -66,7 +72,6 @@ class _AddProductPageState extends State<AddProductPage> {
     if (widget.existingData != null) {
       _loadExistingData();
     } else {
-      // Auto-generate product code for new products
       _generateProductCode();
     }
   }
@@ -144,21 +149,13 @@ class _AddProductPageState extends State<AddProductPage> {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId == null) return;
-
-      // Get the products collection
       final productsCollection = await FirestoreService().getStoreCollection('Products');
-
-      // Check existing products to find the highest PRT number
-      int highestNumber = 1000; // Start from 1000, so first product will be 1001
-
-      // Get all products and check for PRT codes
+      int highestNumber = 1000;
       final productsSnapshot = await productsCollection.get();
       for (var doc in productsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>?;
         final productCode = data?['productCode'] as String?;
-
         if (productCode != null && productCode.startsWith('PRT')) {
-          // Extract number from PRT code (e.g., "PRT1001" -> 1001)
           final numberStr = productCode.substring(3);
           final number = int.tryParse(numberStr);
           if (number != null && number > highestNumber) {
@@ -166,17 +163,11 @@ class _AddProductPageState extends State<AddProductPage> {
           }
         }
       }
-
-      // Generate next number (only display, don't save to backend yet)
       final nextNumber = highestNumber + 1;
-
-      // Set the product code with PRT prefix
       if (mounted) {
         setState(() => _productCodeController.text = 'PRT$nextNumber');
       }
     } catch (e) {
-      debugPrint('Error generating product code: $e');
-      // Fallback to timestamp-based code
       final code = 'PRT${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
       setState(() => _productCodeController.text = code);
     }
@@ -184,7 +175,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<void> _scanBarcode() async {
     final result = await Navigator.push(context, CupertinoPageRoute(
-      builder: (context) => BarcodeScannerPage(title: 'Scan Product Barcode', onBarcodeScanned: (barcode) => Navigator.pop(context, barcode)),
+      builder: (context) => BarcodeScannerPage(onBarcodeScanned: (barcode) => Navigator.pop(context, barcode)),
     ));
     if (result != null && mounted) setState(() => _barcodeController.text = result);
   }
@@ -192,14 +183,14 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: kGrey100,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF2F7CF6),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
-            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: () => Navigator.pop(context)),
+            style: const TextStyle(fontWeight: FontWeight.bold, color: kWhite)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -209,19 +200,14 @@ class _AddProductPageState extends State<AddProductPage> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  // --- Section 1: Basic Details ---
                   _buildSectionHeader("Basic Details"),
                   const SizedBox(height: 12),
-                  // 1. Category
                   _buildCategoryDropdown(),
                   const SizedBox(height: 16),
-                  // 2. Item Name
                   _buildTextField(controller: _itemNameController, label: context.tr('item_name'), isRequired: true),
                   const SizedBox(height: 16),
-                  // 3. Selling Price
                   _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number, isRequired: true),
                   const SizedBox(height: 16),
-                  // 4. Quantity
                   if (_stockEnabled) ...[
                     _buildTextField(controller: _quantityController, label: "Initial Stock Quantity", keyboardType: TextInputType.number, isRequired: true),
                     const SizedBox(height: 16),
@@ -229,18 +215,12 @@ class _AddProductPageState extends State<AddProductPage> {
                     _buildInfinityStockIndicator(),
                     const SizedBox(height: 16),
                   ],
-                  // 5. Product Code
                   _buildProductCodeField(),
                   const SizedBox(height: 16),
-
-                  // Track Stock Switch & Units (Remained in Basic as per flow)
                   _buildInventorySwitch(),
                   const SizedBox(height: 16),
                   _buildUnitDropdown(),
-
                   const SizedBox(height: 24),
-
-                  // --- Section 2: Advanced Dropdown ---
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
@@ -287,7 +267,7 @@ class _AddProductPageState extends State<AddProductPage> {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.w900,
-        color: Color(0xFF1F2937),
+        color: kBlack87,
         letterSpacing: 0.5,
       ),
     );
@@ -297,18 +277,18 @@ class _AddProductPageState extends State<AddProductPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.05),
+        color: kGoogleGreen.withOpacity(0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.green.withOpacity(0.3)),
+        border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.all_inclusive, color: Colors.green, size: 20),
+          const Icon(Icons.all_inclusive, color: kGoogleGreen, size: 20),
           const SizedBox(width: 12),
           Text(
             "Infinity Stock Enabled",
             style: TextStyle(
-              color: Colors.green.shade700,
+              color: kGoogleGreen,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -322,24 +302,36 @@ class _AddProductPageState extends State<AddProductPage> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
       decoration: InputDecoration(
-        labelText: label, // Removed '*' from label
-        suffixIcon: suffixIcon != null ? IconButton(icon: Icon(suffixIcon, size: 20), onPressed: onSuffixTap) : null,
+        labelText: label,
+        suffixIcon: suffixIcon != null ? IconButton(icon: Icon(suffixIcon, size: 20, color: kPrimaryColor), onPressed: onSuffixTap) : null,
         filled: true,
-        fillColor: const Color(0xFFF8F9FA),
+        fillColor: kWhite,
+        errorStyle: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
+          borderSide: const BorderSide(color: kGrey300, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+        ),
+        // Applied kErrorColor to error states
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: kErrorColor, width: 1),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: kErrorColor, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        labelStyle: const TextStyle(color: kBlack54),
       ),
       validator: isRequired ? (v) => v!.isEmpty ? 'Required' : null : null,
     );
@@ -352,23 +344,26 @@ class _AddProductPageState extends State<AddProductPage> {
         Expanded(child: _buildTextField(controller: _productCodeController, label: "Product Code", isRequired: true)),
         const SizedBox(width: 8),
         Padding(
-          padding: const EdgeInsets.only(top: 4),
+          padding: const EdgeInsets.only(top: 2),
           child: InkWell(
-            onTap: () => setState(() => _isFavorite = !_isFavorite),
+            onTap: () {
+              if (_selectedCategory == 'Favorite') return;
+              setState(() => _isFavorite = !_isFavorite);
+            },
             child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _isFavorite ? Colors.amber[50] : Colors.grey[100],
-                borderRadius: BorderRadius.circular(8),
+                color: _isFavorite ? kPrimaryColor.withOpacity(0.1) : kGrey100,
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _isFavorite ? Colors.amber : Colors.grey[300]!,
+                  color: _isFavorite ? kPrimaryColor : kGrey300,
                   width: 1,
                 ),
               ),
               child: Icon(
-                _isFavorite ? Icons.star : Icons.star_border,
-                color: _isFavorite ? Colors.amber : Colors.grey[600],
-                size: 20,
+                _isFavorite ? Icons.favorite : Icons.favorite_border,
+                color: _isFavorite ? kPrimaryColor : kBlack54,
+                size: 22,
               ),
             ),
           ),
@@ -381,15 +376,15 @@ class _AddProductPageState extends State<AddProductPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: kWhite,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2F7CF6).withOpacity(0.2)),
+        border: Border.all(color: kGrey200),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("Track Stock Level", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-          Switch.adaptive(value: _stockEnabled, activeColor: Colors.blue, onChanged: (v) => setState(() => _stockEnabled = v)),
+          const Text("Track Stock Level", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+          Switch.adaptive(value: _stockEnabled, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _stockEnabled = v)),
         ],
       ),
     );
@@ -402,15 +397,21 @@ class _AddProductPageState extends State<AddProductPage> {
         final availableUnits = ['Piece', 'Kg', 'Liter', 'Box', ...(snapshot.data ?? [])].cast<String>();
         return InputDecorator(
           decoration: _dropdownDecoration("Unit").copyWith(
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.add_circle_outline, color: Colors.blue),
-              onPressed: _showAddUnitDialog,
+            suffixIcon: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: InkWell(
+                onTap: _showAddUnitDialog,
+                child: const Icon(Icons.add_circle_outline, color: kPrimaryColor, size: 22),
+              ),
             ),
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: availableUnits.contains(_selectedStockUnit) ? _selectedStockUnit : availableUnits.first,
               isExpanded: true,
+              isDense: true,
+              icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
               items: availableUnits.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
               onChanged: (v) => setState(() => _selectedStockUnit = v),
             ),
@@ -423,13 +424,22 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildTaxDropdown() {
     return InputDecorator(
       decoration: _dropdownDecoration("Tax Rate").copyWith(
-        suffixIcon: IconButton(icon: const Icon(Icons.add_circle_outline, color: Colors.blue), onPressed: _showAddTaxDialog),
+        suffixIcon: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: InkWell(
+            onTap: _showAddTaxDialog,
+            child: const Icon(Icons.add_circle_outline, color: kPrimaryColor, size: 22),
+          ),
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedTaxId,
           hint: const Text("Select Rate"),
           isExpanded: true,
+          isDense: true,
+          icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
           items: _fetchedTaxes.map((tax) {
             return DropdownMenuItem<String>(value: tax['id'], child: Text("${tax['name']} (${tax['percentage']}%)"));
           }).toList(),
@@ -452,6 +462,9 @@ class _AddProductPageState extends State<AddProductPage> {
         child: DropdownButton<String>(
           value: items.contains(_selectedTaxType) ? _selectedTaxType : items[1],
           isExpanded: true,
+          isDense: true,
+          icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
           items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: (v) => setState(() => _selectedTaxType = v!),
         ),
@@ -466,9 +479,12 @@ class _AddProductPageState extends State<AddProductPage> {
         return StreamBuilder<QuerySnapshot>(
           stream: streamSnapshot.data,
           builder: (context, snapshot) {
-            List<String> categories = ['UnCategorised'];
+            List<String> categories = ['Favorite'];
             if (snapshot.hasData) {
-              categories.addAll(snapshot.data!.docs.map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String).toList());
+              categories.addAll(snapshot.data!.docs
+                  .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
+                  .where((name) => name != 'Favorite')
+                  .toList());
             }
             return InputDecorator(
               decoration: _dropdownDecoration("Category"),
@@ -476,8 +492,20 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: DropdownButton<String>(
                   value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
                   isExpanded: true,
+                  isDense: true,
+                  icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
                   items: categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: (v) => setState(() => _selectedCategory = v),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedCategory = v;
+                      if (v == 'Favorite') {
+                        _isFavorite = true;
+                      } else {
+                        _isFavorite = false;
+                      }
+                    });
+                  },
                 ),
               ),
             );
@@ -491,20 +519,31 @@ class _AddProductPageState extends State<AddProductPage> {
     return InputDecoration(
       labelText: label,
       filled: true,
-      fillColor: const Color(0xFFF8F9FA),
+      fillColor: kWhite,
+      errorStyle: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1),
+        borderSide: const BorderSide(color: kGrey300, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
+        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      // Applied kErrorColor to error states
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: kErrorColor, width: 1),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: kErrorColor, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      labelStyle: const TextStyle(color: kBlack54),
     );
   }
 
@@ -519,7 +558,7 @@ class _AddProductPageState extends State<AddProductPage> {
           decoration: const InputDecoration(labelText: "Unit Name (e.g. Dozen, Box)"),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: kBlack54))),
           ElevatedButton(
             onPressed: () async {
               if (unitController.text.trim().isNotEmpty) {
@@ -538,7 +577,8 @@ class _AddProductPageState extends State<AddProductPage> {
                 }
               }
             },
-            child: const Text("Add"),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            child: const Text("Add", style: TextStyle(color: kWhite)),
           ),
         ],
       ),
@@ -560,13 +600,15 @@ class _AddProductPageState extends State<AddProductPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: kBlack54))),
           ElevatedButton(onPressed: () {
             if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
               _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
               Navigator.pop(ctx);
             }
-          }, child: const Text("Add")),
+          },
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+              child: const Text("Add", style: TextStyle(color: kWhite))),
         ],
       ),
     );
@@ -575,16 +617,16 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildBottomSaveButton() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
+      decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
       child: ElevatedButton(
         onPressed: _saveProduct,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2F7CF6),
+          backgroundColor: kPrimaryColor,
           minimumSize: const Size(double.infinity, 54),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
         child: Text(context.tr(widget.productId != null ? 'update' : 'add'),
-            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -619,7 +661,7 @@ class _AddProductPageState extends State<AddProductPage> {
         'price': double.tryParse(_priceController.text) ?? 0.0,
         'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
         'mrp': double.tryParse(_mrpController.text) ?? 0.0,
-        'category': _selectedCategory ?? 'UnCategorised',
+        'category': _selectedCategory ?? 'Favorite',
         'productCode': _productCodeController.text.trim(),
         'hsn': _hsnController.text.trim(),
         'barcode': _barcodeController.text.trim(),

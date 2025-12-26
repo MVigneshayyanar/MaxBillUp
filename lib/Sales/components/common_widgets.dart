@@ -13,7 +13,7 @@ class CommonWidgets {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: bgColor ?? const Color(0xFF00B8FF),
+        backgroundColor: bgColor ?? const Color(0xFF2F7CF6),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(milliseconds: 800),
       ),
@@ -27,6 +27,7 @@ class CommonWidgets {
     required VoidCallback onBill,
     required double totalBill,
     VoidCallback? onQuotation,
+    VoidCallback? onPrint,
     bool isQuotationMode = false, // New parameter for quotation mode
   }) {
     return Container(
@@ -47,6 +48,14 @@ class CommonWidgets {
             _buildIconButton(
               Icons.description_outlined,
               onQuotation,
+            ),
+            const SizedBox(width: 12),
+          ],
+          // Show print button if onPrint is provided
+          if (onPrint != null) ...[
+            _buildIconButton(
+              Icons.print_outlined,
+              onPrint,
             ),
             const SizedBox(width: 12),
           ],

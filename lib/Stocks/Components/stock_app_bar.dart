@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
@@ -46,22 +47,7 @@ class StockAppBar extends StatelessWidget {
                 // Back Button
 
                 // Product Tab
-                FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) {
-                      return _buildTab('${context.tr('products')} (0)', 0);
-                    }
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
-                      builder: (context, snapshot) {
-                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('${context.tr('products')} ($productCount)', 0);
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
+
                 // Category Tab
                 FutureBuilder<Stream<QuerySnapshot>>(
                   future: FirestoreService().getCollectionStream('categories'),
@@ -78,6 +64,23 @@ class StockAppBar extends StatelessWidget {
                     );
                   },
                 ),
+                const SizedBox(width: 8),
+                FutureBuilder<Stream<QuerySnapshot>>(
+                  future: FirestoreService().getCollectionStream('Products'),
+                  builder: (context, streamSnapshot) {
+                    if (!streamSnapshot.hasData) {
+                      return _buildTab('${context.tr('products')} (0)', 0);
+                    }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: streamSnapshot.data,
+                      builder: (context, snapshot) {
+                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                        return _buildTab('${context.tr('products')} ($productCount)', 0);
+                      },
+                    );
+                  },
+                ),
+
               ],
             ),
           ),
@@ -97,7 +100,7 @@ class StockAppBar extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF2F7CF6) : const Color(0xFFF5F5F5),
+            color: isSelected ? kPrimaryColor : kGreyBg,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Center(
