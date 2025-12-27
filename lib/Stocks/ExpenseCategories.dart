@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
@@ -51,7 +52,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         title: Text(context.tr('expense_categories'),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -198,7 +199,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: _cardBorder),
                           boxShadow: [
                             BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
@@ -380,7 +381,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: _cardBorder),
                           boxShadow: [
                             BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
@@ -424,6 +425,16 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               ),
                             ],
                           ),
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (ctx) => _EditDeleteExpenseNameDialog(
+                                docId: expenseNames[index].id,
+                                initialName: name,
+                                onChanged: () => setState(() {}),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
@@ -490,7 +501,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               title: const Row(
                 children: [
                   Icon(Icons.category_outlined, color: _primaryColor),
@@ -524,7 +535,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               color: nameController.text == suggestion
                                   ? _primaryColor
                                   : _primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: nameController.text == suggestion
                                     ? _primaryColor
@@ -591,6 +602,8 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _primaryColor,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -612,7 +625,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
               Icon(Icons.edit_outlined, color: _primaryColor),
@@ -744,3 +757,100 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     );
   }
 }
+
+class _EditDeleteExpenseNameDialog extends StatefulWidget {
+  final String docId;
+  final String initialName;
+  final VoidCallback onChanged;
+  const _EditDeleteExpenseNameDialog({required this.docId, required this.initialName, required this.onChanged});
+  @override
+  State<_EditDeleteExpenseNameDialog> createState() => _EditDeleteExpenseNameDialogState();
+}
+
+class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDialog> {
+  late TextEditingController _controller;
+  bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+  Future<void> _save() async {
+    final newName = _controller.text.trim();
+    if (newName.isEmpty) return;
+    setState(() => _isLoading = true);
+    try {
+      await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': newName});
+      widget.onChanged();
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update name')));
+    }
+    setState(() => _isLoading = false);
+  }
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Expense Name?'),
+        content: const Text('Are you sure you want to delete this expense name? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete', style: TextStyle(color: Colors.white))),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        await FirestoreService().deleteDocument('expenseNames', widget.docId);
+        widget.onChanged();
+        Navigator.pop(context);
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete name')));
+      }
+      setState(() => _isLoading = false);
+    }
+  }
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Edit Expense Name'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _controller,
+            decoration: const InputDecoration(labelText: 'Expense Name'),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _save,
+                  child: _isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _delete,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  child: _isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Delete', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -70,7 +70,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         title: Text(context.tr('stock_purchase'),
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

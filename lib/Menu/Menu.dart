@@ -28,9 +28,73 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+// ignore: uri_does_not_exist
+import 'package:url_launcher/url_launcher.dart' as launcher;
 
 
 
+
+// ==========================================
+// VIDEO TUTORIAL PAGE
+// ==========================================
+class VideoTutorialPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const VideoTutorialPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Video Tutorial', style: TextStyle(color: Colors.white)),
+        backgroundColor: Color(0xFF2F7CF6),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: onBack,
+        ),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Watch our video tutorial:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+              label: const Text('Open Video Tutorial', style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF0288D1),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () async {
+                final url = Uri.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); // Replace with your actual tutorial link
+                try {
+                  if (await launcher.canLaunchUrl(url)) {
+                    await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not launch video tutorial.')),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  // Fallback for missing url_launcher dependency in IDE
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not launch video tutorial. (url_launcher not available)')),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 // ==========================================
 // 1. MAIN MENU PAGE (ROUTER)
@@ -651,7 +715,7 @@ class _MenuPageState extends State<MenuPage> {
               // HEADER
               Container(
                 width: double.infinity,
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 20, left: 20, right: 20),
+                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top+10, bottom: 20, left: 20, right: 20),
                 color: Color(0xFF2F7CF6),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -775,10 +839,8 @@ class _MenuPageState extends State<MenuPage> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
-                // New Sale (First item)
-
                 // Quotation
-                if (_hasPermission('quotation') || isAdmin)
+                if (_hasPermission('quotation') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -791,9 +853,14 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('quotation'),
                     'Quotation',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Bill History
-                if (_hasPermission('billHistory') || isAdmin)
+                if (_hasPermission('billHistory') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -806,9 +873,14 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('billhistory'),
                     'BillHistory',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Credit Notes
-                if (_hasPermission('creditNotes') || isAdmin)
+                if (_hasPermission('creditNotes') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -821,9 +893,14 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('credit_notes'),
                     'CreditNotes',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Customer Management
-                if (_hasPermission('customerManagement') || isAdmin)
+                if (_hasPermission('customerManagement') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -836,9 +913,14 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('customer_management'),
                     'Customers',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Expenses (Expansion Tile)
-                if (_hasPermission('expenses') || isAdmin)
+                if (_hasPermission('expenses') || isAdmin) ...[
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
@@ -867,9 +949,14 @@ class _MenuPageState extends State<MenuPage> {
                       ],
                     ),
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Credit Details
-                if (_hasPermission('creditDetails') || isAdmin)
+                if (_hasPermission('creditDetails') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -882,9 +969,14 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('creditdetails'),
                     'CreditDetails',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Staff Management
-                if (isAdmin || _hasPermission('staffManagement'))
+                if (isAdmin || _hasPermission('staffManagement')) ...[
                   _buildMenuItem(
                     Container(
                       padding: const EdgeInsets.all(10),
@@ -897,6 +989,11 @@ class _MenuPageState extends State<MenuPage> {
                     context.tr('staffmanagement'),
                     'StaffManagement',
                   ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
 
                 // Knowledge
                 _buildMenuItem(
@@ -911,13 +1008,24 @@ class _MenuPageState extends State<MenuPage> {
                   'Knowledge',
                   'Knowledge',
                 ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                ),
 
-
-
-
-                // Stock (moved from bottom nav - placed above Reports)
-
-                // Reports Expansion (moved from bottom nav)
+                // Video Tutorial
+                _buildMenuItem(
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE1F5FE),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.ondemand_video_rounded, color: Color(0xFF0288D1), size: 24),
+                  ),
+                  'Video Tutorial',
+                  'VideoTutorial',
+                ),
               ],
             ),
           ),
@@ -1135,6 +1243,9 @@ class _MenuPageState extends State<MenuPage> {
 
       case 'Knowledge':
         return KnowledgePage(onBack: () => Navigator.pop(context));
+
+      case 'VideoTutorial':
+        return VideoTutorialPage(onBack: () => Navigator.pop(context));
 
       case 'Stock':
         return StockPage(uid: widget.uid, userEmail: widget.userEmail);
@@ -2326,7 +2437,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         const SizedBox(height: 4),
                         _infoRow(Icons.access_time, timeString),
                         const SizedBox(height: 4),
-                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kOrange, fontWeight: FontWeight.w600)),
+                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kGoogleYellow, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -2809,11 +2920,11 @@ class SalesDetailPage extends StatelessWidget {
                                 children: [
                                   Text(
                                     '${context.tr('discount')}:',
-                                    style: const TextStyle(fontSize: 14, color: Colors.red),
+                                    style: const TextStyle(fontSize: 14, color: kBorderColor),
                                   ),
                                   Text(
                                     '- Rs ${(data['discount'] ?? 0.0).toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.red),
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBorderColor),
                                   ),
                                 ],
                               ),

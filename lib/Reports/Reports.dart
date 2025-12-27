@@ -1451,7 +1451,31 @@ class LowStockPage extends StatelessWidget {
             stream: snapshot.data!,
             builder: (context, snap) {
               if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-              var lowStock = snap.data!.docs.where((d) => (double.tryParse((d.data() as Map)['currentStock'].toString()) ?? 0) < 5).toList();
+
+              // Filter products based on their individual lowStockAlert settings
+              var lowStock = snap.data!.docs.where((d) {
+                var data = d.data() as Map<String, dynamic>;
+                final stockEnabled = data['stockEnabled'] ?? false;
+                if (!stockEnabled) return false;
+
+                final currentStock = (data['currentStock'] ?? 0.0).toDouble();
+                final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
+                final lowStockAlertType = data['lowStockAlertType'] ?? 'Count';
+
+                if (lowStockAlert > 0) {
+                  bool isLowStock = false;
+                  if (lowStockAlertType == 'Count') {
+                    isLowStock = currentStock <= lowStockAlert;
+                  } else if (lowStockAlertType == 'Percentage') {
+                    isLowStock = currentStock <= lowStockAlert;
+                  }
+                  return isLowStock;
+                } else {
+                  // Fallback to old logic if no alert is set
+                  return currentStock < 5;
+                }
+              }).toList();
+
               var sorted = lowStock.map((d) {
                 var map = d.data() as Map<String, dynamic>;
                 return MapEntry(map['itemName'] ?? 'Unknown', (map['currentStock'] ?? 0) as num);
