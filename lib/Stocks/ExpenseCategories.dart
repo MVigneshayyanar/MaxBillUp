@@ -189,7 +189,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     itemBuilder: (context, index) {
                       final data = categories[index].data() as Map<String, dynamic>;
                       final name = data['name'] ?? 'Unnamed Category';
-                      final description = data['description'] ?? '';
                       final timestamp = data['timestamp'] as Timestamp?;
                       final date = timestamp?.toDate();
                       final dateString =
@@ -228,56 +227,22 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               color: Colors.black87,
                             ),
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (description.isNotEmpty) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  description,
-                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                              const SizedBox(height: 4),
-                              Text(
-                                'Created: $dateString',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
+                          subtitle: Text(
+                            'Created: $dateString',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
-                          trailing: PopupMenuButton<String>(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                _showEditCategoryDialog(context, categories[index].id, data);
-                              } else if (value == 'delete') {
-                                _showDeleteConfirmation(context, categories[index].id, name);
-                              }
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: _primaryColor),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => _EditDeleteCategoryDialog(
+                                  docId: categories[index].id,
+                                  initialName: name,
+                                  onChanged: () => setState(() {}),
+                                ),
+                              );
                             },
-                            itemBuilder: (BuildContext context) => [
-                              const PopupMenuItem<String>(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit_outlined, size: 20, color: Colors.black87),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.delete_outline, size: 20, color: _errorColor),
-                                    SizedBox(width: 8),
-                                    Text('Delete', style: TextStyle(color: _errorColor)),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
                         ),
                       );
@@ -425,16 +390,19 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               ),
                             ],
                           ),
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => _EditDeleteExpenseNameDialog(
-                                docId: expenseNames[index].id,
-                                initialName: name,
-                                onChanged: () => setState(() {}),
-                              ),
-                            );
-                          },
+                          trailing: IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: _primaryColor),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => _EditDeleteExpenseNameDialog(
+                                  docId: expenseNames[index].id,
+                                  initialName: name,
+                                  onChanged: () => setState(() {}),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       );
                     },
@@ -487,7 +455,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
 
   void _showAddCategoryDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController descriptionController = TextEditingController();
 
     final List<String> suggestions = [
       'Salary', 'Bill', 'Fuel', 'Rent', 'Insurance',
@@ -558,9 +525,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     ),
                     const SizedBox(height: 16),
                     _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
-                    const SizedBox(height: 16),
-                    _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
-                        lines: 3),
                   ],
                 ),
               ),
@@ -581,7 +545,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     try {
                       await FirestoreService().addDocument('expenseCategories', {
                         'name': nameController.text,
-                        'description': descriptionController.text,
                         'timestamp': Timestamp.now(),
                         'uid': widget.uid,
                       });
@@ -616,132 +579,6 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     );
   }
 
-  void _showEditCategoryDialog(BuildContext context, String categoryId, Map<String, dynamic> data) {
-    final TextEditingController nameController = TextEditingController(text: data['name'] ?? '');
-    final TextEditingController descriptionController =
-    TextEditingController(text: data['description'] ?? '');
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Row(
-            children: [
-              Icon(Icons.edit_outlined, color: _primaryColor),
-              SizedBox(width: 8),
-              Text('Edit Category', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
-                const SizedBox(height: 16),
-                _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
-                    lines: 3),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('cancel')),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.tr('enter_category_name'))),
-                  );
-                  return;
-                }
-
-                try {
-                  await FirestoreService().updateDocument('expenseCategories', categoryId, {
-                    'name': nameController.text,
-                    'description': descriptionController.text,
-                  });
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Category updated successfully')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(context.tr('update'),
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showDeleteConfirmation(BuildContext context, String categoryId, String categoryName) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.delete_outline, color: _errorColor),
-              SizedBox(width: 8),
-              Text('Delete Category', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Text('Are you sure you want to delete "$categoryName"?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('cancel')),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await FirestoreService().deleteDocument('expenseCategories', categoryId);
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(context.tr('category_deleted_success'))),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _errorColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child:
-              Text(context.tr('delete'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon,
       {int lines = 1}) {
     return TextField(
@@ -758,6 +595,245 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
   }
 }
 
+// Edit/Delete Category Dialog matching Expense Names style
+class _EditDeleteCategoryDialog extends StatefulWidget {
+  final String docId;
+  final String initialName;
+  final VoidCallback onChanged;
+  const _EditDeleteCategoryDialog({required this.docId, required this.initialName, required this.onChanged});
+
+  @override
+  State<_EditDeleteCategoryDialog> createState() => _EditDeleteCategoryDialogState();
+}
+
+class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
+  late TextEditingController _controller;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _update() async {
+    final newName = _controller.text.trim();
+    if (newName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a category name')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await FirestoreService().updateDocument('expenseCategories', widget.docId, {'name': newName});
+      widget.onChanged();
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Category updated successfully'), backgroundColor: _primaryColor),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e'), backgroundColor: _errorColor),
+        );
+      }
+    }
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: _errorColor),
+            SizedBox(width: 8),
+            Text('Delete Category?'),
+          ],
+        ),
+        content: const Text('Are you sure you want to delete this category? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _errorColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        await FirestoreService().deleteDocument('expenseCategories', widget.docId);
+        widget.onChanged();
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Category deleted successfully'), backgroundColor: _primaryColor),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: _errorColor),
+          );
+        }
+      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Edit Category',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Input Field
+            _buildCategoryInput(),
+
+            const SizedBox(height: 24),
+
+            // Update Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _update,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : const Text(
+                  'Update',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Delete Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _delete,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: _errorColor, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: _errorColor,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : const Text(
+                  'Delete',
+                  style: TextStyle(color: _errorColor, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Custom Input Field matching AddExpenseTypePopup ---
+  Widget _buildCategoryInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _controller,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+          decoration: InputDecoration(
+            labelText: 'Category Name',
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+            floatingLabelStyle: const TextStyle(color: _primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kGrey300, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "e.g. Salary, Rent, Fuel, Insurance, etc.",
+          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+        ),
+      ],
+    );
+  }
+}
+
 class _EditDeleteExpenseNameDialog extends StatefulWidget {
   final String docId;
   final String initialName;
@@ -770,86 +846,227 @@ class _EditDeleteExpenseNameDialog extends StatefulWidget {
 class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDialog> {
   late TextEditingController _controller;
   bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialName);
   }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
-  Future<void> _save() async {
+
+  Future<void> _update() async {
     final newName = _controller.text.trim();
-    if (newName.isEmpty) return;
+    if (newName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a name')),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': newName});
       widget.onChanged();
-      Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Expense name updated successfully'), backgroundColor: _primaryColor),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update name')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e'), backgroundColor: _errorColor),
+        );
+      }
     }
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
+
   Future<void> _delete() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Expense Name?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: _errorColor),
+            SizedBox(width: 8),
+            Text('Delete Expense Name?'),
+          ],
+        ),
         content: const Text('Are you sure you want to delete this expense name? This action cannot be undone.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), style: ElevatedButton.styleFrom(backgroundColor: Colors.red), child: const Text('Delete', style: TextStyle(color: Colors.white))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _errorColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
         ],
       ),
     );
+
     if (confirm == true) {
       setState(() => _isLoading = true);
       try {
         await FirestoreService().deleteDocument('expenseNames', widget.docId);
         widget.onChanged();
-        Navigator.pop(context);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Expense name deleted successfully'), backgroundColor: _primaryColor),
+          );
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to delete name')));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: _errorColor),
+          );
+        }
       }
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: const Text('Edit Expense Name'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: _controller,
-            decoration: const InputDecoration(labelText: 'Expense Name'),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _save,
-                  child: _isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save'),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Edit Expense Name',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Input Field
+            _buildExpenseNameInput(),
+
+            const SizedBox(height: 24),
+
+            // Update Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _update,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : const Text(
+                  'Update',
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _delete,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: _isLoading ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Delete Button
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _isLoading ? null : _delete,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: _errorColor, width: 1.5),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: _errorColor,
+                    strokeWidth: 2,
+                  ),
+                )
+                    : const Text(
+                  'Delete',
+                  style: TextStyle(color: _errorColor, fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  // --- Custom Input Field matching AddExpenseTypePopup ---
+  Widget _buildExpenseNameInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _controller,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+          decoration: InputDecoration(
+            labelText: 'Expense Name',
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+            floatingLabelStyle: const TextStyle(color: _primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kGrey300, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "e.g. Rent Payment, Electricity Bill, Staff Salary, etc.",
+          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+        ),
+      ],
     );
   }
 }

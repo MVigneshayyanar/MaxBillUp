@@ -25,6 +25,7 @@ class SaleAllPage extends StatefulWidget {
   final Function(List<CartItem>)? onCartChanged;
   final String? savedOrderId;
   final bool isQuotationMode;
+  final Function(bool)? onSearchFocusChanged; // Callback to notify parent when search focus changes
 
   const SaleAllPage({
     super.key,
@@ -35,6 +36,7 @@ class SaleAllPage extends StatefulWidget {
     this.onCartChanged,
     this.savedOrderId,
     this.isQuotationMode = false,
+    this.onSearchFocusChanged,
   });
 
   @override
@@ -43,9 +45,11 @@ class SaleAllPage extends StatefulWidget {
 
 class _SaleAllPageState extends State<SaleAllPage> {
   final _searchCtrl = TextEditingController();
+  final _searchFocusNode = FocusNode();
   final List<CartItem> _cart = [];
   String _query = '';
   String _selectedCategory = '';
+  bool _isSearchFocused = false;
 
   Stream<QuerySnapshot>? _productsStream;
   bool _isLoadingStream = true;
@@ -53,10 +57,22 @@ class _SaleAllPageState extends State<SaleAllPage> {
   bool _isLoadingCategories = true;
   bool _showFavoritesOnly = false;
 
+  // Customer selection
+  String? _selectedCustomerPhone;
+  String? _selectedCustomerName;
+  String? _selectedCustomerGST;
+
   @override
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() => _query = _searchCtrl.text.toLowerCase()));
+    _searchFocusNode.addListener(() {
+      setState(() {
+        _isSearchFocused = _searchFocusNode.hasFocus;
+      });
+      // Notify parent about search focus change
+      widget.onSearchFocusChanged?.call(_searchFocusNode.hasFocus);
+    });
     _initializeProductsStream();
 
     if (widget.initialCartItems != null) {
@@ -73,6 +89,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       }
     });
   }
+
 
   @override
   void didUpdateWidget(SaleAllPage oldWidget) {
@@ -159,6 +176,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -502,6 +520,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               ],
             ),
           ),
+          // Build action buttons with customer selection
           CommonWidgets.buildActionButtons(
             context: context,
             isQuotationMode: widget.isQuotationMode,
@@ -518,17 +537,36 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 },
               );
             },
-            onQuotation: () {
-              if (_cart.isNotEmpty) {
-                Navigator.push(context, CupertinoPageRoute(builder: (ctx) => QuotationPage(uid: widget.uid, userEmail: widget.userEmail, cartItems: _cart, totalAmount: _total)));
-              }
+            onCustomer: () {
+              CommonWidgets.showCustomerSelectionDialog(
+                context: context,
+                onCustomerSelected: (phone, name, gst) {
+                  setState(() {
+                    _selectedCustomerPhone = phone;
+                    _selectedCustomerName = name;
+                    _selectedCustomerGST = gst;
+                  });
+                },
+              );
             },
-            onPrint: () async {
-              await _directPrintWithCash();
-            },
+            customerName: _selectedCustomerName,
             onBill: () {
               if (_cart.isNotEmpty) {
-                Navigator.push(context, CupertinoPageRoute(builder: (ctx) => BillPage(uid: widget.uid, userEmail: widget.userEmail, cartItems: _cart, totalAmount: _total, savedOrderId: widget.savedOrderId)));
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (ctx) => BillPage(
+                      uid: widget.uid,
+                      userEmail: widget.userEmail,
+                      cartItems: _cart,
+                      totalAmount: _total,
+                      savedOrderId: widget.savedOrderId,
+                      customerPhone: _selectedCustomerPhone,
+                      customerName: _selectedCustomerName,
+                      customerGST: _selectedCustomerGST,
+                    ),
+                  ),
+                );
               }
             },
             totalBill: _total,
@@ -554,6 +592,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               ),
               child: TextField(
                 controller: _searchCtrl,
+                focusNode: _searchFocusNode,
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),

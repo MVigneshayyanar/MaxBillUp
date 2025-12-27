@@ -865,7 +865,7 @@ class _MenuPageState extends State<MenuPage> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFE8F5E9),
+                        color: kGreyBg,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF388E3C), size: 24),
@@ -1963,8 +1963,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     }).toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
+    @override
+    Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
 
@@ -1976,234 +1976,240 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          // Single row with 3 columns: Search, Date Filter, Status Filter
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                // Column 1: Search Bar
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: context.tr('search'),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+      body: Container(
+        color: kGreyBg,
+        child: Column(
+
+          children: [
+            // Single row with 3 columns: Search, Date Filter, Status Filter
+
+            Padding(
+
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  // Column 1: Search Bar
+                  Expanded(
+                    flex: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: context.tr('search'),
+                          prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
+                  const SizedBox(width: 8),
 
-                // Column 2: Date Filter Dropdown
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedFilter,
-                        isExpanded: true,
-                        icon: const Icon(Icons.calendar_today, color: Color(0xFF2F7CF6), size: 18),
-                        items: <String>[
-                          'All Time',
-                          'Today',
-                          'Yesterday',
-                          'This Week',
-                          'This Month',
-                          'Last Month',
-                          'Custom Range'
-                        ].map((String value) {
-                          String displayText = value;
-                          if (value == 'All Time') displayText = context.tr('all');
-                          else if (value == 'Today') displayText = 'Today';
-                          else if (value == 'Yesterday') displayText = 'Yesterday';
-                          else if (value == 'This Week') displayText = 'This Week';
-                          else if (value == 'This Month') displayText = context.tr('thismonth');
-                          else if (value == 'Last Month') displayText = context.tr('lastmonth');
-                          else if (value == 'Custom Range') displayText = 'Custom';
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(displayText, style: const TextStyle(fontSize: 12)),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) async {
-                          if (newValue == 'Custom Range') {
-                            // Show date range picker in popup
-                            final DateTimeRange? picked = await showDateRangePicker(
-                              context: context,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now(),
-                              initialDateRange: _customDateRange,
-                              builder: (context, child) {
-                                return Dialog(
-                                  child: Container(
-                                    constraints: BoxConstraints(maxWidth: 400, maxHeight: 600),
-                                    child: child,
-                                  ),
-                                );
-                              },
+                  // Column 2: Date Filter Dropdown
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedFilter,
+                          isExpanded: true,
+                          icon: const Icon(Icons.calendar_today, color: Color(0xFF2F7CF6), size: 18),
+                          items: <String>[
+                            'All Time',
+                            'Today',
+                            'Yesterday',
+                            'This Week',
+                            'This Month',
+                            'Last Month',
+                            'Custom Range'
+                          ].map((String value) {
+                            String displayText = value;
+                            if (value == 'All Time') displayText = context.tr('all');
+                            else if (value == 'Today') displayText = 'Today';
+                            else if (value == 'Yesterday') displayText = 'Yesterday';
+                            else if (value == 'This Week') displayText = 'This Week';
+                            else if (value == 'This Month') displayText = context.tr('thismonth');
+                            else if (value == 'Last Month') displayText = context.tr('lastmonth');
+                            else if (value == 'Custom Range') displayText = 'Custom';
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(displayText, style: const TextStyle(fontSize: 12)),
                             );
-                            if (picked != null) {
+                          }).toList(),
+                          onChanged: (newValue) async {
+                            if (newValue == 'Custom Range') {
+                              // Show date range picker in popup
+                              final DateTimeRange? picked = await showDateRangePicker(
+                                context: context,
+                                firstDate: DateTime(2020),
+                                lastDate: DateTime.now(),
+                                initialDateRange: _customDateRange,
+                                builder: (context, child) {
+                                  return Dialog(
+                                    child: Container(
+                                      constraints: BoxConstraints(maxWidth: 400, maxHeight: 600),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                setState(() {
+                                  _customDateRange = picked;
+                                  _selectedFilter = newValue!;
+                                });
+                              }
+                            } else if (newValue != null) {
                               setState(() {
-                                _customDateRange = picked;
-                                _selectedFilter = newValue!;
+                                _selectedFilter = newValue;
+                                _customDateRange = null;
                               });
                             }
-                          } else if (newValue != null) {
-                            setState(() {
-                              _selectedFilter = newValue;
-                              _customDateRange = null;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-
-                // Column 3: Status Filter Dropdown
-                Expanded(
-                  flex: 1,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _statusFilter,
-                        isExpanded: true,
-                        icon: const Icon(Icons.filter_list, color: Color(0xFF2F7CF6), size: 18),
-                        items: <String>[
-                          'all',
-                          'settled',
-                          'unsettled',
-                          'edited',
-                          'cancelled',
-                          'returned'
-                        ].map((String value) {
-                          String displayText = value == 'all' ? 'All' :
-                                              value == 'settled' ? 'Settled' :
-                                              value == 'unsettled' ? 'Unsettled' :
-                                              value == 'edited' ? 'Edited' :
-                                              value == 'cancelled' ? 'Cancelled' : 'Returned';
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(displayText, style: const TextStyle(fontSize: 12)),
-                          );
-                        }).toList(),
-                        onChanged: (newValue) {
-                          if (newValue != null) {
-                            setState(() => _statusFilter = newValue);
-                          }
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-
-          Expanded(
-            child: _combinedStream == null
-                ? const Center(child: CircularProgressIndicator())
-                : FutureBuilder<int>(
-              future: PlanPermissionHelper.getBillHistoryDaysLimit(),
-              builder: (context, planSnapshot) {
-                if (!planSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final historyDaysLimit = planSnapshot.data!;
-
-                return StreamBuilder<List<QueryDocumentSnapshot>>(
-                  stream: _combinedStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final rawData = snapshot.data ?? [];
-                    // Apply client-side filters with plan-based limit
-                    final filteredData = _filterDocumentsWithLimit(rawData, historyDaysLimit);
-
-                    if (filteredData.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children:  [
-                            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
-                          ],
+                          },
                         ),
-                      );
-                    }
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
 
-                    // Group bills by date
-                    final groupedData = _groupBillsByDate(filteredData);
-                    final sortedDates = groupedData.keys.toList()..sort((a, b) {
-                  // Parse "dd MMM, yyyy" back to Sortable Date if needed,
-                  // but since we rely on the list order which is already sorted by timestamp,
-                  // we can just iterate.
-                  // To be safe, we rely on the order of keys as inserted?
-                  // Map iteration order is preserved in Dart.
-                  // However, to be extra safe, let's parse.
-                  DateFormat fmt = DateFormat('dd MMM, yyyy');
-                  return fmt.parse(b).compareTo(fmt.parse(a));
-                });
+                  // Column 3: Status Filter Dropdown
+                  Expanded(
+                    flex: 1,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _statusFilter,
+                          isExpanded: true,
+                          icon: const Icon(Icons.filter_list, color: Color(0xFF2F7CF6), size: 18),
+                          items: <String>[
+                            'all',
+                            'settled',
+                            'unsettled',
+                            'edited',
+                            'cancelled',
+                            'returned'
+                          ].map((String value) {
+                            String displayText = value == 'all' ? 'All' :
+                                                value == 'settled' ? 'Settled' :
+                                                value == 'unsettled' ? 'Unsettled' :
+                                                value == 'edited' ? 'Edited' :
+                                                value == 'cancelled' ? 'Cancelled' : 'Returned';
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(displayText, style: const TextStyle(fontSize: 12)),
+                            );
+                          }).toList(),
+                          onChanged: (newValue) {
+                            if (newValue != null) {
+                              setState(() => _statusFilter = newValue);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: sortedDates.length,
-                  itemBuilder: (context, index) {
-                    final date = sortedDates[index];
-                    final bills = groupedData[date]!;
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Date Header
-                        Padding(
-                          padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                          child: Text(
-                            '$date (${bills.length})',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
+            Expanded(
+              child: _combinedStream == null
+                  ? const Center(child: CircularProgressIndicator())
+                  : FutureBuilder<int>(
+                future: PlanPermissionHelper.getBillHistoryDaysLimit(),
+                builder: (context, planSnapshot) {
+                  if (!planSnapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final historyDaysLimit = planSnapshot.data!;
+
+                  return StreamBuilder<List<QueryDocumentSnapshot>>(
+                    stream: _combinedStream,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final rawData = snapshot.data ?? [];
+                      // Apply client-side filters with plan-based limit
+                      final filteredData = _filterDocumentsWithLimit(rawData, historyDaysLimit);
+
+                      if (filteredData.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children:  [
+                              Icon(Icons.receipt_long, size: 64, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
+                            ],
                           ),
-                        ),
-                        // List of Bills
-                        ...bills.map((doc) => _buildBillCard(context, doc)).toList(),
-                      ],
-                    );
-                  },
-                );
-              },
-            );
-              },
+                        );
+                      }
+
+                      // Group bills by date
+                      final groupedData = _groupBillsByDate(filteredData);
+                      final sortedDates = groupedData.keys.toList()..sort((a, b) {
+                    // Parse "dd MMM, yyyy" back to Sortable Date if needed,
+                    // but since we rely on the list order which is already sorted by timestamp,
+                    // we can just iterate.
+                    // To be safe, we rely on the order of keys as inserted?
+                    // Map iteration order is preserved in Dart.
+                    // However, to be extra safe, let's parse.
+                    DateFormat fmt = DateFormat('dd MMM, yyyy');
+                    return fmt.parse(b).compareTo(fmt.parse(a));
+                  });
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: sortedDates.length,
+                    itemBuilder: (context, index) {
+                      final date = sortedDates[index];
+                      final bills = groupedData[date]!;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Date Header
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+                            child: Text(
+                              '$date (${bills.length})',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
+                            ),
+                          ),
+                          // List of Bills
+                          ...bills.map((doc) => _buildBillCard(context, doc)).toList(),
+                        ],
+                      );
+                    },
+                  );
+                },
+              );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
-  }
+    }
 
   Widget _buildFilterChip(String label, String value, String currentValue, Function(String) onSelected) {
     final isSelected = currentValue == value;
@@ -2437,7 +2443,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         const SizedBox(height: 4),
                         _infoRow(Icons.access_time, timeString),
                         const SizedBox(height: 4),
-                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kGoogleYellow, fontWeight: FontWeight.w600)),
+                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kOrange, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -2470,11 +2476,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       children: [
                         TextSpan(
                           text: 'Billed by ',
-                          style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
                         ),
                         TextSpan(
                           text: staffName,
-                          style: TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),

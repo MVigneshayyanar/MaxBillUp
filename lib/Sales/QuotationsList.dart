@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
 import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
@@ -89,7 +90,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: _primaryColor,

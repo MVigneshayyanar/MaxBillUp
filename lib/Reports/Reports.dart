@@ -51,10 +51,20 @@ class _ReportsPageState extends State<ReportsPage> {
   Map<String, dynamic> _permissions = {};
   String _role = 'staff';
 
+  // Add ScrollController to preserve scroll position
+  final ScrollController _scrollController = ScrollController();
+  double _savedScrollOffset = 0.0;
+
   @override
   void initState() {
     super.initState();
     _loadPermissions();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadPermissions() async {
@@ -69,12 +79,22 @@ class _ReportsPageState extends State<ReportsPage> {
 
   bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
-  void _reset() => setState(() => _currentView = null);
+  void _reset() {
+    setState(() {
+      _currentView = null;
+      // Restore scroll position after returning from subpage
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.jumpTo(_savedScrollOffset);
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     // --- ROUTER LOGIC ---
     if (_currentView != null) {
+      // Save scroll position before navigating away
+      _savedScrollOffset = _scrollController.offset;
       switch (_currentView) {
         case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
         case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
@@ -118,6 +138,7 @@ class _ReportsPageState extends State<ReportsPage> {
             automaticallyImplyLeading: false,
           ),
           body: ListView(
+            controller: _scrollController, // Attach controller
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
             children: [
               _sectionHeader(context.tr('analytics_overview')),
@@ -130,6 +151,7 @@ class _ReportsPageState extends State<ReportsPage> {
               _buildModernTile(context.tr('sales_report'), Icons.shopping_cart_rounded, kPurpleCharts, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
               _buildModernTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, kCyanColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
               _buildModernTile(context.tr('top_customers'), Icons.emoji_events_rounded, kAmberColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
+              _buildModernTile(context.tr('staff_sale_report'), Icons.person_rounded, kCyanColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
 
               // const SizedBox(height: 12),
               _sectionHeader(context.tr('inventory_products')),
@@ -143,7 +165,6 @@ class _ReportsPageState extends State<ReportsPage> {
               _buildModernTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
               _buildModernTile(context.tr('tax_report'), Icons.receipt_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
               _buildModernTile(context.tr('hsn_report'), Icons.assignment_rounded, kTealCharts, 'HSNReport', isLocked: !isFeatureAvailable('hsnReport')),
-              _buildModernTile(context.tr('staff_sale_report'), Icons.person_rounded, kCyanColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
             ],
           ),
           bottomNavigationBar: CommonBottomNav(
@@ -166,16 +187,16 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildModernTile(String title, IconData icon, Color iconColor, String viewName, {String? subtitle, bool isLocked = false}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12), // Increased margin for more spacing
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16), // Increased radius for modern look
         border: Border.all(color: kBorderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))], // Slightly increased blur
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () {
             if (isLocked) {
@@ -185,21 +206,21 @@ class _ReportsPageState extends State<ReportsPage> {
               setState(() => _currentView = viewName);
             }
           },
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(14.0),
+            padding: const EdgeInsets.all(16.0), // Increased padding for larger tile
             child: Row(
               children: [
                 Container(
-                  width: 42,
-                  height: 42,
+                  width: 48, // Increased size for icon container
+                  height: 48,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(11),
+                    color: iconColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12), // Match Profile page
                   ),
-                  child: Icon(icon, color: iconColor, size: 20),
+                  child: Icon(icon, color: iconColor, size: 24), // Larger icon
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16), // Increased spacing
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +232,7 @@ class _ReportsPageState extends State<ReportsPage> {
                               title,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                                fontSize: 15, // Increased font size
                                 color: kTextPrimary,
                               ),
                             ),
@@ -220,16 +241,16 @@ class _ReportsPageState extends State<ReportsPage> {
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 11)),
+                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 12)), // Increased font size
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8), // Slightly increased spacing
                 Icon(
                   Icons.chevron_right_rounded,
                   color: kTextSecondary.withOpacity(0.5),
-                  size: 20,
+                  size: 22, // Slightly larger arrow
                 ),
               ],
             ),
@@ -273,6 +294,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Move declarations to build method scope
+    double totalStock = 0;
+    List<Map<String, dynamic>> all = [];
+
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: _buildModernAppBar("Business Analytics", widget.onBack),
@@ -301,6 +326,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         if (!salesSnap.hasData || !expenseSnap.hasData || !stockSnap.hasData) {
                           return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                         }
+                        // Move declarations to innermost builder scope
+                        double totalStock = 0;
+                        List<Map<String, dynamic>> all = [];
 
                         final now = DateTime.now();
                         final todayStr = DateFormat('yyyy-MM-dd').format(now);
@@ -371,22 +399,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         // Process Stock Purchases (as Expenses)
                         for (var doc in stockSnap.data!.docs) {
                           final data = doc.data() as Map<String, dynamic>;
-                          // Using 'total' or 'amount' field from stock purchase
-                          double amount = double.tryParse(data['total']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0.0;
-                          DateTime? dt;
-                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                          if (dt != null) {
-                            if (DateFormat('yyyy-MM-dd').format(dt) == todayStr) {
-                              todayExpense += amount; // Add to today's expense
-                              todayExpenseCount++;
-                            }
-                            if (now.difference(dt).inDays <= 7) {
-                              periodExpense += amount; // Add to period expense
-                              weekExpense[dt.day] = (weekExpense[dt.day] ?? 0) + amount;
-                            }
-                          }
+                          double amt = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
+                          totalStock += amt;
+                          all.add({'title': 'Stock Purchase', 'amount': amt, 'type': 'Stock'});
                         }
 
                         return SingleChildScrollView(
@@ -1401,7 +1416,12 @@ class ItemSalesPage extends StatelessWidget {
                                     },
                                   ),
                                 ),
-                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
+                                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (value, meta) {
+                                  if (value >= 1000) {
+                                    return Text('₹${(value / 1000).toStringAsFixed(0)}k', style: const TextStyle(fontSize: 10, color: kTextSecondary));
+                                  }
+                                  return Text('₹${value.toStringAsFixed(0)}', style: const TextStyle(fontSize: 10, color: kTextSecondary));
+                                })),
                                 topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                 rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               ),
@@ -1600,11 +1620,16 @@ class TopCategoriesPage extends StatelessWidget {
                                 barTouchData: BarTouchData(enabled: false),
                                 titlesData: FlTitlesData(
                                   show: true,
-                                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
-                                    if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
-                                    String name = top5[value.toInt()].key;
-                                    return Padding(padding: const EdgeInsets.only(top: 8), child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
-                                  })),
+                                  bottomTitles: AxisTitles(
+                                    sideTitles: SideTitles(
+                                      showTitles: true,
+                                      getTitlesWidget: (value, meta) {
+                                        if (value.toInt() < 0 || value.toInt() >= top5.length) return const Text('');
+                                        String name = top5[value.toInt()].key;
+                                        return Padding(padding: const EdgeInsets.only(top: 8), child: Text(name.length > 8 ? '${name.substring(0, 8)}...' : name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)));
+                                      },
+                                    ),
+                                  ),
                                   leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30, getTitlesWidget: (value, meta) => Text('${value.toInt()}', style: const TextStyle(fontSize: 10, color: kTextSecondary)))),
                                   topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                                   rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -1661,6 +1686,8 @@ class ExpenseReportPage extends StatelessWidget {
                 builder: (ctx, stockSnap) {
                   if (!expSnap.hasData || !stockSnap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 
+                  // Move declarations to correct scope in ExpenseReportPage
+                  // Inside ExpenseReportPage.build()
                   List<Map<String, dynamic>> all = [];
                   double totalOp = 0;
                   double totalStock = 0;
@@ -1673,7 +1700,7 @@ class ExpenseReportPage extends StatelessWidget {
                   }
                   for(var d in stockSnap.data!.docs) {
                     var data = d.data() as Map<String, dynamic>;
-                    double amt = double.tryParse(data['total']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
+                    double amt = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
                     totalStock += amt;
                     all.add({'title': 'Stock Purchase', 'amount': amt, 'type': 'Stock'});
                   }
@@ -1744,7 +1771,18 @@ class ExpenseReportPage extends StatelessWidget {
                         Container(
                           height: 300,
                           padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
+                          decoration: BoxDecoration(
+                            color: kSurfaceColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: kBorderColor),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.02),
+                                blurRadius: 6,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -2217,3 +2255,4 @@ class _SimpleListReport extends StatelessWidget {
     );
   }
 }
+

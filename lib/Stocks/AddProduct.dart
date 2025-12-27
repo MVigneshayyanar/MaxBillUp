@@ -451,7 +451,7 @@ class _AddProductPageState extends State<AddProductPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text("Track Stock Level", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+          const Text("Track Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
           Switch.adaptive(value: _stockEnabled, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _stockEnabled = v)),
         ],
       ),

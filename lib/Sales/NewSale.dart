@@ -29,6 +29,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   int _selectedTabIndex = 1;
   List<CartItem>? _sharedCartItems;
   String? _loadedSavedOrderId;
+  bool _isSearchFocused = false; // Track search focus state
 
   // Track specific highlighted product ID
   String? _highlightedProductId;
@@ -100,6 +101,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   void _handleTabChange(int index) {
     setState(() {
       _selectedTabIndex = index;
+    });
+  }
+
+  void _handleSearchFocusChange(bool isFocused) {
+    setState(() {
+      _isSearchFocused = isFocused;
     });
   }
 
@@ -436,7 +443,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         children: [
           Column(
             children: [
-              SizedBox(height: topPadding + 10 + (_sharedCartItems != null && _sharedCartItems!.isNotEmpty ? _minCartHeight + 12 : 0)),
+              SizedBox(height: topPadding + 10 + (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused ? _minCartHeight + 12 : 0)),
               SaleAppBar(
                 selectedTabIndex: _selectedTabIndex,
                 onTabChanged: _handleTabChange,
@@ -462,6 +469,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         onCartChanged: _updateCartItems,
                         initialCartItems: _sharedCartItems,
                         savedOrderId: _loadedSavedOrderId,
+                        onSearchFocusChanged: _handleSearchFocusChange,
                       )
                       : QuickSalePage(
                         key: ValueKey('quick_$_cartVersion'),
@@ -475,7 +483,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               ),
             ],
           ),
-          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty)
+          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused)
             Positioned(
               top: topPadding + 10,
               left: 0,

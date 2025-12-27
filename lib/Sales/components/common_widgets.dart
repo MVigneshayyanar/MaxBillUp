@@ -2,6 +2,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -28,7 +29,9 @@ class CommonWidgets {
     required double totalBill,
     VoidCallback? onQuotation,
     VoidCallback? onPrint,
-    bool isQuotationMode = false, // New parameter for quotation mode
+    VoidCallback? onCustomer, // New: Add customer button callback
+    String? customerName, // New: Show customer name if selected
+    bool isQuotationMode = false,
   }) {
     return Container(
       color: Colors.white,
@@ -43,19 +46,11 @@ class CommonWidgets {
             ),
             const SizedBox(width: 12),
           ],
-          // Show quotation icon button only if not in quotation mode and onQuotation is provided
-          if (!isQuotationMode && onQuotation != null) ...[
-            _buildIconButton(
-              Icons.description_outlined,
-              onQuotation,
-            ),
-            const SizedBox(width: 12),
-          ],
-          // Show print button if onPrint is provided
-          if (onPrint != null) ...[
-            _buildIconButton(
-              Icons.print_outlined,
-              onPrint,
+          // Customer button - show if callback provided
+          if (onCustomer != null) ...[
+            _buildCustomerButton(
+              onCustomer,
+              customerName,
             ),
             const SizedBox(width: 12),
           ],
@@ -83,9 +78,9 @@ class CommonWidgets {
                     ),
                   ],
                 ),
-                child: Column(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min, // 👈 prevents height growth
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       totalBill.toStringAsFixed(0),
@@ -97,12 +92,12 @@ class CommonWidgets {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(width: 12),
                     Text(
                       isQuotationMode ? 'Quotation' : context.tr('bill'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 13,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -136,6 +131,62 @@ class CommonWidgets {
           ],
         ),
         child: Icon(icon, color: const Color(0xFF2F7CF6), size: 26),
+      ),
+    );
+  }
+
+  static Widget _buildCustomerButton(VoidCallback onTap, String? customerName) {
+    final hasCustomer = customerName != null && customerName.isNotEmpty;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: hasCustomer ? 12 : 0),
+        constraints: BoxConstraints(
+          minWidth: 56,
+          maxWidth: hasCustomer ? 150 : 56,
+        ),
+        decoration: BoxDecoration(
+          color: hasCustomer ? const Color(0xFF2F7CF6).withAlpha((0.1 * 255).toInt()) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasCustomer ? const Color(0xFF2F7CF6) : const Color(0xFF2F7CF6).withAlpha((0.5 * 255).toInt()),
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha((0.1 * 255).toInt()),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              hasCustomer ? Icons.person : Icons.person_add_outlined,
+              color: const Color(0xFF2F7CF6),
+              size: 26,
+            ),
+            if (hasCustomer) ...[
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  customerName,
+                  style: const TextStyle(
+                    color: Color(0xFF2F7CF6),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -317,4 +368,204 @@ class CommonWidgets {
       }
     }
   }
+
+  // Customer Selection Dialog
+  static void showCustomerSelectionDialog({
+    required BuildContext context,
+    required Function(String phone, String name, String? gst) onCustomerSelected,
+  }) {
+    final searchController = TextEditingController();
+    String searchQuery = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Container(
+              height: 600,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Select Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: searchController,
+                          decoration: InputDecoration(
+                            hintText: context.tr('search'),
+                            prefixIcon: const Icon(Icons.search),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onChanged: (value) {
+                            setDialogState(() => searchQuery = value.toLowerCase());
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _showAddCustomerDialog(context, onCustomerSelected);
+                        },
+                        icon: const Icon(Icons.person_add, color: kPrimaryColor),
+                        style: IconButton.styleFrom(backgroundColor: kPrimaryColor.withAlpha((0.1 * 255).toInt())),
+                        tooltip: 'Add Customer',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: FutureBuilder<Stream<QuerySnapshot>>(
+                      future: FirestoreService().getCollectionStream('customers'),
+                      builder: (context, streamSnapshot) {
+                        if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+                        return StreamBuilder<QuerySnapshot>(
+                          stream: streamSnapshot.data,
+                          builder: (context, snapshot) {
+                            if (!snapshot.hasData) return const Center(child: Text('No customers'));
+                            final customers = snapshot.data!.docs.where((doc) {
+                              if (searchQuery.isEmpty) return true;
+                              final data = doc.data() as Map<String, dynamic>;
+                              final name = (data['name'] ?? '').toString().toLowerCase();
+                              final phone = (data['phone'] ?? '').toString().toLowerCase();
+                              final gst = (data['gst'] ?? '').toString().toLowerCase();
+                              return name.contains(searchQuery) || phone.contains(searchQuery) || gst.contains(searchQuery);
+                            }).toList();
+
+                            return ListView.separated(
+                              itemCount: customers.length,
+                              separatorBuilder: (ctx, i) => const Divider(),
+                              itemBuilder: (context, index) {
+                                final data = customers[index].data() as Map<String, dynamic>;
+                                return ListTile(
+                                  onTap: () {
+                                    onCustomerSelected(data['phone'], data['name'], data['gst']);
+                                    Navigator.pop(ctx);
+                                  },
+                                  title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                  subtitle: Text(data['phone'] ?? ''),
+                                  trailing: Text(
+                                    'Bal: ${(data['balance'] ?? 0).toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: (data['balance'] ?? 0) > 0 ? Colors.red : Colors.green
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static void _showAddCustomerDialog(
+    BuildContext context,
+    Function(String phone, String name, String? gst) onCustomerSelected,
+  ) {
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final gstCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: 'Phone',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: gstCtrl,
+                decoration: InputDecoration(
+                  labelText: 'GST (Optional)',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(context.tr('cancel')),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () async {
+                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+                      try {
+                        await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                          'name': nameCtrl.text.trim(),
+                          'phone': phoneCtrl.text.trim(),
+                          'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                          'balance': 0.0,
+                          'totalSales': 0.0,
+                          'timestamp': FieldValue.serverTimestamp(),
+                          'lastUpdated': FieldValue.serverTimestamp(),
+                        });
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                          onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
+                        }
+                      } catch (e) {
+                        showSnackBar(context, 'Error adding customer: $e', bgColor: Colors.red);
+                      }
+                    },
+                    child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
+
