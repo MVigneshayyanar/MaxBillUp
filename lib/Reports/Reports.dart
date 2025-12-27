@@ -1213,10 +1213,59 @@ class StockReportPage extends StatelessWidget {
               for (var d in snapshot.data!.docs) {
                 var data = d.data() as Map<String, dynamic>;
                 double price = double.tryParse(data['price'].toString()) ?? 0;
-                double stock = double.tryParse(data['currentStock'].toString()) ?? 0; // Using double just in case
-                if (stock > 0) totalVal += price * stock; // Ignore negative stock value
-                if (stock <= 0) outOfStockCount++;
-                else if (stock < 5) lowStockCount++;
+                double stock = double.tryParse(data['currentStock'].toString()) ?? 0;
+                bool stockEnabled = data['stockEnabled'] ?? false;
+
+                if (stock > 0) totalVal += price * stock;
+
+                if (stockEnabled) {
+                  if (stock <= 0) {
+                    outOfStockCount++;
+                  } else {
+                    // Check if product has low stock based on alert settings
+                    var lowStockAlertRaw = data['lowStockAlert'];
+                    double lowStockAlert = 0;
+                    if (lowStockAlertRaw != null) {
+                      if (lowStockAlertRaw is int) {
+                        lowStockAlert = lowStockAlertRaw.toDouble();
+                      } else if (lowStockAlertRaw is double) {
+                        lowStockAlert = lowStockAlertRaw;
+                      } else {
+                        lowStockAlert = double.tryParse(lowStockAlertRaw.toString()) ?? 0;
+                      }
+                    }
+
+                    String lowStockAlertType = data['lowStockAlertType']?.toString() ?? 'Count';
+
+                    // Debug output
+                    if (lowStockAlert > 0) {
+                      debugPrint('Product: ${data['itemName']}, Stock: $stock, Alert: $lowStockAlert, Type: $lowStockAlertType');
+                    }
+
+                    if (lowStockAlert > 0) {
+                      bool isLowStock = false;
+                      if (lowStockAlertType == 'Count') {
+                        // Stock quantity is less than or equal to alert count
+                        isLowStock = stock <= lowStockAlert;
+                      } else if (lowStockAlertType == 'Percentage') {
+                        // For percentage, we check if alert value itself is reached
+                        // (assuming alert is stored as percentage threshold)
+                        isLowStock = stock <= lowStockAlert;
+                      }
+
+                      if (isLowStock) {
+                        lowStockCount++;
+                        debugPrint('Low stock detected for: ${data['itemName']}');
+                      }
+                    } else {
+                      // Fallback to old logic if no alert is set
+                      if (stock < 5) {
+                        lowStockCount++;
+                        debugPrint('Low stock (fallback) for: ${data['itemName']}');
+                      }
+                    }
+                  }
+                }
               }
 
               return Column(

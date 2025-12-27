@@ -25,7 +25,7 @@ class StockPage extends StatefulWidget {
 
 class _StockPageState extends State<StockPage> {
   final TextEditingController _searchController = TextEditingController();
-  int _selectedTabIndex = 1;
+  int _selectedTabIndex = 0;
 
   late String _uid;
   String? _userEmail;

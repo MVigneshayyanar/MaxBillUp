@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
@@ -284,6 +285,8 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   }
 }
 
+// ---------------- CreateStockPurchasePage ----------------
+// ---------------- CreateStockPurchasePage ----------------
 class CreateStockPurchasePage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -298,10 +301,14 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
   final TextEditingController _supplierNameController = TextEditingController();
   final TextEditingController _supplierPhoneController = TextEditingController();
   final TextEditingController _invoiceNumberController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _totalAmountController = TextEditingController();
+  final TextEditingController _creditAmountController = TextEditingController();
+  final TextEditingController _taxAmountController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
+
   DateTime _selectedDate = DateTime.now();
   String _paymentMode = 'Cash';
+  bool _showAdvancedDetails = false;
   bool _isLoading = false;
 
   @override
@@ -309,7 +316,9 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     _supplierNameController.dispose();
     _supplierPhoneController.dispose();
     _invoiceNumberController.dispose();
-    _amountController.dispose();
+    _totalAmountController.dispose();
+    _creditAmountController.dispose();
+    _taxAmountController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -325,13 +334,11 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         child: child!,
       ),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() => _selectedDate = picked);
-    }
+    if (picked != null) setState(() => _selectedDate = picked);
   }
 
   Future<void> _savePurchase() async {
-    if (_supplierNameController.text.isEmpty || _amountController.text.isEmpty) {
+    if (_supplierNameController.text.isEmpty || _totalAmountController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in required fields')));
       return;
     }
@@ -339,7 +346,12 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     setState(() => _isLoading = true);
 
     try {
-      final amount = double.parse(_amountController.text);
+      final totalAmount = double.parse(_totalAmountController.text);
+      final taxAmount = _taxAmountController.text.isEmpty ? 0.0 : double.parse(_taxAmountController.text);
+      final creditAmount = _paymentMode == 'Credit'
+          ? double.tryParse(_creditAmountController.text) ?? totalAmount
+          : null;
+
       final invoiceNumber = _invoiceNumberController.text.isEmpty
           ? 'INV${DateTime.now().millisecondsSinceEpoch}'
           : _invoiceNumberController.text;
@@ -348,7 +360,8 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         'supplierName': _supplierNameController.text,
         'supplierPhone': _supplierPhoneController.text,
         'invoiceNumber': invoiceNumber,
-        'totalAmount': amount,
+        'totalAmount': totalAmount,
+        'taxAmount': taxAmount,
         'paymentMode': _paymentMode,
         'notes': _notesController.text,
         'timestamp': Timestamp.fromDate(_selectedDate),
@@ -363,7 +376,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           'purchaseNumber': invoiceNumber,
           'supplierName': _supplierNameController.text,
           'supplierPhone': _supplierPhoneController.text,
-          'amount': amount,
+          'amount': creditAmount,
           'timestamp': Timestamp.fromDate(_selectedDate),
           'status': 'Available',
           'notes': _notesController.text,
@@ -371,40 +384,12 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           'type': 'Purchase Credit',
           'items': [],
         });
-
-        if (_supplierPhoneController.text.isNotEmpty) {
-          final suppliersCollection = await FirestoreService().getStoreCollection('suppliers');
-          final supplierRef = suppliersCollection.doc(_supplierPhoneController.text);
-
-          await FirebaseFirestore.instance.runTransaction((transaction) async {
-            final supplierDoc = await transaction.get(supplierRef);
-            if (supplierDoc.exists) {
-              // Fix: Explicitly cast data() to Map<String, dynamic>? to use the [] operator
-              final data = supplierDoc.data() as Map<String, dynamic>?;
-              final currentBalance = (data?['creditBalance'] ?? 0.0) as num;
-              transaction.update(supplierRef, {
-                'creditBalance': currentBalance.toDouble() + amount,
-                'lastUpdated': FieldValue.serverTimestamp(),
-              });
-            } else {
-              transaction.set(supplierRef, {
-                'name': _supplierNameController.text,
-                'phone': _supplierPhoneController.text,
-                'creditBalance': amount,
-                'createdAt': FieldValue.serverTimestamp(),
-                'lastUpdated': FieldValue.serverTimestamp(),
-                'uid': widget.uid,
-              });
-            }
-          });
-        }
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(_paymentMode == 'Credit'
-                ? 'Stock purchase saved and credit note created'
-                : 'Stock purchase saved successfully')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_paymentMode == 'Credit' ? 'Purchase saved & credit note created' : 'Purchase saved successfully')),
+        );
         widget.onBack();
       }
     } catch (e) {
@@ -419,13 +404,9 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(context.tr('new_stock_purchase'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('New Stock Purchase', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack,
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
         centerTitle: true,
         elevation: 0,
       ),
@@ -434,119 +415,211 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInputField('Supplier Name *', _supplierNameController, Icons.person_outline),
-            const SizedBox(height: 16),
-            _buildInputField('Supplier Phone', _supplierPhoneController, Icons.phone_outlined,
-                keyboardType: TextInputType.phone),
-            const SizedBox(height: 16),
-            _buildInputField('Invoice Number', _invoiceNumberController, Icons.receipt_long_outlined),
-            const SizedBox(height: 16),
-            _buildInputField('Amount *', _amountController, Icons.currency_rupee, keyboardType: TextInputType.number),
-            const SizedBox(height: 16),
-            const Text('Date', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => _selectDate(context),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                decoration: BoxDecoration(color: _primaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined, color: _primaryColor, size: 18),
-                    const SizedBox(width: 12),
-                    Text(DateFormat('dd MMM yyyy').format(_selectedDate),
-                        style: const TextStyle(fontSize: 16, color: Colors.black87)),
-                  ],
+            const Text('Basic Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _buildTextField(controller: _supplierNameController, label: 'Supplier Name *', isRequired: true),
+            const SizedBox(height: 12),
+            _buildTextField(controller: _supplierPhoneController, label: 'Supplier Phone', keyboardType: TextInputType.phone),
+            const SizedBox(height: 12),
+            _buildTextField(controller: _invoiceNumberController, label: 'Invoice Number'),
+            const SizedBox(height: 12),
+            _buildTextField(controller: _totalAmountController, label: 'Total Amount *', isRequired: true, keyboardType: TextInputType.number),
+            const SizedBox(height: 12),
+
+            // Date & Payment Mode row
+            // Date & Payment Mode Row
+            Row(
+              children: [
+                // Date
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => _selectDate(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today_outlined, size: 18, color: _primaryColor),
+                          const SizedBox(width: 8),
+                          Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 12),
+
+                // Payment Mode
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                    child: DropdownButton<String>(
+                      value: _paymentMode,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                      onChanged: (v) => setState(() => _paymentMode = v!),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+// Credit Amount (only if Payment Mode = Credit)
+            if (_paymentMode == 'Credit')
+              _buildTextField(
+                controller: _creditAmountController,
+                label: 'Credit Amount',
+                keyboardType: TextInputType.number,
+              ),
+
+
+            const SizedBox(height: 20),
+            // Advanced Details Dropdown
+            InkWell(
+              onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Advanced Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Icon(_showAdvancedDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            const Text('Payment Mode', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildDropdownContainer(
-              child: DropdownButton<String>(
-                value: _paymentMode,
-                isExpanded: true,
-                underline: const SizedBox(),
-                items: ['Cash', 'Credit', 'UPI', 'Card'].map((String value) {
-                  return DropdownMenuItem<String>(value: value, child: Text(value));
-                }).toList(),
-                onChanged: (String? newValue) {
-                  if (newValue != null) setState(() => _paymentMode = newValue);
-                },
+            const SizedBox(height: 12),
+            if (_showAdvancedDetails)
+              Column(
+                children: [
+                  _buildTextField(controller: _taxAmountController, label: 'Tax Amount', keyboardType: TextInputType.number),
+                  const SizedBox(height: 12),
+                  _buildTextField(controller: _notesController, label: 'Notes', maxLines: 3),
+                  const SizedBox(height: 12),
+                  if (_paymentMode == 'Credit')
+                    _buildTextField(controller: _creditAmountController, label: 'Credit Amount', keyboardType: TextInputType.number),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildInputField('Notes', _notesController, Icons.notes_outlined, lines: 3),
-            const SizedBox(height: 32),
+
+            const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
               height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _savePurchase,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: _primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Purchase',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                    : const Text('Save Purchase', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
-        ),
+        )
+        ,
       ),
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController ctrl, IconData icon,
-      {TextInputType keyboardType = TextInputType.text, int lines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextField(
-          controller: ctrl,
-          maxLines: lines,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    bool isRequired = false,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    IconData? suffixIcon,
+    VoidCallback? onSuffixTap,
+  }) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+
+        return TextFormField(
+          controller: controller,
           keyboardType: keyboardType,
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: _primaryColor, size: 20),
-            filled: true,
-            fillColor: _primaryColor.withOpacity(0.04),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          maxLines: maxLines,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
           ),
-        ),
-      ],
+          decoration: InputDecoration(
+            labelText: label,
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            labelStyle: TextStyle(
+              color: hasText ? _primaryColor : Colors.black54,
+              fontSize: 15,
+            ),
+            floatingLabelStyle: const TextStyle(
+              color: _primaryColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            filled: true,
+            fillColor: Colors.grey[100],
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            suffixIcon: suffixIcon != null
+                ? IconButton(
+              icon: Icon(suffixIcon, size: 20, color: _primaryColor),
+              onPressed: onSuffixTap,
+            )
+                : null,
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: hasText ? _primaryColor : Colors.grey.shade300, width: hasText ? 1.5 : 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.red, width: 1),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            errorStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+          validator: isRequired
+              ? (v) => v == null || v.trim().isEmpty ? 'Required' : null
+              : null,
+        );
+      },
     );
   }
 
-  Widget _buildDropdownContainer({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: _primaryColor.withOpacity(0.04), borderRadius: BorderRadius.circular(12)),
-      child: child,
-    );
-  }
 }
 
-class StockPurchaseDetailsPage extends StatelessWidget {
+
+// ---------------- StockPurchaseDetailsPage ----------------
+class StockPurchaseDetailsPage extends StatefulWidget {
   final String purchaseId;
   final Map<String, dynamic> purchaseData;
 
   const StockPurchaseDetailsPage({super.key, required this.purchaseId, required this.purchaseData});
 
   @override
+  State<StockPurchaseDetailsPage> createState() => _StockPurchaseDetailsPageState();
+}
+
+class _StockPurchaseDetailsPageState extends State<StockPurchaseDetailsPage> {
+  bool _showAdvancedDetails = false;
+
+  @override
   Widget build(BuildContext context) {
-    final date = (purchaseData['timestamp'] as Timestamp?)?.toDate();
+    final data = widget.purchaseData;
+    final date = (data['timestamp'] as Timestamp?)?.toDate();
     final dateString = date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
+    final paymentMode = data['paymentMode'] ?? 'N/A';
+    final totalAmount = (data['totalAmount'] ?? 0.0).toStringAsFixed(2);
+    final creditAmount = paymentMode == 'Credit' ? totalAmount : null;
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(context.tr('purchase_details'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('Purchase Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -563,31 +636,68 @@ class StockPurchaseDetailsPage extends StatelessWidget {
             boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15)],
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                purchaseData['supplierName'] ?? 'Unknown Supplier',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
+              // Top basic info row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      data['supplierName'] ?? 'Unknown Supplier',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _primaryColor),
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(dateString, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(paymentMode, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    ],
+                  )
+                ],
               ),
               const Divider(height: 32, color: _cardBorder),
-              _buildDetailRow('Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
-              _buildDetailRow('Phone', purchaseData['supplierPhone'] ?? 'N/A'),
-              _buildDetailRow('Date', dateString),
-              _buildDetailRow('Payment Mode', purchaseData['paymentMode'] ?? 'N/A'),
-              if (purchaseData['notes'] != null && purchaseData['notes'].toString().isNotEmpty)
-                _buildDetailRow('Notes', purchaseData['notes']),
-              const SizedBox(height: 20),
+
+              // Total amount row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    "₹${(purchaseData['totalAmount'] ?? 0.0).toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
+                    "₹$totalAmount",
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primaryColor),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+
+              // Advanced Details Toggle
+              InkWell(
+                onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Advanced Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Icon(_showAdvancedDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down)
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Advanced Details content
+              if (_showAdvancedDetails)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('Invoice', data['invoiceNumber'] ?? 'N/A'),
+                    _buildDetailRow('Phone', data['supplierPhone'] ?? 'N/A'),
+                    _buildDetailRow('Notes', data['notes'] ?? 'N/A'),
+                    _buildDetailRow('Payment Mode', paymentMode),
+                    if (creditAmount != null) _buildDetailRow('Credit Amount', "₹$creditAmount"),
+                    if (data['taxAmount'] != null) _buildDetailRow('Tax Amount', "₹${data['taxAmount'].toString()}"),
+                  ],
+                ),
             ],
           ),
         ),
@@ -602,7 +712,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text('$label:', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
           ),
           Expanded(

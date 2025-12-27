@@ -35,16 +35,16 @@ class SaleAppBar extends StatelessWidget {
     const double tabHeight = 48.0;
 
     // Helper to determine alignment for the sliding pill based on the specific tab order
-    // Order: Quick Bill (1), View All (0), Saved (2)
+    // Order: saved (0), View All (1), Quick Bill (2)
     double getAlignment() {
       if (hideSavedTab) {
-        // 2 Tabs: Left (1), Right (0)
+        // 2 Tabs: Left (View All, 1), Right (Quick Bill, 2)
         return selectedTabIndex == 1 ? -1.0 : 1.0;
       } else {
-        // 3 Tabs: Left (1), Middle (0), Right (2)
-        if (selectedTabIndex == 1) return -1.0;
-        if (selectedTabIndex == 0) return 0.0;
-        return 1.0;
+        // 3 Tabs: Left (saved, 0), Middle (View All, 1), Right (Quick Bill, 2)
+        if (selectedTabIndex == 0) return -1.0; // saved
+        if (selectedTabIndex == 1) return 0.0;  // View All
+        return 1.0;                             // Quick Bill
       }
     }
 
@@ -75,7 +75,7 @@ class SaleAppBar extends StatelessWidget {
               height: tabHeight + 8, // Adjusting for internal padding
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: kGrey100,
+                color: kGreyBg,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color:kPrimaryColor, width: 1), // Added Border
               ),
@@ -106,13 +106,13 @@ class SaleAppBar extends StatelessWidget {
                   // Tab Labels
                   Row(
                     children: [
-                      _buildTab(context.tr('Quick Bill'), 1),
-                      const SizedBox(width: 4),
-                      _buildTab(context.tr('View All'), 0),
                       if (!hideSavedTab) ...[
+                        _buildTab(context.tr('saved'), 0), // saved is now index 0
                         const SizedBox(width: 4),
-                        _buildTab(context.tr('saved'), 2),
                       ],
+                      _buildTab(context.tr('View All'), 1), // View All is now index 1
+                      const SizedBox(width: 4),
+                      _buildTab(context.tr('Quick Bill'), 2), // Quick Bill is now index 2
                     ],
                   ),
                 ],
@@ -146,3 +146,7 @@ class SaleAppBar extends StatelessWidget {
     );
   }
 }
+
+// To ensure the default animation is in 'View All',
+// make sure the parent widget sets selectedTabIndex = 1 by default.
+// The alignment logic will then show the pill in the middle tab.

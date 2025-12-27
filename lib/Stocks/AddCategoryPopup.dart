@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/Colors.dart'; // Ensure this contains kGreyBg & kPrimaryColor
 
 class AddCategoryPopup extends StatefulWidget {
   final String uid;
@@ -33,7 +34,6 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
     final userData = await PermissionHelper.getUserPermissions(widget.uid);
     final role = userData['role'] as String;
     final permissions = userData['permissions'] as Map<String, dynamic>;
-
     final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
     final hasPermission = permissions['addCategory'] == true;
 
@@ -58,25 +58,18 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final categoriesCollection = await FirestoreService().getStoreCollection('categories');
 
       // Check if category already exists
-      final existingCategory = await categoriesCollection
-          .where('name', isEqualTo: categoryName)
-          .get();
-
+      final existingCategory = await categoriesCollection.where('name', isEqualTo: categoryName).get();
       if (existingCategory.docs.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.tr('category_exists'))),
         );
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
         return;
       }
 
@@ -97,24 +90,21 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
         SnackBar(content: Text(context.tr('failed_to_save'))),
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -128,84 +118,41 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.close,
-                    size: 24,
-                    color: Colors.black54,
-                  ),
+                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr('enter_category_name'),
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: TextField(
-                    controller: _categoryController,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: Colors.black87,
-                    ),
-                    decoration: InputDecoration(
-                      hintText: context.tr('category_name'),
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        fontSize: 15,
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+
+            // Input Field
+            _buildCategoryInput(),
+
             const SizedBox(height: 24),
+
+            // Save Button
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _saveCategory,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2F7CF6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                  backgroundColor: kPrimaryColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
                     : Text(
-                        context.tr('add'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  context.tr('add'),
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],
@@ -213,4 +160,40 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
       ),
     );
   }
+
+  // --- Custom Input Field ---
+  Widget _buildCategoryInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: _categoryController,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+          decoration: InputDecoration(
+            labelText:'Category Name',
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+            floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kGrey300, width: 1),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          "e.g. Fruit, Vegetable, Steel, Plastics, etc.",
+          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
+        ),
+      ],
+    );
+  }
+
 }

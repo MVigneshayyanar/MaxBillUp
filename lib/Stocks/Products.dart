@@ -438,51 +438,116 @@ class _ProductsPageState extends State<ProductsPage> {
   // --- REFINED DIALOGS ---
 
   void _showUpdateQuantityDialog(BuildContext context, String id, String name, double current) {
-    final ctrl = TextEditingController();
+    final ctrl = TextEditingController(text: current.toStringAsFixed(0));
     bool isAdding = true;
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
-        backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kBlack87)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _buildToggle(true, isAdding, 'ADD', () => setDialogState(() => isAdding = true)),
-                const SizedBox(width: 12),
-                _buildToggle(false, isAdding, 'REMOVE', () => setDialogState(() => isAdding = false)),
+                // Header
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Update Stock',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                // Toggle
+
+                // Quantity input with - and +
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor),
+                      onPressed: () {
+                        double val = double.tryParse(ctrl.text) ?? current;
+                        if (val > 0) {
+                          val -= 1;
+                          if (val < 0) val = 0;
+                          setDialogState(() => ctrl.text = val.toStringAsFixed(0));
+                        }
+                      },
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: ctrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                        decoration: InputDecoration(
+                          labelText: 'Quantity',
+                          floatingLabelBehavior: FloatingLabelBehavior.auto,
+                          labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+                          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                          filled: true,
+                          fillColor: kGreyBg,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: kGrey300, width: 1),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor),
+                      onPressed: () {
+                        double val = double.tryParse(ctrl.text) ?? current;
+                        val += 1;
+                        setDialogState(() => ctrl.text = val.toStringAsFixed(0));
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text('Current Stock: ${current.toStringAsFixed(0)}', style: const TextStyle(color: kBlack54, fontSize: 13)),
+                const SizedBox(height: 24),
+                // Save Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      final val = double.tryParse(ctrl.text) ?? current;
+                      if (val < 0) return;
+                      await FirestoreService().updateDocument('Products', id, {'currentStock': val});
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                    child: const Text('UPDATE', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: ctrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: 'Quantity',
-                filled: true, fillColor: kPrimaryColor.withAlpha((0.04 * 255).toInt()),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              ),
-            ),
-          ],
+          ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(color: kBlack54))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () async {
-              final val = double.tryParse(ctrl.text) ?? 0;
-              if (val <= 0) return;
-              final next = isAdding ? current + val : current - val;
-              await FirestoreService().updateDocument('Products', id, {'currentStock': next});
-              Navigator.pop(context);
-            },
-            child: const Text('UPDATE', style: TextStyle(color: kWhite)),
-          )
-        ],
-      )),
+      ),
     );
   }
 

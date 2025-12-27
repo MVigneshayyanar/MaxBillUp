@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'AddCategoryPopup.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -39,12 +40,15 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _hsnController = TextEditingController();
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _lowStockAlertController = TextEditingController();
 
   // State
   String? _selectedCategory;
   bool _stockEnabled = true;
   String? _selectedStockUnit = 'Piece';
   Stream<List<String>>? _unitsStream;
+  String _lowStockAlertType = 'Count'; // 'Count' or 'Percentage'
+  bool _isFavorite = false;
 
   // Tax State
   String _selectedTaxType = 'Price is without Tax';
@@ -52,18 +56,11 @@ class _AddProductPageState extends State<AddProductPage> {
   String? _selectedTaxId;
   double _currentTaxPercentage = 0.0;
 
-  // Favorite State
-  bool _isFavorite = false;
-
   @override
   void initState() {
     super.initState();
-    // Default fallback to Favorite
-    _selectedCategory = widget.preSelectedCategory ?? 'Favorite';
-
-    if (_selectedCategory == 'Favorite') {
-      _isFavorite = true;
-    }
+    // Default fallback to General
+    _selectedCategory = widget.preSelectedCategory ?? 'General';
 
     _checkPermission();
     _fetchUnits();
@@ -71,9 +68,8 @@ class _AddProductPageState extends State<AddProductPage> {
 
     if (widget.existingData != null) {
       _loadExistingData();
-    } else {
-      _generateProductCode();
     }
+    // Don't auto-generate product code - user must click generate button
   }
 
   // --- Firestore Logic ---
@@ -150,14 +146,13 @@ class _AddProductPageState extends State<AddProductPage> {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId == null) return;
       final productsCollection = await FirestoreService().getStoreCollection('Products');
-      int highestNumber = 1000;
+      int highestNumber = 100; // Start from 100, so next will be 101
       final productsSnapshot = await productsCollection.get();
       for (var doc in productsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>?;
         final productCode = data?['productCode'] as String?;
-        if (productCode != null && productCode.startsWith('PRT')) {
-          final numberStr = productCode.substring(3);
-          final number = int.tryParse(numberStr);
+        if (productCode != null) {
+          final number = int.tryParse(productCode);
           if (number != null && number > highestNumber) {
             highestNumber = number;
           }
@@ -165,11 +160,35 @@ class _AddProductPageState extends State<AddProductPage> {
       }
       final nextNumber = highestNumber + 1;
       if (mounted) {
-        setState(() => _productCodeController.text = 'PRT$nextNumber');
+        setState(() => _productCodeController.text = nextNumber.toString());
       }
     } catch (e) {
-      final code = 'PRT${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      final code = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
       setState(() => _productCodeController.text = code);
+    }
+  }
+
+  Future<bool> _checkProductCodeExists(String code) async {
+    try {
+      final productsCollection = await FirestoreService().getStoreCollection('Products');
+      final existingProduct = await productsCollection.where('productCode', isEqualTo: code).get();
+      if (existingProduct.docs.isNotEmpty) {
+        final data = existingProduct.docs.first.data() as Map<String, dynamic>?;
+        final productName = data?['itemName'] ?? 'Unknown Product';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('This number is already mapped with $productName'),
+              backgroundColor: kErrorColor,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -183,7 +202,7 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kGrey100,
+      backgroundColor: kWhite ,
       appBar: AppBar(
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -204,20 +223,13 @@ class _AddProductPageState extends State<AddProductPage> {
                   const SizedBox(height: 12),
                   _buildCategoryDropdown(),
                   const SizedBox(height: 16),
-                  _buildTextField(controller: _itemNameController, label: context.tr('item_name'), isRequired: true),
+                  _buildItemNameWithFavorite(),
+                  const SizedBox(height: 16),
+                  _buildProductCodeField(),
                   const SizedBox(height: 16),
                   _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number, isRequired: true),
                   const SizedBox(height: 16),
-                  if (_stockEnabled) ...[
-                    _buildTextField(controller: _quantityController, label: "Initial Stock Quantity", keyboardType: TextInputType.number, isRequired: true),
-                    const SizedBox(height: 16),
-                  ] else ...[
-                    _buildInfinityStockIndicator(),
-                    const SizedBox(height: 16),
-                  ],
-                  _buildProductCodeField(),
-                  const SizedBox(height: 16),
-                  _buildInventorySwitch(),
+                  _buildTrackStockLevelAndQuantity(),
                   const SizedBox(height: 16),
                   _buildUnitDropdown(),
                   const SizedBox(height: 24),
@@ -229,6 +241,13 @@ class _AddProductPageState extends State<AddProductPage> {
                       title: _buildSectionHeader("Advanced Details"),
                       children: [
                         const SizedBox(height: 16),
+                        _buildTextField(
+                            controller: _barcodeController,
+                            label: "Barcode",
+                            suffixIcon: Icons.qr_code_scanner,
+                            onSuffixTap: _scanBarcode
+                        ),
+                        const SizedBox(height: 16),
                         _buildTextField(controller: _costPriceController, label: "Cost Price", keyboardType: TextInputType.number),
                         const SizedBox(height: 16),
                         _buildTextField(controller: _mrpController, label: "MRP", keyboardType: TextInputType.number),
@@ -238,13 +257,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         _buildTaxTypeSelector(),
                         const SizedBox(height: 16),
                         _buildTextField(controller: _hsnController, label: "HSN/SAC"),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                            controller: _barcodeController,
-                            label: "Barcode",
-                            suffixIcon: Icons.qr_code_scanner,
-                            onSuffixTap: _scanBarcode
-                        ),
+
                       ],
                     ),
                   ),
@@ -277,9 +290,9 @@ class _AddProductPageState extends State<AddProductPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: kGoogleGreen.withOpacity(0.1),
+        color: kGoogleGreen.withAlpha((0.1 * 255).toInt()),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
+        border: Border.all(color: kGoogleGreen.withAlpha((0.3 * 255).toInt())),
       ),
       child: Row(
         children: [
@@ -298,44 +311,102 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, bool isRequired = false, TextInputType keyboardType = TextInputType.text, IconData? suffixIcon, VoidCallback? onSuffixTap}) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-      decoration: InputDecoration(
-        labelText: label,
-        suffixIcon: suffixIcon != null ? IconButton(icon: Icon(suffixIcon, size: 20, color: kPrimaryColor), onPressed: onSuffixTap) : null,
-        filled: true,
-        fillColor: kWhite,
-        errorStyle: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kPrimaryColor, width: 1),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kGrey300, width: 1),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-        ),
-        // Applied kErrorColor to error states
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kErrorColor, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kErrorColor, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        labelStyle: const TextStyle(color: kBlack54),
-      ),
-      validator: isRequired ? (v) => v!.isEmpty ? 'Required' : null : null,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    bool isRequired = false,
+    TextInputType keyboardType = TextInputType.text,
+    IconData? suffixIcon,
+    VoidCallback? onSuffixTap,
+  }) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+
+        return TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: kBlack87,
+          ),
+          decoration: InputDecoration(
+            labelText: label,
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+
+            labelStyle: TextStyle(
+              color: hasText ? kPrimaryColor : kBlack54,
+              fontSize: 15,
+            ),
+            floatingLabelStyle: const TextStyle(
+              color: kPrimaryColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+
+            filled: true,
+            fillColor: kGreyBg, // ✅ changed from kWhite
+
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+
+            suffixIcon: suffixIcon != null
+                ? IconButton(
+              icon: Icon(
+                suffixIcon,
+                size: 20,
+                color: kPrimaryColor,
+              ),
+              onPressed: onSuffixTap,
+            )
+                : null,
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(
+                color: hasText ? kPrimaryColor : kGrey300,
+                width: hasText ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: kPrimaryColor,
+                width: 1.5,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: kErrorColor,
+                width: 1,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: const BorderSide(
+                color: kErrorColor,
+                width: 1.5,
+              ),
+            ),
+            errorStyle: const TextStyle(
+              color: kErrorColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          validator: isRequired
+              ? (v) => v == null || v.trim().isEmpty ? 'Required' : null
+              : null,
+        );
+      },
     );
   }
+
+
 
   Widget _buildProductCodeField() {
     return Row(
@@ -346,23 +417,20 @@ class _AddProductPageState extends State<AddProductPage> {
         Padding(
           padding: const EdgeInsets.only(top: 2),
           child: InkWell(
-            onTap: () {
-              if (_selectedCategory == 'Favorite') return;
-              setState(() => _isFavorite = !_isFavorite);
-            },
+            onTap: _generateProductCode,
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: _isFavorite ? kPrimaryColor.withOpacity(0.1) : kGrey100,
+                color: kPrimaryColor,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _isFavorite ? kPrimaryColor : kGrey300,
+                  color: kPrimaryColor,
                   width: 1,
                 ),
               ),
-              child: Icon(
-                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                color: _isFavorite ? kPrimaryColor : kBlack54,
+              child: const Icon(
+                Icons.refresh,
+                color: kWhite,
                 size: 22,
               ),
             ),
@@ -389,6 +457,141 @@ class _AddProductPageState extends State<AddProductPage> {
       ),
     );
   }
+
+  Widget _buildTrackStockLevelAndQuantity() {
+    return Column(
+      children: [
+        // First Line: Track Stock Level and Stock Quantity
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildInventorySwitch(),
+            ),
+            if (_stockEnabled) ...[
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildTextField(
+                  controller: _quantityController,
+                  label: "Stock Quantity",
+                  keyboardType: TextInputType.number,
+                  isRequired: true,
+                ),
+              ),
+            ],
+          ],
+        ),
+        if (!_stockEnabled) ...[
+          const SizedBox(height: 16),
+          _buildInfinityStockIndicator(),
+        ],
+        // Second Line: Low Stock Alert and Type (only if stock is enabled)
+        if (_stockEnabled) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _buildTextField(
+                  controller: _lowStockAlertController,
+                  label: "Low Stock Alert",
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kGreyBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kGrey300),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _lowStockAlertType,
+                      isExpanded: true,
+                      icon: const Icon(Icons.arrow_drop_down, color: kBlack54, size: 20),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87),
+                      items: const [
+                        DropdownMenuItem(value: 'Count', child: Text('Count')),
+                        DropdownMenuItem(value: 'Percentage', child: Text('Percentage')),
+                      ],
+                      onChanged: (val) => setState(() => _lowStockAlertType = val!),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildItemNameWithFavorite() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _itemNameController,
+                label: "Item Name",
+                isRequired: true,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: InkWell(
+                onTap: () => setState(() => _isFavorite = !_isFavorite),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _isFavorite ? kPrimaryColor.withAlpha((0.1 * 255).toInt()) : kGrey100,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _isFavorite ? kPrimaryColor : kGrey300,
+                      width: 1,
+                    ),
+                  ),
+                  child: Icon(
+                    _isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: _isFavorite ? kPrimaryColor : kBlack54,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (_isFavorite) ...[
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Icon(Icons.check_circle, size: 14, color: kPrimaryColor),
+              const SizedBox(width: 4),
+              Text(
+                "Added as Favorite Product",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: kPrimaryColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
 
   Widget _buildUnitDropdown() {
     return StreamBuilder<List<String>>(
@@ -479,11 +682,11 @@ class _AddProductPageState extends State<AddProductPage> {
         return StreamBuilder<QuerySnapshot>(
           stream: streamSnapshot.data,
           builder: (context, snapshot) {
-            List<String> categories = ['Favorite'];
+            List<String> categories = ['General'];
             if (snapshot.hasData) {
               categories.addAll(snapshot.data!.docs
                   .map((doc) => (doc.data() as Map<String, dynamic>)['name'] as String)
-                  .where((name) => name != 'Favorite')
+                  .where((name) => name != 'General')
                   .toList());
             }
             return InputDecorator(
@@ -495,16 +698,24 @@ class _AddProductPageState extends State<AddProductPage> {
                   isDense: true,
                   icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
                   style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-                  items: categories.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                  onChanged: (v) {
-                    setState(() {
-                      _selectedCategory = v;
-                      if (v == 'Favorite') {
-                        _isFavorite = true;
-                      } else {
-                        _isFavorite = false;
+                  items: [
+                    ...categories.map((e) => DropdownMenuItem(value: e, child: Text(e))),
+                    const DropdownMenuItem(value: '__create_new__', child: Text('+ Create New Category', style: TextStyle(color: kPrimaryColor))),
+                  ],
+                  onChanged: (val) async {
+                    if (val == '__create_new__') {
+                      final newCategory = await showDialog<String>(
+                        context: context,
+                        builder: (ctx) => AddCategoryPopup(uid: widget.uid),
+                      );
+                      if (newCategory != null && newCategory.isNotEmpty) {
+                        setState(() {
+                          _selectedCategory = newCategory;
+                        });
                       }
-                    });
+                    } else {
+                      setState(() => _selectedCategory = val!);
+                    }
                   },
                 ),
               ),
@@ -551,36 +762,82 @@ class _AddProductPageState extends State<AddProductPage> {
     final unitController = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Add New Unit"),
-        content: TextField(
-          controller: unitController,
-          decoration: const InputDecoration(labelText: "Unit Name (e.g. Dozen, Box)"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: kBlack54))),
-          ElevatedButton(
-            onPressed: () async {
-              if (unitController.text.trim().isNotEmpty) {
-                final storeId = await FirestoreService().getCurrentStoreId();
-                if (storeId != null) {
-                  await FirebaseFirestore.instance
-                      .collection('store')
-                      .doc(storeId)
-                      .collection('units')
-                      .doc(unitController.text.trim())
-                      .set({'createdAt': FieldValue.serverTimestamp()});
-                }
-                if (mounted) {
-                  setState(() => _selectedStockUnit = unitController.text.trim());
-                  Navigator.pop(ctx);
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("Add", style: TextStyle(color: kWhite)),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Add New Unit",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: unitController,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: "Unit Name (e.g. Dozen, Box)",
+                  floatingLabelBehavior: FloatingLabelBehavior.auto,
+                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                  filled: true,
+                  fillColor: kGreyBg,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kGrey300, width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (unitController.text.trim().isNotEmpty) {
+                      final storeId = await FirestoreService().getCurrentStoreId();
+                      if (storeId != null) {
+                        await FirebaseFirestore.instance
+                            .collection('store')
+                            .doc(storeId)
+                            .collection('units')
+                            .doc(unitController.text.trim())
+                            .set({'createdAt': FieldValue.serverTimestamp()});
+                      }
+                      if (mounted) {
+                        setState(() => _selectedStockUnit = unitController.text.trim());
+                        Navigator.pop(ctx);
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Add", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -590,26 +847,94 @@ class _AddProductPageState extends State<AddProductPage> {
     final rateC = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Create New Tax"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameC, decoration: const InputDecoration(labelText: "Tax Name")),
-            TextField(controller: rateC, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: "Percentage (%)")),
-          ],
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Create New Tax",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx),
+                    child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              TextFormField(
+                controller: nameC,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: "Tax Name",
+                  floatingLabelBehavior: FloatingLabelBehavior.auto,
+                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                  filled: true,
+                  fillColor: kGreyBg,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kGrey300, width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: rateC,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
+                decoration: InputDecoration(
+                  labelText: "Percentage (%)",
+                  floatingLabelBehavior: FloatingLabelBehavior.auto,
+                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
+                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
+                  filled: true,
+                  fillColor: kGreyBg,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kGrey300, width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
+                      _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
+                      Navigator.pop(ctx);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  child: const Text("Add", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel", style: TextStyle(color: kBlack54))),
-          ElevatedButton(onPressed: () {
-            if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
-              _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
-              Navigator.pop(ctx);
-            }
-          },
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-              child: const Text("Add", style: TextStyle(color: kWhite))),
-        ],
       ),
     );
   }
@@ -641,15 +966,34 @@ class _AddProductPageState extends State<AddProductPage> {
     _hsnController.text = d['hsn'] ?? '';
     _barcodeController.text = d['barcode'] ?? '';
     _quantityController.text = d['currentStock']?.toString() ?? '';
+    _lowStockAlertController.text = d['lowStockAlert']?.toString() ?? '';
     _selectedCategory = d['category'];
     _stockEnabled = d['stockEnabled'] ?? true;
     _selectedStockUnit = d['stockUnit'];
     _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
+    _lowStockAlertType = d['lowStockAlertType'] ?? 'Count';
     _isFavorite = d['isFavorite'] ?? false;
   }
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Check for duplicate product code (only for new products or if code changed)
+    final productCode = _productCodeController.text.trim();
+    if (productCode.isNotEmpty) {
+      if (widget.productId == null) {
+        // New product - check if code exists
+        final exists = await _checkProductCodeExists(productCode);
+        if (exists) return;
+      } else {
+        // Editing existing product - check if code changed and if new code exists
+        if (widget.existingData!['productCode'] != productCode) {
+          final exists = await _checkProductCodeExists(productCode);
+          if (exists) return;
+        }
+      }
+    }
+
     try {
       String? selectedTaxName;
       if (_selectedTaxId != null) {
@@ -661,18 +1005,20 @@ class _AddProductPageState extends State<AddProductPage> {
         'price': double.tryParse(_priceController.text) ?? 0.0,
         'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
         'mrp': double.tryParse(_mrpController.text) ?? 0.0,
-        'category': _selectedCategory ?? 'Favorite',
-        'productCode': _productCodeController.text.trim(),
+        'category': _selectedCategory ?? 'General',
+        'productCode': productCode,
         'hsn': _hsnController.text.trim(),
         'barcode': _barcodeController.text.trim(),
         'stockUnit': _selectedStockUnit ?? 'Piece',
         'stockEnabled': _stockEnabled,
         'currentStock': _stockEnabled ? (double.tryParse(_quantityController.text) ?? 0.0) : 0.0,
+        'lowStockAlert': _lowStockAlertController.text.trim().isNotEmpty ? double.tryParse(_lowStockAlertController.text) ?? 0.0 : 0.0,
+        'lowStockAlertType': _lowStockAlertType,
+        'isFavorite': _isFavorite,
         'taxId': _selectedTaxId,
         'taxName': selectedTaxName,
         'taxPercentage': _currentTaxPercentage,
         'taxType': _selectedTaxType,
-        'isFavorite': _isFavorite,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 

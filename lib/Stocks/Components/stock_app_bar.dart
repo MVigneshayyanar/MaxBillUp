@@ -41,14 +41,27 @@ class StockAppBar extends StatelessWidget {
           // Tabs
 
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 55, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 045, 16, 12),
             child: Row(
               children: [
-                // Back Button
-
-                // Product Tab
-
-                // Category Tab
+                // Product Tab (moved up)
+                FutureBuilder<Stream<QuerySnapshot>>(
+                  future: FirestoreService().getCollectionStream('Products'),
+                  builder: (context, streamSnapshot) {
+                    if (!streamSnapshot.hasData) {
+                      return _buildTab('${context.tr('products')} (0)', 0);
+                    }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: streamSnapshot.data,
+                      builder: (context, snapshot) {
+                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                        return _buildTab('${context.tr('products')} ($productCount)', 0);
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(width: 8),
+                // Category Tab (moved down)
                 FutureBuilder<Stream<QuerySnapshot>>(
                   future: FirestoreService().getCollectionStream('categories'),
                   builder: (context, streamSnapshot) {
@@ -64,23 +77,6 @@ class StockAppBar extends StatelessWidget {
                     );
                   },
                 ),
-                const SizedBox(width: 8),
-                FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) {
-                      return _buildTab('${context.tr('products')} (0)', 0);
-                    }
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
-                      builder: (context, snapshot) {
-                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('${context.tr('products')} ($productCount)', 0);
-                      },
-                    );
-                  },
-                ),
-
               ],
             ),
           ),

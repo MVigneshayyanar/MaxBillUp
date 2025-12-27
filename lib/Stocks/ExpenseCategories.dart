@@ -478,73 +478,126 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descriptionController = TextEditingController();
 
+    final List<String> suggestions = [
+      'Salary', 'Bill', 'Fuel', 'Rent', 'Insurance',
+      'Food', 'Tax', 'Advertisement', 'Fee', 'Loan',
+      'Transportation', 'Miscellaneous'
+    ];
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.category_outlined, color: _primaryColor),
-              SizedBox(width: 8),
-              Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
-                const SizedBox(height: 16),
-                _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
-                    lines: 3),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(context.tr('cancel')),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(context.tr('enter_category_name'))),
-                  );
-                  return;
-                }
-
-                try {
-                  await FirestoreService().addDocument('expenseCategories', {
-                    'name': nameController.text,
-                    'description': descriptionController.text,
-                    'timestamp': Timestamp.now(),
-                    'uid': widget.uid,
-                  });
-
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Category added successfully')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error: $e')),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Row(
+                children: [
+                  Icon(Icons.category_outlined, color: _primaryColor),
+                  SizedBox(width: 8),
+                  Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
+                ],
               ),
-              child:
-              Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Quick Select:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: suggestions.map((suggestion) {
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              nameController.text = suggestion;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: nameController.text == suggestion
+                                  ? _primaryColor
+                                  : _primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: nameController.text == suggestion
+                                    ? _primaryColor
+                                    : _primaryColor.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              suggestion,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: nameController.text == suggestion
+                                    ? Colors.white
+                                    : _primaryColor,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
+                    const SizedBox(height: 16),
+                    _buildDialogField(descriptionController, 'Description', Icons.description_outlined,
+                        lines: 3),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(context.tr('cancel')),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (nameController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(context.tr('enter_category_name'))),
+                      );
+                      return;
+                    }
+
+                    try {
+                      await FirestoreService().addDocument('expenseCategories', {
+                        'name': nameController.text,
+                        'description': descriptionController.text,
+                        'timestamp': Timestamp.now(),
+                        'uid': widget.uid,
+                      });
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Category added successfully')),
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: $e')),
+                        );
+                      }
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
         );
       },
     );

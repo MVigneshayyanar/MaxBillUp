@@ -51,12 +51,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   bool _isLoadingStream = true;
   final List<String> _categories = [];
   bool _isLoadingCategories = true;
-
-  double _cartHeight = 180.0;
-  final double _minCartHeight = 120;
-  final double _maxCartHeight = 400.0;
-
-  String? _newlyAddedItemId;
+  bool _showFavoritesOnly = false;
 
   @override
   void initState() {
@@ -111,11 +106,36 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final snap = await collection.get();
 
       final categorySet = <String>{};
+      bool hasLowStockProducts = false;
+
       for (var doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final cat = data['category'] ?? 'General';
         if (cat.toString().isNotEmpty) {
           categorySet.add(cat.toString());
+        }
+
+        // Check if product has low stock
+        final stockEnabled = data['stockEnabled'] ?? false;
+        if (stockEnabled) {
+          final currentStock = (data['currentStock'] ?? 0.0).toDouble();
+          final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
+          final lowStockAlertType = data['lowStockAlertType'] ?? 'Count';
+
+          if (lowStockAlert > 0) {
+            bool isLowStock = false;
+            if (lowStockAlertType == 'Count') {
+              isLowStock = currentStock <= lowStockAlert;
+            } else if (lowStockAlertType == 'Percentage') {
+              // Assuming initial stock was stored or we use a reasonable estimate
+              // For simplicity, we'll use current stock vs alert percentage
+              isLowStock = currentStock <= lowStockAlert;
+            }
+
+            if (isLowStock) {
+              hasLowStockProducts = true;
+            }
+          }
         }
       }
 
@@ -123,6 +143,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
         setState(() {
           _categories.clear();
           _categories.add('All');
+          if (hasLowStockProducts) {
+            _categories.add('Low Stock');
+          }
+          _categories.add('Favorite'); // Heart icon tab
           _categories.addAll(categorySet.toList()..sort());
           _isLoadingCategories = false;
         });
@@ -185,105 +209,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ));
     }
 
-    setState(() => _newlyAddedItemId = id);
+    setState(() {});
     Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) setState(() => _newlyAddedItemId = null);
+      if (mounted) setState(() {});
     });
 
     widget.onCartChanged?.call(_cart);
-  }
-
-  void _showEditDialog(int idx) {
-    final item = _cart[idx];
-    final nameCtrl = TextEditingController(text: item.name);
-    final qtyCtrl = TextEditingController(text: item.quantity.toString());
-    final priceCtrl = TextEditingController(text: item.price.toStringAsFixed(0));
-
-    showDialog(
-      context: context,
-      barrierColor: kBlack87.withAlpha((0.8 * 255).toInt()),
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(context.tr('edit_item'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: InputDecoration(
-                labelText: context.tr('product_name'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.shopping_bag, color: kPrimaryColor),
-                filled: true,
-                fillColor: kGreyBg,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: priceCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: context.tr('price'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.currency_rupee, color: kPrimaryColor),
-                filled: true,
-                fillColor: kGreyBg,
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: qtyCtrl,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                labelText: context.tr('quantity'),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                prefixIcon: const Icon(Icons.numbers, color: kPrimaryColor),
-                filled: true,
-                fillColor: kGreyBg,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              _cart.removeAt(idx);
-              widget.onCartChanged?.call(_cart);
-              setState(() {});
-              Navigator.pop(ctx);
-            },
-            child: Text(context.tr('delete'), style: const TextStyle(color: kErrorColor)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final name = nameCtrl.text.trim();
-              final qty = int.tryParse(qtyCtrl.text.trim());
-              final price = double.tryParse(priceCtrl.text.trim());
-              if (name.isNotEmpty && qty != null && qty > 0 && price != null && price > 0) {
-                // Create a new CartItem with updated values
-                _cart[idx] = CartItem(
-                  productId: item.productId,
-                  name: name,
-                  price: price,
-                  quantity: qty,
-                  taxName: item.taxName,
-                  taxPercentage: item.taxPercentage,
-                  taxType: item.taxType,
-                );
-                widget.onCartChanged?.call(_cart);
-                setState(() {});
-                Navigator.pop(ctx);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(context.tr('update'), style: const TextStyle(color: kWhite)),
-          ),
-        ],
-      ),
-    );
   }
 
   void _openScanner() async {
@@ -665,33 +596,47 @@ class _SaleAllPageState extends State<SaleAllPage> {
           itemCount: _categories.length,
           itemBuilder: (context, index) {
             final cat = _categories[index];
-            final isSelected = _selectedCategory == (cat == 'All' ? context.tr('all') : cat);
+            final isSelected = _selectedCategory == (cat == 'All' ? context.tr('all') : cat) || (_showFavoritesOnly && cat == 'Favorite');
+            final isLowStock = cat == 'Low Stock';
+
             return GestureDetector(
-              onTap: () => setState(() => _selectedCategory = (cat == 'All' ? context.tr('all') : cat)),
+              onTap: () {
+                if (cat == 'Favorite') {
+                  setState(() {
+                    _showFavoritesOnly = true;
+                    _selectedCategory = cat;
+                  });
+                } else {
+                  setState(() {
+                    _showFavoritesOnly = false;
+                    _selectedCategory = (cat == 'All' ? context.tr('all') : cat);
+                  });
+                }
+              },
               child: Container(
                 margin: const EdgeInsets.only(right: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 18),
                 decoration: BoxDecoration(
-                  color: isSelected ? kPrimaryColor : kWhite,
+                  color: isSelected ? (isLowStock ? kOrange : kPrimaryColor) : kWhite,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
-                  boxShadow: isSelected ? [BoxShadow(color: kPrimaryColor.withAlpha((0.2 * 255).toInt()), blurRadius: 6, offset: const Offset(0, 3))] : null,
+                  border: Border.all(color: isSelected ? (isLowStock ? kOrange : kPrimaryColor) : kGrey200),
+                  boxShadow: isSelected ? [BoxShadow(color: (isLowStock ? kOrange : kPrimaryColor).withAlpha((0.2 * 255).toInt()), blurRadius: 6, offset: const Offset(0, 3))] : null,
                 ),
                 child: Center(
                   child: cat == 'Favorite'
                       ? Icon(
-                    Icons.favorite,
-                    size: 18,
-                    color: isSelected ? kWhite : kPrimaryColor,
-                  )
+                          Icons.favorite,
+                          size: 18,
+                          color: isSelected ? kWhite : kPrimaryColor,
+                        )
                       : Text(
-                    cat,
-                    style: TextStyle(
-                      color: isSelected ? kWhite : kBlack54,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
+                          cat,
+                          style: TextStyle(
+                            color: isSelected ? kWhite : (isLowStock ? kOrange : kBlack54),
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
                 ),
               ),
             );
@@ -713,16 +658,38 @@ class _SaleAllPageState extends State<SaleAllPage> {
           final data = doc.data() as Map<String, dynamic>;
           final name = (data['itemName'] ?? '').toString().toLowerCase();
           final barcode = (data['barcode'] ?? '').toString().toLowerCase();
-          final matchesSearch = name.contains(_query) || barcode.contains(_query);
+          final productCode = (data['productCode'] ?? '').toString().toLowerCase();
+          final matchesSearch = name.contains(_query) || barcode.contains(_query) || productCode.contains(_query);
           if (!matchesSearch) return false;
-          if (_selectedCategory == 'Favorite') return data['isFavorite'] == true;
+
+          if (_showFavoritesOnly) return data['isFavorite'] == true;
+
+          if (_selectedCategory == 'Low Stock') {
+            // Check if product has low stock
+            final stockEnabled = data['stockEnabled'] ?? false;
+            if (!stockEnabled) return false;
+
+            final currentStock = (data['currentStock'] ?? 0.0).toDouble();
+            final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
+            final lowStockAlertType = data['lowStockAlertType'] ?? 'Count';
+
+            if (lowStockAlert <= 0) return false;
+
+            if (lowStockAlertType == 'Count') {
+              return currentStock <= lowStockAlert;
+            } else if (lowStockAlertType == 'Percentage') {
+              return currentStock <= lowStockAlert;
+            }
+            return false;
+          }
+
           if (_selectedCategory == context.tr('all')) return true;
           return (data['category'] ?? 'General').toString() == _selectedCategory;
         }).toList();
 
         if (filtered.isEmpty) return Center(child: Text(context.tr('no_results'), style: const TextStyle(color: kBlack54)));
 
-        // Always show favorite items at the top, regardless of category
+        // Sort favorite products to the top
         filtered.sort((a, b) {
           final dataA = a.data() as Map<String, dynamic>;
           final dataB = b.data() as Map<String, dynamic>;
@@ -806,7 +773,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Rs ${price.toStringAsFixed(0)}",
+                        "${price.toStringAsFixed(0)}",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor),
                       ),
                       const SizedBox(height: 4),
@@ -837,14 +804,4 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
-
-
-
-
-
-
-
-
-
-
 

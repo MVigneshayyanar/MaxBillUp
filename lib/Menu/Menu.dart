@@ -2326,7 +2326,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                         const SizedBox(height: 4),
                         _infoRow(Icons.access_time, timeString),
                         const SizedBox(height: 4),
-                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kGoogleYellow, fontWeight: FontWeight.w600)),
+                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kOrange, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),

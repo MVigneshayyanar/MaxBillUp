@@ -273,8 +273,9 @@ class _LoginPageState extends State<LoginPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
-                        color: kGrey100,
+                        color: kGreyBg,
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: kPrimaryColor, width: 1.5),
                       ),
                       child: DropdownButton<String>(
                         value: langProvider.currentLanguageCode,
@@ -311,6 +312,40 @@ class _LoginPageState extends State<LoginPage> {
       },
     );
   }
+  Widget _buildEmailForm(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _input(
+        _emailCtrl,
+        context.tr('email'),
+        keyboardType: TextInputType.emailAddress,
+      ),
+      const SizedBox(height: 20),
+      _input(
+        _passCtrl,
+        context.tr('password'),
+        obscure: _hidePass,
+        suffix: IconButton(
+          icon: Icon(
+            _hidePass ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+            color: kPrimaryColor,
+            size: 20,
+          ),
+          onPressed: () => setState(() => _hidePass = !_hidePass),
+        ),
+      ),
+      Align(
+        alignment: Alignment.centerRight,
+        child: TextButton(
+          onPressed: _loading ? null : _resetPass,
+          child: TranslatedText(
+            'forgot_password',
+            style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    ],
+  );
 
   Widget _buildHeader(BuildContext context) => Column(
     children: [
@@ -334,6 +369,7 @@ class _LoginPageState extends State<LoginPage> {
     decoration: BoxDecoration(
       color: kGreyBg,
       borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: kPrimaryColor, width: 1.5), // Set border color to kPrimaryColor
     ),
     child: Row(
       children: [
@@ -352,7 +388,9 @@ class _LoginPageState extends State<LoginPage> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 48,
+
         decoration: BoxDecoration(
+
           color: active ? kPrimaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
@@ -367,28 +405,68 @@ class _LoginPageState extends State<LoginPage> {
     ),
   );
 
-  Widget _buildEmailForm(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _label(context.tr('email')),
-      _input(_emailCtrl, context.tr('enter_email'), keyboardType: TextInputType.emailAddress),
-      const SizedBox(height: 20),
-      _label(context.tr('password')),
-      _input(_passCtrl, context.tr('enter_password'),
-          obscure: _hidePass,
-          suffix: IconButton(
-            icon: Icon(_hidePass ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey, size: 20),
-            onPressed: () => setState(() => _hidePass = !_hidePass),
-          )),
-      Align(
-        alignment: Alignment.centerRight,
-        child: TextButton(
-          onPressed: _loading ? null : _resetPass,
-          child: TranslatedText('forgot_password', style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
-        ),
-      ),
-    ],
-  );
+  Widget _input(
+      TextEditingController ctrl,
+      String label, {
+        bool obscure = false,
+        Widget? suffix,
+        TextInputType? keyboardType,
+      }) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, child) {
+        final bool hasText = value.text.isNotEmpty;
+
+        return TextFormField(
+          controller: ctrl,
+          obscureText: obscure,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 16, color: kBlack87),
+          decoration: InputDecoration(
+            labelText: label,
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+
+            labelStyle: TextStyle(
+              color: hasText ? kPrimaryColor : kGrey400,
+              fontSize: 16,
+            ),
+            floatingLabelStyle: const TextStyle(
+              color: kPrimaryColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            suffixIcon: suffix,
+
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: hasText ? kPrimaryColor : kGrey300, // 🔥 key line
+                width: hasText ? 1.5 : 1,
+              ),
+            ),
+
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: kPrimaryColor,
+                width: 1.5,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
 
   Widget _buildGoogleForm(BuildContext context) => Column(
     children: [
@@ -401,8 +479,8 @@ class _LoginPageState extends State<LoginPage> {
         child: OutlinedButton(
           onPressed: _loading ? null : _googleLogin,
           style: OutlinedButton.styleFrom(
-            backgroundColor: kWhite,
-            side: BorderSide(color: kGrey300, width: 1),
+            backgroundColor: kGreyBg,
+            side: BorderSide(color: kPrimaryColor, width: 1),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: Row(
@@ -425,30 +503,7 @@ class _LoginPageState extends State<LoginPage> {
     ],
   );
 
-  Widget _label(String txt) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(txt, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBlack87)),
-  );
 
-  Widget _input(TextEditingController ctrl, String hint, {bool obscure = false, Widget? suffix, TextInputType? keyboardType}) {
-    return TextField(
-      controller: ctrl,
-      obscureText: obscure,
-      keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 16, color: kBlack87),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: kGrey400, fontSize: 16),
-        filled: true,
-        fillColor: const Color(0xFFFAFAFA), // Lighter grey for input fill
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-        suffixIcon: suffix,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-      ),
-    );
-  }
 
   Widget _buildButton(BuildContext context) {
     String txt = _isStaff ? context.tr('login_staff') : "Google Login";

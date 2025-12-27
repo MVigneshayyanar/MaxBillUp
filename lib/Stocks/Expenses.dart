@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
@@ -724,27 +725,70 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController ctrl, IconData icon,
-      {TextInputType keyboardType = TextInputType.text, int lines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextField(
+  Widget _buildInputField(
+      String label,
+      TextEditingController ctrl,
+      IconData icon, {
+        TextInputType keyboardType = TextInputType.text,
+        int lines = 1,
+      }) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+
+        return TextFormField(
           controller: ctrl,
           maxLines: lines,
           keyboardType: keyboardType,
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: _primaryColor, size: 20),
-            filled: true,
-            fillColor: _primaryColor.withOpacity(0.04),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: kBlack87,
           ),
-        ),
-      ],
+          decoration: InputDecoration(
+            labelText: label,
+            floatingLabelBehavior: FloatingLabelBehavior.auto,
+            labelStyle: TextStyle(
+              color: hasText ? kPrimaryColor : kBlack54,
+              fontSize: 15,
+            ),
+            floatingLabelStyle: TextStyle(
+              color: kPrimaryColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            prefixIcon: Icon(
+              icon,
+              color: kPrimaryColor,
+              size: 20,
+            ),
+            filled: true,
+            fillColor: kGreyBg, // your input background
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: hasText ? kPrimaryColor : Colors.transparent,
+                width: hasText ? 1.5 : 1,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: kPrimaryColor,
+                width: 1.5,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
+
 
   Widget _buildDropdownContainer({required Widget child}) {
     return Container(

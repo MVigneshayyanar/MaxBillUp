@@ -26,7 +26,7 @@ class NewSalePage extends StatefulWidget {
 }
 
 class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStateMixin {
-  int _selectedTabIndex = 0;
+  int _selectedTabIndex = 1;
   List<CartItem>? _sharedCartItems;
   String? _loadedSavedOrderId;
 
@@ -427,7 +427,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     final screenHeight = MediaQuery.of(context).size.height;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    _maxCartHeight = screenHeight - topPadding - 130;
+    _maxCartHeight = screenHeight - topPadding - 175;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -449,28 +449,28 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: _selectedTabIndex == 0
-                      ? SaleAllPage(
-                    key: ValueKey('all_$_cartVersion'),
-                    uid: _uid,
-                    userEmail: _userEmail,
-                    onCartChanged: _updateCartItems,
-                    initialCartItems: _sharedCartItems,
-                    savedOrderId: _loadedSavedOrderId,
-                  )
+                      ? SavedOrdersPage(
+                        key: ValueKey('saved_$_cartVersion'),
+                        uid: _uid,
+                        userEmail: _userEmail,
+                      )
                       : _selectedTabIndex == 1
-                      ? QuickSalePage(
-                    key: ValueKey('quick_$_cartVersion'),
-                    uid: _uid,
-                    userEmail: _userEmail,
-                    initialCartItems: _sharedCartItems,
-                    onCartChanged: _updateCartItems,
-                    savedOrderId: _loadedSavedOrderId,
-                  )
-                      : SavedOrdersPage(
-                    key: ValueKey('saved_$_cartVersion'),
-                    uid: _uid,
-                    userEmail: _userEmail,
-                  ),
+                      ? SaleAllPage(
+                        key: ValueKey('all_$_cartVersion'),
+                        uid: _uid,
+                        userEmail: _userEmail,
+                        onCartChanged: _updateCartItems,
+                        initialCartItems: _sharedCartItems,
+                        savedOrderId: _loadedSavedOrderId,
+                      )
+                      : QuickSalePage(
+                        key: ValueKey('quick_$_cartVersion'),
+                        uid: _uid,
+                        userEmail: _userEmail,
+                        initialCartItems: _sharedCartItems,
+                        onCartChanged: _updateCartItems,
+                        savedOrderId: _loadedSavedOrderId,
+                      ),
                 ),
               ),
             ],
@@ -497,12 +497,30 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     return GestureDetector(
       onVerticalDragUpdate: (details) {
         setState(() {
-          _cartHeight = (_cartHeight + details.delta.dy).clamp(_minCartHeight, _maxCartHeight);
+          if (details.delta.dy > 10) {
+            // User pulled down quickly, expand fully
+            _cartHeight = _maxCartHeight;
+          } else if (details.delta.dy < -10) {
+            // User pulled up quickly, collapse to minimum
+            _cartHeight = _minCartHeight;
+          } else {
+            // Normal drag, keep smooth resizing
+            _cartHeight = (_cartHeight + details.delta.dy).clamp(_minCartHeight, _maxCartHeight);
+          }
+        });
+      },
+      onDoubleTap: () {
+        setState(() {
+          if (_cartHeight < _maxCartHeight * 0.95) {
+            _cartHeight = _maxCartHeight;
+          } else {
+            _cartHeight = _minCartHeight;
+          }
         });
       },
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 50),
-        curve: Curves.linear,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
         height: _cartHeight,
         margin: const EdgeInsets.symmetric(horizontal: 12).copyWith(bottom: 20),
         decoration: BoxDecoration(
@@ -516,7 +534,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
-                color: kGoogleYellow,
+                color: Color(0xffffa51f),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: const Row(
@@ -621,3 +639,4 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
   }
 }
+
