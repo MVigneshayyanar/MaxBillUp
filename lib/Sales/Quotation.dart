@@ -17,6 +17,9 @@ class QuotationPage extends StatefulWidget {
   final String? userEmail;
   final List<CartItem> cartItems;
   final double totalAmount;
+  final String? customerPhone;
+  final String? customerName;
+  final String? customerGST;
 
   const QuotationPage({
     super.key,
@@ -24,6 +27,9 @@ class QuotationPage extends StatefulWidget {
     this.userEmail,
     required this.cartItems,
     required this.totalAmount,
+    this.customerPhone,
+    this.customerName,
+    this.customerGST,
   });
 
   @override
@@ -50,6 +56,10 @@ class _QuotationPageState extends State<QuotationPage> {
   void initState() {
     super.initState();
     _uid = widget.uid;
+    // Initialize with passed customer info
+    _selectedCustomerPhone = widget.customerPhone;
+    _selectedCustomerName = widget.customerName;
+    _selectedCustomerGST = widget.customerGST;
     _itemDiscountControllers = List.generate(
       widget.cartItems.length,
           (_) => TextEditingController(),

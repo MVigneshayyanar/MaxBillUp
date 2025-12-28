@@ -144,10 +144,7 @@ class CommonWidgets {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFF2F7CF6).withAlpha((0.5 * 255).toInt()),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFF2F7CF6), width: 1),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha((0.1 * 255).toInt()),

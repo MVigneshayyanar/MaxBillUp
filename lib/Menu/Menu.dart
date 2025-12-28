@@ -840,26 +840,6 @@ class _MenuPageState extends State<MenuPage> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               children: [
                 // Quotation
-                if (_hasPermission('quotation') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.description_outlined, color: Color(0xFF1976D2), size: 24),
-                    ),
-                    context.tr('quotation'),
-                    'Quotation',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-                // Bill History
                 if (_hasPermission('billHistory') || isAdmin) ...[
                   _buildMenuItem(
                     Container(
@@ -878,6 +858,30 @@ class _MenuPageState extends State<MenuPage> {
                     child: Divider(height: 1, thickness: 1, color: kBorderColor),
                   ),
                 ],
+
+
+
+                // Bill History
+                // Customer Management
+                if (_hasPermission('customerManagement') || isAdmin) ...[
+                  _buildMenuItem(
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3E5F5),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.people_outline, color: Color(0xFF7B1FA2), size: 24),
+                    ),
+                    context.tr('customers'),
+                    'Customers',
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
+
 
                 // Credit Notes
                 if (_hasPermission('creditNotes') || isAdmin) ...[
@@ -899,25 +903,7 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                 ],
 
-                // Customer Management
-                if (_hasPermission('customerManagement') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E5F5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.people_outline, color: Color(0xFF7B1FA2), size: 24),
-                    ),
-                    context.tr('customer_management'),
-                    'Customers',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
+
 
                 // Expenses (Expansion Tile)
                 if (_hasPermission('expenses') || isAdmin) ...[
@@ -975,6 +961,24 @@ class _MenuPageState extends State<MenuPage> {
                   ),
                 ],
 
+                if (_hasPermission('quotation') || isAdmin) ...[
+                  _buildMenuItem(
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE3F2FD),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.description_outlined, color: Color(0xFF1976D2), size: 24),
+                    ),
+                    context.tr('quotation'),
+                    'Quotation',
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                  ),
+                ],
                 // Staff Management
                 if (isAdmin || _hasPermission('staffManagement')) ...[
                   _buildMenuItem(
@@ -986,7 +990,7 @@ class _MenuPageState extends State<MenuPage> {
                       ),
                       child: const Icon(Icons.badge_outlined, color: Color(0xFFC2185B), size: 24),
                     ),
-                    context.tr('staffmanagement'),
+                    context.tr('staff_management'),
                     'StaffManagement',
                   ),
                   const Padding(
@@ -994,24 +998,6 @@ class _MenuPageState extends State<MenuPage> {
                     child: Divider(height: 1, thickness: 1, color: kBorderColor),
                   ),
                 ],
-
-                // Knowledge
-                _buildMenuItem(
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.school_rounded, color: Color(0xFFFFA000), size: 24),
-                  ),
-                  'Knowledge',
-                  'Knowledge',
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                ),
 
                 // Video Tutorial
                 _buildMenuItem(
@@ -1023,9 +1009,28 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                     child: const Icon(Icons.ondemand_video_rounded, color: Color(0xFF0288D1), size: 24),
                   ),
-                  'Video Tutorial',
+                  context.tr('video_tutorials'),
                   'VideoTutorial',
                 ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Divider(height: 1, thickness: 1, color: kBorderColor),
+                ),
+
+                // Knowledge
+                _buildMenuItem(
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF8E1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.school_rounded, color: Color(0xFFFFA000), size: 24),
+                  ),
+                  context.tr('knowledge_base'),
+                  'Knowledge',
+                ),
+
               ],
             ),
           ),
@@ -1923,7 +1928,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       // 4. Status Filter
       bool matchesStatus = true;
       if (_statusFilter != 'all') {
-        final isSettled = data.containsKey('paymentMode') && data['paymentMode'] != null;
+        // Check paymentStatus field first, fallback to old logic for backward compatibility
+        final paymentStatus = data['paymentStatus'];
+        final isSettled = paymentStatus != null
+            ? paymentStatus != 'unsettled'
+            : (data.containsKey('paymentMode') && data['paymentMode'] != null);
         final editCount = data['editCount'] ?? 0;
         final isCancelled = data['status'] == 'cancelled';
         final hasReturns = data['hasReturns'] == true;
@@ -2275,8 +2284,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final timeString = time != null ? DateFormat('h:mm a').format(time) : '-';
     final dateString = time != null ? DateFormat('dd MMM, yyyy').format(time) : '-';
 
-    // Status Logic
-    final isSettled = data.containsKey('paymentMode') && data['paymentMode'] != null;
+    // Status Logic - Check paymentStatus field first, fallback to old logic
+    final paymentStatus = data['paymentStatus'];
+    final isSettled = paymentStatus != null
+        ? paymentStatus != 'unsettled'
+        : (data.containsKey('paymentMode') && data['paymentMode'] != null);
     final isCancelled = data['status'] == 'cancelled';
     final editCount = data['editCount'] ?? 0;
     final hasReturns = data['hasReturns'] == true;
@@ -2305,6 +2317,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 totalAmount: totalVal,
                 userEmail: widget.userEmail,
                 savedOrderId: doc.id,
+                existingInvoiceNumber: data['invoiceNumber'], // Pass existing invoice number
+                unsettledSaleId: doc.id, // Pass sale document ID for updating
+                customerPhone: data['customerPhone'],
+                customerName: data['customerName'],
+                customerGST: data['customerGST'],
               ),
             ),
           ).then((_) {

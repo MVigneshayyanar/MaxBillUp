@@ -8,16 +8,20 @@ import 'package:path_provider/path_provider.dart';
 
 import 'Auth/SplashPage.dart';
 import 'firebase_options.dart';
-import 'package:maxbillup/utils/theme_notifier.dart';
-import 'package:maxbillup/utils/language_provider.dart';
-import 'package:maxbillup/utils/plan_provider.dart';
-import 'package:maxbillup/models/sale.dart';
-import 'package:maxbillup/services/sale_sync_service.dart';
-import 'package:maxbillup/services/local_stock_service.dart';
-import 'package:maxbillup/services/direct_notification_service.dart';
+import 'utils/theme_notifier.dart';
+import 'utils/language_provider.dart';
+import 'utils/plan_provider.dart';
+import 'utils/keyboard_helper.dart';
+import 'models/sale.dart';
+import 'services/sale_sync_service.dart';
+import 'services/local_stock_service.dart';
+import 'services/direct_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure keyboard optimizations early
+  KeyboardHelper.configureKeyboardOptimizations();
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -68,6 +72,15 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
+
+    // Set keyboard animation duration to improve responsiveness
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+      ),
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'MAXmybill',
@@ -76,6 +89,17 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.white,
+        // Improve text field performance
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: Color(0xFF2F7CF6),
+        ),
+        // Reduce animations for better keyboard performance
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
@@ -83,23 +107,38 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.black,
+        textSelectionTheme: const TextSelectionThemeData(
+          cursorColor: Color(0xFF2F7CF6),
+        ),
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          },
+        ),
       ),
       themeMode: themeNotifier.themeMode,
       home: const SplashPage(), // Use custom splash page directly
       builder: (context, child) {
         // Lock screen orientation to portrait
-        return OrientationBuilder(
-          builder: (context, orientation) {
-            if (orientation != Orientation.portrait) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                SystemChrome.setPreferredOrientations([
-                  DeviceOrientation.portraitUp,
-                  DeviceOrientation.portraitDown,
-                ]);
-              });
-            }
-            return child!;
-          },
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            // Disable text scaling to improve performance
+            textScaler: const TextScaler.linear(1.0),
+          ),
+          child: OrientationBuilder(
+            builder: (context, orientation) {
+              if (orientation != Orientation.portrait) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  SystemChrome.setPreferredOrientations([
+                    DeviceOrientation.portraitUp,
+                    DeviceOrientation.portraitDown,
+                  ]);
+                });
+              }
+              return child!;
+            },
+          ),
         );
       },
     );

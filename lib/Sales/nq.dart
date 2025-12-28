@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/Sales/Saved.dart';
+import 'package:maxbillup/Sales/Quotation.dart';
 import 'package:maxbillup/Sales/components/sale_app_bar.dart';
+import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
@@ -22,7 +24,7 @@ class NewQuotationPage extends StatefulWidget {
 }
 
 class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerProviderStateMixin {
-  int _selectedTabIndex = 0;
+  int _selectedTabIndex = 1; // Start with View All tab (index 1)
   List<CartItem>? _sharedCartItems;
   bool _isSearchFocused = false; // Track search focus state
 
@@ -36,6 +38,11 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   double _cartHeight = 200;
   final double _minCartHeight = 200;
   double _maxCartHeight = 600;
+
+  // Customer selection state (shared across tabs)
+  String? _selectedCustomerPhone;
+  String? _selectedCustomerName;
+  String? _selectedCustomerGST;
 
   @override
   void initState() {
@@ -77,6 +84,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   void _handleSearchFocusChange(bool isFocused) {
     setState(() {
       _isSearchFocused = isFocused;
+    });
+  }
+
+  // Handle customer selection changes (shared across tabs)
+  void _setSelectedCustomer(String? phone, String? name, String? gst) {
+    setState(() {
+      _selectedCustomerPhone = phone;
+      _selectedCustomerName = name;
+      _selectedCustomerGST = gst;
     });
   }
 
@@ -181,30 +197,169 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
           // Content Area - Show content based on selected tab
           Expanded(
             child: _selectedTabIndex == 0
-                ? SaleAllPage(
-              uid: widget.uid,
-              userEmail: widget.userEmail,
-              onCartChanged: _updateCartItems,
-              initialCartItems: _sharedCartItems,
-              isQuotationMode: true, // Quotation mode enabled
-              onSearchFocusChanged: _handleSearchFocusChange, // Pass callback
-            )
+                ? SavedOrdersPage(
+                    uid: widget.uid,
+                    userEmail: widget.userEmail,
+                  )
                 : _selectedTabIndex == 1
-                ? QuickSalePage(
-              uid: widget.uid,
-              userEmail: widget.userEmail,
-              initialCartItems: _sharedCartItems,
-              onCartChanged: _updateCartItems,
-            )
-                : SavedOrdersPage(
-              uid: widget.uid,
-              userEmail: widget.userEmail,
-            ),
+                    ? SaleAllPage(
+                        uid: widget.uid,
+                        userEmail: widget.userEmail,
+                        onCartChanged: _updateCartItems,
+                        initialCartItems: _sharedCartItems,
+                        isQuotationMode: true, // Quotation mode enabled
+                        onSearchFocusChanged: _handleSearchFocusChange, // Pass callback
+                        customerPhone: _selectedCustomerPhone,
+                        customerName: _selectedCustomerName,
+                        customerGST: _selectedCustomerGST,
+                        onCustomerChanged: _setSelectedCustomer,
+                      )
+                    : QuickSalePage(
+                        uid: widget.uid,
+                        userEmail: widget.userEmail,
+                        initialCartItems: _sharedCartItems,
+                        onCartChanged: _updateCartItems,
+                        isQuotationMode: true, // Enable quotation mode
+                        customerPhone: _selectedCustomerPhone,
+                        customerName: _selectedCustomerName,
+                        customerGST: _selectedCustomerGST,
+                        onCustomerChanged: _setSelectedCustomer,
+                      ),
           ),
         ],
       ),
-      // NO bottom navigation bar for quotation page
+      // Bottom navigation bar with customer and quotation buttons
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            children: [
+              // Customer Button (Left)
+              ElevatedButton(
+                onPressed: _showCustomerSelectionDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                child: Container(
+                  height: 56,
+                  width: 56,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF2F7CF6), width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha((0.1 * 255).toInt()),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    _selectedCustomerName != null && _selectedCustomerName!.isNotEmpty
+                        ? Icons.person
+                        : Icons.person_add_outlined,
+                    color: kPrimaryColor,
+                    size: 26,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Quotation Button (Right) - Expanded to fill remaining space
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _createQuotation,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    '${(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0).toStringAsFixed(0)}  Quotation',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+  }
+
+  // Show customer selection dialog
+  void _showCustomerSelectionDialog() {
+    CommonWidgets.showCustomerSelectionDialog(
+      context: context,
+      onCustomerSelected: (phone, name, gst) {
+        setState(() {
+          _selectedCustomerPhone = phone.isEmpty ? null : phone;
+          _selectedCustomerName = name.isEmpty ? null : name;
+          _selectedCustomerGST = gst;
+        });
+      },
+      selectedCustomerPhone: _selectedCustomerPhone,
+    );
+  }
+
+  // Create quotation from cart items
+  void _createQuotation() {
+    if (_sharedCartItems == null || _sharedCartItems!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please add items to create quotation'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Calculate total
+    final total = _sharedCartItems!.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
+
+    // Navigate to Quotation page
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (_) => QuotationPage(
+          uid: widget.uid,
+          userEmail: widget.userEmail,
+          cartItems: _sharedCartItems!,
+          totalAmount: total,
+          customerPhone: _selectedCustomerPhone,
+          customerName: _selectedCustomerName,
+          customerGST: _selectedCustomerGST,
+        ),
+      ),
+    ).then((_) {
+      // Clear cart after quotation is created
+      setState(() {
+        _sharedCartItems = null;
+      });
+      _updateCartItems([]);
+    });
   }
 
   Widget _buildCartSection(double w) {

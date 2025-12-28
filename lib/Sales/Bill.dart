@@ -39,6 +39,8 @@ class BillPage extends StatefulWidget {
   final String? customerName;
   final String? customerGST;
   final String? quotationId;
+  final String? existingInvoiceNumber; // For reopening unsettled bills
+  final String? unsettledSaleId; // Sale document ID for updating
 
   const BillPage({
     super.key,
@@ -52,6 +54,8 @@ class BillPage extends StatefulWidget {
     this.customerName,
     this.customerGST,
     this.quotationId,
+    this.existingInvoiceNumber,
+    this.unsettledSaleId,
   });
 
   @override
@@ -67,6 +71,8 @@ class _BillPageState extends State<BillPage> {
   String _creditNote = '';
   List<Map<String, dynamic>> _selectedCreditNotes = [];
   double _totalCreditNotesAmount = 0.0;
+  String? _existingInvoiceNumber; // Store existing invoice number
+  String? _unsettledSaleId; // Store unsettled sale ID
 
   @override
   void initState() {
@@ -81,6 +87,9 @@ class _BillPageState extends State<BillPage> {
       _selectedCustomerName = widget.customerName;
       _selectedCustomerGST = widget.customerGST;
     }
+    // Initialize existing invoice number and unsettled sale ID if reopening
+    _existingInvoiceNumber = widget.existingInvoiceNumber;
+    _unsettledSaleId = widget.unsettledSaleId;
   }
 
   // --- CALCULATIONS ---
@@ -391,6 +400,12 @@ class _BillPageState extends State<BillPage> {
 
   // --- NAVIGATION ---
   void _proceedToPayment(String paymentMode) {
+    // Handle "Set later" by generating unsettled invoice directly
+    if (paymentMode == 'Set later') {
+      _generateUnsettledInvoice();
+      return;
+    }
+
     // FIX: Using Navigator.push instead of push to prevent black screen on back
     final route = CupertinoPageRoute(
       builder: (context) => paymentMode == 'Split'
@@ -407,6 +422,8 @@ class _BillPageState extends State<BillPage> {
         savedOrderId: widget.savedOrderId,
         selectedCreditNotes: _selectedCreditNotes,
         quotationId: widget.quotationId,
+        existingInvoiceNumber: _existingInvoiceNumber,
+        unsettledSaleId: _unsettledSaleId,
       )
           : PaymentPage(
         uid: _uid,
@@ -422,9 +439,312 @@ class _BillPageState extends State<BillPage> {
         savedOrderId: widget.savedOrderId,
         selectedCreditNotes: _selectedCreditNotes,
         quotationId: widget.quotationId,
+        existingInvoiceNumber: _existingInvoiceNumber,
+        unsettledSaleId: _unsettledSaleId,
       ),
     );
     Navigator.push(context, route);
+  }
+
+  // Generate unsettled invoice for "Set later" payment
+  Future<void> _generateUnsettledInvoice() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Use existing invoice number if reopening, otherwise generate new one
+      final invoiceNumber = _existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+
+      // Check connectivity
+      bool isOnline = false;
+      try {
+        final connectivityResult = await Connectivity().checkConnectivity().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => [ConnectivityResult.none],
+        );
+        isOnline = !connectivityResult.contains(ConnectivityResult.none);
+      } catch (e) {
+        isOnline = false;
+      }
+
+      // Fetch business details
+      final businessDetails = await _fetchBusinessDetails();
+      final staffName = await _fetchStaffName(_uid);
+      final businessName = businessDetails['businessName'];
+      final businessLocation = businessDetails['location'];
+      final businessPhone = businessDetails['businessPhone'];
+
+      // Calculate tax information
+      final Map<String, double> taxMap = {};
+      for (var item in widget.cartItems) {
+        if (item.taxAmount > 0 && item.taxName != null) {
+          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        }
+      }
+      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+      final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
+        if (item.taxType == 'Price includes Tax') {
+          return sum + (item.basePrice * item.quantity);
+        } else {
+          return sum + item.total;
+        }
+      });
+      final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
+      // Base sale data - marked as unsettled
+      final baseSaleData = {
+        'invoiceNumber': invoiceNumber,
+        'items': widget.cartItems.map((e) => {
+          'productId': e.productId,
+          'name': e.name,
+          'quantity': e.quantity,
+          'price': e.price,
+          'total': e.total
+        }).toList(),
+        'subtotal': _totalWithTax + _discountAmount,
+        'discount': _discountAmount,
+        'total': _finalAmount,
+        'taxes': taxList,
+        'totalTax': totalTax,
+        'paymentMode': 'Set later',
+        'paymentStatus': 'unsettled', // Mark as unsettled
+        'cashReceived': 0.0,
+        'change': 0.0,
+        'creditAmount': 0.0,
+        'customerPhone': _selectedCustomerPhone,
+        'customerName': _selectedCustomerName,
+        'customerGST': _selectedCustomerGST,
+        'creditNote': _creditNote,
+        'date': DateTime.now().toIso8601String(),
+        'staffId': _uid,
+        'staffName': staffName ?? 'Staff',
+        'businessLocation': businessLocation ?? 'Location',
+        'businessPhone': businessPhone ?? '',
+        'businessName': businessName ?? 'Business',
+        'savedOrderId': widget.savedOrderId,
+        'selectedCreditNotes': _selectedCreditNotes,
+        'quotationId': widget.quotationId,
+      };
+
+      if (isOnline) {
+        // Save online - update if reopening unsettled bill, otherwise create new
+        final saleData = {...baseSaleData, 'timestamp': FieldValue.serverTimestamp()};
+
+        if (_unsettledSaleId != null) {
+          // Updating existing unsettled sale - keep same invoice number
+          await FirestoreService().updateDocument('sales', _unsettledSaleId!, saleData).timeout(const Duration(seconds: 10));
+        } else {
+          // Creating new unsettled sale
+          await FirestoreService().addDocument('sales', saleData).timeout(const Duration(seconds: 10));
+        }
+
+        // Only update stock if this is a new unsettled sale (not reopening)
+        if (_unsettledSaleId == null) {
+          await _updateProductStock();
+        }
+
+        // Delete saved order if exists
+        if (widget.savedOrderId != null) {
+          try {
+            await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!).timeout(
+              const Duration(seconds: 5),
+            );
+          } catch (e) {
+            debugPrint('Error deleting saved order: $e');
+          }
+        }
+
+        // Mark credit notes as used
+        if (_selectedCreditNotes.isNotEmpty) {
+          try {
+            await _markCreditNotesAsUsed(invoiceNumber, _selectedCreditNotes).timeout(
+              const Duration(seconds: 5),
+            );
+          } catch (e) {
+            debugPrint('Error marking credit notes: $e');
+          }
+        }
+
+        // Update quotation if exists
+        if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+          try {
+            await FirestoreService().updateDocument('quotations', widget.quotationId!, {
+              'status': 'unsettled',
+              'billed': true,
+              'settledAt': null,
+            }).timeout(const Duration(seconds: 5));
+          } catch (e) {
+            debugPrint('Error updating quotation: $e');
+          }
+        }
+      } else {
+        // Save offline
+        final offlineSaleData = {...baseSaleData, 'timestamp': DateTime.now().toIso8601String()};
+        await _saveOfflineSale(invoiceNumber, offlineSaleData);
+        await _updateProductStockLocally();
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unsettled invoice generated successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+
+        // Navigate to Invoice
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => InvoicePage(
+              uid: _uid,
+              userEmail: widget.userEmail,
+              businessName: businessName ?? 'Business',
+              businessLocation: businessLocation ?? 'Location',
+              businessPhone: businessPhone ?? '',
+              invoiceNumber: invoiceNumber,
+              dateTime: DateTime.now(),
+              items: widget.cartItems.map((e) => {
+                'name': e.name,
+                'quantity': e.quantity,
+                'price': e.price,
+                'total': e.totalWithTax,
+                'taxPercentage': e.taxPercentage ?? 0,
+                'taxAmount': e.taxAmount,
+              }).toList(),
+              subtotal: subtotalAmount,
+              discount: _discountAmount,
+              taxes: taxList,
+              total: totalWithTax - _discountAmount,
+              paymentMode: 'Set later - Unsettled',
+              cashReceived: 0.0,
+              customerName: _selectedCustomerName,
+              customerPhone: _selectedCustomerPhone,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error generating unsettled invoice: $e');
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<Map<String, String?>> _fetchBusinessDetails() async {
+    try {
+      final firestoreService = FirestoreService();
+      final storeDoc = await firestoreService.getCurrentStoreDoc();
+
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        return {
+          'businessName': data?['businessName'] as String?,
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String?,
+          'businessPhone': data?['businessPhone'] as String?,
+        };
+      }
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    } catch (e) {
+      debugPrint('Error fetching business details: $e');
+      return {'businessName': null, 'location': null, 'businessPhone': null};
+    }
+  }
+
+  Future<String?> _fetchStaffName(String uid) async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      final staffName = userDoc.data()?['name'];
+      return staffName;
+    } catch (e) {
+      debugPrint('Error fetching staff name: $e');
+      return null;
+    }
+  }
+
+  Future<void> _updateProductStock() async {
+    try {
+      final localStockService = context.read<LocalStockService>();
+      for (var item in widget.cartItems) {
+        if (item.productId.isNotEmpty) {
+          try {
+            final productRef = await FirestoreService().getStoreCollection('Products');
+            final doc = await productRef.doc(item.productId).get();
+            if (doc.exists) {
+              final data = doc.data() as Map<String, dynamic>;
+              final currentStock = (data['currentStock'] ?? 0.0).toDouble();
+              final newStock = currentStock - item.quantity;
+              await productRef.doc(item.productId).update({'currentStock': newStock});
+              localStockService.cacheStock(item.productId, newStock.toInt());
+            }
+          } catch (e) {
+            debugPrint('Error updating stock for ${item.productId}: $e');
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error updating product stock: $e');
+    }
+  }
+
+  Future<void> _updateProductStockLocally() async {
+    try {
+      final localStockService = context.read<LocalStockService>();
+      for (var cartItem in widget.cartItems) {
+        try {
+          await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity);
+        } catch (e) {
+          debugPrint('Local stock error for ${cartItem.productId}: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('Local stock update error: $e');
+    }
+  }
+
+  Future<void> _saveOfflineSale(String invoiceNumber, Map<String, dynamic> saleData) async {
+    try {
+      final saleSyncService = Provider.of<SaleSyncService>(context, listen: false);
+      final sale = Sale(
+        id: invoiceNumber,
+        data: saleData,
+        isSynced: false,
+      );
+      await saleSyncService.saveSale(sale);
+    } catch (e) {
+      debugPrint('Error saving offline sale: $e');
+    }
+  }
+
+  Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes) async {
+    try {
+      for (var creditNote in selectedCreditNotes) {
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
+          'status': 'Used',
+          'usedInInvoice': invoiceNumber,
+          'usedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      debugPrint('Error marking credit notes as used: $e');
+    }
   }
 
   @override
@@ -680,6 +1000,43 @@ class _BillPageState extends State<BillPage> {
                   ],
                 ),
                 const SizedBox(height: 20),
+
+                // Warning if no customer selected
+                if (_selectedCustomerName == null || _selectedCustomerName!.isEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Select the customer',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _showCustomerDialog,
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text('Select', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
 
                 // Payment Methods
                 Row(
@@ -1088,6 +1445,8 @@ class SplitPaymentPage extends StatefulWidget {
   final String? savedOrderId;
   final List<Map<String, dynamic>> selectedCreditNotes;
   final String? quotationId;
+  final String? existingInvoiceNumber;
+  final String? unsettledSaleId;
 
   const SplitPaymentPage({
     super.key,
@@ -1103,6 +1462,8 @@ class SplitPaymentPage extends StatefulWidget {
     this.savedOrderId,
     this.selectedCreditNotes = const [],
     this.quotationId,
+    this.existingInvoiceNumber,
+    this.unsettledSaleId,
   });
 
   @override
@@ -1316,9 +1677,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-      // Generate sequential invoice number from backend
-      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
-      print('🟢 [SplitPayment] Generated invoice: $invoiceNumber');
+      // Use existing invoice number if settling unsettled bill, otherwise generate new
+      final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+      print('🟢 [SplitPayment] ${widget.existingInvoiceNumber != null ? "Using existing" : "Generated"} invoice: $invoiceNumber');
 
       // Check connectivity with timeout
       bool isOnline = false;
@@ -1399,13 +1760,32 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             );
           }
 
-          await FirestoreService().addDocument('sales', saleData).timeout(
-            const Duration(seconds: 10),
-          );
-
-          await _updateProductStock().timeout(
-            const Duration(seconds: 10),
-          );
+          // Update existing unsettled sale or create new sale
+          if (widget.unsettledSaleId != null) {
+            // Settling an existing unsettled bill - update it to settled
+            final settledSaleData = {
+              ...saleData,
+              'paymentStatus': 'settled', // Mark as settled
+              'paymentMode': 'Split', // Update payment mode
+              'cashReceived_split': _cashAmount,
+              'onlineReceived_split': _onlineAmount,
+              'creditIssued_split': _creditAmount,
+              'settledAt': FieldValue.serverTimestamp(),
+            };
+            await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, settledSaleData).timeout(
+              const Duration(seconds: 10),
+            );
+            // Stock was already deducted when unsettled bill was created, don't deduct again
+          } else {
+            // Creating new sale
+            await FirestoreService().addDocument('sales', saleData).timeout(
+              const Duration(seconds: 10),
+            );
+            // Deduct stock for new sale
+            await _updateProductStock().timeout(
+              const Duration(seconds: 10),
+            );
+          }
 
           if (widget.savedOrderId != null) {
             try {
@@ -1710,6 +2090,8 @@ class PaymentPage extends StatefulWidget {
   final String? savedOrderId;
   final List<Map<String, dynamic>> selectedCreditNotes;
   final String? quotationId;
+  final String? existingInvoiceNumber;
+  final String? unsettledSaleId;
 
   const PaymentPage({
     super.key,
@@ -1726,6 +2108,8 @@ class PaymentPage extends StatefulWidget {
     this.savedOrderId,
     this.selectedCreditNotes = const [],
     this.quotationId,
+    this.existingInvoiceNumber,
+    this.unsettledSaleId,
   });
 
   @override
@@ -1951,9 +2335,9 @@ class _PaymentPageState extends State<PaymentPage> {
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-      // Generate sequential invoice number from backend
-      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
-      print('🔵 [PaymentPage] Generated invoice: $invoiceNumber');
+      // Use existing invoice number if settling unsettled bill, otherwise generate new
+      final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+      print('🔵 [PaymentPage] ${widget.existingInvoiceNumber != null ? "Using existing" : "Generated"} invoice: $invoiceNumber');
 
       // Check connectivity with timeout
       bool isOnline = false;
@@ -2041,15 +2425,36 @@ class _PaymentPageState extends State<PaymentPage> {
             }
           }
 
-          print('🔵 [PaymentPage] Adding sale document...');
-          await FirestoreService().addDocument('sales', saleData).timeout(
-            const Duration(seconds: 10),
-          );
+          print('🔵 [PaymentPage] ${widget.unsettledSaleId != null ? "Updating existing" : "Adding new"} sale document...');
 
-          print('🔵 [PaymentPage] Updating product stock...');
-          await _updateProductStock().timeout(
-            const Duration(seconds: 10),
-          );
+          // Update existing unsettled sale or create new sale
+          if (widget.unsettledSaleId != null) {
+            // Settling an existing unsettled bill - update it to settled
+            final settledSaleData = {
+              ...saleData,
+              'paymentStatus': 'settled', // Mark as settled
+              'paymentMode': widget.paymentMode, // Update payment mode
+              'cashReceived': amountReceived,
+              'change': changeGiven,
+              'creditAmount': creditAmount,
+              'settledAt': FieldValue.serverTimestamp(),
+            };
+            await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, settledSaleData).timeout(
+              const Duration(seconds: 10),
+            );
+            // Stock was already deducted when unsettled bill was created, don't deduct again
+            print('🔵 [PaymentPage] Existing sale updated, skipping stock update');
+          } else {
+            // Creating new sale
+            await FirestoreService().addDocument('sales', saleData).timeout(
+              const Duration(seconds: 10),
+            );
+            // Deduct stock for new sale
+            print('🔵 [PaymentPage] Updating product stock...');
+            await _updateProductStock().timeout(
+              const Duration(seconds: 10),
+            );
+          }
 
           if (widget.savedOrderId != null) {
             try {
@@ -2358,3 +2763,4 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 }
+
