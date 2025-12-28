@@ -136,21 +136,16 @@ class CommonWidgets {
   }
 
   static Widget _buildCustomerButton(VoidCallback onTap, String? customerName) {
-    final hasCustomer = customerName != null && customerName.isNotEmpty;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 56,
-        padding: EdgeInsets.symmetric(horizontal: hasCustomer ? 12 : 0),
-        constraints: BoxConstraints(
-          minWidth: 56,
-          maxWidth: hasCustomer ? 150 : 56,
-        ),
+        width: 56,
         decoration: BoxDecoration(
-          color: hasCustomer ? const Color(0xFF2F7CF6).withAlpha((0.1 * 255).toInt()) : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: hasCustomer ? const Color(0xFF2F7CF6) : const Color(0xFF2F7CF6).withAlpha((0.5 * 255).toInt()),
+            color: const Color(0xFF2F7CF6).withAlpha((0.5 * 255).toInt()),
             width: 1,
           ),
           boxShadow: [
@@ -161,31 +156,10 @@ class CommonWidgets {
             ),
           ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              hasCustomer ? Icons.person : Icons.person_add_outlined,
-              color: const Color(0xFF2F7CF6),
-              size: 26,
-            ),
-            if (hasCustomer) ...[
-              const SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  customerName,
-                  style: const TextStyle(
-                    color: Color(0xFF2F7CF6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ],
+        child: Icon(
+          customerName != null && customerName.isNotEmpty ? Icons.person : Icons.person_add_outlined,
+          color: const Color(0xFF2F7CF6),
+          size: 26,
         ),
       ),
     );
@@ -373,6 +347,7 @@ class CommonWidgets {
   static void showCustomerSelectionDialog({
     required BuildContext context,
     required Function(String phone, String name, String? gst) onCustomerSelected,
+    String? selectedCustomerPhone,
   }) {
     final searchController = TextEditingController();
     String searchQuery = '';
@@ -425,6 +400,16 @@ class CommonWidgets {
                     ],
                   ),
                   const SizedBox(height: 10),
+                  // Unselect option
+                  if (selectedCustomerPhone != null)
+                    ListTile(
+                      leading: const Icon(Icons.clear, color: Colors.red),
+                      title: const Text('Unselect Customer', style: TextStyle(color: Colors.red)),
+                      onTap: () {
+                        onCustomerSelected('', '', null);
+                        Navigator.pop(ctx);
+                      },
+                    ),
                   Expanded(
                     child: FutureBuilder<Stream<QuerySnapshot>>(
                       future: FirestoreService().getCollectionStream('customers'),
@@ -448,6 +433,7 @@ class CommonWidgets {
                               separatorBuilder: (ctx, i) => const Divider(),
                               itemBuilder: (context, index) {
                                 final data = customers[index].data() as Map<String, dynamic>;
+                                final isSelected = selectedCustomerPhone != null && data['phone'] == selectedCustomerPhone;
                                 return ListTile(
                                   onTap: () {
                                     onCustomerSelected(data['phone'], data['name'], data['gst']);
@@ -455,13 +441,25 @@ class CommonWidgets {
                                   },
                                   title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
                                   subtitle: Text(data['phone'] ?? ''),
-                                  trailing: Text(
-                                    'Bal: ${(data['balance'] ?? 0).toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: (data['balance'] ?? 0) > 0 ? Colors.red : Colors.green
-                                    ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Bal: 	${(data['balance'] ?? 0).toStringAsFixed(2)}',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: (data['balance'] ?? 0) > 0 ? Colors.red : Colors.green
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Padding(
+                                          padding: EdgeInsets.only(left: 8.0),
+                                          child: Icon(Icons.check_circle, color: kPrimaryColor),
+                                        ),
+                                    ],
                                   ),
+                                  selected: isSelected,
+                                  selectedTileColor: kPrimaryColor.withAlpha(20),
                                 );
                               },
                             );

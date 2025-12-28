@@ -47,6 +47,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   final double _minCartHeight = 200;
   double _maxCartHeight = 600;
 
+  String? _selectedCustomerPhone;
+  String? _selectedCustomerName;
+  String? _selectedCustomerGST;
+
   @override
   void initState() {
     super.initState();
@@ -428,6 +432,14 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
   }
 
+  void _setSelectedCustomer(String? phone, String? name, String? gst) {
+    setState(() {
+      _selectedCustomerPhone = phone;
+      _selectedCustomerName = name;
+      _selectedCustomerGST = gst;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -470,6 +482,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         initialCartItems: _sharedCartItems,
                         savedOrderId: _loadedSavedOrderId,
                         onSearchFocusChanged: _handleSearchFocusChange,
+                        customerPhone: _selectedCustomerPhone,
+                        customerName: _selectedCustomerName,
+                        customerGST: _selectedCustomerGST,
+                        onCustomerChanged: _setSelectedCustomer,
                       )
                       : QuickSalePage(
                         key: ValueKey('quick_$_cartVersion'),
@@ -478,6 +494,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         initialCartItems: _sharedCartItems,
                         onCartChanged: _updateCartItems,
                         savedOrderId: _loadedSavedOrderId,
+                        customerPhone: _selectedCustomerPhone,
+                        customerName: _selectedCustomerName,
+                        customerGST: _selectedCustomerGST,
+                        onCustomerChanged: _setSelectedCustomer,
                       ),
                 ),
               ),

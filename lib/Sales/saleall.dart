@@ -26,6 +26,10 @@ class SaleAllPage extends StatefulWidget {
   final String? savedOrderId;
   final bool isQuotationMode;
   final Function(bool)? onSearchFocusChanged; // Callback to notify parent when search focus changes
+  final String? customerPhone;
+  final String? customerName;
+  final String? customerGST;
+  final void Function(String?, String?, String?)? onCustomerChanged;
 
   const SaleAllPage({
     super.key,
@@ -37,6 +41,10 @@ class SaleAllPage extends StatefulWidget {
     this.savedOrderId,
     this.isQuotationMode = false,
     this.onSearchFocusChanged,
+    this.customerPhone,
+    this.customerName,
+    this.customerGST,
+    this.onCustomerChanged,
   });
 
   @override
@@ -70,7 +78,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
       setState(() {
         _isSearchFocused = _searchFocusNode.hasFocus;
       });
-      // Notify parent about search focus change
       widget.onSearchFocusChanged?.call(_searchFocusNode.hasFocus);
     });
     _initializeProductsStream();
@@ -81,6 +88,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
       _loadOrder(widget.savedOrderData!);
     }
 
+    // Sync local customer state with parent
+    _selectedCustomerPhone = widget.customerPhone;
+    _selectedCustomerName = widget.customerName;
+    _selectedCustomerGST = widget.customerGST;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -89,7 +101,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
       }
     });
   }
-
 
   @override
   void didUpdateWidget(SaleAllPage oldWidget) {
@@ -102,6 +113,16 @@ class _SaleAllPageState extends State<SaleAllPage> {
           _cart.addAll(widget.initialCartItems!);
         });
       }
+    }
+    // Sync local customer state with parent on update
+    if (widget.customerPhone != oldWidget.customerPhone ||
+        widget.customerName != oldWidget.customerName ||
+        widget.customerGST != oldWidget.customerGST) {
+      setState(() {
+        _selectedCustomerPhone = widget.customerPhone;
+        _selectedCustomerName = widget.customerName;
+        _selectedCustomerGST = widget.customerGST;
+      });
     }
   }
 
@@ -546,7 +567,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     _selectedCustomerName = name;
                     _selectedCustomerGST = gst;
                   });
+                  // Notify parent about customer selection
+                  widget.onCustomerChanged?.call(phone, name, gst);
                 },
+                selectedCustomerPhone: _selectedCustomerPhone,
               );
             },
             customerName: _selectedCustomerName,
@@ -843,4 +867,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 }
+
+
+
+
+
+
+
+
 
