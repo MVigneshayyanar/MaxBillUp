@@ -122,7 +122,7 @@ class PermissionHelper {
 
       // Check if user is the store owner
       final storeDoc = await FirebaseFirestore.instance
-          .collection('stores')
+          .collection('store')  // FIXED: Changed from 'stores' to 'store'
           .doc(storeId)
           .get();
 
@@ -150,7 +150,7 @@ class PermissionHelper {
 
       // Get staff document
       final staffDoc = await FirebaseFirestore.instance
-          .collection('stores')
+          .collection('store')  // FIXED: Changed from 'stores' to 'store'
           .doc(storeId)
           .collection('staff')
           .doc(currentUser.uid)

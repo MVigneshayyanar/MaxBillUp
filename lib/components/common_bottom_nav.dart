@@ -112,7 +112,7 @@ class CommonBottomNav extends StatelessWidget {
               child: Icon(
                 icon,
                 color: isSelected ? const Color(0xFF2F7CF6) : Colors.black45, // Lighter unselected icon
-                size: 28,
+                size: 25,
               ),
             ),
             const SizedBox(height: 4),
@@ -120,7 +120,7 @@ class CommonBottomNav extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: 15,
                 fontFamily: 'Inter',
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? const Color(0xFF2F7CF6) : Colors.black38, // Lighter unselected text

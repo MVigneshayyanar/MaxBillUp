@@ -20,7 +20,7 @@ import 'package:maxbillup/Stocks/Expenses.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart';
 import 'package:maxbillup/Reports/Reports.dart';
 import 'package:maxbillup/Stocks/Stock.dart';
-import 'package:maxbillup/Settings/Profile.dart';
+import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg;
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -3296,7 +3296,7 @@ class SalesDetailPage extends StatelessWidget {
 
       if (storeId != null) {
         final storeDoc = await FirebaseFirestore.instance
-            .collection('stores')
+            .collection('store')  // FIXED: Changed from 'stores' to 'store'
             .doc(storeId)
             .get();
         if (storeDoc.exists) {

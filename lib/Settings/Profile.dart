@@ -4,11 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
 
 // Imports from your project structure
 import 'package:maxbillup/components/common_bottom_nav.dart';
@@ -25,6 +29,11 @@ import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 // CONSTANTS & STYLES (MATCHED TO REPORT UI)
 // ==========================================
 const Color kPrimaryColor = Color(0xFF2F7CF6);
+const Color kBlack87 = Color(0xDD000000);
+const Color kBlack54 = Color(0x8A000000);
+const Color kGreyBg = Color(0xFFF5F5F5);
+const Color kGrey300 = Color(0xFFE0E0E0);
+const Color kErrorColor = Colors.red;
 final Color kBgColor = const Color(0xFFF9FAFC);// Unified White Background
 const Color kSurfaceColor = Colors.white;      // Card/Container White
 const Color kInputFillColor = Color(0xFFF0F8FF); // Light Blue Tint
@@ -185,44 +194,44 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _navigateTo('PrinterSetup'),
             subtitle: "Bluetooth printers",
           ),
-          _buildModernTile(
-            title: context.tr('feature_settings'),
-            icon: Icons.tune_rounded,
-            color: kColorFeatures,
-            onTap: () => _navigateTo('FeatureSettings'),
-            subtitle: "App preferences",
-          ),
-          _buildModernTile(
-            title: context.tr('choose_language'),
-            icon: Icons.language_rounded,
-            color: kColorLanguage,
-            onTap: () => _navigateTo('Language'),
-            subtitle: "Change app language",
-          ),
+          // _buildModernTile(
+          //   title: context.tr('feature_settings'),
+          //   icon: Icons.tune_rounded,
+          //   color: kColorFeatures,
+          //   onTap: () => _navigateTo('FeatureSettings'),
+          //   subtitle: "App preferences",
+          // ),
+          // _buildModernTile(
+          //   title: context.tr('choose_language'),
+          //   icon: Icons.language_rounded,
+          //   color: kColorLanguage,
+          //   onTap: () => _navigateTo('Language'),
+          //   subtitle: "Change app language",
+          // ),
 
-          const SizedBox(height: 24),
-          _buildSectionTitle(context.tr('help')),
-          _buildModernTile(
-            title: context.tr('help'),
-            icon: Icons.help_outline_rounded,
-            color: kColorHelp,
-            onTap: () => _navigateTo('Help'),
-            subtitle: "FAQs & Support",
-          ),
-          _buildModernTile(
-            title: "Market Place",
-            icon: Icons.storefront_rounded,
-            color: kColorMarket,
-            onTap: () {},
-            subtitle: "Explore addons",
-          ),
-          _buildModernTile(
-            title: "Refer A Friend",
-            icon: Icons.share_rounded,
-            color: kColorRefer,
-            onTap: () {},
-            subtitle: "Invite & Earn",
-          ),
+          // const SizedBox(height: 24),
+          // _buildSectionTitle(context.tr('help')),
+          // _buildModernTile(
+          //   title: context.tr('help'),
+          //   icon: Icons.help_outline_rounded,
+          //   color: kColorHelp,
+          //   onTap: () => _navigateTo('Help'),
+          //   subtitle: "FAQs & Support",
+          // ),
+          // _buildModernTile(
+          //   title: "Market Place",
+          //   icon: Icons.storefront_rounded,
+          //   color: kColorMarket,
+          //   onTap: () {},
+          //   subtitle: "Explore addons",
+          // ),
+          // _buildModernTile(
+          //   title: "Refer A Friend",
+          //   icon: Icons.share_rounded,
+          //   color: kColorRefer,
+          //   onTap: () {},
+          //   subtitle: "Invite & Earn",
+          // ),
 
           const SizedBox(height: 24),
           const Center(child: Text('Version 1.0.0', style: TextStyle(color: Colors.grey, fontSize: 12))),
@@ -444,6 +453,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   bool _editing = false;
   bool _loading = false;
   bool _fetching = true;
+  String? _logoUrl;
+  File? _selectedImage;
+  bool _uploadingImage = false;
 
   @override
   void initState() {
@@ -471,11 +483,29 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
       if (store != null && store.exists) {
         final data = store.data() as Map<String, dynamic>;
-        _nameCtrl.text = data['businessName'] ?? '';
-        _phoneCtrl.text = data['businessPhone'] ?? '';
-        _gstCtrl.text = data['gstin'] ?? '';
-        _locCtrl.text = data['businessLocation'] ?? '';
-        _ownerCtrl.text = data['ownerName'] ?? '';
+        final logoUrl = data['logoUrl'];
+        debugPrint('Loading business data - logoUrl: $logoUrl'); // Debug logging
+
+        if (mounted) {
+          setState(() {
+            _nameCtrl.text = data['businessName'] ?? '';
+            _phoneCtrl.text = data['businessPhone'] ?? '';
+            _gstCtrl.text = data['gstin'] ?? '';
+            _locCtrl.text = data['businessLocation'] ?? '';
+            _ownerCtrl.text = data['ownerName'] ?? '';
+            _logoUrl = logoUrl; // This will properly update the UI
+          });
+
+          // Clear image cache if logo URL exists to ensure fresh display
+          if (logoUrl != null && logoUrl.toString().isNotEmpty) {
+            try {
+              await precacheImage(NetworkImage(logoUrl), context);
+              debugPrint('Logo precached successfully');
+            } catch (e) {
+              debugPrint('Failed to precache logo: $e');
+            }
+          }
+        }
       }
 
       if (user.exists) {
@@ -493,6 +523,100 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     }
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+        await _uploadImage();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _uploadImage() async {
+    if (_selectedImage == null) return;
+
+    setState(() => _uploadingImage = true);
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) {
+        throw Exception('Store ID not found - user may not be properly configured');
+      }
+
+      debugPrint('Uploading logo for store: $storeId');
+
+      // Upload to Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('store_logos')
+          .child('$storeId.jpg');
+
+      final uploadTask = await storageRef.putFile(_selectedImage!);
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      debugPrint('Logo uploaded successfully. URL: $downloadUrl');
+
+      // IMPORTANT: Use 'store' collection (singular) to match getCurrentStoreDoc()
+      final docRef = FirebaseFirestore.instance.collection('store').doc(storeId);
+
+      await docRef.set({
+        'logoUrl': downloadUrl,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      debugPrint('Logo URL saved to Firestore at store/$storeId');
+
+      // Verify it was saved by reading it back
+      final verifyDoc = await docRef.get();
+      final savedUrl = verifyDoc.data()?['logoUrl'];
+      debugPrint('Verification: Logo URL in Firestore = $savedUrl');
+
+      setState(() {
+        _logoUrl = downloadUrl;
+        _selectedImage = null;
+      });
+
+      // CRITICAL: Notify all parts of the app that store data changed
+      // This will instantly update the logo everywhere (invoices, etc.)
+      await FirestoreService().notifyStoreDataChanged();
+      debugPrint('Store data change notification sent - logo should update everywhere');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Logo uploaded successfully!'), backgroundColor: Colors.green),
+        );
+
+        // Reload data to confirm the logo was saved properly
+        await Future.delayed(const Duration(milliseconds: 500));
+        await _loadData();
+      }
+    } catch (e) {
+      debugPrint('Error uploading logo: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Upload failed: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _uploadingImage = false);
+    }
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -500,15 +624,31 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId != null) {
-        // Use set with merge to create or update the document
-        await FirebaseFirestore.instance.collection('store').doc(storeId).set({
+        // Build update data - always preserve logoUrl if it exists
+        final Map<String, dynamic> updateData = {
           'businessName': _nameCtrl.text.trim(),
           'businessPhone': _phoneCtrl.text.trim(),
           'gstin': _gstCtrl.text.trim(),
           'businessLocation': _locCtrl.text.trim(),
           'ownerName': _ownerCtrl.text.trim(),
           'updatedAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        };
+
+        // Always include logoUrl if it exists (don't let it get cleared)
+        if (_logoUrl != null && _logoUrl!.isNotEmpty) {
+          updateData['logoUrl'] = _logoUrl;
+          debugPrint('Saving with logoUrl: $_logoUrl');
+        } else {
+          debugPrint('Warning: logoUrl is null or empty during save');
+        }
+
+        // Use 'store' collection (singular) to match the rest of the app
+        await FirebaseFirestore.instance.collection('store').doc(storeId).set(
+          updateData,
+          SetOptions(merge: true),
+        );
+
+        debugPrint('Profile saved successfully to store/$storeId');
 
         // Also update user profile - use set with merge to avoid not-found error
         await FirebaseFirestore.instance.collection('users').doc(widget.uid).set({
@@ -527,6 +667,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         throw Exception("Store configuration not found");
       }
     } catch (e) {
+      debugPrint('Error saving profile: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text("Failed to save: $e"), backgroundColor: kDangerColor)
@@ -551,6 +692,12 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         actions: [
           if (!_fetching)
             IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              onPressed: _loadData,
+              tooltip: 'Refresh',
+            ),
+          if (!_fetching)
+            IconButton(
               icon: Icon(_editing ? Icons.check : Icons.edit, color: Colors.white),
               onPressed: () {
                 if (_editing) {
@@ -572,42 +719,99 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               key: _formKey,
               child: Column(
                 children: [
+                  // Logo/Profile Image Section
+                  Center(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: kPrimaryColor, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: kPrimaryColor.withOpacity(0.2),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: ClipOval(
+                            child: _selectedImage != null
+                                ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                                : _logoUrl != null && _logoUrl!.isNotEmpty
+                                    ? Image.network(
+                                        _logoUrl!,
+                                        key: ValueKey(_logoUrl), // Force rebuild when URL changes
+                                        fit: BoxFit.cover,
+                                        loadingBuilder: (context, child, loadingProgress) {
+                                          if (loadingProgress == null) return child;
+                                          return const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2));
+                                        },
+                                        errorBuilder: (context, error, stackTrace) {
+                                          debugPrint('Error loading logo image: $error');
+                                          return const Icon(Icons.store, size: 50, color: kPrimaryColor);
+                                        },
+                                      )
+                                    : const Icon(Icons.store, size: 50, color: kPrimaryColor),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: (_uploadingImage || !_editing) ? null : _pickImage, // Only allow in edit mode
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: _editing ? kPrimaryColor : Colors.grey, // Gray when disabled
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: _uploadingImage
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(8.0),
+                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                    )
+                                  : Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _editing ? "Tap camera icon to upload logo" : "Enable edit mode to change logo",
+                    style: TextStyle(
+                      color: _editing ? kPrimaryColor : Colors.grey,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
                   // Business Info Section
                   _buildSectionHeader("Business Information"),
                   const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      children: [
-                        _buildModernField("Business Name", _nameCtrl, Icons.store, enabled: _editing),
-                        const Divider(height: 1, indent: 48),
-                        _buildLocationField(),
-                        const Divider(height: 1, indent: 48),
-                        _buildModernField("GSTIN", _gstCtrl, Icons.receipt_long, enabled: _editing, hint: "Optional"),
-                      ],
-                    ),
-                  ),
+                  _buildModernField("Business Name", _nameCtrl, Icons.store, enabled: _editing),
+                  _buildLocationField(),
+                  _buildModernField("GSTIN", _gstCtrl, Icons.receipt_long, enabled: _editing, hint: "Optional"),
 
                   const SizedBox(height: 24),
 
                   // Contact Info Section
                   _buildSectionHeader("Contact Details"),
                   const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: kBorderColor)),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      children: [
-                        _buildModernField("Owner Name", _ownerCtrl, Icons.person, enabled: _editing),
-                        const Divider(height: 1, indent: 48),
-                        _buildModernField("Phone Number", _phoneCtrl, Icons.phone, enabled: _editing, type: TextInputType.phone),
-                        const Divider(height: 1, indent: 48),
-                        _buildModernField("Email Address", _emailCtrl, Icons.email, enabled: false, hint: "Read-only"),
-                      ],
-                    ),
-                  ),
+                  _buildModernField("Owner Name", _ownerCtrl, Icons.person, enabled: _editing),
+                  _buildModernField("Phone Number", _phoneCtrl, Icons.phone, enabled: _editing, type: TextInputType.phone),
+                  _buildModernField("Email Address", _emailCtrl, Icons.email, enabled: false, hint: "Read-only"),
                 ],
               ),
             ),
@@ -633,21 +837,83 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, String? hint}) {
+    final hasText = ctrl.text.isNotEmpty;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
         controller: ctrl,
         enabled: enabled,
         keyboardType: type,
-        style: TextStyle(fontWeight: FontWeight.w600, color: enabled ? kTextPrimary : Colors.grey[600]),
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+          color: kBlack87,
+        ),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          labelStyle: TextStyle(
+            color: hasText ? kPrimaryColor : kBlack54,
+            fontSize: 15,
+          ),
+          floatingLabelStyle: const TextStyle(
+            color: kPrimaryColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
           hintText: hint,
-          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : Colors.grey[400], size: 22),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-          isDense: true,
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+
+          filled: true,
+          fillColor: enabled ? kGreyBg : Colors.grey[100],
+
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+
+          prefixIcon: Icon(
+            icon,
+            size: 20,
+            color: enabled ? kPrimaryColor : Colors.grey[400],
+          ),
+
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: hasText ? kPrimaryColor : kGrey300,
+              width: hasText ? 1.5 : 1,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: kPrimaryColor,
+              width: 1.5,
+            ),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: Colors.grey[300]!,
+              width: 1,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: kErrorColor,
+              width: 1,
+            ),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: kErrorColor,
+              width: 1.5,
+            ),
+          ),
         ),
         validator: (val) {
           if (enabled && label != "GSTIN" && (val == null || val.trim().isEmpty)) {
@@ -660,6 +926,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Widget _buildLocationField() {
+    final hasText = _locCtrl.text.isNotEmpty;
+
     if (!_editing) {
       // When not editing, show as regular text field
       return _buildModernField("Location", _locCtrl, Icons.location_on, enabled: false);
@@ -667,38 +935,60 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
     // When editing, show Google Places autocomplete
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.only(bottom: 16),
       child: GooglePlaceAutoCompleteTextField(
         textEditingController: _locCtrl,
         focusNode: _locationFocusNode,
         googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
         inputDecoration: InputDecoration(
           labelText: "Location",
-          labelStyle: TextStyle(color: Colors.grey[500], fontSize: 13),
-          hintText: "Search for business location",
-          prefixIcon: Icon(Icons.location_on, color: kPrimaryColor, size: 22),
-          filled: true,
-          fillColor: const Color(0xFFF5F5F5),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
+          floatingLabelBehavior: FloatingLabelBehavior.auto,
+          labelStyle: TextStyle(
+            color: hasText ? kPrimaryColor : kBlack54,
+            fontSize: 15,
           ),
+          floatingLabelStyle: const TextStyle(
+            color: kPrimaryColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+          hintText: "Search for business location",
+          hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+
+          prefixIcon: const Icon(Icons.location_on, color: kPrimaryColor, size: 20),
+
+          filled: true,
+          fillColor: kGreyBg,
+
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide.none,
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: hasText ? kPrimaryColor : kGrey300,
+              width: hasText ? 1.5 : 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: kPrimaryColor,
+              width: 1.5,
+            ),
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+              color: kErrorColor,
+              width: 1,
+            ),
+          ),
         ),
         debounceTime: 600,
         countries: const ["in"], // Focus on India for better suggestions
         isLatLngRequired: false,
         getPlaceDetailWithLatLng: (prediction) {
           _locCtrl.text = prediction.description ?? '';
-          // Close keyboard after selection
           FocusScope.of(context).unfocus();
         },
         itemClick: (prediction) {
@@ -706,7 +996,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           _locCtrl.selection = TextSelection.fromPosition(
             TextPosition(offset: _locCtrl.text.length),
           );
-          // Close keyboard after selection
           FocusScope.of(context).unfocus();
         },
       ),
@@ -940,11 +1229,56 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _showPhone = true;
   bool _showGST = true;
   bool _canUseLogo = false;
+  bool _saving = false;
+  int _selectedTemplateIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _loadSettings();
     _checkLogoPermission();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _showLogo = prefs.getBool('receipt_show_logo') ?? true;
+        _showEmail = prefs.getBool('receipt_show_email') ?? false;
+        _showPhone = prefs.getBool('receipt_show_phone') ?? true;
+        _showGST = prefs.getBool('receipt_show_gst') ?? true;
+        _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0;
+      });
+    } catch (e) {
+      debugPrint('Error loading receipt settings: $e');
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    setState(() => _saving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('receipt_show_logo', _showLogo);
+      await prefs.setBool('receipt_show_email', _showEmail);
+      await prefs.setBool('receipt_show_phone', _showPhone);
+      await prefs.setBool('receipt_show_gst', _showGST);
+      await prefs.setInt('invoice_template', _selectedTemplateIndex);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invoice settings saved!'), backgroundColor: Colors.green),
+        );
+        widget.onBack();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _saving = false);
+    }
   }
 
   Future<void> _checkLogoPermission() async {
@@ -952,7 +1286,6 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     if (mounted) {
       setState(() {
         _canUseLogo = canUseLogo;
-        // If user can't use logo, disable it
         if (!_canUseLogo) {
           _showLogo = false;
         }
@@ -964,10 +1297,215 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("Customize Invoice", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack)),
+      appBar: AppBar(
+        title: const Text("Invoice Customization", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Template Selection
+          _buildCard("Choose Invoice Template", [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Select a template design for your invoices", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                  const SizedBox(height: 16),
+                  _buildTemplateOption(0, "Classic Professional", "Traditional black & white layout", Icons.article_outlined, Colors.black),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(1, "Modern Business", "Clean modern design with blue accents", Icons.receipt_long, const Color(0xFF2F7CF6)),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(2, "Compact Invoice", "Space-efficient layout", Icons.description_outlined, const Color(0xFF37474F)),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(3, "Detailed Statement", "Comprehensive layout with extra details", Icons.summarize, const Color(0xFF6A1B9A)),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
+
+          // Header Information
+          _buildCard("Header Information", [
+            _SwitchTile(
+              "Show Logo",
+              _showLogo,
+              (v) {
+                if (!_canUseLogo) {
+                  PlanPermissionHelper.showUpgradeDialog(context, 'Logo on Bill');
+                  return;
+                }
+                setState(() => _showLogo = v);
+              },
+              subtitle: _canUseLogo ? null : "Upgrade to use logo",
+            ),
+            _SwitchTile("Show Email", _showEmail, (v) => setState(() => _showEmail = v)),
+            _SwitchTile("Show Phone", _showPhone, (v) => setState(() => _showPhone = v)),
+            _SwitchTile("Show GSTIN", _showGST, (v) => setState(() => _showGST = v), showDivider: false),
+          ]),
+          const SizedBox(height: 24),
+          _PrimaryButton(
+            text: _saving ? "Saving..." : "Save Preferences",
+            onTap: _saving ? () {} : _saveSettings,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTemplateOption(int index, String title, String description, IconData icon, Color color) {
+    final isSelected = _selectedTemplateIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTemplateIndex = index),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.05) : Colors.grey[50],
+          border: Border.all(color: isSelected ? color : Colors.grey[300]!, width: isSelected ? 2 : 1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: color, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: 32),
+                  if (isSelected) Padding(padding: const EdgeInsets.only(top: 4), child: Icon(Icons.check_circle, color: color, size: 16)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? color : Colors.black)),
+                  const SizedBox(height: 4),
+                  Text(description, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                ],
+              ),
+            ),
+            if (isSelected) Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+              child: const Text('Selected', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(String title, List<Widget> children) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), boxShadow: [BoxShadow(color: kPrimaryColor.withValues(alpha: 0.05), blurRadius: 4)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(padding: const EdgeInsets.all(16), child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16))),
+          const Divider(height: 1),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+// Old implementation removed
+class _ReceiptCustomizationPageOldState extends State<ReceiptCustomizationPage> {
+  bool _showLogo = true;
+  bool _showEmail = false;
+  bool _showPhone = true;
+  bool _showGST = true;
+  bool _canUseLogo = false;
+  bool _saving = false;
+  int _selectedTemplateIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+    _checkLogoPermission();
+  }
+
+  Future<void> _loadSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      setState(() {
+        _showLogo = prefs.getBool('receipt_show_logo') ?? true;
+        _showEmail = prefs.getBool('receipt_show_email') ?? false;
+        _showPhone = prefs.getBool('receipt_show_phone') ?? true;
+        _showGST = prefs.getBool('receipt_show_gst') ?? true;
+        _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0;
+      });
+    } catch (e) {
+      debugPrint('Error loading receipt settings: $e');
+    }
+  }
+
+  Future<void> _saveSettings() async {
+    setState(() => _saving = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('receipt_show_logo', _showLogo);
+      await prefs.setBool('receipt_show_email', _showEmail);
+      await prefs.setBool('receipt_show_phone', _showPhone);
+      await prefs.setBool('receipt_show_gst', _showGST);
+      await prefs.setInt('invoice_template', _selectedTemplateIndex);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invoice settings saved!'), backgroundColor: Colors.green),
+        );
+        widget.onBack();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error saving: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _checkLogoPermission() async {
+    final canUseLogo = await PlanPermissionHelper.canUseLogoOnBill();
+    if (mounted) {
+      setState(() {
+        _canUseLogo = canUseLogo;
+        if (!_canUseLogo) {
+          _showLogo = false;
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBgColor,
+      appBar: AppBar(
+        title: const Text("Invoice Customization", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+
+          // Header Information Section
           _buildCard("Header Information", [
             _SwitchTile(
               "Show Logo",
@@ -986,20 +1524,167 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             _SwitchTile("Show GSTIN", _showGST, (v) => setState(() => _showGST = v), showDivider: false),
           ]),
           const SizedBox(height: 16),
+
+          // Footer & Notes Section
           _buildCard("Footer & Notes", [
-            Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-              Text("Terms & Conditions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              SizedBox(height: 8),
-              _SimpleTextField(hint: "e.g. No refunds after 7 days...", maxLines: 3),
-              SizedBox(height: 16),
-              Text("Footer Note", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-              SizedBox(height: 8),
-              _SimpleTextField(hint: "Thank you for shopping with us!"),
-            ])),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text("Terms & Conditions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 8),
+                  _SimpleTextField(hint: "e.g. No refunds after 7 days...", maxLines: 3),
+                  SizedBox(height: 16),
+                  Text("Footer Note", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  SizedBox(height: 8),
+                  _SimpleTextField(hint: "Thank you for shopping with us!"),
+                ],
+              ),
+            ),
           ]),
+
+
+          _buildCard("Choose Invoice Template", [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Select a template design for your invoices",
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTemplateOption(
+                    0,
+                    "Classic Professional",
+                    "Traditional black & white layout with clear sections",
+                    Icons.article_outlined,
+                    Colors.black,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(
+                    1,
+                    "Modern Business",
+                    "Clean modern design with blue accents",
+                    Icons.receipt_long,
+                    const Color(0xFF2F7CF6),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(
+                    2,
+                    "Compact Invoice",
+                    "Space-efficient layout, perfect for simple bills",
+                    Icons.description_outlined,
+                    const Color(0xFF37474F),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildTemplateOption(
+                    3,
+                    "Detailed Statement",
+                    "Comprehensive layout with extra details",
+                    Icons.summarize,
+                    const Color(0xFF6A1B9A),
+                  ),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 16),
           const SizedBox(height: 24),
-          _PrimaryButton(text: "Save Preferences", onTap: widget.onBack),
+          _PrimaryButton(
+            text: _saving ? "Saving..." : "Save Preferences",
+            onTap: _saving ? () {} : _saveSettings,
+          ),
         ],
+
+
+      ),
+    );
+  }
+
+  Widget _buildTemplateOption(int index, String title, String description, IconData icon, Color color) {
+    final isSelected = _selectedTemplateIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedTemplateIndex = index),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.05) : Colors.grey[50],
+          border: Border.all(
+            color: isSelected ? color : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            // Template Preview Icon
+            Container(
+              width: 60,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: color, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, color: color, size: 32),
+                  if (isSelected)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Icon(Icons.check_circle, color: color, size: 16),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            // Template Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? color : Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Selection Indicator
+            if (isSelected)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Selected',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

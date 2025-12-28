@@ -21,7 +21,7 @@ class CommonWidgets {
     );
   }
 
-  // Action buttons for bottom bar
+  // Action buttons for bottom bar - hidden in quotation mode
   static Widget buildActionButtons({
     required BuildContext context,
     required VoidCallback onSaveOrder,
@@ -29,24 +29,29 @@ class CommonWidgets {
     required double totalBill,
     VoidCallback? onQuotation,
     VoidCallback? onPrint,
-    VoidCallback? onCustomer, // New: Add customer button callback
-    String? customerName, // New: Show customer name if selected
+    VoidCallback? onCustomer,
+    String? customerName,
     bool isQuotationMode = false,
   }) {
+    // Don't show action buttons in '' mode
+    if (isQuotationMode) {
+      return const SizedBox.shrink(); // Return empty widget
+    }
+
+    // Show action buttons only in bill mode
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          // Only show save order button if not in quotation mode
-          if (!isQuotationMode) ...[
-            _buildIconButton(
-              Icons.bookmark_border,
-              onSaveOrder,
-            ),
-            const SizedBox(width: 12),
-          ],
-          // Customer button - show if callback provided
+          // Save order button
+          _buildIconButton(
+            Icons.bookmark_border,
+            onSaveOrder,
+          ),
+          const SizedBox(width: 12),
+
+          // Customer button (if provided)
           if (onCustomer != null) ...[
             _buildCustomerButton(
               onCustomer,
@@ -54,21 +59,18 @@ class CommonWidgets {
             ),
             const SizedBox(width: 12),
           ],
+
           const Spacer(),
+
+          // Main Bill button
           IntrinsicWidth(
             child: GestureDetector(
-              onTap: () {
-                if (isQuotationMode && onQuotation != null) {
-                  onQuotation();
-                } else {
-                  onBill();
-                }
-              },
+              onTap: onBill,
               child: Container(
-                height: 64, // ✅ height stays fixed
-                padding: const EdgeInsets.symmetric(horizontal: 24), // ✅ width grows
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2F7CF6),
+                  color: const Color(0xFF2F7CF6), // Blue for bill
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
                     BoxShadow(
@@ -82,6 +84,12 @@ class CommonWidgets {
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Icon(
+                      Icons.receipt_long,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
                     Text(
                       totalBill.toStringAsFixed(0),
                       maxLines: 1,
@@ -94,7 +102,7 @@ class CommonWidgets {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      isQuotationMode ? 'Quotation' : context.tr('bill'),
+                      context.tr('bill'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -105,8 +113,7 @@ class CommonWidgets {
                 ),
               ),
             ),
-          )
-
+          ),
         ],
       ),
     );

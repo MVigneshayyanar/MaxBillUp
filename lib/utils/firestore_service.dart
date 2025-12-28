@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 
 class FirestoreService {
@@ -15,11 +16,29 @@ class FirestoreService {
   DocumentSnapshot? _cachedStoreDoc;
   Map<String, dynamic>? _cachedStoreData;
 
+  // Stream controller to notify listeners when store data changes
+  final _storeDataController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get storeDataStream => _storeDataController.stream;
+
   /// Clear all cache on logout/login
   void clearCache() {
     _cachedStoreId = null;
     _cachedStoreDoc = null;
     _cachedStoreData = null;
+  }
+
+  /// Notify listeners that store data has changed (e.g., logo updated)
+  Future<void> notifyStoreDataChanged() async {
+    // Force refresh the cache
+    clearCache();
+    final doc = await getCurrentStoreDoc(forceRefresh: true);
+    if (doc != null && doc.exists) {
+      final data = doc.data() as Map<String, dynamic>?;
+      if (data != null) {
+        _storeDataController.add(data);
+        debugPrint('FirestoreService: Store data updated and notified to listeners');
+      }
+    }
   }
 
   /// Clear cache and prefetch fresh data on login
