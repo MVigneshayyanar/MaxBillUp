@@ -242,7 +242,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBlack87),
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kBlack87),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -258,7 +258,7 @@ class _ProductsPageState extends State<ProductsPage> {
                     children: [
                       Text(
                         category,
-                        style: const TextStyle(fontSize: 11, color: kOrange, fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontSize: 14, color: kOrange, fontWeight: FontWeight.w600),
                       ),
                       if (stockEnabled)
                         Text(

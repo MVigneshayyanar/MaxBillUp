@@ -16,6 +16,7 @@ class SaleAppBar extends StatelessWidget {
   final String? userEmail;
   final bool hideSavedTab;
   final bool showBackButton;
+  final int savedOrderCount;
 
   const SaleAppBar({
     super.key,
@@ -27,6 +28,7 @@ class SaleAppBar extends StatelessWidget {
     this.userEmail,
     this.hideSavedTab = false,
     this.showBackButton = false,
+    this.savedOrderCount = 0,
   });
 
   @override
@@ -126,20 +128,51 @@ class SaleAppBar extends StatelessWidget {
 
   Widget _buildTab(String text, int index) {
     final isSelected = selectedTabIndex == index;
+    final isSavedTab = index == 0 && !hideSavedTab;
+    final showBadge = isSavedTab && savedOrderCount > 0;
 
     return Expanded(
       child: GestureDetector(
         onTap: () => onTabChanged(index),
         behavior: HitTestBehavior.opaque,
         child: Center(
-          child: AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 200),
-            style: TextStyle(
-              color: isSelected ? kWhite : kBlack54,
-              fontSize: 13,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-            ),
-            child: Text(text),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  color: isSelected ? kWhite : kBlack54,
+                  fontSize: 15,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                ),
+                child: Text(text),
+              ),
+              if (showBadge) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 18, // Fixed width
+                  height: 18, // Fixed height (same as width for circle)
+                  decoration: BoxDecoration(
+                    color: isSelected ? kWhite : kPrimaryColor,
+                    shape: BoxShape.circle, // Makes it a perfect circle
+                  ),
+                  child: Center(
+                    child: Text(
+                      savedOrderCount > 99 ? '99+' : savedOrderCount.toString(),
+                      style: TextStyle(
+                        color: isSelected ? kPrimaryColor : kWhite,
+                        fontSize: savedOrderCount > 99 ? 8 : 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+
+
+            ],
           ),
         ),
       ),

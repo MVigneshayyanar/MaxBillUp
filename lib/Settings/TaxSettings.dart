@@ -405,7 +405,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                                     : Icon(Icons.shopping_bag_outlined, color: Colors.grey[400]),
                               ),
                               title: Text(
-                                product['name'] ?? 'Unknown Product',
+                                product['itemName'] ?? 'Unknown Product',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               subtitle: Text(
@@ -737,34 +737,77 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                             '${taxPercentage.toStringAsFixed(1)}% Rate',
                             style: TextStyle(color: Colors.grey[600], fontSize: 13),
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[50],
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.grey[200]!),
+                          trailing: SizedBox(
+                            width: 120, // Adjust width as needed
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: Colors.grey[200]!),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$productCount',
+                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Products',
+                                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '$productCount',
-                                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Products',
-                                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                                    ),
-                                  ],
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                                  tooltip: 'Delete Tax',
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Tax Rate'),
+                                        content: Text('Are you sure you want to delete the tax "$taxName"? This action cannot be undone.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(false),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(true),
+                                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      try {
+                                        await FirestoreService().deleteDocument('taxes', taxDoc.id);
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Tax "$taxName" deleted'), backgroundColor: Colors.red),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text('Failed to delete tax: $e'), backgroundColor: Colors.red),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  },
                                 ),
-                              ),
-                              const SizedBox(width: 8),
-                              const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                            ],
+                                const SizedBox(width: 8),
+                                const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                              ],
+                            ),
                           ),
                         );
                       },

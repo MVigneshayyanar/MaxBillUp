@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CF6)),
         useMaterial3: true,
-        fontFamily: 'Inter',
+        fontFamily: 'MiSans',
         scaffoldBackgroundColor: Colors.white,
         // Improve text field performance
         textSelectionTheme: const TextSelectionThemeData(

@@ -527,22 +527,27 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      resizeToAvoidBottomInset: false,
-      body: Column(
-        children: [
-          _buildHeader(w),
-          Expanded(
-            child: Column(
-              children: [
-                _buildCategorySelector(w),
-                Expanded(child: _buildProductGrid(w)),
-              ],
+    return GestureDetector(
+      onTap: () {
+        // Unfocus the search field when tapping anywhere on the screen
+        FocusScope.of(context).unfocus();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        resizeToAvoidBottomInset: false,
+        body: Column(
+          children: [
+            _buildHeader(w),
+            Expanded(
+              child: Column(
+                children: [
+                  _buildCategorySelector(w),
+                  Expanded(child: _buildProductGrid(w)),
+                ],
+              ),
             ),
-          ),
-          // Build action buttons with customer selection
-          CommonWidgets.buildActionButtons(
+            // Build action buttons with customer selection
+            CommonWidgets.buildActionButtons(
             context: context,
             isQuotationMode: widget.isQuotationMode,
             onSaveOrder: () {
@@ -596,6 +601,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             totalBill: _total,
           ),
         ],
+      ),
       ),
     );
   }
@@ -823,7 +829,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, height: 1.2, color: kBlack87),
+                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.2, color: kBlack87),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),

@@ -120,7 +120,7 @@ class CommonBottomNav extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               curve: Curves.easeInOut,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 13,
                 fontFamily: 'Inter',
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? const Color(0xFF2F7CF6) : Colors.black38, // Lighter unselected text

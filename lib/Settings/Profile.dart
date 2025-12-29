@@ -680,15 +680,26 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Business Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: _editing ? () => setState(() => _editing = false) : widget.onBack
-        ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          if (_editing) {
+            setState(() => _editing = false);
+          } else {
+            widget.onBack();
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(
+          title: const Text("Business Profile", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: kPrimaryColor,
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: _editing ? () => setState(() => _editing = false) : widget.onBack
+          ),
         actions: [
           if (!_fetching)
             IconButton(
@@ -823,7 +834,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             ),
         ],
       ),
-    );
+      ), // Close PopScope child
+    ); // Close PopScope
   }
 
   Widget _buildSectionHeader(String title) {
@@ -1095,16 +1107,23 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Printer Setup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
-        actions: [
-          IconButton(icon: Icon(_isScanning ? Icons.stop : Icons.refresh, color: Colors.white), onPressed: _isScanning ? FlutterBluePlus.stopScan : _scanForDevices),
-        ],
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          widget.onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(
+          title: const Text("Printer Setup", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: kPrimaryColor,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+          actions: [
+            IconButton(icon: Icon(_isScanning ? Icons.stop : Icons.refresh, color: Colors.white), onPressed: _isScanning ? FlutterBluePlus.stopScan : _scanForDevices),
+          ],
+        ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1167,7 +1186,8 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           ]),
         ],
       ),
-    );
+      ), // Close PopScope child
+    ); // Close PopScope
   }
 
   Widget _buildDeviceTile(BluetoothDevice device, bool isPaired) {
@@ -1200,17 +1220,25 @@ class ReceiptSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("Receipt Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _SettingsGroup(children: [
-            _SettingsTile(title: "Thermal Printer", subtitle: "58mm & 80mm Setup", icon: Icons.print_rounded, showDivider: true, onTap: () => onNavigate('PrinterSetup')),
-            _SettingsTile(title: "A4 Invoice / PDF", subtitle: "Customize layout & fields", icon: Icons.picture_as_pdf_rounded, showDivider: false, onTap: () => onNavigate('ReceiptCustomization')),
-          ]),
-        ],
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(title: const Text("Receipt Settings", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _SettingsGroup(children: [
+              _SettingsTile(title: "Thermal Printer", subtitle: "58mm & 80mm Setup", icon: Icons.print_rounded, showDivider: true, onTap: () => onNavigate('PrinterSetup')),
+              _SettingsTile(title: "A4 Invoice / PDF", subtitle: "Customize layout & fields", icon: Icons.picture_as_pdf_rounded, showDivider: false, onTap: () => onNavigate('ReceiptCustomization')),
+            ]),
+          ],
+        ),
       ),
     );
   }
@@ -1295,18 +1323,25 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(
-        title: const Text("Invoice Customization", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // Template Selection
-          _buildCard("Choose Invoice Template", [
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          widget.onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(
+          title: const Text("Invoice Customization", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          backgroundColor: kPrimaryColor,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Template Selection
+            _buildCard("Choose Invoice Template", [
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -1352,7 +1387,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           ),
         ],
       ),
-    );
+      ), // Close PopScope child
+    ); // Close PopScope
   }
 
   Widget _buildTemplateOption(int index, String title, String description, IconData icon, Color color) {
@@ -1798,22 +1834,30 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(title: const Text("Features", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack)),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        _SettingsGroup(children: [
-          _SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v), hasInfo: true),
-          _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v), hasInfo: true),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(children: [
-              Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w500)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor))]),
-              Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v)),
-            ]),
-          )
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          widget.onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(title: const Text("Features", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack)),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          _SettingsGroup(children: [
+            _SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v), hasInfo: true),
+            _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v), hasInfo: true),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Column(children: [
+                Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w500)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor))]),
+                Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v)),
+              ]),
+            )
+          ]),
         ]),
-      ]),
+      ),
     );
   }
 }
@@ -1824,9 +1868,16 @@ class LanguagePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<LanguageProvider>(context);
-    return Scaffold(
-      backgroundColor: kBgColor,
-      appBar: AppBar(title: Text(provider.translate('choose_language'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) {
+          onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kBgColor,
+        appBar: AppBar(title: Text(provider.translate('choose_language'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)),
       body: ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: provider.languages.length,
@@ -1852,6 +1903,7 @@ class LanguagePage extends StatelessWidget {
           );
         },
       ),
+      ),
     );
   }
 }
@@ -1859,11 +1911,61 @@ class LanguagePage extends StatelessWidget {
 // ==========================================
 // PLACEHOLDER PAGES
 // ==========================================
-class ThemePage extends StatelessWidget { final VoidCallback onBack; const ThemePage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Theme", onBack); }
-class HelpPage extends StatelessWidget { final VoidCallback onBack; final Function(String) onNavigate; const HelpPage({super.key, required this.onBack, required this.onNavigate}); @override Widget build(BuildContext context) => _SimplePage("Help", onBack); }
-class FAQsPage extends StatelessWidget { final VoidCallback onBack; const FAQsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("FAQs", onBack); }
-class UpcomingFeaturesPage extends StatelessWidget { final VoidCallback onBack; const UpcomingFeaturesPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Features", onBack); }
-class VideoTutorialsPage extends StatelessWidget { final VoidCallback onBack; const VideoTutorialsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Videos", onBack); }
+class ThemePage extends StatelessWidget {
+  final VoidCallback onBack;
+  const ThemePage({super.key, required this.onBack});
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvoked: (bool didPop) { if (!didPop) onBack(); },
+    child: _SimplePage("Theme", onBack),
+  );
+}
+
+class HelpPage extends StatelessWidget {
+  final VoidCallback onBack;
+  final Function(String) onNavigate;
+  const HelpPage({super.key, required this.onBack, required this.onNavigate});
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvoked: (bool didPop) { if (!didPop) onBack(); },
+    child: _SimplePage("Help", onBack),
+  );
+}
+
+class FAQsPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const FAQsPage({super.key, required this.onBack});
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvoked: (bool didPop) { if (!didPop) onBack(); },
+    child: _SimplePage("FAQs", onBack),
+  );
+}
+
+class UpcomingFeaturesPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const UpcomingFeaturesPage({super.key, required this.onBack});
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvoked: (bool didPop) { if (!didPop) onBack(); },
+    child: _SimplePage("Features", onBack),
+  );
+}
+
+class VideoTutorialsPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const VideoTutorialsPage({super.key, required this.onBack});
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    onPopInvoked: (bool didPop) { if (!didPop) onBack(); },
+    child: _SimplePage("Videos", onBack),
+  );
+}
 
 class _SimplePage extends StatelessWidget {
   final String title; final VoidCallback onBack;

@@ -6,6 +6,7 @@ import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class NewSalePage extends StatefulWidget {
   final String uid;
@@ -51,6 +52,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
+  // Saved orders count
+  int _savedOrderCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -74,14 +78,33 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     if (widget.savedOrderData != null) {
       _loadSavedOrderData(widget.savedOrderData!);
       _loadedSavedOrderId = widget.savedOrderId;
-      _selectedTabIndex = 0;
+      _selectedTabIndex = 1; // Switch to "All" tab to show the cart with items
     }
+
+    // Listen to saved orders count
+    _listenToSavedOrdersCount();
   }
 
   @override
   void dispose() {
     _highlightController?.dispose();
     super.dispose();
+  }
+
+  void _listenToSavedOrdersCount() async {
+    try {
+      final firestoreService = FirestoreService();
+      final stream = await firestoreService.getCollectionStream('savedOrders');
+      stream.listen((snapshot) {
+        if (mounted) {
+          setState(() {
+            _savedOrderCount = snapshot.docs.length;
+          });
+        }
+      });
+    } catch (e) {
+      // Handle error silently
+    }
   }
 
   void _loadSavedOrderData(Map<String, dynamic> orderData) {
@@ -98,6 +121,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
       setState(() {
         _sharedCartItems = cartItems;
+        // Load customer information from saved order
+        _selectedCustomerName = orderData['customerName'] as String?;
+        _selectedCustomerPhone = orderData['customerPhone'] as String?;
+        _selectedCustomerGST = orderData['customerGST'] as String?;
       });
     }
   }
@@ -105,6 +132,18 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   void _handleTabChange(int index) {
     setState(() {
       _selectedTabIndex = index;
+    });
+  }
+
+  void _handleLoadSavedOrder(String orderId, Map<String, dynamic> data) {
+    // Load the order data
+    _loadSavedOrderData(data);
+    _loadedSavedOrderId = orderId;
+
+    // Switch to "View All" tab (index 1)
+    setState(() {
+      _selectedTabIndex = 1;
+      _cartVersion++; // Increment to refresh the view
     });
   }
 
@@ -463,6 +502,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                 screenHeight: screenHeight,
                 uid: _uid,
                 userEmail: _userEmail,
+                savedOrderCount: _savedOrderCount,
               ),
               Expanded(
                 child: AnimatedSwitcher(
@@ -472,6 +512,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         key: ValueKey('saved_$_cartVersion'),
                         uid: _uid,
                         userEmail: _userEmail,
+                        onLoadOrder: _handleLoadSavedOrder,
                       )
                       : _selectedTabIndex == 1
                       ? SaleAllPage(

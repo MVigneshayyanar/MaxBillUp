@@ -10,8 +10,9 @@ import 'package:maxbillup/Colors.dart';
 class SavedOrdersPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
+  final Function(String orderId, Map<String, dynamic> data)? onLoadOrder;
 
-  const SavedOrdersPage({super.key, required this.uid, this.userEmail});
+  const SavedOrdersPage({super.key, required this.uid, this.userEmail, this.onLoadOrder});
 
   @override
   State<SavedOrdersPage> createState() => _SavedOrdersPageState();
@@ -19,17 +20,22 @@ class SavedOrdersPage extends StatefulWidget {
 
 class _SavedOrdersPageState extends State<SavedOrdersPage> {
   void _loadOrder(String orderId, Map<String, dynamic> data) {
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => NewSalePage(
-          uid: widget.uid,
-          userEmail: widget.userEmail,
-          savedOrderData: data,
-          savedOrderId: orderId,
+    if (widget.onLoadOrder != null) {
+      widget.onLoadOrder!(orderId, data);
+    } else {
+      // Fallback to old navigation behavior if no callback is provided
+      Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => NewSalePage(
+            uid: widget.uid,
+            userEmail: widget.userEmail,
+            savedOrderData: data,
+            savedOrderId: orderId,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _deleteOrder(String id) async {
