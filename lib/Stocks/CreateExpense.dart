@@ -599,7 +599,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       ),
                     ),
                     Text(
-                      '₹${_creditAmount.toStringAsFixed(2)}',
+                      '${_creditAmount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,

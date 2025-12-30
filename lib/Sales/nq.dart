@@ -37,12 +37,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
   double _cartHeight = 200;
   final double _minCartHeight = 200;
-  double _maxCartHeight = 600;
+  double _maxCartHeight = 800;
 
   // Customer selection state (shared across tabs)
   String? _selectedCustomerPhone;
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
+
+  // Add a version key to force rebuild when cart is cleared
+  int _cartVersion = 0;
 
   @override
   void initState() {
@@ -76,9 +79,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _updateCartItems(List<CartItem> items) {
-    setState(() {
-      _sharedCartItems = items.isNotEmpty ? List<CartItem>.from(items) : null;
-    });
+    if (mounted) {
+      setState(() {
+        _sharedCartItems = items.isEmpty ? null : List<CartItem>.from(items);
+        // Increment version when cart is cleared to force rebuild
+        if (items.isEmpty) {
+          _cartVersion++;
+        }
+      });
+    }
   }
 
   void _handleSearchFocusChange(bool isFocused) {
@@ -172,60 +181,71 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       resizeToAvoidBottomInset: false, // Prevent keyboard from pushing widgets
-      body: Column(
-        spacing: 0,
+      body: Stack(
         children: [
-          // Top padding
-          const SizedBox(height: 40),
+          Column(
+            spacing: 0,
+            children: [
+              // Top padding + cart space when minimized
+              SizedBox(height: 40 + (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused ? _minCartHeight + 20 : 0)),
 
-          // Cart section (if present and search is not focused)
-          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused)
-            _buildCartSection(screenWidth),
+              // App Bar Component with back button and tabs (Saved tab hidden)
+              SaleAppBar(
+                selectedTabIndex: _selectedTabIndex,
+                onTabChanged: _handleTabChange,
+                screenWidth: screenWidth,
+                screenHeight: screenHeight,
+                uid: widget.uid,
+                userEmail: widget.userEmail,
+                hideSavedTab: true, // Hide the Saved tab
+                showBackButton: true, // Show back button
+              ),
 
-          // App Bar Component with back button and tabs (Saved tab hidden)
-          SaleAppBar(
-            selectedTabIndex: _selectedTabIndex,
-            onTabChanged: _handleTabChange,
-            screenWidth: screenWidth,
-            screenHeight: screenHeight,
-            uid: widget.uid,
-            userEmail: widget.userEmail,
-            hideSavedTab: true, // Hide the Saved tab
-            showBackButton: true, // Show back button
-          ),
-
-          // Content Area - Show content based on selected tab
-          Expanded(
-            child: _selectedTabIndex == 0
-                ? SavedOrdersPage(
-                    uid: widget.uid,
-                    userEmail: widget.userEmail,
-                  )
-                : _selectedTabIndex == 1
-                    ? SaleAllPage(
+              // Content Area - Show content based on selected tab
+              Expanded(
+                child: _selectedTabIndex == 0
+                    ? SavedOrdersPage(
                         uid: widget.uid,
                         userEmail: widget.userEmail,
-                        onCartChanged: _updateCartItems,
-                        initialCartItems: _sharedCartItems,
-                        isQuotationMode: true, // Quotation mode enabled
-                        onSearchFocusChanged: _handleSearchFocusChange, // Pass callback
-                        customerPhone: _selectedCustomerPhone,
-                        customerName: _selectedCustomerName,
-                        customerGST: _selectedCustomerGST,
-                        onCustomerChanged: _setSelectedCustomer,
                       )
-                    : QuickSalePage(
-                        uid: widget.uid,
-                        userEmail: widget.userEmail,
-                        initialCartItems: _sharedCartItems,
-                        onCartChanged: _updateCartItems,
-                        isQuotationMode: true, // Enable quotation mode
-                        customerPhone: _selectedCustomerPhone,
-                        customerName: _selectedCustomerName,
-                        customerGST: _selectedCustomerGST,
-                        onCustomerChanged: _setSelectedCustomer,
-                      ),
+                    : _selectedTabIndex == 1
+                        ? SaleAllPage(
+                            key: ValueKey('sale_all_$_cartVersion'), // Force rebuild when cart is cleared
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            onCartChanged: _updateCartItems,
+                            initialCartItems: _sharedCartItems,
+                            isQuotationMode: true, // Quotation mode enabled
+                            onSearchFocusChanged: _handleSearchFocusChange, // Pass callback
+                            customerPhone: _selectedCustomerPhone,
+                            customerName: _selectedCustomerName,
+                            customerGST: _selectedCustomerGST,
+                            onCustomerChanged: _setSelectedCustomer,
+                          )
+                        : QuickSalePage(
+                            key: ValueKey('quick_sale_$_cartVersion'), // Force rebuild when cart is cleared
+                            uid: widget.uid,
+                            userEmail: widget.userEmail,
+                            initialCartItems: _sharedCartItems,
+                            onCartChanged: _updateCartItems,
+                            isQuotationMode: true, // Enable quotation mode
+                            customerPhone: _selectedCustomerPhone,
+                            customerName: _selectedCustomerName,
+                            customerGST: _selectedCustomerGST,
+                            onCustomerChanged: _setSelectedCustomer,
+                          ),
+              ),
+            ],
           ),
+
+          // Cart section as overlay (if present and search is not focused)
+          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused)
+            Positioned(
+              top: 40,
+              left: 0,
+              right: 0,
+              child: _buildCartSection(screenWidth),
+            ),
         ],
       ),
       // Bottom navigation bar with customer and quotation buttons
@@ -482,10 +502,11 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                 children: [
                   GestureDetector(
                     onTap: () {
-                      setState(() {
-                        _sharedCartItems = null;
-                      });
+                      // Clear cart and reset height
                       _updateCartItems([]);
+                      setState(() {
+                        _cartHeight = _minCartHeight;
+                      });
                     },
                     child: Row(
                       children: [

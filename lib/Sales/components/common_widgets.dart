@@ -2,10 +2,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 
 class CommonWidgets {
   // Show snackbar message
@@ -401,6 +403,16 @@ class CommonWidgets {
                         style: IconButton.styleFrom(backgroundColor: kPrimaryColor.withAlpha((0.1 * 255).toInt())),
                         tooltip: 'Add Customer',
                       ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          _importFromContacts(context, onCustomerSelected);
+                        },
+                        icon: const Icon(Icons.contact_phone, color: kPrimaryColor),
+                        style: IconButton.styleFrom(backgroundColor: kPrimaryColor.withAlpha((0.1 * 255).toInt())),
+                        tooltip: 'Import from Contacts',
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -488,6 +500,7 @@ class CommonWidgets {
     final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
     final gstCtrl = TextEditingController();
+    final balanceCtrl = TextEditingController(text: '0'); // Add balance controller
 
     showDialog(
       context: context,
@@ -495,75 +508,340 @@ class CommonWidgets {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              TextField(
-                controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: 'Phone',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: gstCtrl,
-                decoration: InputDecoration(
-                  labelText: 'GST (Optional)',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    child: Text(context.tr('cancel')),
+          child: SingleChildScrollView( // Make scrollable for keyboard
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: gstCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'GST (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: balanceCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Last Due Amount (Optional)',
+                    hintText: 'Enter previous balance',
+                    prefixIcon: const Icon(Icons.account_balance_wallet, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    helperText: 'Leave 0 if no previous due',
+                    helperStyle: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(context.tr('cancel')),
                     ),
-                    onPressed: () async {
-                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
-                      try {
-                        await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
-                          'name': nameCtrl.text.trim(),
-                          'phone': phoneCtrl.text.trim(),
-                          'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                          'balance': 0.0,
-                          'totalSales': 0.0,
-                          'timestamp': FieldValue.serverTimestamp(),
-                          'lastUpdated': FieldValue.serverTimestamp(),
-                        });
-                        if (ctx.mounted) {
-                          Navigator.pop(ctx);
-                          onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+
+                        final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
+
+                        try {
+                          // Create customer
+                          await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                            'name': nameCtrl.text.trim(),
+                            'phone': phoneCtrl.text.trim(),
+                            'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                            'balance': balance,
+                            'totalSales': balance, // Set totalSales to balance for initial due
+                            'timestamp': FieldValue.serverTimestamp(),
+                            'lastUpdated': FieldValue.serverTimestamp(),
+                          });
+
+                          // If balance > 0, create initial credit entry in ledger
+                          if (balance > 0) {
+                            final creditsCollection = await FirestoreService().getStoreCollection('credits');
+                            await creditsCollection.add({
+                              'customerId': phoneCtrl.text.trim(),
+                              'customerName': nameCtrl.text.trim(),
+                              'amount': balance,
+                              'type': 'add_credit',
+                              'method': 'Manual',
+                              'timestamp': FieldValue.serverTimestamp(),
+                              'date': DateTime.now().toIso8601String(),
+                              'note': 'Opening Balance - Last Due Added',
+                            });
+                          }
+
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
+                            showSnackBar(context, 'Customer added successfully', bgColor: Colors.green);
+                          }
+                        } catch (e) {
+                          showSnackBar(context, 'Error adding customer: $e', bgColor: Colors.red);
                         }
-                      } catch (e) {
-                        showSnackBar(context, 'Error adding customer: $e', bgColor: Colors.red);
-                      }
-                    },
-                    child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
-                  ),
-                ],
+                      },
+                      child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _importFromContacts(
+    BuildContext context,
+    Function(String phone, String name, String? gst) onCustomerSelected,
+  ) async {
+    final canImport = await PlanPermissionHelper.canImportContacts();
+    if (!canImport) {
+      PlanPermissionHelper.showUpgradeDialog(context, 'Import Contacts');
+      return;
+    }
+
+    if (!await FlutterContacts.requestPermission()) {
+      showSnackBar(context, 'Contacts permission denied', bgColor: Colors.red);
+      return;
+    }
+
+    final contacts = await FlutterContacts.getContacts(withProperties: true);
+    if (contacts.isEmpty) {
+      showSnackBar(context, 'No contacts found', bgColor: Colors.orange);
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        List<Contact> filteredContacts = contacts;
+        final contactSearchController = TextEditingController();
+
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: SizedBox(
+                width: 350,
+                height: 500,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Select Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                          GestureDetector(
+                            onTap: () => Navigator.pop(ctx),
+                            child: const Icon(Icons.close),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: TextField(
+                        controller: contactSearchController,
+                        decoration: const InputDecoration(
+                          hintText: 'Search contacts...',
+                          prefixIcon: Icon(Icons.search),
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (v) {
+                          setDialogState(() {
+                            filteredContacts = contacts
+                                .where((c) => c.displayName.toLowerCase().contains(v.toLowerCase()))
+                                .toList();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: filteredContacts.length,
+                        itemBuilder: (ctx, index) {
+                          final c = filteredContacts[index];
+                          final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(' ', '') : '';
+                          return ListTile(
+                            title: Text(c.displayName),
+                            subtitle: Text(phone),
+                            onTap: phone.isNotEmpty
+                                ? () {
+                                    Navigator.pop(ctx);
+                                    _showAddCustomerDialogWithPrefill(
+                                      context,
+                                      onCustomerSelected,
+                                      prefillName: c.displayName,
+                                      prefillPhone: phone,
+                                    );
+                                  }
+                                : null,
+                            enabled: phone.isNotEmpty,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  static void _showAddCustomerDialogWithPrefill(
+    BuildContext context,
+    Function(String phone, String name, String? gst) onCustomerSelected, {
+    String? prefillName,
+    String? prefillPhone,
+  }) {
+    final nameCtrl = TextEditingController(text: prefillName ?? '');
+    final phoneCtrl = TextEditingController(text: prefillPhone ?? '');
+    final gstCtrl = TextEditingController();
+    final balanceCtrl = TextEditingController(text: '0');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneCtrl,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: gstCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'GST (Optional)',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: balanceCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: 'Last Due Amount (Optional)',
+                    hintText: 'Enter previous balance',
+                    prefixIcon: const Icon(Icons.account_balance_wallet, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    helperText: 'Leave 0 if no previous due',
+                    helperStyle: const TextStyle(fontSize: 11),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text(context.tr('cancel')),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+
+                        final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
+
+                        try {
+                          await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                            'name': nameCtrl.text.trim(),
+                            'phone': phoneCtrl.text.trim(),
+                            'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                            'balance': balance,
+                            'totalSales': balance,
+                            'timestamp': FieldValue.serverTimestamp(),
+                            'lastUpdated': FieldValue.serverTimestamp(),
+                          });
+
+                          if (balance > 0) {
+                            final creditsCollection = await FirestoreService().getStoreCollection('credits');
+                            await creditsCollection.add({
+                              'customerId': phoneCtrl.text.trim(),
+                              'customerName': nameCtrl.text.trim(),
+                              'amount': balance,
+                              'type': 'add_credit',
+                              'method': 'Manual',
+                              'timestamp': FieldValue.serverTimestamp(),
+                              'date': DateTime.now().toIso8601String(),
+                              'note': 'Opening Balance - Last Due Added',
+                            });
+                          }
+
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim());
+                            showSnackBar(context, 'Customer added successfully', bgColor: Colors.green);
+                          }
+                        } catch (e) {
+                          showSnackBar(context, 'Error adding customer: $e', bgColor: Colors.red);
+                        }
+                      },
+                      child: Text(context.tr('add'), style: const TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

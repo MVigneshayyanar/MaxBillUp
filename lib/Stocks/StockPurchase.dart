@@ -263,7 +263,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
           ],
         ),
         trailing: Text(
-          '₹${(data['totalAmount'] ?? 0.0).toStringAsFixed(2)}',
+          '${(data['totalAmount'] ?? 0.0).toStringAsFixed(2)}',
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryColor),
         ),
       ),
@@ -665,7 +665,7 @@ class _StockPurchaseDetailsPageState extends State<StockPurchaseDetailsPage> {
                 children: [
                   const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    "₹$totalAmount",
+                    "$totalAmount",
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primaryColor),
                   ),
                 ],
@@ -694,8 +694,8 @@ class _StockPurchaseDetailsPageState extends State<StockPurchaseDetailsPage> {
                     _buildDetailRow('Phone', data['supplierPhone'] ?? 'N/A'),
                     _buildDetailRow('Notes', data['notes'] ?? 'N/A'),
                     _buildDetailRow('Payment Mode', paymentMode),
-                    if (creditAmount != null) _buildDetailRow('Credit Amount', "₹$creditAmount"),
-                    if (data['taxAmount'] != null) _buildDetailRow('Tax Amount', "₹${data['taxAmount'].toString()}"),
+                    if (creditAmount != null) _buildDetailRow('Credit Amount', "$creditAmount"),
+                    if (data['taxAmount'] != null) _buildDetailRow('Tax Amount', "${data['taxAmount'].toString()}"),
                   ],
                 ),
             ],

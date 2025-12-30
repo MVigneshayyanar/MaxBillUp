@@ -95,16 +95,32 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
       final lastDue = double.tryParse(_lastDueController.text.trim()) ?? 0.0;
 
+      // Create customer document
       await customersCollection.doc(phone).set({
         'name': _nameController.text.trim(),
         'phone': phone,
         'gstin': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
         'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
         'balance': lastDue,
-        'totalSales': 0.0,
+        'totalSales': lastDue, // Set totalSales to lastDue for opening balance
         'dob': _selectedDOB != null ? Timestamp.fromDate(_selectedDOB!) : null,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // If last due > 0, create credit entry in ledger for tracking
+      if (lastDue > 0) {
+        final creditsCollection = await FirestoreService().getStoreCollection('credits');
+        await creditsCollection.add({
+          'customerId': phone,
+          'customerName': _nameController.text.trim(),
+          'amount': lastDue,
+          'type': 'add_credit',
+          'method': 'Manual',
+          'timestamp': FieldValue.serverTimestamp(),
+          'date': DateTime.now().toIso8601String(),
+          'note': 'Opening Balance - Last Due Added',
+        });
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

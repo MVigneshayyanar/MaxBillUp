@@ -52,6 +52,7 @@ class SaleAppBar extends StatelessWidget {
 
     return Container(
       color: kWhite,
+
       padding: EdgeInsets.fromLTRB(horizontalPadding, 0, 16, 0),
       child: Row(
         children: [

@@ -137,7 +137,7 @@ class TranslationExamplePage extends StatelessWidget {
             child: Text(
               '$key:',
               style: const TextStyle(
-                fontFamily: 'Inter',
+                fontFamily: 'MiSans',
                 color: Colors.grey,
               ),
             ),

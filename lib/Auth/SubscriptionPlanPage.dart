@@ -337,7 +337,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                     ),
                   ),
                   Text(
-                    monthlyPrice == 0 ? "Free" : "₹$monthlyPrice/mo",
+                    monthlyPrice == 0 ? "Free" : "$monthlyPrice/mo",
                     style: TextStyle(
                       color: isSelected ? kWhite.withOpacity(0.9) : kBlack54,
                       fontWeight: FontWeight.bold,
@@ -515,7 +515,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("Total Payable", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 12)),
-                Text("₹$price", style: const TextStyle(color: kPrimaryColor, fontSize: 26, fontWeight: FontWeight.w900)),
+                Text("$price", style: const TextStyle(color: kPrimaryColor, fontSize: 26, fontWeight: FontWeight.w900)),
               ],
             ),
           ),

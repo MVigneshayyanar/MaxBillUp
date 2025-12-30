@@ -412,7 +412,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                                 'Price: ${product['price'] ?? 0}',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
-                              trailing: Icon(Icons.chevron_right, color: Colors.grey[400], size: 20),
                             );
                           },
                         );
@@ -738,7 +737,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                             style: TextStyle(color: Colors.grey[600], fontSize: 13),
                           ),
                           trailing: SizedBox(
-                            width: 120, // Adjust width as needed
+                            width: 180, // Adjust width as needed
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

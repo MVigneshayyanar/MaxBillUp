@@ -285,7 +285,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                               ],
                             ),
                             trailing: Text(
-                              '₹${amount.toStringAsFixed(2)}',
+                              '${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -1078,7 +1078,7 @@ class ExpenseDetailsPage extends StatelessWidget {
               if (expenseData['taxAmount'] != null &&
                   expenseData['taxAmount'] != 0.0)
                 _buildDetailRow('Tax Amount',
-                    '₹${(expenseData['taxAmount'] ?? 0.0).toStringAsFixed(2)}'),
+                    '${(expenseData['taxAmount'] ?? 0.0).toStringAsFixed(2)}'),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1086,7 +1086,7 @@ class ExpenseDetailsPage extends StatelessWidget {
                   const Text("Total Amount", style: TextStyle(
                       fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    "₹${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}",
+                    "${(expenseData['amount'] ?? 0.0).toStringAsFixed(2)}",
                     style: const TextStyle(fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: _errorColor),

@@ -267,7 +267,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('TOTAL AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text('₹${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _successColor)),
+                        Text('${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _successColor)),
                       ],
                     ),
                     _statusBadge(isBilled),

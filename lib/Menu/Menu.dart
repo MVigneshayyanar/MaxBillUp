@@ -20,7 +20,7 @@ import 'package:maxbillup/Stocks/Expenses.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart';
 import 'package:maxbillup/Reports/Reports.dart';
 import 'package:maxbillup/Stocks/Stock.dart';
-import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg;
+import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg, kGrey300;
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -2308,6 +2308,10 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           ))
               .toList();
 
+          // Determine if this is an unsettled sale (from 'sales' collection) or a saved order (from 'savedOrders' collection)
+          // Unsettled sales have 'paymentStatus' field, saved orders don't
+          final isUnsettledSale = data.containsKey('paymentStatus') && data['paymentStatus'] == 'unsettled';
+
           Navigator.push(
             context,
             CupertinoPageRoute(
@@ -2316,12 +2320,16 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 cartItems: cartItems,
                 totalAmount: totalVal,
                 userEmail: widget.userEmail,
-                savedOrderId: doc.id,
+                // Only pass savedOrderId for saved orders (not unsettled sales)
+                savedOrderId: isUnsettledSale ? null : doc.id,
                 existingInvoiceNumber: data['invoiceNumber'], // Pass existing invoice number
-                unsettledSaleId: doc.id, // Pass sale document ID for updating
+                // Only pass unsettledSaleId for unsettled sales (not saved orders)
+                unsettledSaleId: isUnsettledSale ? doc.id : null,
+                discountAmount: (data['discount'] ?? 0.0) as double, // Pass discount from saved data
                 customerPhone: data['customerPhone'],
                 customerName: data['customerName'],
                 customerGST: data['customerGST'],
+                quotationId: data['quotationId'], // Pass quotation ID if exists
               ),
             ),
           ).then((_) {
@@ -2349,9 +2357,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: Colors.grey.shade200)
         ),
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: const EdgeInsets.only(bottom: 10),
         child: Padding(
-          padding: const EdgeInsets.all(12.0),
+          padding: const EdgeInsets.all(10.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2359,7 +2367,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('#$inv', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text('Bill No. $inv', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   Row(
                     children: [
                       // Cancelled Badge
@@ -2447,7 +2455,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 3),
 
               // Row 2: Info Grid
               Row(
@@ -2456,9 +2464,20 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _infoRow(Icons.calendar_today, dateString),
-                        const SizedBox(height: 4),
-                        _infoRow(Icons.access_time, timeString),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  _infoRow(Icons.calendar_today, dateString),
+                                  const SizedBox(width: 8),
+                                  _infoRow(Icons.access_time, timeString),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kOrange, fontWeight: FontWeight.w600)),
                       ],
@@ -2468,7 +2487,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '₹$total',
+                        '$total',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2F7CF6)),
                       ),
                       Text(
@@ -2480,9 +2499,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               const Divider(height: 1, color: Color(0xFFEEEEEE)),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
 
               // Row 3: Creator info and View Details button
               Row(
@@ -2493,11 +2512,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       children: [
                         TextSpan(
                           text: 'Billed by ',
-                          style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
+                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
                         ),
                         TextSpan(
                           text: staffName,
-                          style: TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 14, color:Colors.grey.shade600, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -3892,7 +3911,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildLabelValue("CUSTOMER", data['customerName'] ?? 'Walk-in'),
-                  Text("₹${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: isAvailable ? kSuccessGreen : kErrorRed)),
+                  Text("${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: isAvailable ? kSuccessGreen : kErrorRed)),
                 ],
               ),
             ],
@@ -4023,7 +4042,7 @@ class CreditNoteDetailPage extends StatelessWidget {
           const SizedBox(height: 20),
           const Text("REFUND AMOUNT", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 4),
-          Text("₹${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
+          Text("${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
         ],
       ),
     );
@@ -4379,7 +4398,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color.withOpacity(0.7))),
-              Text('₹${amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+              Text('${amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
             ],
           ),
           Icon(Icons.account_balance_wallet_rounded, color: color.withOpacity(0.3), size: 32),
@@ -4435,7 +4454,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('BALANCE DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text('₹${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _successColor)),
+                        Text('${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _successColor)),
                       ],
                     ),
                     _statusBadge("SETTLE", _primaryColor),
@@ -4498,7 +4517,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('PENDING AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text('₹${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _errorColor)),
+                        Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _errorColor)),
                       ],
                     ),
                     _statusBadge("RECORD", _successColor),
@@ -4543,7 +4562,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('DUE AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _errorColor)),
-                    Text('₹${remaining.toStringAsFixed(2)}', style: const TextStyle(color: _errorColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(color: _errorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -4553,7 +4572,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   labelText: 'Amount to Pay',
-                  prefixText: '₹ ',
+                  prefixText: ' ',
                   filled: true,
                   fillColor: Colors.grey[50],
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _cardBorder)),
@@ -4605,7 +4624,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('TOTAL DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _successColor)),
-                      Text('₹${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: _successColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text('${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: _successColor, fontWeight: FontWeight.w900, fontSize: 16)),
                     ],
                   ),
                 ),
@@ -4615,7 +4634,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: 'Settlement Amount',
-                    prefixText: '₹ ',
+                    prefixText: ' ',
                     filled: true,
                     fillColor: Colors.grey[50],
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _cardBorder)),
@@ -4779,14 +4798,14 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
             _buildSectionCard(
               child: Column(
                 children: [
-                  _buildSummaryRow("Purchase Liability", "₹${total.toStringAsFixed(2)}"),
-                  _buildSummaryRow("Settled Amount", "₹${paid.toStringAsFixed(2)}", color: kSuccessGreen),
+                  _buildSummaryRow("Purchase Liability", "${total.toStringAsFixed(2)}"),
+                  _buildSummaryRow("Settled Amount", "${paid.toStringAsFixed(2)}", color: kSuccessGreen),
                   const Divider(height: 32),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text("UNPAID DUE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kMediumBlue)),
-                      Text("₹${remaining.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: kErrorRed)),
+                      Text("${remaining.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: kErrorRed)),
                     ],
                   ),
                 ],
@@ -4876,9 +4895,9 @@ Widget _buildItemRow(Map<String, dynamic> item) {
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kDeepNavy)),
         const SizedBox(height: 2),
-        Text("₹${price.toStringAsFixed(0)} × ${qty.toInt()}", style: const TextStyle(fontSize: 12, color: kMediumBlue)),
+        Text("${price.toStringAsFixed(0)} × ${qty.toInt()}", style: const TextStyle(fontSize: 12, color: kMediumBlue)),
       ])),
-      Text("₹${total.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepNavy)),
+      Text("${total.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepNavy)),
     ]),
   );
 }
@@ -4889,7 +4908,7 @@ Widget _buildDetailTotalRow(num amount, int itemCount) {
     decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16))),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kMediumBlue)),
-      Text("₹${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+      Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
     ]),
   );
 }
@@ -5297,8 +5316,8 @@ class _CustomersPageState extends State<CustomersPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildManagerStatItem("TOTAL SALES", "₹${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kSuccessGreen),
-                  _buildManagerStatItem("CREDIT DUE", "₹${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
+                  _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kSuccessGreen),
+                  _buildManagerStatItem("CREDIT DUE", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
                 ],
               ),
             ],
@@ -6425,12 +6444,12 @@ class _EditBillPageState extends State<EditBillPage> {
                     children: [
                       Text(item['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                       const SizedBox(height: 2),
-                      Text('Qty: ${item['quantity']} × ₹${item['price']}', style: const TextStyle(color: kTextSecondary, fontSize: 12)),
+                      Text('Qty: ${item['quantity']} × ${item['price']}', style: const TextStyle(color: kTextSecondary, fontSize: 12)),
                     ],
                   ),
                 ),
                 Text(
-                  '₹${((item['price'] ?? 0) * (item['quantity'] ?? 0)).toStringAsFixed(0)}',
+                  '${((item['price'] ?? 0) * (item['quantity'] ?? 0)).toStringAsFixed(0)}',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kPrimaryColor),
                 ),
                 const SizedBox(width: 12),
@@ -6461,13 +6480,13 @@ class _EditBillPageState extends State<EditBillPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildSummaryLine('Subtotal', '₹${subtotal.toStringAsFixed(0)}'),
+                _buildSummaryLine('Subtotal', '${subtotal.toStringAsFixed(0)}'),
                 GestureDetector(
                   onTap: _showDiscountDialog,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kSuccessColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text('Discount: -₹${discount.toStringAsFixed(0)}',
+                    child: Text('Discount: -${discount.toStringAsFixed(0)}',
                         style: const TextStyle(color: kSuccessColor, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ),
@@ -6478,7 +6497,7 @@ class _EditBillPageState extends State<EditBillPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildSummaryLine('Credit Notes', '-₹${_creditNotesAmount.toStringAsFixed(0)}', color: Colors.orange),
+                  _buildSummaryLine('Credit Notes', '-${_creditNotesAmount.toStringAsFixed(0)}', color: Colors.orange),
                   GestureDetector(
                     onTap: _showCreditNotesDialog,
                     child: Text('Change Notes', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
@@ -6491,7 +6510,7 @@ class _EditBillPageState extends State<EditBillPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('TOTAL PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
-                Text('₹${finalTotal.toStringAsFixed(0)}',
+                Text('${finalTotal.toStringAsFixed(0)}',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor)),
               ],
             ),
@@ -6559,7 +6578,7 @@ class _EditBillPageState extends State<EditBillPage> {
           keyboardType: TextInputType.number,
           autofocus: true,
           decoration: InputDecoration(
-            prefixText: '₹ ',
+            prefixText: ' ',
             hintText: '0',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
@@ -6611,7 +6630,7 @@ class _EditBillPageState extends State<EditBillPage> {
                     final isSelected = tempSelected.any((s) => s['id'] == cn['id']);
                     return CheckboxListTile(
                       value: isSelected,
-                      title: Text('${cn['creditNoteNumber']} (₹${cn['amount']})'),
+                      title: Text('${cn['creditNoteNumber']} (${cn['amount']})'),
                       subtitle: Text(cn['reason'] ?? ''),
                       onChanged: (val) => setDialogState(() {
                         if (val == true) tempSelected.add(cn);
@@ -6682,7 +6701,7 @@ class _EditBillPageState extends State<EditBillPage> {
                       final p = products[index];
                       return ListTile(
                         title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('₹${p['price']}'),
+                        subtitle: Text('${p['price']}'),
                         trailing: const Icon(Icons.add_circle, color: kPrimaryColor),
                         onTap: () {
                           setState(() {

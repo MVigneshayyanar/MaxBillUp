@@ -152,7 +152,7 @@ class LanguageProvider extends ChangeNotifier {
 
       // Settings
       'profile': 'Profile',
-      'business_details': 'Business Details',
+      'business_details': 'Business Profile',
       'business_name': 'Business Name',
       'business_phone': 'Business Phone',
       'business_location': 'Business Location',
@@ -679,7 +679,7 @@ class LanguageProvider extends ChangeNotifier {
       'no_report_access': 'No Report Access',
       'no_report_permission_msg': 'You don\'t have permission to view any reports. Contact your administrator.',
       'hour': 'Hour',
-      'currency_symbol': '₹',
+      'currency_symbol': '',
 
       // Expenses page keys
       'new_expense': 'New Expense',
@@ -1457,7 +1457,7 @@ class LanguageProvider extends ChangeNotifier {
       'no_report_access': 'रिपोर्ट एक्सेस नहीं',
       'no_report_permission_msg': 'आपके पास किसी भी रिपोर्ट को देखने की अनुमति नहीं है। अपने व्यवस्थापक से संपर्क करें।',
       'hour': 'घंटा',
-      'currency_symbol': '₹',
+      'currency_symbol': '',
 
       // Expenses page keys
       'new_expense': 'नया खर्च',
@@ -2237,7 +2237,7 @@ class LanguageProvider extends ChangeNotifier {
       'no_report_access': 'அறிக்கை அணுகல் இல்லை',
       'no_report_permission_msg': 'எந்த அறிக்கையையும் பார்க்க உங்களுக்கு அனுமதி இல்லை. உங்கள் நிர்வாகியை தொடர்பு கொள்ளவும்.',
       'hour': 'மணி',
-      'currency_symbol': '₹',
+      'currency_symbol': '',
 
       // Expenses page keys
       'new_expense': 'புதிய செலவு',

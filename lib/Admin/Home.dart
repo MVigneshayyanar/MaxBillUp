@@ -197,7 +197,7 @@ class StoresTab extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildStatusIndicator(isActive),
-                          const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kTextMuted),
+                          const Icon(Icons.arrow_forward_rounded, size: 14, color: kTextMuted),
                         ],
                       )
                     ],

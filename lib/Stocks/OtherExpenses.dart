@@ -262,7 +262,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               ],
                             ),
                             trailing: Text(
-                              '₹${amount.toStringAsFixed(2)}',
+                              '${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -561,7 +561,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
                 children: [
                   const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    "₹${(expenseData['amount'] ?? 0).toStringAsFixed(2)}",
+                    "${(expenseData['amount'] ?? 0).toStringAsFixed(2)}",
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _errorColor),
                   ),
                 ],
