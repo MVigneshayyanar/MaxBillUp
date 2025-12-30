@@ -467,7 +467,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             tabs: const [
               Tab(text: 'Taxes'),
-              Tab(text: 'Tax for Quick Sale'),
+              Tab(text: 'Quick Bill Tax'),
             ],
           ),
         ),

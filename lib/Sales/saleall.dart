@@ -70,6 +70,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
+  // +1 animation tracking
+  String? _animatingProductId;
+  int _animationCounter = 0;
+
   @override
   void initState() {
     super.initState();
@@ -248,7 +252,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ));
     }
 
-    setState(() {});
+    // Trigger +1 animation
+    setState(() {
+      _animatingProductId = id;
+      _animationCounter++;
+    });
+
+    // Clear animation after 800ms
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted && _animatingProductId == id) {
+        setState(() {
+          _animatingProductId = null;
+        });
+      }
+    });
+
     Future.delayed(const Duration(seconds: 1), () {
       if (mounted) setState(() {});
     });
@@ -795,6 +813,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
     final unit = data['stockUnit'] ?? '';
     final isFavorite = data['isFavorite'] ?? false;
+    final isAnimating = _animatingProductId == id;
 
     return Consumer<LocalStockService>(
       builder: (context, localStockService, child) {
@@ -812,60 +831,108 @@ class _SaleAllPageState extends State<SaleAllPage> {
           },
           child: AspectRatio(
             aspectRatio: 1.0, // Force square card
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorderColor),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.2, color: kBlack87),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isFavorite)
-                        const Icon(Icons.favorite, color: kPrimaryColor, size: 16),
-                    ],
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kBorderColor),
                   ),
-                  Column(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        "${price.toStringAsFixed(0)}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor),
-                      ),
-                      const SizedBox(height: 4),
-                      if (stockEnabled)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kGoogleYellow.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            isOutOfStock ? 'Out' : '${stock.toInt()} $unit',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900,
-                              color: isOutOfStock ? kErrorColor : (isLowStock ? kGoogleYellow : kGoogleGreen),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.2, color: kBlack87),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                        ),
+                          if (isFavorite)
+                            const Icon(Icons.favorite, color: kPrimaryColor, size: 16),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${price.toStringAsFixed(0)}",
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor),
+                          ),
+                          const SizedBox(height: 4),
+                          if (stockEnabled)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kGoogleYellow.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                isOutOfStock ? 'Out of Stock' : '${stock.toInt()} $unit',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: isOutOfStock ? kErrorColor : (isLowStock ? kOrange : kGoogleGreen),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+                // +1 Animation Overlay
+                if (isAnimating)
+                  Positioned.fill(
+                    child: TweenAnimationBuilder<double>(
+                      key: ValueKey(_animationCounter),
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: 1.0 - value,
+                          child: Transform.translate(
+                            offset: Offset(0, -30 * value),
+                            child: Transform.scale(
+                              scale: 1.0 + (value * 0.5),
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: kOrange,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: kOrange.withAlpha((0.4 * 255).toInt()),
+                                        blurRadius: 8,
+                                        spreadRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Text(
+                                    '+1',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
         );

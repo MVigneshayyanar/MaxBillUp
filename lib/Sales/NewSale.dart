@@ -595,7 +595,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kGoogleYellow, width: 2),
+          border: Border.all(color: kOrange, width: 2),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
         ),
         child: Column(
@@ -603,7 +603,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
-                color: Color(0xffffa51f),
+                color: kOrange,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: const Row(

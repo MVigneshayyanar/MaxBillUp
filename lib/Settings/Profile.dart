@@ -188,6 +188,13 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _navigateTo('PrinterSetup'),
             subtitle: "Bluetooth printers",
           ),
+          _buildModernTile(
+            title: 'Language',
+            icon: Icons.language_rounded,
+            color: const Color(0xFF12008C),
+            onTap: () => _navigateTo('Language'),
+            subtitle: "Choose language",
+          ),
           const SizedBox(height: 24),
           const Center(child: Text('Version 1.0.0', style: TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500))),
           const SizedBox(height: 16),
@@ -354,11 +361,41 @@ class BusinessDetailsPage extends StatefulWidget {
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _gstCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _gstCtrl = TextEditingController(), _licenseCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
   final _locationFocusNode = FocusNode();
   bool _editing = false, _loading = false, _fetching = true, _uploadingImage = false;
   String? _logoUrl;
   File? _selectedImage;
+  String _selectedCurrency = 'INR'; // Default to Indian Rupee
+
+  // Currency list with symbols and codes
+  final List<Map<String, String>> _currencies = [
+    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
+    {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
+    {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
+    {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
+    {'code': 'MYR', 'symbol': 'RM', 'name': 'Malaysian Ringgit'},
+    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
+    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
+    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
+    {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan (RMB)'},
+    {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
+    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
+    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
+    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
+    {'code': 'KRW', 'symbol': '₩', 'name': 'South Korean Won'},
+    {'code': 'THB', 'symbol': '฿', 'name': 'Thai Baht'},
+    {'code': 'PHP', 'symbol': '₱', 'name': 'Philippine Peso'},
+    {'code': 'IDR', 'symbol': 'Rp', 'name': 'Indonesian Rupiah'},
+    {'code': 'VND', 'symbol': '₫', 'name': 'Vietnamese Dong'},
+    {'code': 'BDT', 'symbol': '৳', 'name': 'Bangladeshi Taka'},
+    {'code': 'PKR', 'symbol': '₨', 'name': 'Pakistani Rupee'},
+    {'code': 'LKR', 'symbol': 'Rs', 'name': 'Sri Lankan Rupee'},
+    {'code': 'NPR', 'symbol': 'Rs', 'name': 'Nepalese Rupee'},
+    {'code': 'ZAR', 'symbol': 'R', 'name': 'South African Rand'},
+    {'code': 'BRL', 'symbol': 'R\$', 'name': 'Brazilian Real'},
+    {'code': 'MXN', 'symbol': 'Mex\$', 'name': 'Mexican Peso'},
+  ];
 
   @override
   void initState() {
@@ -367,7 +404,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _gstCtrl.addListener(() => setState(() {}));
   }
   @override
-  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _gstCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
+  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _gstCtrl.dispose(); _licenseCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
 
   Future<void> _loadData() async {
     if (!mounted) return;
@@ -380,6 +417,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         _nameCtrl.text = data['businessName'] ?? '';
         _phoneCtrl.text = data['businessPhone'] ?? '';
         _gstCtrl.text = data['gstin'] ?? '';
+        _licenseCtrl.text = data['licenseNumber'] ?? '';
+        _selectedCurrency = data['currency'] ?? 'INR';
         _locCtrl.text = data['businessLocation'] ?? '';
         _ownerCtrl.text = data['ownerName'] ?? '';
         _logoUrl = data['logoUrl'];
@@ -501,9 +540,25 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId != null) {
-        await FirebaseFirestore.instance.collection('store').doc(storeId).set({'businessName': _nameCtrl.text.trim(), 'businessPhone': _phoneCtrl.text.trim(), 'gstin': _gstCtrl.text.trim(), 'businessLocation': _locCtrl.text.trim(), 'ownerName': _ownerCtrl.text.trim(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-        await FirebaseFirestore.instance.collection('users').doc(widget.uid).set({'name': _ownerCtrl.text.trim(), 'businessLocation': _locCtrl.text.trim(), 'updatedAt': FieldValue.serverTimestamp()}, SetOptions(merge: true));
-        if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile updated successfully"), backgroundColor: Colors.green)); setState(() => _editing = false); }
+        await FirebaseFirestore.instance.collection('store').doc(storeId).set({
+          'businessName': _nameCtrl.text.trim(),
+          'businessPhone': _phoneCtrl.text.trim(),
+          'gstin': _gstCtrl.text.trim(),
+          'licenseNumber': _licenseCtrl.text.trim(),
+          'currency': _selectedCurrency,
+          'businessLocation': _locCtrl.text.trim(),
+          'ownerName': _ownerCtrl.text.trim(),
+          'updatedAt': FieldValue.serverTimestamp()
+        }, SetOptions(merge: true));
+        await FirebaseFirestore.instance.collection('users').doc(widget.uid).set({
+          'name': _ownerCtrl.text.trim(),
+          'businessLocation': _locCtrl.text.trim(),
+          'updatedAt': FieldValue.serverTimestamp()
+        }, SetOptions(merge: true));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profile updated successfully"), backgroundColor: Colors.green));
+          setState(() => _editing = false);
+        }
       }
     } catch (e) { debugPrint(e.toString()); }
     finally { if (mounted) setState(() => _loading = false); }
@@ -556,13 +611,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, enabled: _editing),
                 _buildLocationField(),
                 _buildModernField(
-                    "Service Tax Number",
+                    "Tax Number",
                     _gstCtrl,
                     Icons.receipt_long_rounded,
                     enabled: _editing,
                     hint: "Optional",
                     helperText: (_editing && _gstCtrl.text.isEmpty) ? "e.g. GST, VAT, SalesTax etc" : null
                 ),
+                _buildModernField(
+                    "License Number",
+                    _licenseCtrl,
+                    Icons.badge_rounded,
+                    enabled: _editing,
+                    hint: "Optional",
+                    helperText: (_editing && _licenseCtrl.text.isEmpty) ? "e.g. FSSAI - 12345678901234" : null
+                ),
+                _buildCurrencyField(),
                 const SizedBox(height: 24),
                 _buildSectionHeader("Ownership & Contact"),
                 _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded, enabled: _editing),
@@ -614,6 +678,124 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         ),
         debounceTime: 600, countries: const ["in"], isLatLngRequired: false,
         itemClick: (p) { _locCtrl.text = p.description ?? ''; FocusScope.of(context).unfocus(); },
+      ),
+    );
+  }
+
+  Widget _buildCurrencyField() {
+    final selectedCurrency = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: kGrey300),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 20),
+              title: const Text("Currency", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kBlack54)),
+              subtitle: Text(
+                "${selectedCurrency['symbol']} ${selectedCurrency['code']} - ${selectedCurrency['name']}",
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
+              ),
+              trailing: _editing
+                ? const Icon(Icons.arrow_drop_down, color: kPrimaryColor)
+                : null,
+              onTap: _editing ? _showCurrencyPicker : null,
+              enabled: _editing,
+            ),
+          ),
+          if (_editing)
+            Padding(
+              padding: const EdgeInsets.only(left: 16, top: 6),
+              child: Text(
+                "e.g. ₹ INR, \$ USD, € EUR, RM MYR, ¥ JPY",
+                style: TextStyle(fontSize: 11, color: Colors.grey[600], fontWeight: FontWeight.w500),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showCurrencyPicker() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              "Select Currency",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kBlack87),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _currencies.length,
+                itemBuilder: (context, index) {
+                  final currency = _currencies[index];
+                  final isSelected = currency['code'] == _selectedCurrency;
+
+                  return ListTile(
+                    leading: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: isSelected ? kPrimaryColor.withAlpha((0.1 * 255).toInt()) : kGreyBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          currency['symbol']!,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: isSelected ? kPrimaryColor : kBlack87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      "${currency['code']} - ${currency['name']}",
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        color: isSelected ? kPrimaryColor : kBlack87,
+                      ),
+                    ),
+                    trailing: isSelected
+                      ? const Icon(Icons.check_circle, color: kPrimaryColor)
+                      : null,
+                    onTap: () {
+                      setState(() {
+                        _selectedCurrency = currency['code']!;
+                      });
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -788,13 +970,158 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 // 8. LANGUAGE PAGE
 // ==========================================
 class LanguagePage extends StatelessWidget {
-  final VoidCallback onBack; const LanguagePage({super.key, required this.onBack});
-  @override Widget build(BuildContext context) {
+  final VoidCallback onBack;
+  const LanguagePage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
     final provider = Provider.of<LanguageProvider>(context);
-    return PopScope(canPop: false, onPopInvoked: (bool didPop) { if (!didPop) onBack(); }, child: Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text(provider.translate('choose_language'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack)), body: ListView.separated(padding: const EdgeInsets.all(16), itemCount: provider.languages.length, separatorBuilder: (_, __) => const SizedBox(height: 12), itemBuilder: (ctx, i) {
-      String code = provider.languages.keys.elementAt(i); bool isSelected = provider.currentLanguageCode == code;
-      return Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: isSelected ? kPrimaryColor : kBorderColor, width: isSelected ? 1.5 : 1)), child: ListTile(onTap: () => provider.changeLanguage(code), leading: CircleAvatar(backgroundColor: kGreyBg, child: Text(code.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kTextSecondary))), title: Text(provider.languages[code]!['name']!, style: const TextStyle(fontWeight: FontWeight.bold)), trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor) : null));
-    })));
+
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (bool didPop) {
+        if (!didPop) onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.language, color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                provider.translate('choose_language'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+              ),
+            ],
+          ),
+          centerTitle: true,
+          backgroundColor: kPrimaryColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: onBack
+          )
+        ),
+        body: Column(
+          children: [
+            // Info Banner
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kOrange.withAlpha((0.1 * 255).toInt()),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kOrange.withAlpha((0.3 * 255).toInt())),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: kOrange, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Only English Available Now',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[900],
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Other languages coming soon!',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[800],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Language List
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: provider.languages.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemBuilder: (ctx, i) {
+                  String code = provider.languages.keys.elementAt(i);
+                  bool isSelected = provider.currentLanguageCode == code;
+                  bool isEnglish = code == 'en';
+                  bool isComingSoon = !isEnglish;
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected ? kPrimaryColor : kBorderColor,
+                        width: isSelected ? 1.5 : 1
+                      )
+                    ),
+                    child: ListTile(
+                      onTap: isComingSoon ? null : () => provider.changeLanguage(code),
+                      enabled: !isComingSoon,
+                      leading: CircleAvatar(
+                        backgroundColor: isComingSoon ? kGreyBg : kGreyBg,
+                        child: Text(
+                          code.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: isComingSoon ? kBlack54 : kTextSecondary
+                          )
+                        )
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            provider.languages[code]!['name']!,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isComingSoon ? kBlack54 : kBlack87,
+                            )
+                          ),
+                          if (isComingSoon) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: kOrange.withAlpha((0.15 * 255).toInt()),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Text(
+                                'Coming Soon',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: kOrange,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      trailing: isSelected
+                        ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor)
+                        : (isComingSoon ? Icon(Icons.lock_outline, color: kBlack54, size: 20) : null)
+                    )
+                  );
+                }
+              ),
+            ),
+          ],
+        )
+      )
+    );
   }
 }
 

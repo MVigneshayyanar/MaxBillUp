@@ -9,15 +9,17 @@ class LanguageProvider extends ChangeNotifier {
   // Language configurations
   final Map<String, Map<String, String>> _languages = {
     'en': {'name': 'English', 'native': 'English'},
-    //'fr': {'name': 'Français', 'native': 'French'},
-    'hi': {'name': 'हिंदी', 'native': 'Hindi'},
-    //'es': {'name': 'Español', 'native': 'Spanish'},
     'ta': {'name': 'தமிழ்', 'native': 'Tamil'},
-    //'ms': {'name': 'Bahasa Melayu', 'native': 'Malay'},
-    //'bn': {'name': 'বাংলা', 'native': 'Bangla'},
-    //'uz': {'name': 'O\'zbek', 'native': 'Uzbek'},
-    //'ru': {'name': 'Русский', 'native': 'Russian'},
+    'hi': {'name': 'हिंदी', 'native': 'Hindi'},
+    'zh': {'name': '中文', 'native': 'Chinese'},
+    'es': {'name': 'Español', 'native': 'Spanish'},
+    'fr': {'name': 'Français', 'native': 'French'},
+    'ar': {'name': 'العربية', 'native': 'Arabic'},
+    'ru': {'name': 'Русский', 'native': 'Russian'},
+    'pt': {'name': 'Português', 'native': 'Portuguese'},
+    'de': {'name': 'Deutsch', 'native': 'German'},
   };
+
 
   Map<String, Map<String, String>> get languages => _languages;
 
