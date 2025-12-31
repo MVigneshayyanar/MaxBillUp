@@ -69,6 +69,7 @@ class InvoicePage extends StatefulWidget {
   final String? customerName;
   final String? customerPhone;
   final String? customerGSTIN;
+  final bool isQuotation; // New parameter to indicate if this is a quotation
 
   const InvoicePage({
     super.key,
@@ -90,6 +91,7 @@ class InvoicePage extends StatefulWidget {
     this.customerName,
     this.customerPhone,
     this.customerGSTIN,
+    this.isQuotation = false, // Default to false for regular invoices
   });
 
   @override
@@ -252,7 +254,9 @@ class _InvoicePageState extends State<InvoicePage> {
         elevation: 0,
         centerTitle: true,
         title: Text(
-          context.tr('invoice details').toUpperCase(),
+          widget.isQuotation
+            ? 'QUOTATION DETAILS'
+            : context.tr('invoice details').toUpperCase(),
           style: TextStyle(
             color: templateColors['primary'],
             fontWeight: FontWeight.w900,
@@ -848,7 +852,7 @@ class _InvoicePageState extends State<InvoicePage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text("TAX INVOICE", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2)),
+                        Text(widget.isQuotation ? "QUOTATION" : "TAX INVOICE", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2)),
                         Text("#${widget.invoiceNumber}", style: const TextStyle(color: Colors.white70, fontSize: 14)),
                       ],
                     ),
@@ -1164,7 +1168,7 @@ class _InvoicePageState extends State<InvoicePage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text("INVOICE NO: #${widget.invoiceNumber}",
+          Text("${widget.isQuotation ? 'QUOTATION' : 'INVOICE'} NO: #${widget.invoiceNumber}",
               style: TextStyle(color: colors['text'], fontWeight: FontWeight.bold, fontSize: 13)),
           Text("DATE: ${DateFormat('dd-MM-yyyy').format(widget.dateTime)}",
               style: TextStyle(color: colors['text'], fontWeight: FontWeight.bold, fontSize: 13)),
@@ -1607,9 +1611,9 @@ class _InvoicePageState extends State<InvoicePage> {
 
           pw.Divider(color: PdfColors.black, height: 30),
 
-          // Invoice details
+          // Invoice/Quotation details
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-            pw.Text("INVOICE #${widget.invoiceNumber}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+            pw.Text("${widget.isQuotation ? 'QUOTATION' : 'INVOICE'} #${widget.invoiceNumber}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
             pw.Text("DATE: ${DateFormat('dd-MM-yyyy').format(widget.dateTime)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           ]),
 
@@ -1907,7 +1911,7 @@ class _InvoicePageState extends State<InvoicePage> {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("TAX INVOICE", style: pw.TextStyle(color: PdfColors.white, fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 2)),
+                    pw.Text(widget.isQuotation ? "QUOTATION" : "TAX INVOICE", style: pw.TextStyle(color: PdfColors.white, fontSize: 20, fontWeight: pw.FontWeight.bold, letterSpacing: 2)),
                     pw.Text("#${widget.invoiceNumber}", style: const pw.TextStyle(color: PdfColors.white, fontSize: 14)),
                   ],
                 ),

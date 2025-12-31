@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
+import 'package:maxbillup/Sales/Invoice.dart';
 import 'dart:math';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
@@ -168,6 +169,27 @@ class _QuotationPageState extends State<QuotationPage> {
     );
   }
 
+  Future<Map<String, String?>> _fetchBusinessDetails() async {
+    try {
+      final firestoreService = FirestoreService();
+      final storeDoc = await firestoreService.getCurrentStoreDoc();
+
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        return {
+          'businessName': data?['businessName'] as String?,
+          'location': data?['location'] as String? ?? data?['businessLocation'] as String? ?? data?['businessAddress'] as String?,
+          'businessPhone': data?['businessPhone'] as String?,
+          'gstin': data?['gstin'] as String?,
+        };
+      }
+      return {'businessName': null, 'location': null, 'businessPhone': null, 'gstin': null};
+    } catch (e) {
+      debugPrint('Error fetching business details: $e');
+      return {'businessName': null, 'location': null, 'businessPhone': null, 'gstin': null};
+    }
+  }
+
   Future<void> _generateQuotation() async {
     try {
       // 1. Show Loading Indicator
@@ -193,6 +215,26 @@ class _QuotationPageState extends State<QuotationPage> {
       final random = Random();
       final quotationNumber = (100000 + random.nextInt(900000)).toString();
 
+      // Calculate tax information from cart items
+      final Map<String, double> taxMap = {};
+      for (var item in widget.cartItems) {
+        if (item.taxAmount > 0 && item.taxName != null) {
+          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+        }
+      }
+      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+      // Calculate subtotal (without tax) and total with tax
+      final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
+        if (item.taxType == 'Price includes Tax') {
+          return sum + (item.basePrice * item.quantity);
+        } else {
+          return sum + item.total;
+        }
+      });
+      final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
       // 3. Prepare Data
       final List<Map<String, dynamic>> itemsList = widget.cartItems.asMap().entries.map((entry) {
         final index = entry.key;
@@ -210,6 +252,11 @@ class _QuotationPageState extends State<QuotationPage> {
           'price': item.price,
           'quantity': item.quantity,
           'total': item.total,
+          'taxName': item.taxName,
+          'taxPercentage': item.taxPercentage ?? 0,
+          'taxAmount': item.taxAmount,
+          'taxType': item.taxType,
+          'totalWithTax': item.totalWithTax,
           'discount': calculatedItemDiscountValue,
           'discountInputType': _isBillWise ? 'none' : (_isItemDiscountPercentage[index] ? 'percentage' : 'cash'),
           'finalTotal': item.total - calculatedItemDiscountValue,
@@ -219,10 +266,12 @@ class _QuotationPageState extends State<QuotationPage> {
       final quotationData = {
         'quotationNumber': quotationNumber,
         'items': itemsList,
-        'subtotal': widget.totalAmount,
+        'subtotal': subtotalAmount,
         'discount': _discountAmount,
         'discountPercentage': _discountPercentage,
-        'total': _newTotal,
+        'taxes': taxList,
+        'totalTax': totalTax,
+        'total': totalWithTax - _discountAmount,
         'discountMode': _isBillWise ? 'billWise' : 'itemWise',
         'billWiseCashDiscount': _cashDiscountAmount,
         'billWisePercDiscount': _percentageDiscount,
@@ -245,21 +294,45 @@ class _QuotationPageState extends State<QuotationPage> {
 
       if (mounted) {
         Navigator.pop(context); // Remove loading indicator
+
+        // Fetch business details for invoice
+        final businessDetails = await _fetchBusinessDetails();
+        final businessName = businessDetails['businessName'] ?? 'Business';
+        final businessLocation = businessDetails['location'] ?? 'Location';
+        final businessPhone = businessDetails['businessPhone'] ?? '';
+        final businessGSTIN = businessDetails['gstin'];
+
+        // Navigate to Invoice page with isQuotation=true and complete tax information
         Navigator.push(
           context,
           CupertinoPageRoute(
-            builder: (context) => QuotationPreviewPage(
+            builder: (context) => InvoicePage(
               uid: widget.uid,
               userEmail: widget.userEmail,
-              quotationNumber: quotationNumber,
-              items: widget.cartItems,
-              subtotal: widget.totalAmount,
+              businessName: businessName,
+              businessLocation: businessLocation,
+              businessPhone: businessPhone,
+              businessGSTIN: businessGSTIN,
+              invoiceNumber: quotationNumber,
+              dateTime: DateTime.now(),
+              items: widget.cartItems.map((e) => {
+                'name': e.name,
+                'quantity': e.quantity,
+                'price': e.price,
+                'total': e.totalWithTax,
+                'taxPercentage': e.taxPercentage ?? 0,
+                'taxAmount': e.taxAmount,
+              }).toList(),
+              subtotal: subtotalAmount,
               discount: _discountAmount,
-              total: _newTotal,
+              taxes: taxList,
+              total: totalWithTax - _discountAmount,
+              paymentMode: 'Quotation',
+              cashReceived: 0.0,
               customerName: _selectedCustomerName,
               customerPhone: _selectedCustomerPhone,
-              staffName: staffName,
-              quotationDocId: docRef.id,
+              customerGSTIN: _selectedCustomerGST,
+              isQuotation: true, // Mark this as a quotation
             ),
           ),
         );
@@ -285,6 +358,7 @@ class _QuotationPageState extends State<QuotationPage> {
 
     return Scaffold(
       backgroundColor: kGreyBg,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -308,11 +382,7 @@ class _QuotationPageState extends State<QuotationPage> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                        backgroundColor: (hasCustomer ? kPrimaryColor : kOrange).withOpacity(0.1),
-                        radius: 18,
-                        child: Icon(hasCustomer ? Icons.person : Icons.person_add_outlined, color: hasCustomer ? kPrimaryColor : kOrange, size: 18)
-                    ),
+                    Icon(hasCustomer ? Icons.person : Icons.person_add_outlined, color: hasCustomer ? kPrimaryColor : kOrange, size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -341,45 +411,44 @@ class _QuotationPageState extends State<QuotationPage> {
           Expanded(
             child: Container(
               decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Discounting Strategy', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _buildToggleBtn('Bill Wise', _isBillWise, () => setState(() => _isBillWise = true)),
-                              const SizedBox(width: 10),
-                              _buildToggleBtn('Item Wise', !_isBillWise, () => setState(() => _isBillWise = false)),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          if (_isBillWise) ...[
-                            _buildSummaryRow('Initial Total', widget.totalAmount),
-                            const SizedBox(height: 24),
-                            _buildInputLabel('Fixed Cash Discount'),
-                            _buildTextField(_cashDiscountController, '0.00', _updateCashDiscount, Icons.money_rounded),
-                            const SizedBox(height: 16),
-                            Center(child: Text('OR', style: TextStyle(color: kGrey400, fontWeight: FontWeight.w800, fontSize: 10))),
-                            const SizedBox(height: 16),
-                            _buildInputLabel('Percentage (%) Discount'),
-                            _buildTextField(_percentageController, '0%', _updatePercentageDiscount, Icons.percent_rounded),
-                          ] else ...[
-                            _buildItemWiseTable(),
-                          ],
-                        ],
-                      ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Discounting Strategy', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _buildToggleBtn('Bill Wise', _isBillWise, () => setState(() => _isBillWise = true)),
+                        const SizedBox(width: 10),
+                        _buildToggleBtn('Item Wise', !_isBillWise, () => setState(() => _isBillWise = false)),
+                      ],
                     ),
-                  ),
-                  _buildBottomSummaryArea(),
-                ],
+                    const SizedBox(height: 20),
+                    if (_isBillWise) ...[
+                      _buildSummaryRow('Initial Total', widget.totalAmount),
+                      const SizedBox(height: 24),
+                      _buildInputLabel('Fixed Cash Discount'),
+                      _buildTextField(_cashDiscountController, '0.00', _updateCashDiscount, Icons.money_rounded),
+                      const SizedBox(height: 16),
+                      Center(child: Text('OR', style: TextStyle(color: kGrey400, fontWeight: FontWeight.w800, fontSize: 10))),
+                      const SizedBox(height: 16),
+                      _buildInputLabel('Percentage (%) Discount'),
+                      _buildTextField(_percentageController, '0%', _updatePercentageDiscount, Icons.percent_rounded),
+                    ] else ...[
+                      _buildItemWiseTable(),
+                    ],
+                    // Add extra padding at bottom to prevent content from being hidden under sticky bottom area
+                    const SizedBox(height: 200),
+                  ],
+                ),
               ),
             ),
+          ),
+          // Sticky bottom summary area - now outside the scrollable content
+          SafeArea(
+            child: _buildBottomSummaryArea(),
           ),
         ],
       ),
@@ -454,7 +523,7 @@ class _QuotationPageState extends State<QuotationPage> {
                   onTap: () => _toggleItemDiscountMode(index),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                    decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: (0.1 * 255).toDouble()), borderRadius: BorderRadius.circular(6)),
                     child: Text(isPerc ? "%" : "Amt", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 10)),
                   ),
                 ),
@@ -490,8 +559,8 @@ class _QuotationPageState extends State<QuotationPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kWhite,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
         border: const Border(top: BorderSide(color: kGrey200)),
+
       ),
       child: Column(
         children: [
@@ -558,18 +627,73 @@ class _QuotationPageState extends State<QuotationPage> {
   }
 
   Widget _buildFinalSummary() {
+    // Calculate tax information from cart items
+    final Map<String, double> taxMap = {};
+    for (var item in widget.cartItems) {
+      if (item.taxAmount > 0 && item.taxName != null) {
+        taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
+      }
+    }
+    final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+    // Calculate subtotal (without tax) and total with tax
+    final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
+      if (item.taxType == 'Price includes Tax') {
+        return sum + (item.basePrice * item.quantity);
+      } else {
+        return sum + item.total;
+      }
+    });
+    final totalWithTax = widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+    final finalTotal = totalWithTax - _discountAmount;
+
     final perc = _discountPercentage;
     return Column(
       children: [
+        // Subtotal
         Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total Savings (${perc.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-              Text('- Rs ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
-            ]
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Subtotal', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
+            Text('Rs ${subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+          ]
         ),
         const SizedBox(height: 8),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Net Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)), Text('Rs ${_newTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))]),
+
+        // Tax (if applicable)
+        if (totalTax > 0) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Tax', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
+              Text('Rs ${totalTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+            ]
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Discount
+        if (_discountAmount > 0) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Discount (${perc.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
+              Text('- Rs ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
+            ]
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        const Divider(color: kGrey200, height: 16),
+
+        // Net Total
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Net Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
+            Text('Rs ${finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))
+          ]
+        ),
       ],
     );
   }
@@ -674,7 +798,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             onTap: () { widget.onCustomerSelected(data['phone'] ?? '', data['name'] ?? '', data['gst']); Navigator.pop(context); },
-                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), child: Text(data['name']?[0].toUpperCase() ?? 'U', style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700))),
+                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withValues(alpha: (0.1 * 255).toDouble()), child: Text(data['name']?[0].toUpperCase() ?? 'U', style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700))),
                             title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87, fontSize: 14)),
                             subtitle: Text(data['phone'] ?? '', style: const TextStyle(fontSize: 11, color: kBlack54)),
                           );
