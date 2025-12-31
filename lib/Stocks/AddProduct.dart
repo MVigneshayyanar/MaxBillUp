@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:intl/intl.dart';
 import 'AddCategoryPopup.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -41,13 +42,16 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _barcodeController = TextEditingController();
   final TextEditingController _quantityController = TextEditingController();
   final TextEditingController _lowStockAlertController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+  final TextEditingController _expiryDateController = TextEditingController();
 
   // State
+  DateTime? _selectedExpiryDate;
   String? _selectedCategory;
   bool _stockEnabled = true;
   String? _selectedStockUnit = 'Piece';
   Stream<List<String>>? _unitsStream;
-  String _lowStockAlertType = 'Count'; // 'Count' or 'Percentage'
+  String _lowStockAlertType = 'Count';
   bool _isFavorite = false;
   bool _isLoading = false;
 
@@ -60,20 +64,20 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void initState() {
     super.initState();
-    // Default fallback to General
     _selectedCategory = widget.preSelectedCategory ?? 'General';
-
     _checkPermission();
     _fetchUnits();
     _fetchTaxesFromBackend();
 
     if (widget.existingData != null) {
       _loadExistingData();
+    } else {
+      _generateProductCode();
     }
   }
 
   // ==========================================
-  // LOGIC METHODS (PRESERVED BIT-BY-BIT)
+  // LOGIC METHODS
   // ==========================================
 
   Future<void> _fetchTaxesFromBackend() async {
@@ -116,22 +120,11 @@ class _AddProductPageState extends State<AddProductPage> {
     } catch (e) { debugPrint('Error: $e'); }
   }
 
-  Future<void> _incrementTaxProductCount(String taxId) async {
-    try {
-      final storeId = await FirestoreService().getCurrentStoreId();
-      if (storeId == null) return;
-      await FirebaseFirestore.instance.collection('store').doc(storeId).collection('taxes').doc(taxId).update({'productCount': FieldValue.increment(1)});
-    } catch (e) { debugPrint('Error: $e'); }
-  }
-
   Future<void> _checkPermission() async {
     final userData = await PermissionHelper.getUserPermissions(widget.uid);
-    final role = userData['role'] as String;
-    final permissions = userData['permissions'] as Map<String, dynamic>;
-    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
-    if (permissions['addProduct'] != true && !isAdmin && mounted) {
+    if (userData['permissions']['addProduct'] != true && !userData['role'].toLowerCase().contains('admin') && mounted) {
       Navigator.pop(context);
-      await PermissionHelper.showPermissionDeniedDialog(context);
+      PermissionHelper.showPermissionDeniedDialog(context);
     }
   }
 
@@ -139,35 +132,25 @@ class _AddProductPageState extends State<AddProductPage> {
     final storeId = await FirestoreService().getCurrentStoreId();
     if (storeId == null) return;
     setState(() {
-      _unitsStream = FirestoreService().storeCollection.doc(storeId).collection('units').snapshots()
+      _unitsStream = FirebaseFirestore.instance.collection('store').doc(storeId).collection('units').snapshots()
           .map((snapshot) => snapshot.docs.map((doc) => doc.id).toList());
     });
   }
 
   void _generateProductCode() async {
     try {
-      final storeId = await FirestoreService().getCurrentStoreId();
-      if (storeId == null) return;
       final productsCollection = await FirestoreService().getStoreCollection('Products');
-      int highestNumber = 100;
-      final productsSnapshot = await productsCollection.get();
-      for (var doc in productsSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>?;
-        final productCode = data?['productCode'] as String?;
-        if (productCode != null) {
-          final number = int.tryParse(productCode);
-          if (number != null && number > highestNumber) {
-            highestNumber = number;
-          }
-        }
+      final snap = await productsCollection.orderBy('productCode', descending: true).limit(1).get();
+      int next = 1001;
+      if (snap.docs.isNotEmpty) {
+        final code = snap.docs.first['productCode'].toString();
+        // Assuming PRT prefix or numeric
+        final numPart = int.tryParse(code.replaceAll(RegExp(r'[^0-9]'), ''));
+        if (numPart != null) next = numPart + 1;
       }
-      final nextNumber = highestNumber + 1;
-      if (mounted) {
-        setState(() => _productCodeController.text = nextNumber.toString());
-      }
+      setState(() => _productCodeController.text = '$next');
     } catch (e) {
-      final code = DateTime.now().millisecondsSinceEpoch.toString().substring(7);
-      setState(() => _productCodeController.text = code);
+      setState(() => _productCodeController.text = '${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}');
     }
   }
 
@@ -181,7 +164,7 @@ class _AddProductPageState extends State<AddProductPage> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('This number is already mapped with $productName'),
+              content: Text('Code is already mapped with $productName'),
               backgroundColor: kErrorColor,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -191,9 +174,7 @@ class _AddProductPageState extends State<AddProductPage> {
         return true;
       }
       return false;
-    } catch (e) {
-      return false;
-    }
+    } catch (e) { return false; }
   }
 
   Future<void> _scanBarcode() async {
@@ -227,17 +208,13 @@ class _AddProductPageState extends State<AddProductPage> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  _buildSectionHeader("Classification"),
+                  _buildSectionHeader("Basic Details"),
                   _buildCategoryDropdown(),
-                  const SizedBox(height: 20),
-
-                  _buildSectionHeader("Item Identity"),
+                  const SizedBox(height: 16),
                   _buildItemNameWithFavorite(),
                   const SizedBox(height: 16),
                   _buildProductCodeField(),
-                  const SizedBox(height: 20),
-
-                  _buildSectionHeader("Pricing & Stock"),
+                  const SizedBox(height: 16),
                   _buildModernTextField(
                     controller: _priceController,
                     label: "Price",
@@ -247,17 +224,20 @@ class _AddProductPageState extends State<AddProductPage> {
                     hint: "0.00",
                   ),
                   const SizedBox(height: 16),
-                  _buildTrackStockLevelAndQuantity(),
+                  _buildTrackStockAndQuantity(),
                   const SizedBox(height: 16),
                   _buildUnitDropdown(),
                   const SizedBox(height: 24),
 
+                  // DROP DOWN SECTION FOR ADVANCED DETAILS
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
                       childrenPadding: EdgeInsets.zero,
-                      title: _buildSectionHeader("Logistics & Taxation"),
+                      title: _buildSectionHeader("Advanced Details"),
+                      iconColor: kPrimaryColor,
+                      collapsedIconColor: kBlack54,
                       children: [
                         const SizedBox(height: 12),
                         _buildModernTextField(
@@ -293,8 +273,16 @@ class _AddProductPageState extends State<AddProductPage> {
                           controller: _hsnController,
                           label: "HSN / SAC Code",
                           icon: Icons.assignment_outlined,
-                          hint: "Harmonized System Nomenclature",
                         ),
+                        const SizedBox(height: 16),
+                        _buildModernTextField(
+                          controller: _locationController,
+                          label: "Product Location",
+                          icon: Icons.location_on_outlined,
+                          hint: "e.g. Shelf A3, Warehouse B",
+                        ),
+                        const SizedBox(height: 16),
+                        _buildExpiryDateField(),
                       ],
                     ),
                   ),
@@ -318,7 +306,7 @@ class _AddProductPageState extends State<AddProductPage> {
           fontWeight: FontWeight.w900,
           fontSize: 10,
           color: kBlack54,
-          letterSpacing: 0.5,
+          letterSpacing: 1.0,
         ),
       ),
     );
@@ -334,7 +322,6 @@ class _AddProductPageState extends State<AddProductPage> {
     String? hint,
     IconData? suffixIcon,
     VoidCallback? onSuffixTap,
-    Color? iconColor,
   }) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
@@ -348,7 +335,6 @@ class _AddProductPageState extends State<AddProductPage> {
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
-            hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
             prefixIcon: Icon(icon, color: isFilled ? kPrimaryColor : kBlack54, size: 20),
             suffixIcon: suffixIcon != null
                 ? IconButton(icon: Icon(suffixIcon, color: kPrimaryColor, size: 20), onPressed: onSuffixTap)
@@ -358,10 +344,7 @@ class _AddProductPageState extends State<AddProductPage> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isFilled ? kPrimaryColor : kGrey200,
-                  width: isFilled ? 1.5 : 1.0
-              ),
+              borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -371,6 +354,7 @@ class _AddProductPageState extends State<AddProductPage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kErrorColor),
             ),
+            floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
           ),
           validator: isRequired ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
         );
@@ -443,19 +427,25 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  Widget _buildTrackStockLevelAndQuantity() {
+  Widget _buildTrackStockAndQuantity() {
     return Column(
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _wrapDropdown(
-                "Track Inventory",
-                Row(
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: kWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGrey200),
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Enable Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
+                    const Text("Track Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
                     Switch.adaptive(
                         value: _stockEnabled,
                         activeColor: kPrimaryColor,
@@ -483,42 +473,6 @@ class _AddProductPageState extends State<AddProductPage> {
         if (!_stockEnabled) ...[
           const SizedBox(height: 12),
           _buildInfinityStockIndicator(),
-        ],
-        if (_stockEnabled) ...[
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 3,
-                child: _buildModernTextField(
-                  controller: _lowStockAlertController,
-                  label: "Low Stock Alert",
-                  icon: Icons.notification_important_rounded,
-                  keyboardType: TextInputType.number,
-                  hint: "0",
-                  iconColor: kOrange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: _wrapDropdown(
-                  "Alert Type",
-                  DropdownButton<String>(
-                    value: _lowStockAlertType,
-                    isExpanded: true,
-                    isDense: true,
-                    items: const [
-                      DropdownMenuItem(value: 'Count', child: Text('Count')),
-                      DropdownMenuItem(value: 'Percentage', child: Text('Percentage')),
-                    ],
-                    onChanged: (val) => setState(() => _lowStockAlertType = val!),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
       ],
     );
@@ -604,7 +558,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Widget _buildTaxDropdown() {
     return _wrapDropdown(
-      "Tax Rate",
+      "Tax Rate (%)",
       DropdownButton<String>(
         value: _selectedTaxId,
         hint: const Text("Select Rate"),
@@ -625,7 +579,7 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildTaxTypeSelector() {
-    final items = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
+    final items = ['Price includes Tax', 'Price is without Tax', 'Exempt Tax'];
     return _wrapDropdown(
       "Tax Treatment",
       DropdownButton<String>(
@@ -634,6 +588,38 @@ class _AddProductPageState extends State<AddProductPage> {
         isDense: true,
         items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
         onChanged: (v) => setState(() => _selectedTaxType = v!),
+      ),
+    );
+  }
+
+  Widget _buildExpiryDateField() {
+    return GestureDetector(
+      onTap: () async {
+        final DateTime? picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedExpiryDate ?? DateTime.now().add(const Duration(days: 365)),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 3650)),
+          builder: (context, child) => Theme(
+            data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: kPrimaryColor)),
+            child: child!,
+          ),
+        );
+        if (picked != null) {
+          setState(() {
+            _selectedExpiryDate = picked;
+            _expiryDateController.text = DateFormat('dd/MM/yyyy').format(picked);
+          });
+        }
+      },
+      child: AbsorbPointer(
+        child: _buildModernTextField(
+          controller: _expiryDateController,
+          label: "Expiry Date",
+          icon: Icons.event_rounded,
+          hint: "Select date",
+          suffixIcon: Icons.calendar_today_rounded,
+        ),
       ),
     );
   }
@@ -660,14 +646,14 @@ class _AddProductPageState extends State<AddProductPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("New Measurement Unit", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        title: const Text("New Unit", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
         content: TextField(
           controller: unitController,
           style: const TextStyle(fontWeight: FontWeight.w600),
-          decoration: const InputDecoration(hintText: "e.g. Dozen, Pack, Bundle", border: OutlineInputBorder()),
+          decoration: const InputDecoration(hintText: "e.g. Dozen, Box", border: OutlineInputBorder()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
           ElevatedButton(
             onPressed: () async {
               if (unitController.text.trim().isEmpty) return;
@@ -677,8 +663,8 @@ class _AddProductPageState extends State<AddProductPage> {
               }
               if (mounted) { setState(() => _selectedStockUnit = unitController.text.trim()); Navigator.pop(ctx); }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("ADD UNIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            child: const Text("ADD", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -702,7 +688,7 @@ class _AddProductPageState extends State<AddProductPage> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
           ElevatedButton(
             onPressed: () {
               if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
@@ -710,8 +696,8 @@ class _AddProductPageState extends State<AddProductPage> {
                 Navigator.pop(ctx);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("CREATE TAX", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
+            child: const Text("CREATE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -721,26 +707,16 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildBottomSaveButton() {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      decoration: const BoxDecoration(
-          color: kWhite,
-          border: Border(top: BorderSide(color: kGrey200))
-      ),
+      decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
       child: SizedBox(
         width: double.infinity,
         height: 56,
         child: ElevatedButton(
           onPressed: _isLoading ? null : _saveProduct,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
           child: _isLoading
-              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
-              : Text(
-            context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(),
-            style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-          ),
+              ? const CircularProgressIndicator(color: kWhite)
+              : Text(context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
         ),
       ),
     );
@@ -756,72 +732,42 @@ class _AddProductPageState extends State<AddProductPage> {
     _hsnController.text = d['hsn'] ?? '';
     _barcodeController.text = d['barcode'] ?? '';
     _quantityController.text = d['currentStock']?.toString() ?? '';
-    _lowStockAlertController.text = d['lowStockAlert']?.toString() ?? '';
+    _locationController.text = d['location'] ?? '';
     _selectedCategory = d['category'];
     _stockEnabled = d['stockEnabled'] ?? true;
     _selectedStockUnit = d['stockUnit'];
     _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
-    _lowStockAlertType = d['lowStockAlertType'] ?? 'Count';
     _isFavorite = d['isFavorite'] ?? false;
+    if (d['expiryDate'] != null) {
+      _selectedExpiryDate = (d['expiryDate'] as Timestamp).toDate();
+      _expiryDateController.text = DateFormat('dd/MM/yyyy').format(_selectedExpiryDate!);
+    }
   }
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-    final productCode = _productCodeController.text.trim();
-    if (productCode.isNotEmpty) {
-      if (widget.productId == null) {
-        if (await _checkProductCodeExists(productCode)) return;
-      } else {
-        if (widget.existingData!['productCode'] != productCode) {
-          if (await _checkProductCodeExists(productCode)) return;
-        }
-      }
-    }
-
-    try {
-      setState(() => _isLoading = true);
-      String? selectedTaxName;
-      if (_selectedTaxId != null) {
-        try { selectedTaxName = _fetchedTaxes.firstWhere((t) => t['id'] == _selectedTaxId)['name']; } catch (e) {}
-      }
-
-      final productData = {
-        'itemName': _itemNameController.text.trim(),
-        'price': double.tryParse(_priceController.text) ?? 0.0,
-        'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
-        'mrp': double.tryParse(_mrpController.text) ?? 0.0,
-        'category': _selectedCategory ?? 'General',
-        'productCode': productCode,
-        'hsn': _hsnController.text.trim(),
-        'barcode': _barcodeController.text.trim(),
-        'stockUnit': _selectedStockUnit ?? 'Piece',
-        'stockEnabled': _stockEnabled,
-        'currentStock': _stockEnabled ? (double.tryParse(_quantityController.text) ?? 0.0) : 0.0,
-        'lowStockAlert': _lowStockAlertController.text.trim().isNotEmpty ? double.tryParse(_lowStockAlertController.text) ?? 0.0 : 0.0,
-        'lowStockAlertType': _lowStockAlertType,
-        'isFavorite': _isFavorite,
-        'taxId': _selectedTaxId,
-        'taxName': selectedTaxName,
-        'taxPercentage': _currentTaxPercentage,
-        'taxType': _selectedTaxType,
-        'updatedAt': FieldValue.serverTimestamp(),
-      };
-
-      if (widget.productId != null) {
-        await FirestoreService().updateDocument('Products', widget.productId!, productData);
-      } else {
-        productData['createdAt'] = FieldValue.serverTimestamp();
-        await FirestoreService().addDocument('Products', productData);
-        if (_selectedTaxId != null) await _incrementTaxProductCount(_selectedTaxId!);
-      }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('product_added_successfully')), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating));
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      debugPrint("Save error: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    setState(() => _isLoading = true);
+    final pData = {
+      'itemName': _itemNameController.text.trim(),
+      'price': double.tryParse(_priceController.text) ?? 0.0,
+      'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
+      'mrp': double.tryParse(_mrpController.text) ?? 0.0,
+      'category': _selectedCategory ?? 'General',
+      'productCode': _productCodeController.text.trim(),
+      'stockEnabled': _stockEnabled,
+      'currentStock': _stockEnabled ? (double.tryParse(_quantityController.text) ?? 0.0) : 0.0,
+      'hsn': _hsnController.text.trim(),
+      'barcode': _barcodeController.text.trim(),
+      'stockUnit': _selectedStockUnit ?? 'Piece',
+      'taxId': _selectedTaxId,
+      'taxType': _selectedTaxType,
+      'location': _locationController.text.trim(),
+      'expiryDate': _selectedExpiryDate != null ? Timestamp.fromDate(_selectedExpiryDate!) : null,
+      'isFavorite': _isFavorite,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+    if (widget.productId != null) await FirestoreService().updateDocument('Products', widget.productId!, pData);
+    else await FirestoreService().addDocument('Products', pData);
+    if (mounted) Navigator.pop(context);
   }
 }

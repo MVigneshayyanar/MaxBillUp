@@ -149,7 +149,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
       for (var doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
         final cat = data['category'] ?? 'General';
-        if (cat.toString().isNotEmpty) {
+        // Exclude 'Low Stock' from categories
+        if (cat.toString().isNotEmpty && cat.toString() != 'Low Stock') {
           categorySet.add(cat.toString());
         }
       }
@@ -527,10 +528,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
         return GridView.builder(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: w > 600 ? 200 : 150,
+            maxCrossAxisExtent: w > 600 ? 220 : 170,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: 1.0,
+            childAspectRatio: 0.95,
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {
@@ -650,7 +651,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                     ),
                                   ),
                                   if (stockEnabled) ...[
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 2),
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(

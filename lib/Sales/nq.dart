@@ -8,6 +8,7 @@ import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
 
 class NewQuotationPage extends StatefulWidget {
   final String uid;
@@ -26,15 +27,10 @@ class NewQuotationPage extends StatefulWidget {
 class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerProviderStateMixin {
   int _selectedTabIndex = 1; // Start with View All tab (index 1)
   List<CartItem>? _sharedCartItems;
-  bool _isSearchFocused = false; // Track search focus state
+  bool _isSearchFocused = false;
 
-  // Track specific highlighted product ID
   String? _highlightedProductId;
-
-  // Animation counter to force re-animation of same product
   int _animationCounter = 0;
-
-  // Animation controller for smooth highlight effect
   AnimationController? _highlightController;
   Animation<Color?>? _highlightAnimation;
 
@@ -42,30 +38,25 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   final double _minCartHeight = 200;
   double _maxCartHeight = 800;
 
-  // Customer selection state (shared across tabs)
   String? _selectedCustomerPhone;
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
-
-  // Add a version key to force rebuild when cart is cleared
   int _cartVersion = 0;
 
   @override
   void initState() {
     super.initState();
-
-    // Initialize animation controller
     _highlightController = AnimationController(
-      duration: const Duration(milliseconds: 1000),  // Increased from 600ms to 1000ms
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
     _highlightAnimation = ColorTween(
-      begin: Colors.green.withValues(alpha: 0.6),  // More prominent green (60% opacity)
-      end: Colors.green.withValues(alpha: 0.0),    // Fade to transparent
+      begin: kGoogleGreen.withOpacity(0.2),
+      end: Colors.transparent,
     ).animate(CurvedAnimation(
       parent: _highlightController!,
-      curve: Curves.easeOut,  // Smooth fade out
+      curve: Curves.easeOut,
     ));
   }
 
@@ -82,17 +73,12 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _updateCartItems(List<CartItem> items, {String? triggerId}) {
-    print('🔄 [nq.dart] _updateCartItems called with ${items.length} items, triggerId: $triggerId');
     List<CartItem> updatedItems = List<CartItem>.from(items);
 
-    // Simple approach: The first item in the cart is always the one just added/modified
-    // because SaleAllPage and QuickSalePage move it to index 0
     if (items.isNotEmpty) {
       final firstItemId = items[0].productId;
-      print('✅ [nq.dart] Triggering animation for first item: $firstItemId');
       _triggerHighlight(firstItemId, updatedItems);
     } else {
-      print('⚠️ [nq.dart] Cart is empty, just updating state');
       setState(() {
         _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
         if (updatedItems.isEmpty) {
@@ -103,29 +89,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _triggerHighlight(String productId, List<CartItem> updatedItems) {
-    print('🎬 [nq.dart] _triggerHighlight called for productId: $productId');
-    print('   Current _highlightedProductId: $_highlightedProductId');
-    print('   Current _animationCounter: $_animationCounter');
-
-    // Always reset and restart animation, even for same product
     _highlightController?.reset();
-    print('   ✓ Animation controller reset');
-
     setState(() {
       _highlightedProductId = productId;
-      _animationCounter++; // Increment to force state change
+      _animationCounter++;
       _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
-      print('   ✓ State updated - new counter: $_animationCounter');
     });
 
-    // Start the highlight animation
     _highlightController?.forward();
-    print('   ✓ Animation started forward');
 
-    // Clear highlight after animation completes + delay
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && _highlightedProductId == productId) {
-        print('   🔚 [nq.dart] Clearing highlight for $productId');
         setState(() {
           _highlightedProductId = null;
         });
@@ -151,30 +125,27 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
     await showDialog(
       context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.7),
+      barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) {
         return StatefulBuilder(builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
-                IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
-                  onPressed: () => Navigator.of(context).pop(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-            content: SingleChildScrollView(
+          return Dialog(
+            backgroundColor: kWhite,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _dialogLabel('Product Name'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(context.tr('edit_item'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
+                      GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, color: kBlack54, size: 24)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _dialogLabel(context.tr('item_name')),
                   _dialogInput(nameController, 'Enter product name'),
                   const SizedBox(height: 16),
                   Row(
@@ -184,7 +155,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _dialogLabel('Price'),
+                            _dialogLabel(context.tr('price')),
                             _dialogInput(priceController, '0.00', isNumber: true),
                           ],
                         ),
@@ -195,78 +166,80 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _dialogLabel('Quantity'),
-                            Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    int qty = int.tryParse(qtyController.text) ?? 1;
-                                    if (qty > 1) {
-                                      setDialogState(() => qtyController.text = (qty - 1).toString());
-                                    }
-                                  },
-                                  icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                Expanded(
-                                  child: _dialogInput(qtyController, '1', isNumber: true, enabled: true),
-                                ),
-                                IconButton(
-                                  onPressed: () {
-                                    int qty = int.tryParse(qtyController.text) ?? 1;
-                                    setDialogState(() => qtyController.text = (qty + 1).toString());
-                                  },
-                                  icon: const Icon(Icons.add_circle_outline, color: Colors.green),
-                                  constraints: const BoxConstraints(),
-                                  padding: EdgeInsets.zero,
-                                ),
-                              ],
+                            _dialogLabel(context.tr('quantity')),
+                            Container(
+                              height: 48,
+                              decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      int current = int.tryParse(qtyController.text) ?? 1;
+                                      if (current > 1) {
+                                        setDialogState(() => qtyController.text = (current - 1).toString());
+                                      } else {
+                                        Navigator.pop(context);
+                                        _removeSingleItem(idx);
+                                      }
+                                    },
+                                    icon: Icon(
+                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
+                                      color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: qtyController,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      onChanged: (v) => setDialogState(() {}),
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87),
+                                      decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      int current = int.tryParse(qtyController.text) ?? 0;
+                                      setDialogState(() => qtyController.text = (current + 1).toString());
+                                    },
+                                    icon: const Icon(Icons.add_rounded, color: kPrimaryColor, size: 20),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 32),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      OutlinedButton(
-                        onPressed: () => _removeSingleItem(idx),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.redAccent),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () { Navigator.pop(context); _removeSingleItem(idx); },
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          child: Text(context.tr('remove').toUpperCase(), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12)),
                         ),
-                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () {
-                          final updatedList = List<CartItem>.from(_sharedCartItems!);
-                          final name = nameController.text.trim();
-                          final price = double.tryParse(priceController.text) ?? item.price;
-                          final qty = double.tryParse(qtyController.text) ?? item.quantity;
-
-                          if (name.isNotEmpty && price > 0 && qty > 0) {
-                            updatedList[idx] = CartItem(
-                              productId: item.productId,
-                              name: name,
-                              price: price,
-                              quantity: qty.toInt(), // Convert to int
-                              taxPercentage: item.taxPercentage,
-                              taxName: item.taxName,
-                              taxType: item.taxType,
-                            );
-                            _updateCartItems(updatedList);
-                            Navigator.of(context).pop();
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kPrimaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final newName = nameController.text.trim();
+                            final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
+                            final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+                            if (newQty > 0) {
+                              final List<CartItem> nextItems = List<CartItem>.from(_sharedCartItems!);
+                              nextItems[idx] = CartItem(productId: item.productId, name: newName, price: newPrice, quantity: newQty, taxName: item.taxName, taxPercentage: item.taxPercentage, taxType: item.taxType);
+                              _updateCartItems(nextItems);
+                            }
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          child: Text(context.tr('save').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                         ),
-                        child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -280,26 +253,37 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _handleClearCart() async {
-    final confirm = await showDialog<bool>(
+    final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear Cart', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text('Are you sure you want to remove all items from the cart?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 40),
+              const SizedBox(height: 16),
+              Text(context.tr('clear_cart'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
+              const SizedBox(height: 12),
+              const Text('Are you sure you want to clear this quotation? All line items will be removed.', textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                      child: Text(context.tr('clear').toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
+        ),
       ),
     );
 
@@ -308,25 +292,18 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         _sharedCartItems = null;
         _cartVersion++;
         _highlightedProductId = null;
-        // Reset search focus when cart is cleared
         _isSearchFocused = false;
       });
       _updateCartItems([]);
-
-      // Unfocus search field in child pages after dialog closes
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            FocusManager.instance.primaryFocus?.unfocus();
-          }
-        });
-      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) FocusManager.instance.primaryFocus?.unfocus();
+      });
     }
   }
 
   Widget _dialogLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 6, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black54)),
+    padding: const EdgeInsets.only(bottom: 8, left: 4),
+    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
@@ -334,19 +311,13 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       controller: ctrl,
       enabled: enabled,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-      style: TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.bold,
-        color: enabled ? Colors.black : Colors.black45,
-      ),
+      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: enabled ? kBlack87 : Colors.black45),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
+        fillColor: enabled ? kGreyBg : Colors.grey[100],
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
       ),
     );
@@ -358,7 +329,6 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     });
   }
 
-  // Handle customer selection changes (shared across tabs)
   void _setSelectedCustomer(String? phone, String? name, String? gst) {
     setState(() {
       _selectedCustomerPhone = phone;
@@ -373,32 +343,21 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     final screenHeight = MediaQuery.of(context).size.height;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    _maxCartHeight = screenHeight - topPadding - 175;
+    _maxCartHeight = screenHeight - topPadding - 180;
 
-    // Calculate dynamic cart height based on search focus
-    // 120px in search mode: enough for header(40px) + 1 item(40px) + footer(40px)
-    final double dynamicCartHeight = _isSearchFocused ? 120 : _cartHeight;
+    final double dynamicCartHeight = _isSearchFocused ? 115 : _cartHeight;
     final bool shouldShowCart = _sharedCartItems != null && _sharedCartItems!.isNotEmpty;
-
-    // Only reserve space for minimum cart height to allow overlay expansion
-    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 105 : _minCartHeight) : 0;
+    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 100 : _minCartHeight) : 0;
 
     return Scaffold(
-      backgroundColor: Colors.white, // Changed from Color(0xFFF5F5F5) to Colors.white
-      resizeToAvoidBottomInset: false, // Prevent keyboard from pushing widgets
+      backgroundColor: kWhite, // Changed from kGreyBg to kWhite
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           Column(
-            spacing: 0,
             children: [
-              // Top spacing: only reserve space for minimum cart height
-              // This allows cart to expand and overlay other content
-              SizedBox(
-                height: topPadding + 10 + (reservedCartSpace > 0 ? reservedCartSpace + 12 : 0),
-              ),
+              SizedBox(height: topPadding + 10 + (reservedCartSpace > 0 ? reservedCartSpace + 10 : 0)),
 
-              // App Bar Component with back button and tabs (Saved tab hidden)
-              // Hide AppBar when search is focused
               if (!_isSearchFocused)
                 SaleAppBar(
                   selectedTabIndex: _selectedTabIndex,
@@ -407,48 +366,43 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   screenHeight: screenHeight,
                   uid: widget.uid,
                   userEmail: widget.userEmail,
-                  hideSavedTab: true, // Hide the Saved tab
-                  showBackButton: true, // Show back button
+                  hideSavedTab: true,
+                  showBackButton: true,
                 ),
 
-              // Content Area - Show content based on selected tab
               Expanded(
                 child: _selectedTabIndex == 0
-                    ? SavedOrdersPage(
-                        uid: widget.uid,
-                        userEmail: widget.userEmail,
-                      )
+                    ? SavedOrdersPage(uid: widget.uid, userEmail: widget.userEmail)
                     : _selectedTabIndex == 1
-                        ? SaleAllPage(
-                            key: ValueKey('sale_all_$_cartVersion'), // Force rebuild when cart is cleared
-                            uid: widget.uid,
-                            userEmail: widget.userEmail,
-                            onCartChanged: _updateCartItems,
-                            initialCartItems: _sharedCartItems,
-                            isQuotationMode: true, // Quotation mode enabled
-                            onSearchFocusChanged: _handleSearchFocusChange, // Pass callback
-                            customerPhone: _selectedCustomerPhone,
-                            customerName: _selectedCustomerName,
-                            customerGST: _selectedCustomerGST,
-                            onCustomerChanged: _setSelectedCustomer,
-                          )
-                        : QuickSalePage(
-                            key: ValueKey('quick_sale_$_cartVersion'), // Force rebuild when cart is cleared
-                            uid: widget.uid,
-                            userEmail: widget.userEmail,
-                            initialCartItems: _sharedCartItems,
-                            onCartChanged: _updateCartItems,
-                            isQuotationMode: true, // Enable quotation mode
-                            customerPhone: _selectedCustomerPhone,
-                            customerName: _selectedCustomerName,
-                            customerGST: _selectedCustomerGST,
-                            onCustomerChanged: _setSelectedCustomer,
-                          ),
+                    ? SaleAllPage(
+                  key: ValueKey('sale_all_$_cartVersion'),
+                  uid: widget.uid,
+                  userEmail: widget.userEmail,
+                  onCartChanged: _updateCartItems,
+                  initialCartItems: _sharedCartItems,
+                  isQuotationMode: true,
+                  onSearchFocusChanged: _handleSearchFocusChange,
+                  customerPhone: _selectedCustomerPhone,
+                  customerName: _selectedCustomerName,
+                  customerGST: _selectedCustomerGST,
+                  onCustomerChanged: _setSelectedCustomer,
+                )
+                    : QuickSalePage(
+                  key: ValueKey('quick_sale_$_cartVersion'),
+                  uid: widget.uid,
+                  userEmail: widget.userEmail,
+                  initialCartItems: _sharedCartItems,
+                  onCartChanged: _updateCartItems,
+                  isQuotationMode: true,
+                  customerPhone: _selectedCustomerPhone,
+                  customerName: _selectedCustomerName,
+                  customerGST: _selectedCustomerGST,
+                  onCustomerChanged: _setSelectedCustomer,
+                ),
               ),
             ],
           ),
 
-          // Cart overlay: Always show when there are items (with dynamic height)
           if (shouldShowCart)
             Positioned(
               top: topPadding + 10,
@@ -458,88 +412,79 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
             ),
         ],
       ),
-      // Bottom navigation bar with customer and quotation buttons
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Row(
-            children: [
-              // Customer Button (Left)
-              ElevatedButton(
-                onPressed: _showCustomerSelectionDialog,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
+      bottomNavigationBar: _buildEnterpriseBottomBar(),
+    );
+  }
+
+  Widget _buildEnterpriseBottomBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(top: BorderSide(color: kGrey200, width: 1)),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: SafeArea(
+        child: Row(
+          children: [
+            // Enterprise Customer Action Icon
+            InkWell(
+              onTap: _showCustomerSelectionDialog,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                height: 56,
+                width: 56,
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kPrimaryColor.withOpacity(0.2), width: 1.5),
                 ),
+                child: Icon(
+                  _selectedCustomerName != null && _selectedCustomerName!.isNotEmpty
+                      ? Icons.person_rounded
+                      : Icons.person_add_rounded,
+                  color: kPrimaryColor,
+                  size: 26,
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            // High-Density Quotation Button
+            Expanded(
+              child: GestureDetector(
+                onTap: _createQuotation,
                 child: Container(
                   height: 56,
-                  width: 56,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: kPrimaryColor,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF2F7CF6), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha((0.1 * 255).toInt()),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.description_rounded, color: kWhite, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        "Rs ${(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0).toStringAsFixed(0)}",
+                        style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                      ),
+                      const SizedBox(width: 10),
+                      Container(width: 1, height: 16, color: kWhite.withOpacity(0.3)),
+                      const SizedBox(width: 10),
+                      Text(
+                        context.tr('QUOTE').toUpperCase(),
+                        style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
                   ),
-                  child: Icon(
-                    _selectedCustomerName != null && _selectedCustomerName!.isNotEmpty
-                        ? Icons.person
-                        : Icons.person_add_outlined,
-                    color: kPrimaryColor,
-                    size: 26,
-                  ),
                 ),
               ),
-              const SizedBox(width: 16),
-              // Quotation Button (Right) - Expanded to fill remaining space
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _createQuotation,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    '${(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0).toStringAsFixed(0)}  Quotation',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // Show customer selection dialog
   void _showCustomerSelectionDialog() {
     CommonWidgets.showCustomerSelectionDialog(
       context: context,
@@ -554,22 +499,14 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     );
   }
 
-  // Create quotation from cart items
   void _createQuotation() {
     if (_sharedCartItems == null || _sharedCartItems!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add items to create quotation'),
-          backgroundColor: Colors.orange,
-        ),
-      );
+      CommonWidgets.showSnackBar(context, 'Add items to create quotation', bgColor: kOrange);
       return;
     }
 
-    // Calculate total
     final total = _sharedCartItems!.fold(0.0, (sum, item) => sum + (item.price * item.quantity));
 
-    // Navigate to Quotation page
     Navigator.push(
       context,
       CupertinoPageRoute(
@@ -584,70 +521,53 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         ),
       ),
     ).then((_) {
-      // Clear cart after quotation is created
       setState(() {
         _sharedCartItems = null;
+        _isSearchFocused = false;
       });
       _updateCartItems([]);
     });
   }
 
   Widget _buildCartSection(double w, double currentHeight) {
-    final bool isSearchFocused = currentHeight <= 150; // Detect if in search focus mode (120px or less)
+    final bool isSearchFocused = currentHeight <= 150;
 
     return GestureDetector(
-      // Disable drag gestures when in search focus mode
       onVerticalDragUpdate: isSearchFocused ? null : (details) {
         setState(() {
-          if (details.delta.dy > 10) {
-            // User pulled down quickly, expand fully
-            _cartHeight = _maxCartHeight;
-          } else if (details.delta.dy < -10) {
-            // User pulled up quickly, collapse to minimum
-            _cartHeight = _minCartHeight;
-          } else {
-            // Normal drag, keep smooth resizing
-            _cartHeight = (_cartHeight + details.delta.dy).clamp(_minCartHeight, _maxCartHeight);
-          }
+          if (details.delta.dy > 10) _cartHeight = _maxCartHeight;
+          else if (details.delta.dy < -10) _cartHeight = _minCartHeight;
+          else _cartHeight = (_cartHeight + details.delta.dy).clamp(_minCartHeight, _maxCartHeight);
         });
       },
       onDoubleTap: isSearchFocused ? null : () {
-        setState(() {
-          if (_cartHeight < _maxCartHeight * 0.95) {
-            _cartHeight = _maxCartHeight;
-          } else {
-            _cartHeight = _minCartHeight;
-          }
-        });
+        setState(() => _cartHeight = (_cartHeight < _maxCartHeight * 0.95) ? _maxCartHeight : _minCartHeight);
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         height: currentHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 12), // Removed .copyWith(bottom: 20)
+        margin: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white, // Changed to Colors.white
+          color: kWhite,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kOrange, width: 2), // Use kOrange instead of kGoogleYellow
-
+          border: Border.all(color: kOrange, width: 2),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
         ),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: isSearchFocused ? 6 : 12, // Reduced padding in search mode
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 8 : 12),
               decoration: const BoxDecoration(
-                color: Color(0xffffa51f),
+                color: kOrange,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 4, child: Text(context.tr('product').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('qty').toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('price').toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('total').toUpperCase(), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
                 ],
               ),
             ),
@@ -656,23 +576,18 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                 animation: _highlightAnimation!,
                 builder: (context, child) {
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 0),
+                    padding: EdgeInsets.zero,
                     itemCount: _sharedCartItems?.length ?? 0,
-                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F9)),
+                    separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16, color: kGrey100),
                     itemBuilder: (ctx, idx) {
                       final item = _sharedCartItems![idx];
                       final bool isHighlighted = item.productId == _highlightedProductId;
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
-                        ),
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
                         decoration: BoxDecoration(
-                          // Use animated color for smooth transition
                           color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
-                          borderRadius: BorderRadius.circular(0),
                         ),
                         child: Row(
                           children: [
@@ -680,27 +595,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                               flex: 4,
                               child: Row(
                                 children: [
-                                  Expanded(
-                                    child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                  ),
+                                  Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
                                   const SizedBox(width: 4),
-                                  GestureDetector(
-                                    onTap: () => _showEditCartItemDialog(idx),
-                                    child: const Icon(Icons.edit, color: kPrimaryColor, size: 16),
-                                  ),
+                                  GestureDetector(onTap: () => _showEditCartItemDialog(idx), child: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 20)),
                                 ],
                               ),
                             ),
-                            Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                            Expanded(flex: 2, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                item.total.toStringAsFixed(0),
-                                textAlign: TextAlign.right,
-                                style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14),
-                              ),
-                            ),
+                            Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87))),
+                            Expanded(flex: 2, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600))),
+                            Expanded(flex: 2, child: Text(item.total.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14))),
                           ],
                         ),
                       );
@@ -710,14 +613,11 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withValues(alpha: 0.03),
+                color: kPrimaryColor.withOpacity(0.03),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
-                border: Border(top: BorderSide(color: kGrey300.withValues(alpha: 0.5))),
+                border: const Border(top: BorderSide(color: kGrey200)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -726,20 +626,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     onTap: _handleClearCart,
                     child: Row(
                       children: [
-                        const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 18),
+                        const Icon(Icons.delete_sweep_rounded, color: kErrorColor, size: 18),
                         const SizedBox(width: 4),
-                        Text('Clear', style: TextStyle(color: Colors.redAccent.withValues(alpha: 0.8), fontWeight: FontWeight.w800, fontSize: 13)),
+                        Text(context.tr('clear').toUpperCase(), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 11)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.drag_handle_rounded, color: Colors.grey, size: 24),
+                  const Icon(Icons.drag_handle_rounded, color: kGrey300, size: 24),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                    child: Text(
-                      '${_sharedCartItems?.length ?? 0} Items',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
-                    ),
+                    child: Text('${_sharedCartItems?.length ?? 0} ITEMS', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                   ),
                 ],
               ),
