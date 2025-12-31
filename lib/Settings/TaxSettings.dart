@@ -946,7 +946,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: Text(
-              'Quick Sale Tax Toggles',
+              'Select Quick Bill Tax',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

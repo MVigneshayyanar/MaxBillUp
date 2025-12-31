@@ -398,7 +398,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               if (badge != null && isActive)
                 Text(
                   badge,
-                  style: const TextStyle(color: kGoogleYellow, fontSize: 8, fontWeight: FontWeight.w900),
+                  style: const TextStyle(color: kOrange, fontSize: 8, fontWeight: FontWeight.w900),
                 ),
             ],
           ),

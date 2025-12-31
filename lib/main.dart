@@ -48,9 +48,8 @@ void main() async {
   // Initialize PlanProvider for real-time plan updates
   final planProvider = PlanProvider();
 
-  // Initialize DirectNotificationService in background (non-blocking)
-  final notificationService = DirectNotificationService();
-  notificationService.initialize(); // Run in background, don't await
+  // DirectNotificationService will be initialized lazily when needed
+  // Permissions will be requested only when user interacts with notification features
 
   runApp(
     MultiProvider(

@@ -16,6 +16,5 @@ final Color kBorderColor = Color(0xFFE3F2FD);
 
 // --- GOOGLE LOGO COLORS ---
 const Color kGoogleRed = Color(0xFFEA4335);
-const Color kGoogleYellow = Color(0xFFFBBC05);
 const Color kGoogleGreen = Color(0xFF34A853);
 

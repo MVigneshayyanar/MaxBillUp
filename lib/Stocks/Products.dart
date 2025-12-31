@@ -266,7 +266,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isOutOfStock ? kErrorColor : (isLowStock ? kGoogleYellow : kGoogleGreen),
+                            color: isOutOfStock ? kErrorColor : (isLowStock ? kOrange : kGoogleGreen),
                           ),
                         ),
                     ],
@@ -358,7 +358,7 @@ class _ProductsPageState extends State<ProductsPage> {
             const SizedBox(height: 20),
             _buildFilterOption(Icons.all_inclusive, 'All Products', 'all', kPrimaryColor),
             _buildFilterOption(Icons.check_circle_outline, 'In Stock', 'inStock', kGoogleGreen),
-            _buildFilterOption(Icons.warning_amber_rounded, 'Low Stock', 'lowStock', kGoogleYellow),
+            _buildFilterOption(Icons.warning_amber_rounded, 'Low Stock', 'lowStock', kOrange),
             _buildFilterOption(Icons.error_outline, 'Out of Stock', 'outOfStock', kErrorColor),
           ],
         ),
@@ -413,7 +413,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 ),
               );
             }),
-            _buildActionTile(Icons.inventory_2_outlined, 'Update Stock', kGoogleYellow, () {
+            _buildActionTile(Icons.inventory_2_outlined, 'Update Stock', kOrange, () {
               Navigator.pop(context);
               _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
             }),

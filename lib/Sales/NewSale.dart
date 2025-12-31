@@ -148,9 +148,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _handleSearchFocusChange(bool isFocused) {
+    print('🔍 Search focus changed: $isFocused'); // Debug
     setState(() {
       _isSearchFocused = isFocused;
     });
+    print('🔍 State updated - _isSearchFocused: $_isSearchFocused, shouldShowCart: ${_sharedCartItems != null && _sharedCartItems!.isNotEmpty}'); // Debug
   }
 
   /// Enhanced logic to detect which specific item changed and trigger its highlight.
@@ -438,8 +440,21 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         _loadedSavedOrderId = null;
         _cartVersion++;
         _highlightedProductId = null;
+        // Reset search focus when cart is cleared to show AppBar and categories
+        _isSearchFocused = false;
       });
       _updateCartItems([]);
+
+      // Unfocus search field in child pages after dialog closes
+      if (mounted) {
+        // Use post frame callback to ensure dialog is closed first
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            // Clear all focus in the entire focus tree
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        });
+      }
     }
   }
 
@@ -487,6 +502,16 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
     _maxCartHeight = screenHeight - topPadding - 175;
 
+    // Calculate dynamic cart height based on search focus
+    // 120px in search mode: enough for header(40px) + 1 item(40px) + footer(40px)
+    final double dynamicCartHeight = _isSearchFocused ? 120 : _cartHeight;
+    final bool shouldShowCart = _sharedCartItems != null && _sharedCartItems!.isNotEmpty;
+
+    // Only reserve space for minimum cart height to allow overlay expansion
+    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 120 : _minCartHeight) : 0;
+
+    print('🎨 Building NewSale - Focus: $_isSearchFocused, ShowCart: $shouldShowCart, CartHeight: $dynamicCartHeight'); // Debug
+
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
@@ -494,16 +519,24 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         children: [
           Column(
             children: [
-              SizedBox(height: topPadding + 10 + (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused ? _minCartHeight + 12 : 0)),
-              SaleAppBar(
-                selectedTabIndex: _selectedTabIndex,
-                onTabChanged: _handleTabChange,
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                uid: _uid,
-                userEmail: _userEmail,
-                savedOrderCount: _savedOrderCount,
+              // Top spacing: only reserve space for minimum cart height
+              // This allows cart to expand and overlay other content
+              SizedBox(
+                height: topPadding+2 + (reservedCartSpace > 0 ? reservedCartSpace + 12 : 0),
               ),
+
+              // AppBar: Only show when search is NOT focused
+              if (!_isSearchFocused)
+                SaleAppBar(
+                  selectedTabIndex: _selectedTabIndex,
+                  onTabChanged: _handleTabChange,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  uid: _uid,
+                  userEmail: _userEmail,
+                  savedOrderCount: _savedOrderCount,
+                ),
+
               Expanded(
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
@@ -544,12 +577,14 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               ),
             ],
           ),
-          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused)
+
+          // Cart overlay: Always show when there are items (with dynamic height)
+          if (shouldShowCart)
             Positioned(
-              top: topPadding + 10,
+              top: topPadding + 3,
               left: 0,
               right: 0,
-              child: _buildCartSection(screenWidth),
+              child: _buildCartSection(screenWidth, dynamicCartHeight),
             ),
         ],
       ),
@@ -562,9 +597,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
   }
 
-  Widget _buildCartSection(double w) {
+  Widget _buildCartSection(double w, double currentHeight) {
+    final bool isSearchFocused = currentHeight <= 150; // Detect if in search focus mode (120px or less)
+
     return GestureDetector(
-      onVerticalDragUpdate: (details) {
+      // Disable drag gestures when in search focus mode
+      onVerticalDragUpdate: isSearchFocused ? null : (details) {
         setState(() {
           if (details.delta.dy > 10) {
             // User pulled down quickly, expand fully
@@ -578,10 +616,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
           }
         });
       },
-      onDoubleTap: () {
+      onDoubleTap: isSearchFocused ? null : () {
         setState(() {
           if (_cartHeight < _maxCartHeight * 0.95) {
-            _cartHeight = _maxCartHeight;
+            _cartHeight = _maxCartHeight+100;
           } else {
             _cartHeight = _minCartHeight;
           }
@@ -590,28 +628,30 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        height: _cartHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 12).copyWith(bottom: 20),
+        height: currentHeight,
+        margin: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: kOrange, width: 2),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))],
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isSearchFocused ? 6 : 12, // Reduced padding in search mode
+              ),
               decoration: const BoxDecoration(
                 color: kOrange,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
+                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
                 ],
               ),
             ),
@@ -629,7 +669,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+                        ),
                         decoration: BoxDecoration(
                           // Use animated color for smooth transition
                           color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
@@ -671,7 +714,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+              ),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.03),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),

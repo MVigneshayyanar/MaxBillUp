@@ -554,7 +554,7 @@ class GoogleGPainter extends CustomPainter {
 
     paint.color = kGoogleRed;
     canvas.drawArc(rect, startAngle, sweep * 0.23, false, paint);
-    paint.color = kGoogleYellow;
+    paint.color = kOrange;
     canvas.drawArc(rect, startAngle + sweep * 0.23, sweep * 0.23, false, paint);
     paint.color = kGoogleGreen;
     canvas.drawArc(rect, startAngle + sweep * 0.46, sweep * 0.23, false, paint);

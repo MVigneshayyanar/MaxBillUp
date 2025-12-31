@@ -545,21 +545,31 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
-    return GestureDetector(
-      onTap: () {
-        // Unfocus the search field when tapping anywhere on the screen
-        FocusScope.of(context).unfocus();
+    return PopScope(
+      canPop: !_searchFocusNode.hasFocus, // Allow pop when search is NOT focused
+      onPopInvokedWithResult: (didPop, result) async {
+        // If back is pressed while search is focused, unfocus it
+        if (!didPop && _searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+        }
       },
-      child: Scaffold(
-        backgroundColor: kGreyBg,
-        resizeToAvoidBottomInset: false,
-        body: Column(
+      child: GestureDetector(
+        onTap: () {
+          // Unfocus the search field when tapping anywhere on the screen
+          FocusScope.of(context).unfocus();
+        },
+        child: Scaffold(
+          backgroundColor: kGreyBg,
+          resizeToAvoidBottomInset: false,
+          body: Column(
           children: [
             _buildHeader(w),
             Expanded(
               child: Column(
                 children: [
-                  _buildCategorySelector(w),
+                  // Hide category selector when search is focused
+                  if (!_searchFocusNode.hasFocus)
+                    _buildCategorySelector(w),
                   Expanded(child: _buildProductGrid(w)),
                 ],
               ),
@@ -620,14 +630,15 @@ class _SaleAllPageState extends State<SaleAllPage> {
           ),
         ],
       ),
-      ),
-    );
+      ), // Scaffold
+      ), // GestureDetector
+    ); // PopScope
   }
 
   Widget _buildHeader(double w) {
     return Container(
       color: kWhite,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 10, w * 0.04, 0),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 8, w * 0.04, 8),
       child: Row(
         children: [
           Expanded(
@@ -645,6 +656,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
                   prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 22),
+                  // Show close button when search is focused
+                  suffixIcon: _searchFocusNode.hasFocus
+                      ? IconButton(
+                          icon: const Icon(Icons.close, color: kPrimaryColor, size: 22),
+                          onPressed: () {
+                            // Clear search text and unfocus
+                            _searchCtrl.clear();
+                            _searchFocusNode.unfocus();
+                          },
+                          tooltip: 'Close search',
+                        )
+                      : null,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -675,7 +698,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Container(
       color: kWhite,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 8, 0, 8),
+      padding: EdgeInsets.fromLTRB(w * 0.04, 0, 0, 8),
       child: SizedBox(
         height: 38,
         child: ListView.builder(
@@ -871,7 +894,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kGoogleYellow.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
+                                color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kOrange.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(

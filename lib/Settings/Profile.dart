@@ -815,7 +815,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   List<BluetoothDevice> _bondedDevices = [], _scannedDevices = [];
   BluetoothDevice? _selectedDevice;
 
-  @override void initState() { super.initState(); _initPrinter(); _loadSettings(); }
+  @override void initState() { super.initState(); _loadSettings(); }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
@@ -832,13 +832,51 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   }
 
   Future<void> _initPrinter() async {
-    if (await Permission.bluetoothScan.request().isGranted) {
-      final devices = await FlutterBluePlus.bondedDevices;
-      if (mounted) setState(() => _bondedDevices = devices);
+    // Request permissions first using PermissionManager
+    final granted = await Permission.bluetoothScan.status;
+    if (!granted.isGranted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bluetooth permission required to find printers')),
+      );
+      return;
     }
+
+    final devices = await FlutterBluePlus.bondedDevices;
+    if (mounted) setState(() => _bondedDevices = devices);
   }
 
   Future<void> _scanForDevices() async {
+    // Request Bluetooth permissions before scanning
+    final scanStatus = await Permission.bluetoothScan.status;
+    final connectStatus = await Permission.bluetoothConnect.status;
+    final locationStatus = await Permission.location.status;
+
+    if (!scanStatus.isGranted || !connectStatus.isGranted || !locationStatus.isGranted) {
+      // Request all needed permissions
+      await Permission.bluetooth.request();
+      await Permission.bluetoothScan.request();
+      await Permission.bluetoothConnect.request();
+      await Permission.location.request();
+
+      // Check again after requesting
+      final newScanStatus = await Permission.bluetoothScan.status;
+      final newConnectStatus = await Permission.bluetoothConnect.status;
+      final newLocationStatus = await Permission.location.status;
+
+      if (!newScanStatus.isGranted || !newConnectStatus.isGranted || !newLocationStatus.isGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Bluetooth and Location permissions are required to scan for printers'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     setState(() { _isScanning = true; _scannedDevices.clear(); });
     await FlutterBluePlus.startScan(timeout: const Duration(seconds: 5));
     FlutterBluePlus.scanResults.listen((r) { if(mounted) setState(() => _scannedDevices = r.map((res) => res.device).toList()); });
@@ -871,9 +909,39 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           padding: const EdgeInsets.all(16),
           children: [
             if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.green.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: Colors.green, size: 30), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("CONNECTED PRINTER", style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor))])),
+
             Text("AVAILABLE DEVICES", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
             const SizedBox(height: 12),
-            Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)), child: Column(children: _bondedDevices.map((d) => ListTile(title: Text(d.platformName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), subtitle: Text(d.remoteId.toString(), style: const TextStyle(fontSize: 11)), trailing: ElevatedButton(onPressed: () => _selectDevice(d), style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text("CONNECT", style: TextStyle(color: Colors.white, fontSize: 12))))).toList())),
+
+            if (_bondedDevices.isEmpty)
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kBorderColor),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.bluetooth_disabled, size: 48, color: Colors.grey),
+                    const SizedBox(height: 12),
+                    const Text('No paired Bluetooth devices found', style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: _initPrinter,
+                      icon: const Icon(Icons.bluetooth_searching, color: Colors.white),
+                      label: const Text('Find Printers', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)), child: Column(children: _bondedDevices.map((d) => ListTile(title: Text(d.platformName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), subtitle: Text(d.remoteId.toString(), style: const TextStyle(fontSize: 11)), trailing: ElevatedButton(onPressed: () => _selectDevice(d), style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))), child: const Text("CONNECT", style: TextStyle(color: Colors.white, fontSize: 12))))).toList())),
+
             const SizedBox(height: 24),
             _SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) async { (await SharedPreferences.getInstance()).setBool('enable_auto_print', v); setState(() => _enableAutoPrint = v); }, showDivider: false)]),
           ],

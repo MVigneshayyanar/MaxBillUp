@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -25,8 +26,8 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
     debugPrint('Splash screen started at: ${DateTime.now()}');
 
-    // Start background tasks immediately
-    _requestBluetoothPermissions();
+    // Removed automatic permission requests - will be requested lazily when needed
+    // _requestBluetoothPermissions(); // Only request when user tries to use Bluetooth printer
 
     // Navigate after 2 seconds
     Timer(const Duration(seconds: 5), () {
@@ -78,7 +79,8 @@ class _SplashPageState extends State<SplashPage>
   }
 
   /// Request Bluetooth and location permissions for printer connectivity
-  Future<void> _requestBluetoothPermissions() async {
+  /// This is now a public static method that can be called when needed
+  static Future<bool> requestBluetoothPermissions() async {
     try {
       // Request Bluetooth permissions (Android 12+)
       final bluetoothStatus = await Permission.bluetooth.request();
@@ -86,30 +88,46 @@ class _SplashPageState extends State<SplashPage>
       final connectStatus = await Permission.bluetoothConnect.request();
 
       // Request location permission (required for Bluetooth scanning on Android)
-      await Permission.location.request();
+      final locationStatus = await Permission.location.request();
 
       // If all permissions granted, enable Bluetooth
-      if (bluetoothStatus.isGranted && scanStatus.isGranted && connectStatus.isGranted) {
+      if (bluetoothStatus.isGranted && scanStatus.isGranted && connectStatus.isGranted && locationStatus.isGranted) {
         try {
           await FlutterBluePlus.turnOn();
-          debugPrint('Bluetooth enabled successfully');
+          debugPrint('✅ Bluetooth enabled successfully');
+          return true;
         } catch (e) {
-          debugPrint('Error enabling Bluetooth: $e');
+          debugPrint('⚠️ Error enabling Bluetooth: $e');
+          return true; // Still return true if permissions granted
         }
       }
+      return false;
     } catch (e) {
-      debugPrint('Error requesting Bluetooth permissions: $e');
+      debugPrint('❌ Error requesting Bluetooth permissions: $e');
+      return false;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get screen size to determine device type
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final diagonal = sqrt(screenWidth * screenWidth + screenHeight * screenHeight);
+
+    // Determine if device is tablet/iPad (diagonal > 7 inches assuming ~160 dpi)
+    // Typically tablets have diagonal > 1100 pixels
+    final isTablet = diagonal > 1100 || screenWidth > 600;
+
+    // Choose appropriate splash image
+    final splashImage = isTablet ? 'assets/tab_MAX_my_bill.png' : 'assets/Splash_Screen.png';
+
     return Scaffold(
       backgroundColor: const Color(0xFF2F7CF6),
       body: SizedBox.expand(
         child: Image.asset(
-          'assets/Splash_Screen.png',
-          fit: BoxFit.contain, // Changed from contain to cover for fullscreen
+          splashImage,
+          fit: BoxFit.contain,
         ),
       ),
     );

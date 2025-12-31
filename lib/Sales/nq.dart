@@ -78,16 +78,274 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     });
   }
 
-  void _updateCartItems(List<CartItem> items) {
-    if (mounted) {
+  void _updateCartItems(List<CartItem> items, {String? triggerId}) {
+    List<CartItem> updatedItems = List<CartItem>.from(items);
+
+    // If triggerId is provided, check if it's a quantity increase (highlight)
+    if (triggerId != null && triggerId.isNotEmpty) {
+      final existingIndex = _sharedCartItems?.indexWhere((item) => item.productId == triggerId);
+      final newIndex = updatedItems.indexWhere((item) => item.productId == triggerId);
+
+      if (existingIndex != null && existingIndex >= 0 && newIndex >= 0) {
+        // Existing item quantity changed - trigger highlight after frame
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            _triggerHighlight(triggerId, updatedItems);
+          }
+        });
+      } else {
+        // New item to highlight
+        _triggerHighlight(triggerId, updatedItems);
+      }
+    } else {
       setState(() {
-        _sharedCartItems = items.isEmpty ? null : List<CartItem>.from(items);
-        // Increment version when cart is cleared to force rebuild
-        if (items.isEmpty) {
+        _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
+        if (updatedItems.isEmpty) {
           _cartVersion++;
         }
       });
     }
+  }
+
+  void _triggerHighlight(String productId, List<CartItem> updatedItems) {
+    // Reset and restart animation
+    _highlightController?.reset();
+
+    setState(() {
+      _highlightedProductId = productId;
+      _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
+    });
+
+    // Start the highlight animation
+    _highlightController?.forward();
+
+    // Clear highlight after animation completes + delay
+    Future.delayed(const Duration(milliseconds: 2000), () {
+      if (mounted && _highlightedProductId == productId) {
+        setState(() {
+          _highlightedProductId = null;
+        });
+      }
+    });
+  }
+
+  void _removeSingleItem(int idx) {
+    if (_sharedCartItems == null) return;
+    final updatedList = List<CartItem>.from(_sharedCartItems!);
+    updatedList.removeAt(idx);
+    setState(() {
+      _cartVersion++;
+    });
+    _updateCartItems(updatedList);
+  }
+
+  void _showEditCartItemDialog(int idx) async {
+    final item = _sharedCartItems![idx];
+    final nameController = TextEditingController(text: item.name);
+    final priceController = TextEditingController(text: item.price.toString());
+    final qtyController = TextEditingController(text: item.quantity.toString());
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _dialogLabel('Product Name'),
+                  _dialogInput(nameController, 'Enter product name'),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _dialogLabel('Price'),
+                            _dialogInput(priceController, '0.00', isNumber: true),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _dialogLabel('Quantity'),
+                            Row(
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    int qty = int.tryParse(qtyController.text) ?? 1;
+                                    if (qty > 1) {
+                                      setDialogState(() => qtyController.text = (qty - 1).toString());
+                                    }
+                                  },
+                                  icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                Expanded(
+                                  child: _dialogInput(qtyController, '1', isNumber: true, enabled: true),
+                                ),
+                                IconButton(
+                                  onPressed: () {
+                                    int qty = int.tryParse(qtyController.text) ?? 1;
+                                    setDialogState(() => qtyController.text = (qty + 1).toString());
+                                  },
+                                  icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                                  constraints: const BoxConstraints(),
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => _removeSingleItem(idx),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () {
+                          final updatedList = List<CartItem>.from(_sharedCartItems!);
+                          final name = nameController.text.trim();
+                          final price = double.tryParse(priceController.text) ?? item.price;
+                          final qty = double.tryParse(qtyController.text) ?? item.quantity;
+
+                          if (name.isNotEmpty && price > 0 && qty > 0) {
+                            updatedList[idx] = CartItem(
+                              productId: item.productId,
+                              name: name,
+                              price: price,
+                              quantity: qty.toInt(), // Convert to int
+                              taxPercentage: item.taxPercentage,
+                              taxName: item.taxName,
+                              taxType: item.taxType,
+                            );
+                            _updateCartItems(updatedList);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  void _handleClearCart() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Clear Cart', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to remove all items from the cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() {
+        _sharedCartItems = null;
+        _cartVersion++;
+        _highlightedProductId = null;
+        // Reset search focus when cart is cleared
+        _isSearchFocused = false;
+      });
+      _updateCartItems([]);
+
+      // Unfocus search field in child pages after dialog closes
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            FocusManager.instance.primaryFocus?.unfocus();
+          }
+        });
+      }
+    }
+  }
+
+  Widget _dialogLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 6, left: 4),
+    child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black54)),
+  );
+
+  Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
+    return TextField(
+      controller: ctrl,
+      enabled: enabled,
+      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      style: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.bold,
+        color: enabled ? Colors.black : Colors.black45,
+      ),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+      ),
+    );
   }
 
   void _handleSearchFocusChange(bool isFocused) {
@@ -105,101 +363,49 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     });
   }
 
-  void _showEditCartItemDialog(int idx) async {
-    final item = _sharedCartItems![idx];
-    final nameController = TextEditingController(text: item.name);
-    final priceController = TextEditingController(text: item.price.toString());
-    final qtyController = TextEditingController(text: item.quantity.toString());
-    await showDialog(
-      context: context,
-      barrierColor: Colors.black.withValues(alpha: 0.8), // Dark overlay to hide background
-      barrierDismissible: false, // Prevent dismissing by tapping outside
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Edit Cart Item'),
-          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(labelText: 'Product Name'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Price'),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Quantity'),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final newName = nameController.text.trim();
-                final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
-                final newQty = int.tryParse(qtyController.text.trim()) ?? item.quantity;
-
-                if (newName.isNotEmpty && newQty > 0) {
-                  setState(() {
-                    _sharedCartItems![idx] = CartItem(
-                      productId: item.productId,
-                      name: newName,
-                      price: newPrice,
-                      quantity: newQty,
-                    );
-                  });
-                  _updateCartItems(_sharedCartItems!);
-                }
-                Navigator.pop(context);
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    _maxCartHeight = screenHeight - topPadding - 175;
+
+    // Calculate dynamic cart height based on search focus
+    // 120px in search mode: enough for header(40px) + 1 item(40px) + footer(40px)
+    final double dynamicCartHeight = _isSearchFocused ? 120 : _cartHeight;
+    final bool shouldShowCart = _sharedCartItems != null && _sharedCartItems!.isNotEmpty;
+
+    // Only reserve space for minimum cart height to allow overlay expansion
+    final double reservedCartSpace = shouldShowCart ? (_isSearchFocused ? 105 : _minCartHeight) : 0;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white, // Changed from Color(0xFFF5F5F5) to Colors.white
       resizeToAvoidBottomInset: false, // Prevent keyboard from pushing widgets
       body: Stack(
         children: [
           Column(
             spacing: 0,
             children: [
-              // Top padding + cart space when minimized
-              SizedBox(height: 40 + (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused ? _minCartHeight + 20 : 0)),
+              // Top spacing: only reserve space for minimum cart height
+              // This allows cart to expand and overlay other content
+              SizedBox(
+                height: topPadding + 10 + (reservedCartSpace > 0 ? reservedCartSpace + 12 : 0),
+              ),
 
               // App Bar Component with back button and tabs (Saved tab hidden)
-              SaleAppBar(
-                selectedTabIndex: _selectedTabIndex,
-                onTabChanged: _handleTabChange,
-                screenWidth: screenWidth,
-                screenHeight: screenHeight,
-                uid: widget.uid,
-                userEmail: widget.userEmail,
-                hideSavedTab: true, // Hide the Saved tab
-                showBackButton: true, // Show back button
-              ),
+              // Hide AppBar when search is focused
+              if (!_isSearchFocused)
+                SaleAppBar(
+                  selectedTabIndex: _selectedTabIndex,
+                  onTabChanged: _handleTabChange,
+                  screenWidth: screenWidth,
+                  screenHeight: screenHeight,
+                  uid: widget.uid,
+                  userEmail: widget.userEmail,
+                  hideSavedTab: true, // Hide the Saved tab
+                  showBackButton: true, // Show back button
+                ),
 
               // Content Area - Show content based on selected tab
               Expanded(
@@ -238,13 +444,13 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
             ],
           ),
 
-          // Cart section as overlay (if present and search is not focused)
-          if (_sharedCartItems != null && _sharedCartItems!.isNotEmpty && !_isSearchFocused)
+          // Cart overlay: Always show when there are items (with dynamic height)
+          if (shouldShowCart)
             Positioned(
-              top: 40,
+              top: topPadding + 10,
               left: 0,
               right: 0,
-              child: _buildCartSection(screenWidth),
+              child: _buildCartSection(screenWidth, dynamicCartHeight),
             ),
         ],
       ),
@@ -382,9 +588,12 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     });
   }
 
-  Widget _buildCartSection(double w) {
+  Widget _buildCartSection(double w, double currentHeight) {
+    final bool isSearchFocused = currentHeight <= 150; // Detect if in search focus mode (120px or less)
+
     return GestureDetector(
-      onVerticalDragUpdate: (details) {
+      // Disable drag gestures when in search focus mode
+      onVerticalDragUpdate: isSearchFocused ? null : (details) {
         setState(() {
           if (details.delta.dy > 10) {
             // User pulled down quickly, expand fully
@@ -398,7 +607,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
           }
         });
       },
-      onDoubleTap: () {
+      onDoubleTap: isSearchFocused ? null : () {
         setState(() {
           if (_cartHeight < _maxCartHeight * 0.95) {
             _cartHeight = _maxCartHeight;
@@ -410,28 +619,31 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
-        height: _cartHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 12).copyWith(bottom: 20),
+        height: currentHeight,
+        margin: const EdgeInsets.symmetric(horizontal: 12), // Removed .copyWith(bottom: 20)
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Colors.white, // Changed to Colors.white
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kGoogleYellow, width: 2),
-          //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))],
+          border: Border.all(color: kOrange, width: 2), // Use kOrange instead of kGoogleYellow
+
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isSearchFocused ? 6 : 12, // Reduced padding in search mode
+              ),
               decoration: const BoxDecoration(
                 color: Color(0xffffa51f),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.black))),
+                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
                 ],
               ),
             ),
@@ -449,7 +661,10 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
                       return AnimatedContainer(
                         duration: const Duration(milliseconds: 400),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+                        ),
                         decoration: BoxDecoration(
                           // Use animated color for smooth transition
                           color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
@@ -491,7 +706,10 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               ),
             ),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+              ),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withValues(alpha: 0.03),
                 borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
@@ -501,13 +719,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      // Clear cart and reset height
-                      _updateCartItems([]);
-                      setState(() {
-                        _cartHeight = _minCartHeight;
-                      });
-                    },
+                    onTap: _handleClearCart,
                     child: Row(
                       children: [
                         const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 18),

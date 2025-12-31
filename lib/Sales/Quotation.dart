@@ -5,12 +5,9 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'dart:math';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-
-// --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2F7CF6);
-const Color _cardBorder = Color(0xFFE3F2FD);
-const Color _scaffoldBg = Colors.white;
 
 class QuotationPage extends StatefulWidget {
   final String uid;
@@ -42,29 +39,33 @@ class _QuotationPageState extends State<QuotationPage> {
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
-  bool _isBillWise = true; // true = Bill Wise, false = Item Wise
+  bool _isBillWise = true;
+
+  // Bill Wise state
   double _cashDiscountAmount = 0.0;
   double _percentageDiscount = 0.0;
-
   final TextEditingController _cashDiscountController = TextEditingController();
   final TextEditingController _percentageController = TextEditingController();
 
+  // Item Wise state
   late List<TextEditingController> _itemDiscountControllers;
   late List<double> _itemDiscounts;
+  late List<bool> _isItemDiscountPercentage;
 
   @override
   void initState() {
     super.initState();
     _uid = widget.uid;
-    // Initialize with passed customer info
     _selectedCustomerPhone = widget.customerPhone;
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
+
     _itemDiscountControllers = List.generate(
       widget.cartItems.length,
           (_) => TextEditingController(),
     );
     _itemDiscounts = List.filled(widget.cartItems.length, 0.0);
+    _isItemDiscountPercentage = List.filled(widget.cartItems.length, false);
   }
 
   @override
@@ -79,29 +80,67 @@ class _QuotationPageState extends State<QuotationPage> {
 
   double get _discountAmount {
     if (_isBillWise) {
-      if (_cashDiscountAmount > 0) {
-        return _cashDiscountAmount;
-      } else if (_percentageDiscount > 0) {
-        return widget.totalAmount * (_percentageDiscount / 100);
-      }
+      if (_cashDiscountAmount > 0) return _cashDiscountAmount;
+      if (_percentageDiscount > 0) return widget.totalAmount * (_percentageDiscount / 100);
     } else {
-      return _itemDiscounts.fold(0.0, (sum, discount) => sum + discount);
+      double totalItemDiscount = 0;
+      for (int i = 0; i < widget.cartItems.length; i++) {
+        if (i >= _isItemDiscountPercentage.length) break;
+        if (_isItemDiscountPercentage[i]) {
+          totalItemDiscount += widget.cartItems[i].total * (_itemDiscounts[i] / 100);
+        } else {
+          totalItemDiscount += _itemDiscounts[i];
+        }
+      }
+      return totalItemDiscount;
     }
     return 0.0;
   }
 
-  double get _newTotal => widget.totalAmount - _discountAmount;
-
-  double _getItemTotalAfterDiscount(int index) {
-    final item = widget.cartItems[index];
-    return item.total - _itemDiscounts[index];
+  double get _discountPercentage {
+    if (widget.totalAmount == 0) return 0.0;
+    return (_discountAmount / widget.totalAmount) * 100;
   }
+
+  double get _newTotal => widget.totalAmount - _discountAmount;
 
   void _updateItemDiscount(int index, String value) {
     setState(() {
       final discount = double.tryParse(value) ?? 0.0;
-      final maxDiscount = widget.cartItems[index].total;
-      _itemDiscounts[index] = discount.clamp(0.0, maxDiscount);
+      if (_isItemDiscountPercentage[index]) {
+        _itemDiscounts[index] = discount.clamp(0.0, 100.0);
+      } else {
+        final maxDiscount = widget.cartItems[index].total;
+        _itemDiscounts[index] = discount.clamp(0.0, maxDiscount);
+      }
+    });
+  }
+
+  void _toggleItemDiscountMode(int index) {
+    setState(() {
+      _isItemDiscountPercentage[index] = !_isItemDiscountPercentage[index];
+      _itemDiscounts[index] = 0.0;
+      _itemDiscountControllers[index].clear();
+    });
+  }
+
+  void _updateCashDiscount(String v) {
+    setState(() {
+      _cashDiscountAmount = double.tryParse(v) ?? 0.0;
+      if (_cashDiscountAmount > 0) {
+        _percentageDiscount = 0.0;
+        _percentageController.clear();
+      }
+    });
+  }
+
+  void _updatePercentageDiscount(String v) {
+    setState(() {
+      _percentageDiscount = double.tryParse(v) ?? 0.0;
+      if (_percentageDiscount > 0) {
+        _cashDiscountAmount = 0.0;
+        _cashDiscountController.clear();
+      }
     });
   }
 
@@ -117,87 +156,95 @@ class _QuotationPageState extends State<QuotationPage> {
             _selectedCustomerGST = gst;
           });
         },
+        onCustomerUnselected: () {
+          setState(() {
+            _selectedCustomerPhone = null;
+            _selectedCustomerName = null;
+            _selectedCustomerGST = null;
+          });
+        },
+        selectedCustomerPhone: _selectedCustomerPhone,
       ),
     );
   }
 
-  void _updateCashDiscount() {
-    setState(() {
-      _cashDiscountAmount = double.tryParse(_cashDiscountController.text) ?? 0.0;
-      if (_cashDiscountAmount > 0) {
-        _percentageDiscount = 0.0;
-        _percentageController.clear();
-      }
-    });
-  }
-
-  void _updatePercentageDiscount() {
-    setState(() {
-      _percentageDiscount = double.tryParse(_percentageController.text) ?? 0.0;
-      if (_percentageDiscount > 0) {
-        _cashDiscountAmount = 0.0;
-        _cashDiscountController.clear();
-      }
-    });
-  }
-
   Future<void> _generateQuotation() async {
     try {
+      // 1. Show Loading Indicator
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => const Center(child: CircularProgressIndicator()),
+        builder: (context) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
       );
+
+      // 2. Identity Verification & Store Fetch
+      final firestoreService = FirestoreService();
+      final storeId = await firestoreService.getCurrentStoreId();
+
+      if (storeId == null) {
+        if (mounted) Navigator.pop(context); // Close loading
+        throw Exception('Identity Error: Store ID not found. Please setup your profile in Settings.');
+      }
+
+      final storeDoc = await firestoreService.getCurrentStoreDoc();
+      final storeData = storeDoc?.data() as Map<String, dynamic>?;
+      final staffName = storeData?['ownerName'] ?? 'Staff';
 
       final random = Random();
       final quotationNumber = (100000 + random.nextInt(900000)).toString();
-      final staffName = await _fetchStaffName(widget.uid);
+
+      // 3. Prepare Data
+      final List<Map<String, dynamic>> itemsList = widget.cartItems.asMap().entries.map((entry) {
+        final index = entry.key;
+        final item = entry.value;
+
+        double calculatedItemDiscountValue = _isBillWise
+            ? 0.0
+            : (_isItemDiscountPercentage[index]
+            ? (item.total * (_itemDiscounts[index] / 100))
+            : _itemDiscounts[index]);
+
+        return {
+          'productId': item.productId,
+          'name': item.name,
+          'price': item.price,
+          'quantity': item.quantity,
+          'total': item.total,
+          'discount': calculatedItemDiscountValue,
+          'discountInputType': _isBillWise ? 'none' : (_isItemDiscountPercentage[index] ? 'percentage' : 'cash'),
+          'finalTotal': item.total - calculatedItemDiscountValue,
+        };
+      }).toList();
 
       final quotationData = {
         'quotationNumber': quotationNumber,
-        'items': widget.cartItems.asMap().entries.map((entry) {
-          final index = entry.key;
-          final item = entry.value;
-          return {
-            'productId': item.productId,
-            'name': item.name,
-            'price': item.price,
-            'quantity': item.quantity,
-            'total': item.total,
-            'discount': _isBillWise ? 0.0 : _itemDiscounts[index],
-            'finalTotal': _isBillWise ? item.total : _getItemTotalAfterDiscount(index),
-          };
-        }).toList(),
+        'items': itemsList,
         'subtotal': widget.totalAmount,
         'discount': _discountAmount,
+        'discountPercentage': _discountPercentage,
         'total': _newTotal,
         'discountMode': _isBillWise ? 'billWise' : 'itemWise',
-        'discountType': _isBillWise
-            ? (_cashDiscountAmount > 0 ? 'cash' : _percentageDiscount > 0 ? 'percentage' : 'none')
-            : 'itemWise',
-        'discountValue': _isBillWise
-            ? (_cashDiscountAmount > 0 ? _cashDiscountAmount : _percentageDiscount)
-            : _itemDiscounts,
+        'billWiseCashDiscount': _cashDiscountAmount,
+        'billWisePercDiscount': _percentageDiscount,
         'customerPhone': _selectedCustomerPhone,
-        'customerName': _selectedCustomerName,
-        'customerGST': _selectedCustomerGST,
+        'customerName': _selectedCustomerName ?? 'Walk-in Customer',
+        'customerGST': (_selectedCustomerGST?.isEmpty ?? true) ? null : _selectedCustomerGST,
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
         'staffId': widget.uid,
-        'staffName': staffName ?? 'Staff',
+        'staffName': staffName,
         'status': 'active',
+        'billed': false,
       };
 
-      final docRef = await FirestoreService().addDocument('quotations', quotationData);
+      // 4. Save to Subcollection of Store
+      final docRef = await firestoreService.addDocument('quotations', quotationData);
 
-      try {
-        await FirestoreService().updateDocument('quotations', docRef.id, {'quotationId': docRef.id});
-      } catch (e) {
-        debugPrint('Unable to write quotationId: $e');
-      }
+      // Secondary update to store the generated ID inside the document
+      await firestoreService.updateDocument('quotations', docRef.id, {'quotationId': docRef.id});
 
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Remove loading indicator
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -219,74 +266,73 @@ class _QuotationPageState extends State<QuotationPage> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        Navigator.pop(context); // Remove loading indicator
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Submission Error: ${e.toString()}'),
+              backgroundColor: kErrorColor,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            )
         );
       }
     }
   }
 
-  Future<String?> _fetchStaffName(String uid) async {
-    try {
-      final doc = await FirestoreService().usersCollection.doc(uid).get();
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>?;
-        return data?['name'] as String?;
-      }
-    } catch (e) {
-      debugPrint('Error fetching staff name: $e');
-      return null;
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
+    final bool hasCustomer = _selectedCustomerName != null && _selectedCustomerName!.isNotEmpty;
+
     return Scaffold(
-      backgroundColor: _primaryColor,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        backgroundColor: _primaryColor,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          'New Quotation',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+        title: const Text('New Quotation', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GestureDetector(
+            padding: const EdgeInsets.all(12.0),
+            child: InkWell(
               onTap: _showCustomerDialog,
+              borderRadius: BorderRadius.circular(16),
               child: Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: kWhite,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                  border: Border.all(color: hasCustomer ? kPrimaryColor : kOrange, width: hasCustomer ? 1 : 1.5),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: _primaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                      child: const Icon(Icons.person_add_outlined, color: _primaryColor, size: 24),
+                    CircleAvatar(
+                        backgroundColor: (hasCustomer ? kPrimaryColor : kOrange).withOpacity(0.1),
+                        radius: 18,
+                        child: Icon(hasCustomer ? Icons.person : Icons.person_add_outlined, color: hasCustomer ? kPrimaryColor : kOrange, size: 18)
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        _selectedCustomerName ?? 'Add Customer Details',
-                        style: TextStyle(
-                          color: _selectedCustomerName != null ? Colors.black87 : Colors.grey[600],
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        hasCustomer ? _selectedCustomerName! : 'Assign Customer',
+                        style: TextStyle(color: hasCustomer ? kPrimaryColor : kOrange, fontSize: 15, fontWeight: FontWeight.w700),
                       ),
                     ),
-                    const Icon(Icons.chevron_right, color: Colors.grey),
+                    if (hasCustomer)
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedCustomerPhone = null;
+                            _selectedCustomerName = null;
+                            _selectedCustomerGST = null;
+                          });
+                        },
+                        child: const Icon(Icons.cancel_rounded, color: kErrorColor, size: 20),
+                      )
+                    else
+                      const Icon(Icons.arrow_forward_ios, color: kGrey400, size: 14),
                   ],
                 ),
               ),
@@ -294,59 +340,169 @@ class _QuotationPageState extends State<QuotationPage> {
           ),
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Discount Setup', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        _buildToggleBtn('Bill Wise', _isBillWise, () => setState(() => _isBillWise = true)),
-                        const SizedBox(width: 12),
-                        _buildToggleBtn('Item Wise', !_isBillWise, () => setState(() => _isBillWise = false)),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    if (_isBillWise) ...[
-                      _buildSummaryRow('Original Total', widget.totalAmount),
-                      const SizedBox(height: 24),
-                      _buildInputLabel('Cash Discount'),
-                      _buildTextField(_cashDiscountController, 'Amount', (v) => _updateCashDiscount(), Icons.money),
-                      const SizedBox(height: 16),
-                      Center(child: Text('OR', style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.bold, fontSize: 12))),
-                      const SizedBox(height: 16),
-                      _buildInputLabel('Percentage Discount'),
-                      _buildTextField(_percentageController, 'Percentage %', (v) => _updatePercentageDiscount(), Icons.percent),
-                    ] else ...[
-                      _buildInputLabel('Individual Item Discounts'),
-                      const SizedBox(height: 12),
-                      ...widget.cartItems.asMap().entries.map((entry) => _buildItemDiscountCard(entry.key, entry.value)),
-                    ],
-                    const SizedBox(height: 32),
-                    _buildFinalSummary(),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _generateQuotation,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _primaryColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                        child: const Text('Generate Quotation', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+              decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Discounting Strategy', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              _buildToggleBtn('Bill Wise', _isBillWise, () => setState(() => _isBillWise = true)),
+                              const SizedBox(width: 10),
+                              _buildToggleBtn('Item Wise', !_isBillWise, () => setState(() => _isBillWise = false)),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          if (_isBillWise) ...[
+                            _buildSummaryRow('Initial Total', widget.totalAmount),
+                            const SizedBox(height: 24),
+                            _buildInputLabel('Fixed Cash Discount'),
+                            _buildTextField(_cashDiscountController, '0.00', _updateCashDiscount, Icons.money_rounded),
+                            const SizedBox(height: 16),
+                            Center(child: Text('OR', style: TextStyle(color: kGrey400, fontWeight: FontWeight.w800, fontSize: 10))),
+                            const SizedBox(height: 16),
+                            _buildInputLabel('Percentage (%) Discount'),
+                            _buildTextField(_percentageController, '0%', _updatePercentageDiscount, Icons.percent_rounded),
+                          ] else ...[
+                            _buildItemWiseTable(),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  _buildBottomSummaryArea(),
+                ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemWiseTable() {
+    return Column(
+      children: [
+        // Table Header
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            children: [
+
+              const Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              const Expanded(flex: 2, child: Text('QTY/RATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              const Expanded(flex: 2, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              const Expanded(flex: 3, child: Text('DISC', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 4),
+        // Table Body
+        ...widget.cartItems.asMap().entries.map((entry) => _buildItemTableRow(entry.key, entry.value)),
+      ],
+    );
+  }
+
+  Widget _buildItemTableRow(int index, CartItem item) {
+    final bool isPerc = _isItemDiscountPercentage[index];
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Column 1: Qty / Rate
+          Expanded(
+            flex: 3,
+            child: Text(
+                item.name,
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87),
+                maxLines: 2, overflow: TextOverflow.ellipsis
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+                '${item.quantity}x${item.price.toStringAsFixed(0)}',
+                style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700)
+            ),
+          ),
+          // Column 2: Product Name
+
+          // Column 3: Total
+          Expanded(
+            flex: 2,
+            child: Text(
+                item.total.toStringAsFixed(0),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kBlack87)
+            ),
+          ),
+          // Column 4: Discount Box (Increased size)
+          Expanded(
+            flex: 3,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                GestureDetector(
+                  onTap: () => _toggleItemDiscountMode(index),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text(isPerc ? "%" : "Amt", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                SizedBox(
+                  width: 70,
+                  height: 32,
+                  child: TextField(
+                    controller: _itemDiscountControllers[index],
+                    keyboardType: TextInputType.number,
+                    onChanged: (v) => _updateItemDiscount(index, v),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      filled: true,
+                      fillColor: kGreyBg,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomSummaryArea() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kWhite,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        border: const Border(top: BorderSide(color: kGrey200)),
+      ),
+      child: Column(
+        children: [
+          _buildFinalSummary(),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity, height: 54,
+            child: ElevatedButton(
+              onPressed: _generateQuotation,
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+              child: const Text('GENERATE QUOTATION', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -360,82 +516,33 @@ class _QuotationPageState extends State<QuotationPage> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 14),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? _primaryColor : _primaryColor.withOpacity(0.05),
+            color: isSelected ? kPrimaryColor : kGreyBg,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: isSelected ? _primaryColor : _cardBorder),
+            border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
           ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: isSelected ? Colors.white : _primaryColor, fontWeight: FontWeight.bold),
-          ),
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(color: isSelected ? kWhite : kBlack54, fontWeight: FontWeight.w700, fontSize: 13)),
         ),
       ),
     );
   }
 
-  Widget _buildInputLabel(String label) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)));
+  Widget _buildInputLabel(String label) => Padding(padding: const EdgeInsets.only(bottom: 6, left: 4), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87)));
 
   Widget _buildTextField(TextEditingController ctrl, String hint, Function(String) onChange, IconData icon) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: TextInputType.number,
-      onChanged: onChange,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, color: _primaryColor, size: 20),
-        filled: true,
-        fillColor: _primaryColor.withOpacity(0.04),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-    );
-  }
-
-  Widget _buildItemDiscountCard(int index, CartItem item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _cardBorder),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1)),
-              Text('Qty: ${item.quantity}', style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Text('Rs ${item.total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600)),
-              const Spacer(),
-              SizedBox(
-                width: 100,
-                height: 40,
-                child: TextField(
-                  controller: _itemDiscountControllers[index],
-                  keyboardType: TextInputType.number,
-                  onChanged: (v) => _updateItemDiscount(index, v),
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    hintText: 'Disc',
-                    filled: true,
-                    fillColor: _primaryColor.withOpacity(0.05),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+    return SizedBox(
+      height: 48,
+      child: TextField(
+        controller: ctrl, keyboardType: TextInputType.number, onChanged: onChange,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          filled: true, fillColor: kGreyBg,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
       ),
     );
   }
@@ -444,39 +551,26 @@ class _QuotationPageState extends State<QuotationPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w500)),
-        Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        Text(label, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: 13)),
+        Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
       ],
     );
   }
 
   Widget _buildFinalSummary() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: _primaryColor.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-      ),
-      child: Column(
-        children: [
-          Row(
+    final perc = _discountPercentage;
+    return Column(
+      children: [
+        Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Total Discount', style: TextStyle(fontWeight: FontWeight.w500)),
-              Text('- Rs ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
-            ],
-          ),
-          const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider()),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Final Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-              Text('Rs ${_newTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: _primaryColor)),
-            ],
-          ),
-        ],
-      ),
+              Text('Total Savings (${perc.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
+              Text('- Rs ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
+            ]
+        ),
+        const SizedBox(height: 8),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Net Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)), Text('Rs ${_newTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))]),
+      ],
     );
   }
 }
@@ -484,39 +578,78 @@ class _QuotationPageState extends State<QuotationPage> {
 class _CustomerSelectionDialog extends StatefulWidget {
   final String uid;
   final Function(String phone, String name, String? gst) onCustomerSelected;
+  final VoidCallback? onCustomerUnselected;
+  final String? selectedCustomerPhone;
 
-  const _CustomerSelectionDialog({required this.uid, required this.onCustomerSelected});
+  const _CustomerSelectionDialog({required this.uid, required this.onCustomerSelected, this.onCustomerUnselected, this.selectedCustomerPhone});
 
   @override
   State<_CustomerSelectionDialog> createState() => _CustomerSelectionDialogState();
 }
 
 class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
+  final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
+  }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: kWhite,
       child: Container(
-        padding: const EdgeInsets.all(20),
-        constraints: const BoxConstraints(maxHeight: 500),
+        height: 550, padding: const EdgeInsets.all(20),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Select Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            TextField(
-              onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
-              decoration: InputDecoration(
-                hintText: context.tr('search'),
-                prefixIcon: const Icon(Icons.search, color: _primaryColor),
-                filled: true,
-                fillColor: Colors.grey[50],
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Select Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: kBlack87)),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kBlack54)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 48,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search Name or Phone...', prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  filled: true, fillColor: kGreyBg,
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+                  contentPadding: EdgeInsets.zero,
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _showAddCustomerDialog,
+                    icon: const Icon(Icons.person_add, size: 18),
+                    label: const Text("ADD NEW", style: TextStyle(fontSize: 11)),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _importFromContacts,
+                    icon: const Icon(Icons.import_contacts, size: 18),
+                    label: const Text("IMPORT", style: TextStyle(fontSize: 11)),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Expanded(
               child: FutureBuilder<CollectionReference>(
                 future: FirestoreService().getStoreCollection('customers'),
@@ -526,23 +659,24 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                     stream: collectionSnapshot.data!.orderBy('name').snapshots(),
                     builder: (context, snapshot) {
                       if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                      final customers = snapshot.data!.docs.where((doc) {
+                      final docs = snapshot.data!.docs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
-                        return (data['name'] ?? '').toString().toLowerCase().contains(_searchQuery) || (data['phone'] ?? '').toString().contains(_searchQuery);
+                        final n = (data['name'] ?? '').toString().toLowerCase();
+                        final p = (data['phone'] ?? '').toString().toLowerCase();
+                        return n.contains(_searchQuery) || p.contains(_searchQuery);
                       }).toList();
-                      if (customers.isEmpty) return const Center(child: Text('No customers found'));
-                      return ListView.builder(
-                        itemCount: customers.length,
+                      if (docs.isEmpty) return const Center(child: Text('No customers found'));
+                      return ListView.separated(
+                        itemCount: docs.length,
+                        separatorBuilder: (ctx, i) => const Divider(color: kGrey100),
                         itemBuilder: (context, index) {
-                          final data = customers[index].data() as Map<String, dynamic>;
+                          final data = docs[index].data() as Map<String, dynamic>;
                           return ListTile(
-                            leading: CircleAvatar(backgroundColor: _primaryColor.withOpacity(0.1), child: Text(data['name'][0].toUpperCase(), style: const TextStyle(color: _primaryColor))),
-                            title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text(data['phone'] ?? ''),
-                            onTap: () {
-                              widget.onCustomerSelected(data['phone'] ?? '', data['name'] ?? '', data['gst']);
-                              Navigator.pop(context);
-                            },
+                            contentPadding: EdgeInsets.zero,
+                            onTap: () { widget.onCustomerSelected(data['phone'] ?? '', data['name'] ?? '', data['gst']); Navigator.pop(context); },
+                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), child: Text(data['name']?[0].toUpperCase() ?? 'U', style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700))),
+                            title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87, fontSize: 14)),
+                            subtitle: Text(data['phone'] ?? '', style: const TextStyle(fontSize: 11, color: kBlack54)),
                           );
                         },
                       );
@@ -552,6 +686,100 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importFromContacts() async {
+    if (!await FlutterContacts.requestPermission()) return;
+    final contacts = await FlutterContacts.getContacts(withProperties: true);
+    if (contacts.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        List<Contact> filtered = contacts;
+        return StatefulBuilder(
+          builder: (context, setDialogState) => Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: SizedBox(
+              width: 350, height: 500,
+              child: Column(
+                children: [
+                  const Padding(padding: EdgeInsets.all(16.0), child: Text('Import Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+                      onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final c = filtered[index];
+                        final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(' ', '') : '';
+                        return ListTile(
+                          title: Text(c.displayName), subtitle: Text(phone),
+                          onTap: phone.isEmpty ? null : () { Navigator.pop(context); _showAddCustomerDialog(prefillName: c.displayName, prefillPhone: phone); },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _showAddCustomerDialog({String? prefillName, String? prefillPhone}) async {
+    final nameCtrl = TextEditingController(text: prefillName ?? '');
+    final phoneCtrl = TextEditingController(text: prefillPhone ?? '');
+    final gstCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+              const SizedBox(height: 16),
+              TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder())),
+              const SizedBox(height: 16),
+              TextField(controller: gstCtrl, decoration: const InputDecoration(labelText: 'GST (Optional)', border: OutlineInputBorder())),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    onPressed: () async {
+                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+                      await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                        'name': nameCtrl.text.trim(), 'phone': phoneCtrl.text.trim(), 'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                        'balance': 0.0, 'totalSales': 0.0, 'timestamp': FieldValue.serverTimestamp(), 'lastUpdated': FieldValue.serverTimestamp(),
+                      });
+                      if (mounted) { Navigator.pop(context); widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim()); }
+                    },
+                    child: const Text('Add', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

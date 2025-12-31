@@ -562,7 +562,7 @@ class _BillPageState extends State<BillPage> {
             children: [
               Text('Rs ${item.totalWithTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kBlack87)),
               if (item.taxAmount > 0)
-                Text('+Rs ${item.taxAmount.toStringAsFixed(2)} tax', style: const TextStyle(color: kGoogleYellow, fontSize: 10, fontWeight: FontWeight.w600)),
+                Text('+Rs ${item.taxAmount.toStringAsFixed(2)} tax', style: const TextStyle(color: kOrange, fontSize: 10, fontWeight: FontWeight.w600)),
             ],
           ),
         ],
@@ -608,11 +608,11 @@ class _BillPageState extends State<BillPage> {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
-                        color: kGoogleYellow.withOpacity(0.1),
+                        color: kOrange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kGoogleYellow.withOpacity(0.3))),
+                        border: Border.all(color: kOrange.withOpacity(0.3))),
                     child: Row(children: [
-                      const Icon(Icons.warning_amber_rounded, color: kGoogleYellow, size: 18),
+                      const Icon(Icons.warning_amber_rounded, color: kOrange, size: 18),
                       const SizedBox(width: 10),
                       const Expanded(child: Text('Select customer to continue', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Color(0xFF856404)))),
                       TextButton(onPressed: _showCustomerDialog, child: const Text('SELECT', style: TextStyle(fontWeight: FontWeight.w600))),

@@ -6,10 +6,7 @@ import 'package:maxbillup/Sales/Bill.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-
-// --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2F7CF6);
-const Color _cardBorder = Color(0xFFE3F2FD);
+import 'package:maxbillup/Colors.dart';
 
 class QuotationDetailPage extends StatelessWidget {
   final String uid;
@@ -42,73 +39,63 @@ class QuotationDetailPage extends StatelessWidget {
     final isActive = status == 'active' && billed != true;
 
     return Scaffold(
-      backgroundColor: _primaryColor,
+      backgroundColor: kPrimaryColor,
       appBar: AppBar(
-        title: const Text('Quotation Info', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
+        title: const Text('Quotation Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
       ),
       body: Column(
         children: [
           Expanded(
             child: Container(
               width: double.infinity,
-              margin: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(24),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeaderRow('QTN-$quotationNumber', isActive),
-                      const SizedBox(height: 24),
-                      _buildDetailRow(Icons.person_outline, 'Customer', customerName),
-                      _buildDetailRow(Icons.badge_outlined, 'Created By', staffName),
-                      _buildDetailRow(Icons.calendar_today_outlined, 'Date & Time', formattedDate),
-                      _buildDetailRow(Icons.shopping_bag_outlined, 'Total Items', '${items.length}'),
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider(color: _cardBorder, thickness: 1)),
-                      const Text('Financial Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const SizedBox(height: 16),
-                      _buildPriceRow('Total Amount', total, isBold: true),
-                      const SizedBox(height: 32),
-                      if (isActive)
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _generateInvoice(context),
-                            icon: const Icon(Icons.receipt_long, color: Colors.white),
-                            label: const Text('Generate Invoice', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _primaryColor,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.green.withOpacity(0.2))),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check_circle, color: Colors.green, size: 20),
-                              SizedBox(width: 12),
-                              Text('Quotation Settled', style: TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+              margin: const EdgeInsets.fromLTRB(12, 4, 12, 16), // Reduced margin
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15)]),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20), // Reduced padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeaderRow('QTN-$quotationNumber', isActive),
+                    const SizedBox(height: 16), // Reduced gap
+                    _buildDetailRow(Icons.person_rounded, 'Customer', customerName),
+                    _buildDetailRow(Icons.badge_rounded, 'Created By', staffName),
+                    _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', formattedDate),
+                    _buildDetailRow(Icons.shopping_bag_rounded, 'Line Items', '${items.length} units'),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
+                    const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 12),
+                    _buildPriceRow('Subtotal (Gross)', (quotationData['subtotal'] ?? 0.0).toDouble()),
+                    _buildPriceRow('Total Deductions', -(quotationData['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
+                    const Divider(height: 24, color: kGrey100),
+                    _buildPriceRow('Final Net Total', total, isBold: true),
+                    const SizedBox(height: 32),
+                    if (isActive)
+                      SizedBox(
+                        width: double.infinity, height: 54,
+                        child: ElevatedButton(
+                          onPressed: () => _generateInvoice(context),
+                          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          child: const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kWhite)),
                         ),
-                    ],
-                  ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: kGoogleGreen.withOpacity(0.15))),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.check_circle, color: kGoogleGreen, size: 20),
+                            SizedBox(width: 10),
+                            Text('Quotation Settled', style: TextStyle(fontSize: 15, color: kGoogleGreen, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -122,11 +109,11 @@ class QuotationDetailPage extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(ref, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: _primaryColor)),
+        Text(ref, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(color: active ? Colors.blue.withOpacity(0.1) : Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-          child: Text(active ? 'ACTIVE' : 'BILLED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: active ? _primaryColor : Colors.grey)),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: active ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(20)),
+          child: Text(active ? 'OPEN' : 'BILLED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: active ? kPrimaryColor : kBlack54)),
         ),
       ],
     );
@@ -134,75 +121,53 @@ class QuotationDetailPage extends StatelessWidget {
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey[400]),
+          Icon(icon, size: 16, color: kGrey400),
           const SizedBox(width: 12),
-          Text('$label: ', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+          Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: kBlack87), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
   }
 
-  Widget _buildPriceRow(String label, double val, {bool isBold = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: TextStyle(fontSize: isBold ? 16 : 14, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-        Text('Rs ${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 16, fontWeight: FontWeight.bold, color: isBold ? _primaryColor : Colors.black87)),
-      ],
+  Widget _buildPriceRow(String label, double val, {bool isBold = false, Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: isBold ? 14 : 13, fontWeight: isBold ? FontWeight.w700 : FontWeight.w500, color: isBold ? kBlack87 : kBlack54)),
+          Text('Rs ${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 14, fontWeight: FontWeight.w800, color: valueColor ?? (isBold ? kPrimaryColor : kBlack87))),
+        ],
+      ),
     );
   }
 
   void _generateInvoice(BuildContext context) async {
     final items = quotationData['items'] as List<dynamic>? ?? [];
-    final cartItems = items.map((item) {
-      return CartItem(
-        productId: item['productId'] ?? '',
-        name: item['name'] ?? '',
-        price: (item['price'] ?? 0.0).toDouble(),
-        quantity: item['quantity'] ?? 1,
-      );
-    }).toList();
+    final cartItems = items.map((item) => CartItem(
+      productId: item['productId'] ?? '', name: item['name'] ?? '',
+      price: (item['price'] ?? 0.0).toDouble(), quantity: item['quantity'] ?? 1,
+    )).toList();
 
     final total = (quotationData['total'] ?? 0.0).toDouble();
     final discount = (quotationData['discount'] ?? 0.0).toDouble();
 
     final result = await Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => BillPage(
-          uid: uid,
-          userEmail: userEmail,
-          cartItems: cartItems,
-          totalAmount: total,
-          discountAmount: discount,
-          customerPhone: quotationData['customerPhone'],
-          customerName: quotationData['customerName'],
-          customerGST: quotationData['customerGST'],
-          quotationId: quotationId,
-        ),
-      ),
+      context, CupertinoPageRoute(builder: (context) => BillPage(
+      uid: uid, userEmail: userEmail, cartItems: cartItems, totalAmount: total,
+      discountAmount: discount, customerPhone: quotationData['customerPhone'],
+      customerName: quotationData['customerName'], customerGST: quotationData['customerGST'],
+      quotationId: quotationId,
+    )),
     );
 
     if (result == true) {
-      try {
-        await FirestoreService().updateDocument('quotations', quotationId, {
-          'status': 'settled',
-          'billed': true,
-          'settledAt': FieldValue.serverTimestamp(),
-        });
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quotation settled successfully'), backgroundColor: Colors.green));
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
-        }
-      }
+      await FirestoreService().updateDocument('quotations', quotationId, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
+      if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Finalized Successfully'))); Navigator.pop(context); }
     }
   }
 }
