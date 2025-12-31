@@ -27,88 +27,134 @@ class StockAppBar extends StatelessWidget {
     required this.screenWidth,
     required this.screenHeight,
     required this.buildActionButton,
-
   });
 
   @override
   Widget build(BuildContext context) {
-    final tabPadding = screenWidth * 0.04;
-    final tabHeight = screenHeight * 0.04;
+    final topPadding = MediaQuery.of(context).padding.top;
+    const double tabHeight = 44.0;
+
     return Container(
-      color: Colors.white,
+      padding: EdgeInsets.only(top: topPadding + 10, bottom: 12),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey200, width: 1)),
+      ),
       child: Column(
         children: [
-          // Tabs
-
+          // ENTERPRISE FLAT TABS
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 045, 16, 12),
-            child: Row(
-              children: [
-                // Product Tab (moved up)
-                FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) {
-                      return _buildTab('${context.tr('products')} (0)', 0);
-                    }
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
-                      builder: (context, snapshot) {
-                        final productCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('${context.tr('products')} ($productCount)', 0);
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(width: 8),
-                // Category Tab (moved down)
-                FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('categories'),
-                  builder: (context, streamSnapshot) {
-                    if (!streamSnapshot.hasData) {
-                      return _buildTab('${context.tr('category')} (0)', 1);
-                    }
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamSnapshot.data,
-                      builder: (context, snapshot) {
-                        final categoryCount = snapshot.hasData ? snapshot.data!.docs.length : 0;
-                        return _buildTab('${context.tr('category')} ($categoryCount)', 1);
-                      },
-                    );
-                  },
-                ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              height: tabHeight + 8,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: kGreyBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: kGrey200, width: 1),
+              ),
+              child: Stack(
+                children: [
+                  // Animated Sliding Pill
+                  AnimatedAlign(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.fastOutSlowIn,
+                    alignment: Alignment(selectedTabIndex == 0 ? -1.0 : 1.0, 0),
+                    child: FractionallySizedBox(
+                      widthFactor: 0.5,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(
+                              color: kPrimaryColor.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Tab Labels with Real-time Counts
+                  Row(
+                    children: [
+                      // Product Tab
+                      _buildTabWithCount(
+                        context,
+                        label: context.tr('products').toUpperCase(),
+                        collection: 'Products',
+                        index: 0,
+                      ),
+                      // Category Tab
+                      _buildTabWithCount(
+                        context,
+                        label: context.tr('category').toUpperCase(),
+                        collection: 'categories',
+                        index: 1,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-
-          // Search bar and action buttons
-
         ],
       ),
     );
   }
 
-  Widget _buildTab(String text, int index) {
-    final isSelected = selectedTabIndex == index;
+  Widget _buildTabWithCount(BuildContext context, {required String label, required String collection, required int index}) {
     return Expanded(
       child: GestureDetector(
         onTap: () => onTabChanged(index),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: isSelected ? kPrimaryColor : kGreyBg,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[600],
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              ),
-            ),
-          ),
+        behavior: HitTestBehavior.opaque,
+        child: FutureBuilder<Stream<QuerySnapshot>>(
+          future: FirestoreService().getCollectionStream(collection),
+          builder: (context, streamSnapshot) {
+            return StreamBuilder<QuerySnapshot>(
+              stream: streamSnapshot.data,
+              builder: (context, snapshot) {
+                final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+                final isSelected = selectedTabIndex == index;
+
+                return Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected ? kWhite : kBlack54,
+                          fontSize: 11,
+                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isSelected ? kWhite.withOpacity(0.2) : kPrimaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '$count',
+                          style: TextStyle(
+                            color: isSelected ? kWhite : kPrimaryColor,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ),
     );

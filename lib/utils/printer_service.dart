@@ -10,8 +10,8 @@ class PrinterService {
 
   // --- DISCOVERY & SETTINGS ---
 
-  /// Scans for all available printers (Bluetooth, WiFi, USB)
-  /// Note: Bluetooth printers must be paired in Android Settings first.
+  /// Scans for all available printe(Bluetooth, WiFi, USB)
+  /// Note: Bluetooth printemust be paired in Android Settings first.
   static Future<List<Printer>> discoverPrinters() async {
     try {
       return await Printing.listPrinters();

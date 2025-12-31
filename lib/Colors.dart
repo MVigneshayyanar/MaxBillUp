@@ -14,7 +14,7 @@ const Color kGrey100 = Color(0xFFF5F5F5); // Colors.grey[100]
 const Color kOrange = Colors.orange;
 final Color kBorderColor = Color(0xFFE3F2FD);
 
-// --- GOOGLE LOGO COLORS ---
+// --- GOOGLE LOGO COLO---
 const Color kGoogleRed = Color(0xFFEA4335);
 const Color kGoogleGreen = Color(0xFF34A853);
 

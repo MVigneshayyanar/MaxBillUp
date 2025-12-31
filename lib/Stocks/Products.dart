@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:intl/intl.dart';
 
 class ProductsPage extends StatefulWidget {
   final String uid;
@@ -80,6 +81,10 @@ class _ProductsPageState extends State<ProductsPage> {
     super.dispose();
   }
 
+  // ==========================================
+  // UI BUILD METHODS (ENTERPRISE FLAT)
+  // ==========================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,11 +97,13 @@ class _ProductsPageState extends State<ProductsPage> {
             builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
           ),
         ),
-        backgroundColor: kGoogleGreen,
-        icon: const Icon(Icons.add, color: kWhite),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
         label: Text(
-          context.tr('add_product'),
-          style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold),
+          context.tr('add_product').toUpperCase(),
+          style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
         ),
       )
           : null,
@@ -113,36 +120,35 @@ class _ProductsPageState extends State<ProductsPage> {
 
   Widget _buildHeaderSection() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: const BoxDecoration(
         color: kWhite,
-        boxShadow: [
-          BoxShadow(color: Colors.black.withAlpha((0.04 * 255).toInt()), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        border: Border(bottom: BorderSide(color: kGrey200)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 48,
+              height: 46,
               decoration: BoxDecoration(
-                color: kGreyBg,
+                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorderColor),
+                border: Border.all(color: kGrey200),
               ),
               child: TextField(
                 controller: _searchController,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 22),
+                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 7),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
           const SizedBox(width: 8),
           _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
@@ -156,25 +162,25 @@ class _ProductsPageState extends State<ProductsPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 48,
-        width: 48,
+        height: 46,
+        width: 46,
         decoration: BoxDecoration(
-          color: kPrimaryColor.withAlpha((0.08 * 255).toInt()),
+          color: kPrimaryColor.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBorderColor),
+          border: Border.all(color: kGrey200),
         ),
-        child: Icon(icon, color: kPrimaryColor, size: 24),
+        child: Icon(icon, color: kPrimaryColor, size: 22),
       ),
     );
   }
 
   Widget _buildProductList() {
-    if (_productsStream == null) return const Center(child: CircularProgressIndicator());
+    if (_productsStream == null) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 
     return StreamBuilder<QuerySnapshot>(
       stream: _productsStream,
       builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
         if (snapshot.data!.docs.isEmpty) return _buildEmptyState();
 
         final products = _filterAndSortProducts(snapshot.data!.docs);
@@ -183,7 +189,7 @@ class _ProductsPageState extends State<ProductsPage> {
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           itemCount: products.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          separatorBuilder: (context, index) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final doc = products[index];
             final data = doc.data() as Map<String, dynamic>;
@@ -207,93 +213,106 @@ class _ProductsPageState extends State<ProductsPage> {
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
 
-    return GestureDetector(
-      onTap: (isAdmin || _hasPermission('addProduct')) ? () => _showProductActionMenu(context, doc) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: kWhite,
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kBorderColor),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withAlpha((0.02 * 255).toInt()), blurRadius: 6, offset: const Offset(0, 2)),
-          ],
-        ),
-        padding: const EdgeInsets.all(14), // Increased padding for a larger card
-        child: Row(
-          children: [
-            // Product Icon
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withAlpha((0.05 * 255).toInt()),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(Icons.inventory_2_outlined, color: kPrimaryColor, size: 22),
-            ),
-            const SizedBox(width: 14),
-            // Info Column
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Line 1: Title with favorite blue heart
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kBlack87),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (isFavorite)
-                        const Icon(Icons.favorite, color: kPrimaryColor, size: 16), // Changed to blue heart
-                    ],
+          onTap: (isAdmin || _hasPermission('addProduct')) ? () => _showProductActionMenu(context, doc) : null,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              children: [
+                // Product Icon
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 4),
-                  // Line 2: Category (Orange) and Quantity (End)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: const Icon(Icons.inventory_2_rounded, color: kPrimaryColor, size: 20),
+                ),
+                const SizedBox(width: 14),
+                // Info Column
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        category,
-                        style: const TextStyle(fontSize: 14, color: kOrange, fontWeight: FontWeight.w600),
-                      ),
-                      if (stockEnabled)
-                        Text(
-                          isOutOfStock ? 'Out of Stock' : 'Qty: ${stock.toInt()}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: isOutOfStock ? kErrorColor : (isLowStock ? kOrange : kGoogleGreen),
+                      // Title with favorite blue heart
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBlack87),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
+                          if (isFavorite)
+                            const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Category and Quantity
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          category == 'Favorite'
+                              ? const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 14)
+                              : Text(
+                            category.toUpperCase(),
+                            style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                          ),
+                          if (stockEnabled)
+                            _buildStockBadge(stock, isOutOfStock, isLowStock),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      // Amount and Tax
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            "Rs ${price.toStringAsFixed(2)}",
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kPrimaryColor),
+                          ),
+                          Text(
+                            '$taxType (${taxPercent.toStringAsFixed(1)}%)',
+                            style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  // Line 3: Amount and Tax (End)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        "Rs ${price.toStringAsFixed(2)}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: kPrimaryColor),
-                      ),
-                      Text(
-                        '$taxType (${taxPercent.toStringAsFixed(1)}%)',
-                        style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                if (isAdmin || _hasPermission('addProduct'))
+                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+              ],
             ),
-            const SizedBox(width: 6),
-            if (isAdmin || _hasPermission('addProduct'))
-              const Icon(Icons.chevron_right, color: kPrimaryColor, size: 20),
-          ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStockBadge(double stock, bool isOut, bool isLow) {
+    final color = isOut ? kErrorColor : (isLow ? kOrange : kGoogleGreen);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        isOut ? 'OUT OF STOCK' : 'QTY: ${stock.toInt()}',
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.2),
       ),
     );
   }
@@ -311,11 +330,11 @@ class _ProductsPageState extends State<ProductsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Sort Products', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+            const Text('Sort Products', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
             const SizedBox(height: 20),
-            _buildSortOption('Name', 'name', Icons.sort_by_alpha),
-            _buildSortOption('Price', 'price', Icons.payments_outlined),
-            _buildSortOption('Stock', 'stock', Icons.inventory_2_outlined),
+            _buildSortOption('Name', 'name', Icons.sort_by_alpha_rounded),
+            _buildSortOption('Price', 'price', Icons.payments_rounded),
+            _buildSortOption('Stock Level', 'stock', Icons.inventory_2_rounded),
           ],
         ),
       ),
@@ -334,12 +353,12 @@ class _ProductsPageState extends State<ProductsPage> {
       },
       contentPadding: EdgeInsets.zero,
       leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha((0.1 * 255).toInt()) : kGrey100, borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 20),
       ),
-      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kPrimaryColor : kBlack87)),
-      trailing: isSelected ? Icon(_sortAscending ? Icons.north : Icons.south, color: kPrimaryColor, size: 16) : null,
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? kPrimaryColor : kBlack87, fontSize: 14)),
+      trailing: isSelected ? Icon(_sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, color: kPrimaryColor, size: 16) : null,
     );
   }
 
@@ -354,12 +373,12 @@ class _ProductsPageState extends State<ProductsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Stock Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+            const Text('Stock Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
             const SizedBox(height: 20),
-            _buildFilterOption(Icons.all_inclusive, 'All Products', 'all', kPrimaryColor),
-            _buildFilterOption(Icons.check_circle_outline, 'In Stock', 'inStock', kGoogleGreen),
-            _buildFilterOption(Icons.warning_amber_rounded, 'Low Stock', 'lowStock', kOrange),
-            _buildFilterOption(Icons.error_outline, 'Out of Stock', 'outOfStock', kErrorColor),
+            _buildFilterOption(Icons.all_inclusive_rounded, 'All Products', 'all', kPrimaryColor),
+            _buildFilterOption(Icons.check_circle_rounded, 'In Stock', 'inStock', kGoogleGreen),
+            _buildFilterOption(Icons.warning_amber_rounded, 'Low Stock Warning', 'lowStock', kOrange),
+            _buildFilterOption(Icons.error_rounded, 'Out of Stock', 'outOfStock', kErrorColor),
           ],
         ),
       ),
@@ -375,12 +394,12 @@ class _ProductsPageState extends State<ProductsPage> {
       },
       contentPadding: EdgeInsets.zero,
       leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(color: color.withAlpha((0.1 * 255).toInt()), borderRadius: BorderRadius.circular(8)),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
         child: Icon(icon, color: color, size: 20),
       ),
-      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? color : kBlack87)),
-      trailing: isSelected ? Icon(Icons.check_circle, color: color, size: 20) : null,
+      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? color : kBlack87, fontSize: 14)),
+      trailing: isSelected ? Icon(Icons.check_circle_rounded, color: color, size: 20) : null,
     );
   }
 
@@ -397,27 +416,17 @@ class _ProductsPageState extends State<ProductsPage> {
           children: [
             Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 20),
-            Text(data['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
+            Text(data['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
             const SizedBox(height: 20),
-            _buildActionTile(Icons.edit_outlined, 'Edit Details', kPrimaryColor, () {
+            _buildActionTile(Icons.edit_note_rounded, 'Edit Product Details', kPrimaryColor, () {
               Navigator.pop(context);
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (c) => AddProductPage(
-                    uid: _uid,
-                    userEmail: widget.userEmail,
-                    productId: productDoc.id,
-                    existingData: data,
-                  ),
-                ),
-              );
+              Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail, productId: productDoc.id, existingData: data)));
             }),
-            _buildActionTile(Icons.inventory_2_outlined, 'Update Stock', kOrange, () {
+            _buildActionTile(Icons.inventory_2_rounded, 'Quick Stock Update', kOrange, () {
               Navigator.pop(context);
               _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
             }),
-            _buildActionTile(Icons.delete_outline, 'Delete Product', kErrorColor, () {
+            _buildActionTile(Icons.delete_forever_rounded, 'Remove Product', kErrorColor, () {
               Navigator.pop(context);
               _showDeleteConfirmDialog(context, productDoc);
             }),
@@ -430,8 +439,8 @@ class _ProductsPageState extends State<ProductsPage> {
   Widget _buildActionTile(IconData icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
       onTap: onTap,
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withAlpha((0.1 * 255).toInt()), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: color, size: 20)),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w600, color: color)),
+      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 20)),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
     );
   }
 
@@ -439,133 +448,67 @@ class _ProductsPageState extends State<ProductsPage> {
 
   void _showUpdateQuantityDialog(BuildContext context, String id, String name, double current) {
     final ctrl = TextEditingController(text: current.toStringAsFixed(0));
-    bool isAdding = true;
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => Dialog(
+        builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: Colors.white,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Update Stock',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close, size: 24, color: Colors.black54),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                // Toggle
-
-                // Quantity input with - and +
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor),
-                      onPressed: () {
-                        double val = double.tryParse(ctrl.text) ?? current;
-                        if (val > 0) {
-                          val -= 1;
-                          if (val < 0) val = 0;
-                          setDialogState(() => ctrl.text = val.toStringAsFixed(0));
-                        }
-                      },
-                    ),
-                    Expanded(
+          backgroundColor: kWhite,
+          title: Text(name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text("Adjust Stock Level", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBlack54)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _qtyBtn(Icons.remove_rounded, () {
+                    double v = double.tryParse(ctrl.text) ?? current;
+                    if (v > 0) setDialogState(() => ctrl.text = (v - 1).toStringAsFixed(0));
+                  }),
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                       child: TextField(
                         controller: ctrl,
                         keyboardType: TextInputType.number,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                        decoration: InputDecoration(
-                          labelText: 'Quantity',
-                          floatingLabelBehavior: FloatingLabelBehavior.auto,
-                          labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-                          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-                          filled: true,
-                          fillColor: kGreyBg,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: kGrey300, width: 1),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-                          ),
-                        ),
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                        decoration: const InputDecoration(border: InputBorder.none),
                       ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor),
-                      onPressed: () {
-                        double val = double.tryParse(ctrl.text) ?? current;
-                        val += 1;
-                        setDialogState(() => ctrl.text = val.toStringAsFixed(0));
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Text('Current Stock: ${current.toStringAsFixed(0)}', style: const TextStyle(color: kBlack54, fontSize: 13)),
-                const SizedBox(height: 24),
-                // Save Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      final val = double.tryParse(ctrl.text) ?? current;
-                      if (val < 0) return;
-                      await FirestoreService().updateDocument('Products', id, {'currentStock': val});
-                      Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
-                    ),
-                    child: const Text('UPDATE', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
                   ),
-                ),
-              ],
-            ),
+                  _qtyBtn(Icons.add_rounded, () {
+                    double v = double.tryParse(ctrl.text) ?? current;
+                    setDialogState(() => ctrl.text = (v + 1).toStringAsFixed(0));
+                  }),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text('Current in record: ${current.toInt()}', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
+            ],
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              onPressed: () async {
+                final val = double.tryParse(ctrl.text) ?? current;
+                if (val < 0) return;
+                await FirestoreService().updateDocument('Products', id, {'currentStock': val});
+                Navigator.pop(context);
+              },
+              child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            )
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildToggle(bool target, bool current, String lbl, VoidCallback onTap) {
-    bool active = target == current;
-    return Expanded(child: GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-            color: active ? kPrimaryColor : kWhite,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: active ? kPrimaryColor : kBorderColor)
-        ),
-        child: Center(child: Text(lbl, style: TextStyle(fontWeight: FontWeight.bold, color: active ? kWhite : kBlack54, fontSize: 12))),
-      ),
-    ));
-  }
+  Widget _qtyBtn(IconData i, VoidCallback onTap) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(i, color: kPrimaryColor, size: 24)));
 
   void _showDeleteConfirmDialog(BuildContext context, QueryDocumentSnapshot productDoc) {
     final data = productDoc.data() as Map<String, dynamic>;
@@ -573,18 +516,18 @@ class _ProductsPageState extends State<ProductsPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Product', style: TextStyle(color: kBlack87, fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to delete "${data['itemName']}"? This cannot be undone.', style: const TextStyle(color: kBlack54)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove Product?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Text('Are you sure you want to delete "${data['itemName']}"? This action is permanent.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {
               await FirestoreService().deleteDocument('Products', productDoc.id);
               Navigator.pop(context);
             },
-            child: const Text('DELETE', style: TextStyle(color: kWhite)),
+            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           )
         ],
       ),
@@ -617,6 +560,6 @@ class _ProductsPageState extends State<ProductsPage> {
     return list;
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 80, color: kPrimaryColor.withAlpha((0.1 * 255).toInt())), const SizedBox(height: 16), const Text('No products available', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))]));
-  Widget _buildNoResultsState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off, size: 60, color: kBlack54), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.inventory_2_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No products available', style: TextStyle(fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResultsState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 }

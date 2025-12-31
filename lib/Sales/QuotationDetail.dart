@@ -65,12 +65,12 @@ class QuotationDetailPage extends StatelessWidget {
                     _buildDetailRow(Icons.badge_rounded, 'Created By', staffName),
                     _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', formattedDate),
                     _buildDetailRow(Icons.shopping_bag_rounded, 'Line Items', '${items.length} units'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGreyBg, thickness: 1)),
                     const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     _buildPriceRow('Subtotal (Gross)', (quotationData['subtotal'] ?? 0.0).toDouble()),
                     _buildPriceRow('Total Deductions', -(quotationData['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
-                    const Divider(height: 24, color: kGrey100),
+                    const Divider(height: 24, color: kGreyBg),
                     _buildPriceRow('Final Net Total', total, isBold: true),
                     const SizedBox(height: 32),
                     if (isActive)
@@ -140,7 +140,7 @@ class QuotationDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontSize: isBold ? 14 : 13, fontWeight: isBold ? FontWeight.w700 : FontWeight.w500, color: isBold ? kBlack87 : kBlack54)),
-          Text('Rs ${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 14, fontWeight: FontWeight.w800, color: valueColor ?? (isBold ? kPrimaryColor : kBlack87))),
+          Text('${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 14, fontWeight: FontWeight.w800, color: valueColor ?? (isBold ? kPrimaryColor : kBlack87))),
         ],
       ),
     );

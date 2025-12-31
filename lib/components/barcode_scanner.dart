@@ -82,14 +82,14 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
     if (event is KeyDownEvent) {
       final String? character = event.character;
 
-      // Hardware scanners typically act as keyboards and send an 'Enter' key at the end
+      // Hardware scannetypically act as keyboards and send an 'Enter' key at the end
       if (event.logicalKey == LogicalKeyboardKey.enter) {
         if (_externalScannerBuffer.isNotEmpty) {
           _handleBarcodeScan(_externalScannerBuffer.toString());
           _externalScannerBuffer.clear();
         }
       } else if (character != null) {
-        // Buffer the characters sent by the scanner
+        // Buffer the charactesent by the scanner
         _externalScannerBuffer.write(character);
       }
     }
@@ -169,7 +169,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [

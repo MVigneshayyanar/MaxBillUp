@@ -1,11 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-// --- UI CONSTANTS ---
 import 'package:maxbillup/Colors.dart';
-
-const Color kBlack87 = Colors.black87;
-const Color kBlack54 = Colors.black54;
 
 class SaleAppBar extends StatelessWidget {
   final int selectedTabIndex;
@@ -34,16 +30,13 @@ class SaleAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final horizontalPadding = screenWidth * 0.04;
-    const double tabHeight = 48.0;
+    const double tabHeight = 44.0;
 
-    // Helper to determine alignment for the sliding pill based on the specific tab order
-    // Order: saved (0), View All (1), Quick Bill (2)
+    // Helper to determine alignment for the sliding pill
     double getAlignment() {
       if (hideSavedTab) {
-        // 2 Tabs: Left (View All, 1), Right (Quick Bill, 2)
         return selectedTabIndex == 1 ? -1.0 : 1.0;
       } else {
-        // 3 Tabs: Left (saved, 0), Middle (View All, 1), Right (Quick Bill, 2)
         if (selectedTabIndex == 0) return -1.0; // saved
         if (selectedTabIndex == 1) return 0.0;  // View All
         return 1.0;                             // Quick Bill
@@ -52,42 +45,40 @@ class SaleAppBar extends StatelessWidget {
 
     return Container(
       color: kWhite,
-
       padding: EdgeInsets.fromLTRB(horizontalPadding, 0, 16, 0),
       child: Row(
         children: [
-          // Back button (if enabled)
           if (showBackButton) ...[
             GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: kGreyBg,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGrey200),
                 ),
-                child: const Icon(Icons.arrow_back, color: kBlack87, size: 18),
+                child: const Icon(Icons.arrow_back, color: kBlack87, size: 16),
               ),
             ),
-            SizedBox(width: screenWidth * 0.03),
+            SizedBox(width: 12),
           ],
 
-          // Tabs Wrapper - Modern Segmented look with Border and Sliding Animation
           Expanded(
             child: Container(
-              height: tabHeight + 8, // Adjusting for internal padding
+              height: tabHeight + 8,
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: kGreyBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color:kPrimaryColor, width: 1), // Added Border
+                border: Border.all(color: kGrey200, width: 1),
               ),
               child: Stack(
                 children: [
-                  // Smooth Sliding Background Pill
+                  // Animated Sliding Pill
                   AnimatedAlign(
                     duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
+                    curve: Curves.fastOutSlowIn,
                     alignment: Alignment(getAlignment(), 0),
                     child: FractionallySizedBox(
                       widthFactor: hideSavedTab ? 0.5 : 0.33,
@@ -97,9 +88,9 @@ class SaleAppBar extends StatelessWidget {
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: kPrimaryColor.withOpacity(0.2),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                              color: kPrimaryColor.withOpacity(0.15),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             )
                           ],
                         ),
@@ -110,12 +101,10 @@ class SaleAppBar extends StatelessWidget {
                   Row(
                     children: [
                       if (!hideSavedTab) ...[
-                        _buildTab(context.tr('saved'), 0), // saved is now index 0
-                        const SizedBox(width: 4),
+                        _buildTab(context.tr('saved').toUpperCase(), 0),
                       ],
-                      _buildTab(context.tr('View All'), 1), // View All is now index 1
-                      const SizedBox(width: 4),
-                      _buildTab(context.tr('Quick Bill'), 2), // Quick Bill is now index 2
+                      _buildTab(context.tr('View All').toUpperCase(), 1),
+                      _buildTab(context.tr('Quick Bill').toUpperCase(), 2),
                     ],
                   ),
                 ],
@@ -139,40 +128,38 @@ class SaleAppBar extends StatelessWidget {
         child: Center(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
+              Text(
+                text,
                 style: TextStyle(
                   color: isSelected ? kWhite : kBlack54,
-                  fontSize: 15,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                  letterSpacing: 0.5,
                 ),
-                child: Text(text),
               ),
               if (showBadge) ...[
                 const SizedBox(width: 6),
                 Container(
-                  width: 18, // Fixed width
-                  height: 18, // Fixed height (same as width for circle)
+                  width: 18,
+                  height: 18,
                   decoration: BoxDecoration(
                     color: isSelected ? kWhite : kPrimaryColor,
-                    shape: BoxShape.circle, // Makes it a perfect circle
+                    shape: BoxShape.circle,
                   ),
                   child: Center(
                     child: Text(
-                      savedOrderCount > 99 ? '99+' : savedOrderCount.toString(),
+                      savedOrderCount > 99 ? '99' : savedOrderCount.toString(),
                       style: TextStyle(
                         color: isSelected ? kPrimaryColor : kWhite,
-                        fontSize: savedOrderCount > 99 ? 8 : 10,
-                        fontWeight: FontWeight.bold,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
                 ),
               ],
-
-
             ],
           ),
         ),
@@ -180,7 +167,3 @@ class SaleAppBar extends StatelessWidget {
     );
   }
 }
-
-// To ensure the default animation is in 'View All',
-// make sure the parent widget sets selectedTabIndex = 1 by default.
-// The alignment logic will then show the pill in the middle tab.

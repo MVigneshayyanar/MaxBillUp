@@ -23,7 +23,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
     if (widget.onLoadOrder != null) {
       widget.onLoadOrder!(orderId, data);
     } else {
-      // Fallback to old navigation behavior if no callback is provided
+      // Fallback to standard navigation if no specific callback is provided
       Navigator.push(
         context,
         CupertinoPageRoute(
@@ -44,7 +44,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(context.tr('order_deleted')),
+            content: Text(context.tr('order_deleted'), style: const TextStyle(fontWeight: FontWeight.w600)),
             backgroundColor: kGoogleGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -70,44 +70,39 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Column(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('DISCARD ORDER?',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 40),
-            const SizedBox(height: 12),
-            Text(context.tr('delete_order'),
-                style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 18)),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: kErrorColor.withOpacity(0.1), shape: BoxShape.circle),
+              child: const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text('Are you sure you want to permanently discard the saved order for "$name"?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: kBlack54, fontSize: 13, height: 1.5, fontWeight: FontWeight.w500)),
           ],
         ),
-        content: Text('This will permanently discard the saved order for "$name".',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: kBlack54, fontSize: 14, height: 1.4)),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          Row(
-            children: [
-              Expanded(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _deleteOrder(id);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kErrorColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Discard', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800, fontSize: 12)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteOrder(id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kErrorColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
         ],
       ),
@@ -117,7 +112,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: kGreyBg, // Changed background color to red
+      color: kGreyBg,
       child: FutureBuilder<Stream<QuerySnapshot>>(
         future: FirestoreService().getCollectionStream('savedOrders'),
         builder: (context, streamSnapshot) {
@@ -135,9 +130,9 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
               }
 
               return ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                 itemCount: snapshot.data!.docs.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 12),
+                separatorBuilder: (context, index) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   return _buildSavedOrderCard(snapshot.data!.docs[index]);
                 },
@@ -150,11 +145,16 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
   }
 
   Widget _buildEmptyState(String message) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.bookmark_border_rounded, size: 60, color: kPrimaryColor.withOpacity(0.1)),
-      const SizedBox(height: 16),
-      Text(message, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack54)),
-    ]));
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.bookmark_border_rounded, size: 64, color: kGrey300),
+          const SizedBox(height: 16),
+          Text(message, style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
+        ],
+      ),
+    );
   }
 
   Widget _buildSavedOrderCard(QueryDocumentSnapshot doc) {
@@ -163,64 +163,65 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
     final total = (data['total'] ?? 0.0).toDouble();
     final items = data['items'] as List<dynamic>? ?? [];
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yyyy').format(timestamp.toDate()) : 'No Date';
+    final date = timestamp != null ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate()) : '--';
 
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _loadOrder(doc.id, data),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('DRAFT-${doc.id.substring(0, 4).toUpperCase()}',
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
-                    Text(date, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
+                    const Text('SAVED DRAFT',
+                        style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 10, letterSpacing: 0.5)),
+                    Text(date, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(color: kGrey100, shape: BoxShape.circle),
-                        child: const Icon(Icons.person_outline_rounded, size: 18, color: kBlack54)
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: kOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.person_rounded, size: 18, color: kOrange),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 14),
                     Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(name,
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87),
-                                overflow: TextOverflow.ellipsis
-                            ),
-                            Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
-                                style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)
-                            ),
-                          ],
-                        )
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(name,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 2),
+                          Text('${items.length} ${items.length == 1 ? 'line item' : 'line items'} total',
+                              style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 20),
+                      icon: const Icon(Icons.delete_forever_rounded, color: kErrorColor, size: 22),
                       onPressed: () => _confirmDelete(doc.id, name),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
+                      tooltip: 'Discard Draft',
                     ),
                   ],
                 ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey200)),
+                const Divider(height: 24, color: kGrey100),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -228,7 +229,9 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('ESTIMATED TOTAL', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                        const SizedBox(height: 2),
+                        Text('Rs ${total.toStringAsFixed(2)}',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge(),
@@ -250,11 +253,14 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: kPrimaryColor.withOpacity(0.15))
       ),
-      child: Row(children: [
-        const Icon(Icons.pending_actions_rounded, size: 12, color: kPrimaryColor),
-        const SizedBox(width: 4),
-        Text('DRAFT', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor)),
-      ]),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.pending_actions_rounded, size: 12, color: kGoogleGreen),
+          const SizedBox(width: 6),
+          const Text('DRAFT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
+        ],
+      ),
     );
   }
 }

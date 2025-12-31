@@ -49,6 +49,7 @@ class _AddProductPageState extends State<AddProductPage> {
   Stream<List<String>>? _unitsStream;
   String _lowStockAlertType = 'Count'; // 'Count' or 'Percentage'
   bool _isFavorite = false;
+  bool _isLoading = false;
 
   // Tax State
   String _selectedTaxType = 'Price is without Tax';
@@ -69,10 +70,12 @@ class _AddProductPageState extends State<AddProductPage> {
     if (widget.existingData != null) {
       _loadExistingData();
     }
-    // Don't auto-generate product code - user must click generate button
   }
 
-  // --- Firestore Logic ---
+  // ==========================================
+  // LOGIC METHODS (PRESERVED BIT-BY-BIT)
+  // ==========================================
+
   Future<void> _fetchTaxesFromBackend() async {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
@@ -146,7 +149,7 @@ class _AddProductPageState extends State<AddProductPage> {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId == null) return;
       final productsCollection = await FirestoreService().getStoreCollection('Products');
-      int highestNumber = 100; // Start from 100, so next will be 101
+      int highestNumber = 100;
       final productsSnapshot = await productsCollection.get();
       for (var doc in productsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>?;
@@ -181,6 +184,7 @@ class _AddProductPageState extends State<AddProductPage> {
               content: Text('This number is already mapped with $productName'),
               backgroundColor: kErrorColor,
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           );
         }
@@ -199,17 +203,21 @@ class _AddProductPageState extends State<AddProductPage> {
     if (result != null && mounted) setState(() => _barcodeController.text = result);
   }
 
+  // ==========================================
+  // UI BUILD METHODS
+  // ==========================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhite ,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
-            style: const TextStyle(fontWeight: FontWeight.bold, color: kWhite)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: () => Navigator.pop(context)),
+            style: const TextStyle(fontWeight: FontWeight.w700, color: kWhite, fontSize: 18)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -217,47 +225,76 @@ class _AddProductPageState extends State<AddProductPage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 children: [
-                  _buildSectionHeader("Basic Details"),
-                  const SizedBox(height: 12),
+                  _buildSectionHeader("Classification"),
                   _buildCategoryDropdown(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+
+                  _buildSectionHeader("Item Identity"),
                   _buildItemNameWithFavorite(),
                   const SizedBox(height: 16),
                   _buildProductCodeField(),
-                  const SizedBox(height: 16),
-                  _buildTextField(controller: _priceController, label: "Selling Price", keyboardType: TextInputType.number, isRequired: true),
+                  const SizedBox(height: 20),
+
+                  _buildSectionHeader("Pricing & Stock"),
+                  _buildModernTextField(
+                    controller: _priceController,
+                    label: "Price",
+                    icon: Icons.payments_rounded,
+                    keyboardType: TextInputType.number,
+                    isRequired: true,
+                    hint: "0.00",
+                  ),
                   const SizedBox(height: 16),
                   _buildTrackStockLevelAndQuantity(),
                   const SizedBox(height: 16),
                   _buildUnitDropdown(),
                   const SizedBox(height: 24),
+
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
                       tilePadding: EdgeInsets.zero,
                       childrenPadding: EdgeInsets.zero,
-                      title: _buildSectionHeader("Advanced Details"),
+                      title: _buildSectionHeader("Logistics & Taxation"),
                       children: [
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                            controller: _barcodeController,
-                            label: "Barcode",
-                            suffixIcon: Icons.qr_code_scanner,
-                            onSuffixTap: _scanBarcode
+                        const SizedBox(height: 12),
+                        _buildModernTextField(
+                          controller: _barcodeController,
+                          label: "Barcode String",
+                          icon: Icons.barcode_reader,
+                          hint: "Scan or type barcode",
+                          suffixIcon: Icons.qr_code_scanner_rounded,
+                          onSuffixTap: _scanBarcode,
                         ),
                         const SizedBox(height: 16),
-                        _buildTextField(controller: _costPriceController, label: "Cost Price", keyboardType: TextInputType.number),
+                        _buildModernTextField(
+                          controller: _costPriceController,
+                          label: "Base Cost Price",
+                          icon: Icons.shopping_cart_rounded,
+                          keyboardType: TextInputType.number,
+                          hint: "0.00",
+                        ),
                         const SizedBox(height: 16),
-                        _buildTextField(controller: _mrpController, label: "MRP", keyboardType: TextInputType.number),
+                        _buildModernTextField(
+                          controller: _mrpController,
+                          label: "MRP",
+                          icon: Icons.tag_rounded,
+                          keyboardType: TextInputType.number,
+                          hint: "Maximum Retail Price",
+                        ),
                         const SizedBox(height: 16),
                         _buildTaxDropdown(),
                         const SizedBox(height: 16),
                         _buildTaxTypeSelector(),
                         const SizedBox(height: 16),
-                        _buildTextField(controller: _hsnController, label: "HSN/SAC"),
-
+                        _buildModernTextField(
+                          controller: _hsnController,
+                          label: "HSN / SAC Code",
+                          icon: Icons.assignment_outlined,
+                          hint: "Harmonized System Nomenclature",
+                        ),
                       ],
                     ),
                   ),
@@ -272,167 +309,103 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  // --- UI Component Helpers ---
-
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w900,
-        color: kBlack87,
-        letterSpacing: 0.5,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10, left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: 10,
+          color: kBlack54,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
 
-  Widget _buildInfinityStockIndicator() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: kGoogleGreen.withAlpha((0.1 * 255).toInt()),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kGoogleGreen.withAlpha((0.3 * 255).toInt())),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.all_inclusive, color: kGoogleGreen, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            "Infinity Stock Enabled",
-            style: TextStyle(
-              color: kGoogleGreen,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTextField({
+  Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
+    required IconData icon,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    String? hint,
     IconData? suffixIcon,
     VoidCallback? onSuffixTap,
+    Color? iconColor,
   }) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-
+        final bool isFilled = value.text.isNotEmpty;
         return TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: kBlack87,
-          ),
+          maxLines: maxLines,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
           decoration: InputDecoration(
             labelText: label,
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-
-            labelStyle: TextStyle(
-              color: hasText ? kPrimaryColor : kBlack54,
-              fontSize: 15,
-            ),
-            floatingLabelStyle: const TextStyle(
-              color: kPrimaryColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-
-            filled: true,
-            fillColor: kGreyBg, // ✅ changed from kWhite
-
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-
+            hintText: hint,
+            hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
+            prefixIcon: Icon(icon, color: isFilled ? kPrimaryColor : kBlack54, size: 20),
             suffixIcon: suffixIcon != null
-                ? IconButton(
-              icon: Icon(
-                suffixIcon,
-                size: 20,
-                color: kPrimaryColor,
-              ),
-              onPressed: onSuffixTap,
-            )
+                ? IconButton(icon: Icon(suffixIcon, color: kPrimaryColor, size: 20), onPressed: onSuffixTap)
                 : null,
-
+            filled: true,
+            fillColor: kWhite,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: hasText ? kPrimaryColor : kGrey300,
-                width: hasText ? 1.5 : 1,
+                  color: isFilled ? kPrimaryColor : kGrey200,
+                  width: isFilled ? 1.5 : 1.0
               ),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: kPrimaryColor,
-                width: 1.5,
-              ),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: kErrorColor,
-                width: 1,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(
-                color: kErrorColor,
-                width: 1.5,
-              ),
-            ),
-            errorStyle: const TextStyle(
-              color: kErrorColor,
-              fontWeight: FontWeight.bold,
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kErrorColor),
             ),
           ),
-          validator: isRequired
-              ? (v) => v == null || v.trim().isEmpty ? 'Required' : null
-              : null,
+          validator: isRequired ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
         );
       },
     );
   }
 
-
-
-  Widget _buildProductCodeField() {
+  Widget _buildItemNameWithFavorite() {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _buildTextField(controller: _productCodeController, label: "Product Code", isRequired: true)),
+        Expanded(
+          child: _buildModernTextField(
+            controller: _itemNameController,
+            label: "Item Name",
+            icon: Icons.shopping_basket_rounded,
+            isRequired: true,
+            hint: "Enter product name",
+          ),
+        ),
         const SizedBox(width: 8),
-        Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: InkWell(
-            onTap: _generateProductCode,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: kPrimaryColor,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: kPrimaryColor,
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.refresh,
-                color: kWhite,
-                size: 22,
-              ),
+        InkWell(
+          onTap: () => setState(() => _isFavorite = !_isFavorite),
+          child: Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color: _isFavorite ? kPrimaryColor.withOpacity(0.1) : kWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _isFavorite ? kPrimaryColor : kGrey200, width: 1.5),
+            ),
+            child: Icon(
+              _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+              color: _isFavorite ? kPrimaryColor : kBlack54,
+              size: 22,
             ),
           ),
         ),
@@ -440,52 +413,77 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  Widget _buildInventorySwitch() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kGrey200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Text("Track Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
-          Switch.adaptive(value: _stockEnabled, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _stockEnabled = v)),
-        ],
-      ),
+  Widget _buildProductCodeField() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildModernTextField(
+            controller: _productCodeController,
+            label: "Product Code",
+            icon: Icons.qr_code_rounded,
+            isRequired: true,
+            hint: "Unique ID",
+          ),
+        ),
+        const SizedBox(width: 8),
+        InkWell(
+          onTap: _generateProductCode,
+          child: Container(
+            height: 48,
+            width: 48,
+            decoration: BoxDecoration(
+              color: kPrimaryColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.refresh_rounded, color: kWhite, size: 22),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildTrackStockLevelAndQuantity() {
     return Column(
       children: [
-        // First Line: Track Stock Level and Stock Quantity
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _buildInventorySwitch(),
+              child: _wrapDropdown(
+                "Track Inventory",
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text("Enable Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
+                    Switch.adaptive(
+                        value: _stockEnabled,
+                        activeColor: kPrimaryColor,
+                        onChanged: (v) => setState(() => _stockEnabled = v)
+                    ),
+                  ],
+                ),
+              ),
             ),
             if (_stockEnabled) ...[
               const SizedBox(width: 12),
               Expanded(
-                child: _buildTextField(
+                child: _buildModernTextField(
                   controller: _quantityController,
-                  label: "Stock Quantity",
+                  label: "Stock QTY",
+                  icon: Icons.inventory_2_rounded,
                   keyboardType: TextInputType.number,
                   isRequired: true,
+                  hint: "0",
                 ),
               ),
             ],
           ],
         ),
         if (!_stockEnabled) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildInfinityStockIndicator(),
         ],
-        // Second Line: Low Stock Alert and Type (only if stock is enabled)
         if (_stockEnabled) ...[
           const SizedBox(height: 16),
           Row(
@@ -493,35 +491,29 @@ class _AddProductPageState extends State<AddProductPage> {
             children: [
               Expanded(
                 flex: 3,
-                child: _buildTextField(
+                child: _buildModernTextField(
                   controller: _lowStockAlertController,
                   label: "Low Stock Alert",
+                  icon: Icons.notification_important_rounded,
                   keyboardType: TextInputType.number,
+                  hint: "0",
+                  iconColor: kOrange,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: Container(
-                  height: 56,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: kGreyBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: kGrey300),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _lowStockAlertType,
-                      isExpanded: true,
-                      icon: const Icon(Icons.arrow_drop_down, color: kBlack54, size: 20),
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87),
-                      items: const [
-                        DropdownMenuItem(value: 'Count', child: Text('Count')),
-                        DropdownMenuItem(value: 'Percentage', child: Text('Percentage')),
-                      ],
-                      onChanged: (val) => setState(() => _lowStockAlertType = val!),
-                    ),
+                child: _wrapDropdown(
+                  "Alert Type",
+                  DropdownButton<String>(
+                    value: _lowStockAlertType,
+                    isExpanded: true,
+                    isDense: true,
+                    items: const [
+                      DropdownMenuItem(value: 'Count', child: Text('Count')),
+                      DropdownMenuItem(value: 'Percentage', child: Text('Percentage')),
+                    ],
+                    onChanged: (val) => setState(() => _lowStockAlertType = val!),
                   ),
                 ),
               ),
@@ -532,145 +524,20 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  Widget _buildItemNameWithFavorite() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _itemNameController,
-                label: "Item Name",
-                isRequired: true,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: InkWell(
-                onTap: () => setState(() => _isFavorite = !_isFavorite),
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: _isFavorite ? kPrimaryColor.withAlpha((0.1 * 255).toInt()) : kGrey100,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _isFavorite ? kPrimaryColor : kGrey300,
-                      width: 1,
-                    ),
-                  ),
-                  child: Icon(
-                    _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? kPrimaryColor : kBlack54,
-                    size: 22,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (_isFavorite) ...[
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Icon(Icons.check_circle, size: 14, color: kPrimaryColor),
-              const SizedBox(width: 4),
-              Text(
-                "Added as Favorite Product",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: kPrimaryColor,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+  Widget _buildInfinityStockIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: kGoogleGreen.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.all_inclusive_rounded, color: kGoogleGreen, size: 18),
+          SizedBox(width: 12),
+          Text("Infinity Stock Enabled", style: TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w800, fontSize: 12)),
         ],
-      ],
-    );
-  }
-
-
-  Widget _buildUnitDropdown() {
-    return StreamBuilder<List<String>>(
-      stream: _unitsStream,
-      builder: (context, snapshot) {
-        final availableUnits = ['Piece', 'Kg', 'Liter', 'Box', ...(snapshot.data ?? [])].cast<String>();
-        return InputDecorator(
-          decoration: _dropdownDecoration("Unit").copyWith(
-            suffixIcon: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: InkWell(
-                onTap: _showAddUnitDialog,
-                child: const Icon(Icons.add_circle_outline, color: kPrimaryColor, size: 22),
-              ),
-            ),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: availableUnits.contains(_selectedStockUnit) ? _selectedStockUnit : availableUnits.first,
-              isExpanded: true,
-              isDense: true,
-              icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-              items: availableUnits.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-              onChanged: (v) => setState(() => _selectedStockUnit = v),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTaxDropdown() {
-    return InputDecorator(
-      decoration: _dropdownDecoration("Tax Rate").copyWith(
-        suffixIcon: Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: InkWell(
-            onTap: _showAddTaxDialog,
-            child: const Icon(Icons.add_circle_outline, color: kPrimaryColor, size: 22),
-          ),
-        ),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedTaxId,
-          hint: const Text("Select Rate"),
-          isExpanded: true,
-          isDense: true,
-          icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-          items: _fetchedTaxes.map((tax) {
-            return DropdownMenuItem<String>(value: tax['id'], child: Text("${tax['name']} (${tax['percentage']}%)"));
-          }).toList(),
-          onChanged: (val) {
-            setState(() {
-              _selectedTaxId = val;
-              _currentTaxPercentage = _fetchedTaxes.firstWhere((t) => t['id'] == val)['percentage'];
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTaxTypeSelector() {
-    final items = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
-    return InputDecorator(
-      decoration: _dropdownDecoration("Tax Treatment"),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: items.contains(_selectedTaxType) ? _selectedTaxType : items[1],
-          isExpanded: true,
-          isDense: true,
-          icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: (v) => setState(() => _selectedTaxType = v!),
-        ),
       ),
     );
   }
@@ -689,35 +556,24 @@ class _AddProductPageState extends State<AddProductPage> {
                   .where((name) => name != 'General')
                   .toList());
             }
-            return InputDecorator(
-              decoration: _dropdownDecoration("Category"),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
-                  isExpanded: true,
-                  isDense: true,
-                  icon: const Icon(Icons.arrow_drop_down, color: kBlack54),
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
-                  items: [
-                    ...categories.map((e) => DropdownMenuItem(value: e, child: Text(e))),
-                    const DropdownMenuItem(value: '__create_new__', child: Text('+ Create New Category', style: TextStyle(color: kPrimaryColor))),
-                  ],
-                  onChanged: (val) async {
-                    if (val == '__create_new__') {
-                      final newCategory = await showDialog<String>(
-                        context: context,
-                        builder: (ctx) => AddCategoryPopup(uid: widget.uid),
-                      );
-                      if (newCategory != null && newCategory.isNotEmpty) {
-                        setState(() {
-                          _selectedCategory = newCategory;
-                        });
-                      }
-                    } else {
-                      setState(() => _selectedCategory = val!);
-                    }
-                  },
-                ),
+            return _wrapDropdown(
+              "Category",
+              DropdownButton<String>(
+                value: categories.contains(_selectedCategory) ? _selectedCategory : categories.first,
+                isExpanded: true,
+                isDense: true,
+                items: [
+                  ...categories.map((e) => DropdownMenuItem(value: e, child: Text(e))),
+                  const DropdownMenuItem(value: '__create_new__', child: Text('+ New Category', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold))),
+                ],
+                onChanged: (val) async {
+                  if (val == '__create_new__') {
+                    final newCategory = await showDialog<String>(context: context, builder: (ctx) => AddCategoryPopup(uid: widget.uid));
+                    if (newCategory != null && newCategory.isNotEmpty) setState(() => _selectedCategory = newCategory);
+                  } else {
+                    setState(() => _selectedCategory = val!);
+                  }
+                },
               ),
             );
           },
@@ -726,35 +582,75 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
-  InputDecoration _dropdownDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      filled: true,
-      fillColor: kWhite,
-      errorStyle: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: kPrimaryColor, width: 1),
+  Widget _buildUnitDropdown() {
+    return StreamBuilder<List<String>>(
+      stream: _unitsStream,
+      builder: (context, snapshot) {
+        final availableUnits = ['Piece', 'Kg', 'Liter', 'Box', ...(snapshot.data ?? [])].cast<String>();
+        return _wrapDropdown(
+          "Measurement Unit",
+          DropdownButton<String>(
+            value: availableUnits.contains(_selectedStockUnit) ? _selectedStockUnit : availableUnits.first,
+            isExpanded: true,
+            isDense: true,
+            items: availableUnits.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            onChanged: (v) => setState(() => _selectedStockUnit = v),
+          ),
+          onAdd: _showAddUnitDialog,
+        );
+      },
+    );
+  }
+
+  Widget _buildTaxDropdown() {
+    return _wrapDropdown(
+      "Tax Rate",
+      DropdownButton<String>(
+        value: _selectedTaxId,
+        hint: const Text("Select Rate"),
+        isExpanded: true,
+        isDense: true,
+        items: _fetchedTaxes.map((tax) {
+          return DropdownMenuItem<String>(value: tax['id'], child: Text("${tax['name']} (${tax['percentage']}%)"));
+        }).toList(),
+        onChanged: (val) {
+          setState(() {
+            _selectedTaxId = val;
+            _currentTaxPercentage = _fetchedTaxes.firstWhere((t) => t['id'] == val)['percentage'];
+          });
+        },
       ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: kGrey300, width: 1),
+      onAdd: _showAddTaxDialog,
+    );
+  }
+
+  Widget _buildTaxTypeSelector() {
+    final items = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
+    return _wrapDropdown(
+      "Tax Treatment",
+      DropdownButton<String>(
+        value: items.contains(_selectedTaxType) ? _selectedTaxType : items[1],
+        isExpanded: true,
+        isDense: true,
+        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+        onChanged: (v) => setState(() => _selectedTaxType = v!),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+    );
+  }
+
+  Widget _wrapDropdown(String label, Widget child, {VoidCallback? onAdd}) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
+        filled: true,
+        fillColor: kWhite,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        suffixIcon: onAdd != null ? IconButton(icon: const Icon(Icons.add_circle_outline_rounded, color: kPrimaryColor, size: 22), onPressed: onAdd) : null,
+        floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
       ),
-      // Applied kErrorColor to error states
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: kErrorColor, width: 1),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: kErrorColor, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      labelStyle: const TextStyle(color: kBlack54),
+      child: DropdownButtonHideUnderline(child: child),
     );
   }
 
@@ -762,82 +658,29 @@ class _AddProductPageState extends State<AddProductPage> {
     final unitController = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Add New Unit",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: const Icon(Icons.close, size: 24, color: Colors.black54),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: unitController,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                decoration: InputDecoration(
-                  labelText: "Unit Name (e.g. Dozen, Box)",
-                  floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-                  filled: true,
-                  fillColor: kGreyBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kGrey300, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (unitController.text.trim().isNotEmpty) {
-                      final storeId = await FirestoreService().getCurrentStoreId();
-                      if (storeId != null) {
-                        await FirebaseFirestore.instance
-                            .collection('store')
-                            .doc(storeId)
-                            .collection('units')
-                            .doc(unitController.text.trim())
-                            .set({'createdAt': FieldValue.serverTimestamp()});
-                      }
-                      if (mounted) {
-                        setState(() => _selectedStockUnit = unitController.text.trim());
-                        Navigator.pop(ctx);
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Add", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
-          ),
+        title: const Text("New Measurement Unit", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        content: TextField(
+          controller: unitController,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+          decoration: const InputDecoration(hintText: "e.g. Dozen, Pack, Bundle", border: OutlineInputBorder()),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            onPressed: () async {
+              if (unitController.text.trim().isEmpty) return;
+              final storeId = await FirestoreService().getCurrentStoreId();
+              if (storeId != null) {
+                await FirebaseFirestore.instance.collection('store').doc(storeId).collection('units').doc(unitController.text.trim()).set({'createdAt': FieldValue.serverTimestamp()});
+              }
+              if (mounted) { setState(() => _selectedStockUnit = unitController.text.trim()); Navigator.pop(ctx); }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text("ADD UNIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          )
+        ],
       ),
     );
   }
@@ -847,111 +690,58 @@ class _AddProductPageState extends State<AddProductPage> {
     final rateC = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => Dialog(
+      builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Create New Tax",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.black87),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(ctx),
-                    child: const Icon(Icons.close, size: 24, color: Colors.black54),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: nameC,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                decoration: InputDecoration(
-                  labelText: "Tax Name",
-                  floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-                  filled: true,
-                  fillColor: kGreyBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kGrey300, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: rateC,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-                decoration: InputDecoration(
-                  labelText: "Percentage (%)",
-                  floatingLabelBehavior: FloatingLabelBehavior.auto,
-                  labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-                  filled: true,
-                  fillColor: kGreyBg,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kGrey300, width: 1),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
-                      _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
-                      Navigator.pop(ctx);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  child: const Text("Add", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ],
-          ),
+        title: const Text("New Tax Rate", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameC, style: const TextStyle(fontWeight: FontWeight.w600), decoration: const InputDecoration(hintText: "Tax Name (e.g. VAT)", border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            TextField(controller: rateC, style: const TextStyle(fontWeight: FontWeight.w600), keyboardType: TextInputType.number, decoration: const InputDecoration(hintText: "Percentage (%)", border: OutlineInputBorder())),
+          ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            onPressed: () {
+              if(nameC.text.isNotEmpty && rateC.text.isNotEmpty) {
+                _addNewTaxToBackend(nameC.text, double.parse(rateC.text));
+                Navigator.pop(ctx);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text("CREATE TAX", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          )
+        ],
       ),
     );
   }
 
   Widget _buildBottomSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
-      child: ElevatedButton(
-        onPressed: _saveProduct,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kPrimaryColor,
-          minimumSize: const Size(double.infinity, 54),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      decoration: const BoxDecoration(
+          color: kWhite,
+          border: Border(top: BorderSide(color: kGrey200))
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _saveProduct,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimaryColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: _isLoading
+              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
+              : Text(
+            context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(),
+            style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          ),
         ),
-        child: Text(context.tr(widget.productId != null ? 'update' : 'add'),
-            style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -977,24 +767,19 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
-
-    // Check for duplicate product code (only for new products or if code changed)
     final productCode = _productCodeController.text.trim();
     if (productCode.isNotEmpty) {
       if (widget.productId == null) {
-        // New product - check if code exists
-        final exists = await _checkProductCodeExists(productCode);
-        if (exists) return;
+        if (await _checkProductCodeExists(productCode)) return;
       } else {
-        // Editing existing product - check if code changed and if new code exists
         if (widget.existingData!['productCode'] != productCode) {
-          final exists = await _checkProductCodeExists(productCode);
-          if (exists) return;
+          if (await _checkProductCodeExists(productCode)) return;
         }
       }
     }
 
     try {
+      setState(() => _isLoading = true);
       String? selectedTaxName;
       if (_selectedTaxId != null) {
         try { selectedTaxName = _fetchedTaxes.firstWhere((t) => t['id'] == _selectedTaxId)['name']; } catch (e) {}
@@ -1029,9 +814,14 @@ class _AddProductPageState extends State<AddProductPage> {
         await FirestoreService().addDocument('Products', productData);
         if (_selectedTaxId != null) await _incrementTaxProductCount(_selectedTaxId!);
       }
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.tr('product_added_successfully')), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating));
+        Navigator.pop(context);
+      }
     } catch (e) {
       debugPrint("Save error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

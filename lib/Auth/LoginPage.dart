@@ -42,7 +42,7 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // --- Logic Helpers ---
+  // --- Logic Helpe---
 
   void _showMsg(String msg, {bool isError = false}) {
     if (!mounted) return;

@@ -19,7 +19,7 @@ class TaxSettingsPage extends StatefulWidget {
 class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Controllers for Add New Tax
+  // Controllefor Add New Tax
   final TextEditingController _taxPercentController = TextEditingController();
   String _selectedTaxName = 'GST';
 
@@ -1055,7 +1055,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                             onChanged: (newValue) async {
                               if (newValue) {
                                 // CASE: Turning ON a tax.
-                                // We must turn this one ON and all others OFF.
+                                // We must turn this one ON and all otheOFF.
 
                                 final batch = FirebaseFirestore.instance.batch();
 

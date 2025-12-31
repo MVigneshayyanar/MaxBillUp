@@ -44,7 +44,7 @@ class LanguageProvider extends ChangeNotifier {
     if (_languages.containsKey(languageCode) && _currentLanguageCode != languageCode) {
       _currentLanguageCode = languageCode;
 
-      // Notify listeners immediately for instant UI update
+      // Notify listeneimmediately for instant UI update
       notifyListeners();
 
       // Save to SharedPreferences asynchronously without awaiting
@@ -198,7 +198,7 @@ class LanguageProvider extends ChangeNotifier {
       'expenses': 'Expenses',
       'other_expenses': 'Other Expenses',
       'add_expense': 'Add Expense',
-      'expense_category': 'Expense Category',
+      'expense_category': 'Expense Type',
       'categories': 'Categories',
       'add_category': 'Add Category',
       'staff_management': 'Staff',
@@ -634,7 +634,7 @@ class LanguageProvider extends ChangeNotifier {
       'preparing_print': 'Preparing print...',
       'printfailed': 'Print failed',
       'no_sales_credits': 'No sales credits found',
-      'no_matching_customers': 'No matching customers found',
+      'no_matching_customers': 'No matching customefound',
       'total_sales_credit': 'Total Sales Credit',
       'no_purchase_credits': 'No purchase credits found',
       'no_matching_purchase_credits': 'No matching purchase credits',
@@ -647,7 +647,7 @@ class LanguageProvider extends ChangeNotifier {
       'addnewcustomer': 'Add New Customer',
       'existing_customer': 'Existing Customer',
       'name_phone_required': 'Please enter name and phone number',
-      'no_customers_found': 'No customers found',
+      'no_customers_found': 'No customefound',
       'staffmanagement': 'Staff',
       'addnewstaff': 'Add New Staff',
       'savestaff': 'Save Staff',
@@ -731,7 +731,7 @@ class LanguageProvider extends ChangeNotifier {
       'update_settings': 'Update Settings',
 
       // StaffManagement keys
-      'no_staff_members': 'No staff members yet',
+      'no_staff_members': 'No staff membeyet',
       'invite_to_start': 'Invite someone to get started',
       'invite_new_staff': 'Invite New Staff',
       'send_invite': 'Send Invite',
@@ -753,7 +753,7 @@ class LanguageProvider extends ChangeNotifier {
       'category_added_success': 'Category added successfully',
       'category_exists': 'Category already exists',
 
-      // Saved orders keys
+      // Saved ordekeys
       'order_deleted': 'Order deleted',
       'delete_order': 'Delete Order',
       'no_saved_orders': 'No Saved Orders',
@@ -1531,7 +1531,7 @@ class LanguageProvider extends ChangeNotifier {
       'category_added_success': 'श्रेणी सफलतापूर्वक जोड़ी गई',
       'category_exists': 'श्रेणी पहले से मौजूद है',
 
-      // Saved orders keys
+      // Saved ordekeys
       'order_deleted': 'ऑर्डर हटाया गया',
       'delete_order': 'ऑर्डर हटाएं',
       'no_saved_orders': 'कोई सहेजे गए ऑर्डर नहीं',
@@ -2311,7 +2311,7 @@ class LanguageProvider extends ChangeNotifier {
       'category_added_success': 'வகை வெற்றிகரமாக சேர்க்கப்பட்டது',
       'category_exists': 'வகை ஏற்கனவே உள்ளது',
 
-      // Saved orders keys
+      // Saved ordekeys
       'order_deleted': 'ஆர்டர் நீக்கப்பட்டது',
       'delete_order': 'ஆர்டரை நீக்கு',
       'no_saved_orders': 'சேமிக்கப்பட்ட ஆர்டர்கள் இல்லை',

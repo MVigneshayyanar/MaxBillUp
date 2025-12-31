@@ -1,6 +1,6 @@
 import '../utils/firestore_service.dart';
 
-/// Service to generate sequential numbers for invoices, credit notes, and quotations
+/// Service to generate sequential numbefor invoices, credit notes, and quotations
 class NumberGeneratorService {
   static const int _startNumber = 100001;
 

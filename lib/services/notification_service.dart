@@ -62,7 +62,7 @@ class NotificationService {
     }
   }
 
-  /// Send notification to all users when knowledge is posted
+  /// Send notification to all usewhen knowledge is posted
   Future<void> sendKnowledgeNotification({
     required String title,
     required String content,

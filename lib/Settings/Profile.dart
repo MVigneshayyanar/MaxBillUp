@@ -43,7 +43,7 @@ const Color kTextPrimary = Color(0xFF1D1D1D);
 const Color kTextSecondary = Color(0xFF8A8A8E);
 final Color kBorderColor = Color(0xFFE3F2FD);
 
-// Feature Colors for Settings Icons
+// Feature Colofor Settings Icons
 const Color kColorBusiness = Color(0xFF1976D2);
 const Color kColorReceipt = Color(0xFFFF9800);
 const Color kColorTax = Color(0xFF43A047);
@@ -1212,13 +1212,13 @@ class _SettingsGroup extends StatelessWidget { final List<Widget> children; cons
 class _SettingsTile extends StatelessWidget {
   final IconData? icon; final String title; final String? subtitle; final VoidCallback onTap; final bool showDivider;
   const _SettingsTile({this.icon, required this.title, required this.onTap, this.showDivider = true, this.subtitle});
-  @override Widget build(BuildContext context) => Column(children: [ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kBlack87, size: 20)), title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)), subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: kBlack54)) : null, trailing: Icon(Icons.chevron_right_rounded, size: 20, color: kTextSecondary.withOpacity(0.5)), onTap: onTap), if (showDivider) const Divider(height: 1, indent: 60, color: kGrey100)]);
+  @override Widget build(BuildContext context) => Column(children: [ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kBlack87, size: 20)), title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)), subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12, color: kBlack54)) : null, trailing: Icon(Icons.chevron_right_rounded, size: 20, color: kTextSecondary.withOpacity(0.5)), onTap: onTap), if (showDivider) const Divider(height: 1, indent: 60, color: kGreyBg)]);
 }
 
 class _SwitchTile extends StatelessWidget {
   final String title; final bool value; final Function(bool) onChanged; final bool showDivider; final bool hasInfo; final String? subtitle;
   const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.hasInfo = false, this.subtitle});
-  @override Widget build(BuildContext context) => Column(children: [Padding(padding: const EdgeInsets.all(16), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)), if (hasInfo) const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.info_outline, size: 14, color: kBlack54))]), if (subtitle != null) Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.bold))])), CupertinoSwitch(value: value, onChanged: onChanged, activeColor: kPrimaryColor)])), if (showDivider) const Divider(height: 1, indent: 16, color: kGrey100)]);
+  @override Widget build(BuildContext context) => Column(children: [Padding(padding: const EdgeInsets.all(16), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)), if (hasInfo) const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.info_outline, size: 14, color: kBlack54))]), if (subtitle != null) Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.orange.shade800, fontWeight: FontWeight.bold))])), CupertinoSwitch(value: value, onChanged: onChanged, activeColor: kPrimaryColor)])), if (showDivider) const Divider(height: 1, indent: 16, color: kGreyBg)]);
 }
 
 class _SimpleTextField extends StatelessWidget { final String hint; final int maxLines; const _SimpleTextField({required this.hint, this.maxLines = 1}); @override Widget build(BuildContext context) => Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(maxLines: maxLines, decoration: InputDecoration(hintText: hint, hintStyle: const TextStyle(color: kBlack54, fontSize: 14), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14)))); }

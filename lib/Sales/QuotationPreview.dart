@@ -61,7 +61,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           pw.Text("From: $businessName"),
           pw.Text("Client: ${widget.customerName ?? 'Walk-in'}"),
           pw.Divider(),
-          pw.Text("Total Payable: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+          pw.Text("Total Payable: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
         ]);
       }));
       final output = await getTemporaryDirectory();
@@ -107,7 +107,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                       child: Column(
                         children: [
                           _buildInfoSection("ISSUED BY", businessName, businessLocation),
-                          const Divider(height: 24, color: kGrey100), // Reduced from 32
+                          const Divider(height: 24, color: kGreyBg), // Reduced from 32
                           _buildInfoSection("QUOTED TO", widget.customerName ?? "Walk-in Customer", widget.customerPhone ?? "--"),
                           const SizedBox(height: 16), // Reduced gap
                           Container(
@@ -115,11 +115,11 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                             child: ListView.separated(
                               shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
                               itemCount: widget.items.length,
-                              separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100, indent: 12, endIndent: 12),
+                              separatorBuilder: (c, i) => const Divider(height: 1, color: kGreyBg, indent: 12, endIndent: 12),
                               itemBuilder: (c, i) => ListTile(
                                   dense: true,
                                   title: Text(widget.items[i].name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                  trailing: Text("Rs ${widget.items[i].total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))
+                                  trailing: Text("${widget.items[i].total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))
                               ),
                             ),
                           ),
@@ -127,7 +127,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                           _summaryLine("Subtotal", widget.subtotal),
                           _summaryLine("Discounts", -widget.discount, color: kErrorColor),
                           const Divider(height: 24, thickness: 1.5, color: kGrey200),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("ESTIMATED TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("Rs ${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("ESTIMATED TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
                         ],
                       ),
                     ),
@@ -144,7 +144,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
 
   Widget _buildInfoSection(String label, String title, String subtitle) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)), const SizedBox(height: 4), Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)), Text(subtitle, style: const TextStyle(fontSize: 11, color: kBlack54))]))]);
 
-  Widget _summaryLine(String l, double v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)), Text("Rs ${v.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w700, color: color ?? kBlack87, fontSize: 13))]));
+  Widget _summaryLine(String l, double v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)), Text("${v.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w700, color: color ?? kBlack87, fontSize: 13))]));
 
   Widget _buildBottomActions(BuildContext context) => Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), decoration: BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _handleShare(context), icon: const Icon(Icons.share_rounded, size: 16), label: const Text("SHARE"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), style: ElevatedButton.styleFrom(backgroundColor: kGoogleGreen, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text("DONE", style: TextStyle(fontWeight: FontWeight.w700))))]));
 }

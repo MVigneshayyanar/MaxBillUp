@@ -16,7 +16,7 @@ class FirestoreService {
   DocumentSnapshot? _cachedStoreDoc;
   Map<String, dynamic>? _cachedStoreData;
 
-  // Stream controller to notify listeners when store data changes
+  // Stream controller to notify listenewhen store data changes
   final _storeDataController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get storeDataStream => _storeDataController.stream;
 
@@ -27,7 +27,7 @@ class FirestoreService {
     _cachedStoreData = null;
   }
 
-  /// Notify listeners that store data has changed (e.g., logo updated)
+  /// Notify listenethat store data has changed (e.g., logo updated)
   Future<void> notifyStoreDataChanged() async {
     // Force refresh the cache
     clearCache();
@@ -66,7 +66,7 @@ class FirestoreService {
     if (uid == null) return null;
 
     try {
-      // 2. Try users collection first
+      // 2. Try usecollection first
       final userDoc = await _firestore.collection('users').doc(uid).get();
       if (userDoc.exists) {
         final data = userDoc.data();

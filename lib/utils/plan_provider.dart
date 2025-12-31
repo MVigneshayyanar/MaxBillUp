@@ -34,7 +34,7 @@ class PlanProvider extends ChangeNotifier {
       await _planSubscription?.cancel();
 
       // Listen to store document changes in real-time
-      // This triggers notifyListeners() on every Firestore change
+      // This triggenotifyListeners() on every Firestore change
       _planSubscription = FirebaseFirestore.instance
           .collection('store')
           .doc(storeDoc.id)
@@ -93,7 +93,7 @@ class PlanProvider extends ChangeNotifier {
   }
 
   /// Get current plan synchronously for UI (fetches fresh in background)
-  /// Returns 'Free' as default, then triggers rebuild with fresh data
+  /// Returns 'Free' as default, then triggerebuild with fresh data
   String get currentPlan {
     // Trigger async fetch and notify
     _fetchAndNotify();
@@ -101,7 +101,7 @@ class PlanProvider extends ChangeNotifier {
   }
 
   void _fetchAndNotify() async {
-    // This triggers widgets to rebuild with fresh data
+    // This triggewidgets to rebuild with fresh data
     notifyListeners();
   }
 

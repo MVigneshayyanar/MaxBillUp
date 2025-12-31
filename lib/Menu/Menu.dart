@@ -17,10 +17,11 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
-import 'package:maxbillup/Settings/StaffManagement.dart';
-import 'package:maxbillup/Reports/Reports.dart';
+import 'package:maxbillup/Stocks/Vendors.dart';
+import 'package:maxbillup/Settings/StaffManagement.dart' hide kPrimaryColor, kErrorColor;
+import 'package:maxbillup/Reports/Reports.dart' hide kPrimaryColor;
 import 'package:maxbillup/Stocks/Stock.dart';
-import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg, kGrey300;
+import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg, kGrey300, kPrimaryColor, kBlack54, kBlack87, kErrorColor;
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -215,7 +216,7 @@ class _MenuPageState extends State<MenuPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Use Consumer for real-time plan updates (listener triggers rebuild)
+    // Use Consumer for real-time plan updates (listener triggerebuild)
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
@@ -351,6 +352,16 @@ class _MenuPageState extends State<MenuPage> {
           return Container();
         }
         return ExpenseCategoriesPage(uid: widget.uid, onBack: _reset);
+
+      case 'Vendors':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PermissionHelper.showPermissionDeniedDialog(context);
+            _reset();
+          });
+          return Container();
+        }
+        return VendorsPage(uid: widget.uid, onBack: _reset);
 
           // Staff Management
           case 'StaffManagement':
@@ -932,6 +943,7 @@ class _MenuPageState extends State<MenuPage> {
                         _buildSubMenuItem(context.tr('stock_purchase'), 'StockPurchase'),
                         _buildSubMenuItem(context.tr('expenses'), 'Expenses'),
                         _buildSubMenuItem(context.tr('expense_category'), 'ExpenseCategories'),
+                        _buildSubMenuItem('Vendors', 'Vendors'),
                       ],
                     ),
                   ),
@@ -1171,6 +1183,13 @@ class _MenuPageState extends State<MenuPage> {
         }
         return ExpenseCategoriesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
 
+      case 'Vendors':
+        if (!_hasPermission('expenses') && !isAdmin) {
+          PermissionHelper.showPermissionDeniedDialog(context);
+          return null;
+        }
+        return VendorsPage(uid: widget.uid, onBack: () => Navigator.pop(context));
+
       case 'StaffManagement':
         // Staff management requires async checks, handle separately
         _navigateToStaffManagement();
@@ -1202,7 +1221,7 @@ class _MenuPageState extends State<MenuPage> {
         return null;
 
       case 'TopCustomers':
-        // TopCustomers requires async checks, handle separately
+        // TopCustomerequires async checks, handle separately
         _navigateToTopCustomers();
         return null;
 
@@ -1741,6 +1760,7 @@ class GenericListPage extends StatelessWidget {
 // ==========================================
 // UPDATED SALES HISTORY PAGE (UI MATCH)
 // ==========================================
+
 class SalesHistoryPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -1757,6 +1777,8 @@ class SalesHistoryPage extends StatefulWidget {
   State<SalesHistoryPage> createState() => _SalesHistoryPageState();
 }
 
+enum SortOption { dateNewest, dateOldest, amountHigh, amountLow }
+
 class _SalesHistoryPageState extends State<SalesHistoryPage> {
   // Streams
   Stream<List<QueryDocumentSnapshot>>? _combinedStream;
@@ -1767,13 +1789,12 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   // Search & Filter State
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  String _selectedFilter = 'All Time';
+  SortOption _currentSort = SortOption.dateNewest;
 
-  // Enhanced filter options
-  String _paymentFilter = 'all'; // all, cash, online, credit, split
-  String _statusFilter = 'all'; // all, settled, unsettled, edited, cancelled
-  String _customerTypeFilter = 'all'; // all, walk-in, customer
-  String? _selectedStaff;
+  // Filter options
+  String _statusFilter = 'all'; // all, settled, unsettled, cancelled
+  String _paymentFilter = 'all';
+  String _selectedDateFilter = 'All Time';
   DateTimeRange? _customDateRange;
 
   @override
@@ -1796,781 +1817,372 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     super.dispose();
   }
 
-  // Merges 'sales' and 'savedOrders' collections into one stream
   Future<void> _initializeCombinedStream() async {
     try {
-      // Use store-scoped collections via FirestoreService
       final salesCollection = await FirestoreService().getStoreCollection('sales');
       final savedOrdersCollection = await FirestoreService().getStoreCollection('savedOrders');
 
-      final salesStream = salesCollection
-          .orderBy('timestamp', descending: true)
-          .snapshots();
-
-      final savedOrdersStream = savedOrdersCollection
-          .orderBy('timestamp', descending: true)
-          .snapshots();
+      final salesStream = salesCollection.snapshots();
+      final savedOrdersStream = savedOrdersCollection.snapshots();
 
       List<QueryDocumentSnapshot> salesDocs = [];
       List<QueryDocumentSnapshot> savedOrdersDocs = [];
 
       void updateController() {
         if (_controller == null || _controller!.isClosed) return;
-
-        // Merge lists
         final allDocs = [...salesDocs, ...savedOrdersDocs];
-
-        // Sort merged list by timestamp descending
-        allDocs.sort((a, b) {
-          final dataA = a.data() as Map<String, dynamic>? ?? {};
-          final dataB = b.data() as Map<String, dynamic>? ?? {};
-          final tsA = dataA['timestamp'] as Timestamp?;
-          final tsB = dataB['timestamp'] as Timestamp?;
-          if (tsA == null && tsB == null) return 0;
-          if (tsA == null) return 1;
-          if (tsB == null) return -1;
-          return tsB.compareTo(tsA);
-        });
-
         _controller!.add(allDocs);
       }
 
       _controller = StreamController<List<QueryDocumentSnapshot>>.broadcast();
+      _salesSub = salesStream.listen((snapshot) { salesDocs = snapshot.docs; updateController(); });
+      _savedOrdersSub = savedOrdersStream.listen((snapshot) { savedOrdersDocs = snapshot.docs; updateController(); });
 
-      _salesSub = salesStream.listen((snapshot) {
-        salesDocs = snapshot.docs;
-        updateController();
-      });
-
-      _savedOrdersSub = savedOrdersStream.listen((snapshot) {
-        savedOrdersDocs = snapshot.docs;
-        updateController();
-      });
-
-      if (mounted) {
-        setState(() {
-          _combinedStream = _controller!.stream;
-        });
-      }
+      if (mounted) setState(() => _combinedStream = _controller!.stream);
     } catch (e) {
-      debugPrint('Error initializing combined stream: $e');
-      if (mounted) {
-        setState(() {
-          _combinedStream = Stream.value([]);
-        });
-      }
+      if (mounted) setState(() => _combinedStream = Stream.value([]));
     }
   }
 
-  // --- Filtering Logic ---
-
-  List<QueryDocumentSnapshot> _filterDocumentsWithLimit(List<QueryDocumentSnapshot> docs, int historyDaysLimit) {
-    if (docs.isEmpty) return [];
-
+  List<QueryDocumentSnapshot> _processList(List<QueryDocumentSnapshot> docs, int historyLimit) {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final yesterday = today.subtract(const Duration(days: 1));
-    final startOfWeek = today.subtract(Duration(days: now.weekday - 1));
-    final startOfThisMonth = DateTime(now.year, now.month, 1);
-    final startOfLastMonth = DateTime(now.year, now.month - 1, 1);
-    final endOfLastMonth = DateTime(now.year, now.month, 0, 23, 59, 59);
+    final historyLimitDate = now.subtract(Duration(days: historyLimit));
 
-    // Use the provided history limit
-    final historyLimitDate = now.subtract(Duration(days: historyDaysLimit));
-
-    return docs.where((doc) {
+    // 1. Filter
+    var filtered = docs.where((doc) {
       final data = doc.data() as Map<String, dynamic>;
-
-      // 0. Plan-based History Limit (Free users see only 7 days)
       final timestamp = data['timestamp'] as Timestamp?;
-      if (timestamp != null) {
-        final date = timestamp.toDate();
-        if (date.isBefore(historyLimitDate)) {
-          return false; // Filter out bills older than plan limit
-        }
-      }
+      if (timestamp != null && timestamp.toDate().isBefore(historyLimitDate)) return false;
 
-      // 1. Search Filter
-      bool matchesSearch = true;
+      // Status logic
+      final paymentStatus = data['paymentStatus'];
+      final isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
+      final isCancelled = data['status'] == 'cancelled';
+
+      if (_statusFilter == 'settled' && (!isSettled || isCancelled)) return false;
+      if (_statusFilter == 'unsettled' && (isSettled || isCancelled)) return false;
+      if (_statusFilter == 'cancelled' && !isCancelled) return false;
+
+      // Search
       if (_searchQuery.isNotEmpty) {
         final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
         final customer = (data['customerName'] ?? '').toString().toLowerCase();
-        matchesSearch = inv.contains(_searchQuery) || customer.contains(_searchQuery);
+        if (!inv.contains(_searchQuery) && !customer.contains(_searchQuery)) return false;
       }
 
-      // 2. Date Dropdown Filter
-      bool matchesDate = true;
-      if (timestamp != null) {
-        final date = timestamp.toDate();
-        if (_selectedFilter == 'Today') {
-          matchesDate = date.isAfter(today) || date.isAtSameMomentAs(today);
-        } else if (_selectedFilter == 'Yesterday') {
-          matchesDate = date.isAfter(yesterday) && date.isBefore(today);
-        } else if (_selectedFilter == 'This Week') {
-          matchesDate = date.isAfter(startOfWeek) || date.isAtSameMomentAs(startOfWeek);
-        } else if (_selectedFilter == 'This Month') {
-          matchesDate = date.isAfter(startOfThisMonth) || date.isAtSameMomentAs(startOfThisMonth);
-        } else if (_selectedFilter == 'Last Month') {
-          matchesDate = date.isAfter(startOfLastMonth) && date.isBefore(endOfLastMonth);
-        } else if (_selectedFilter == 'Custom Range' && _customDateRange != null) {
-          matchesDate = date.isAfter(_customDateRange!.start) &&
-                       date.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
-        }
-      }
-
-      // 3. Payment Filter
-      bool matchesPayment = true;
-      if (_paymentFilter != 'all') {
-        final paymentMode = (data['paymentMode'] ?? '').toString().toLowerCase();
-        matchesPayment = paymentMode == _paymentFilter;
-      }
-
-      // 4. Status Filter
-      bool matchesStatus = true;
-      if (_statusFilter != 'all') {
-        // Check paymentStatus field first, fallback to old logic for backward compatibility
-        final paymentStatus = data['paymentStatus'];
-        final isSettled = paymentStatus != null
-            ? paymentStatus != 'unsettled'
-            : (data.containsKey('paymentMode') && data['paymentMode'] != null);
-        final editCount = data['editCount'] ?? 0;
-        final isCancelled = data['status'] == 'cancelled';
-        final hasReturns = data['hasReturns'] == true;
-
-        if (_statusFilter == 'settled') {
-          matchesStatus = isSettled && !isCancelled;
-        } else if (_statusFilter == 'unsettled') {
-          matchesStatus = !isSettled && !isCancelled;
-        } else if (_statusFilter == 'edited') {
-          matchesStatus = editCount > 0 && !isCancelled;
-        } else if (_statusFilter == 'cancelled') {
-          matchesStatus = isCancelled;
-        } else if (_statusFilter == 'returned') {
-          matchesStatus = hasReturns && !isCancelled;
-        }
-      }
-
-      // 5. Customer Type Filter
-      bool matchesCustomerType = true;
-      if (_customerTypeFilter != 'all') {
-        final customerName = (data['customerName'] ?? '').toString();
-        if (_customerTypeFilter == 'walk-in') {
-          matchesCustomerType = customerName.isEmpty || customerName == 'Guest' || customerName == 'Walk-in Customer';
-        } else if (_customerTypeFilter == 'customer') {
-          matchesCustomerType = customerName.isNotEmpty && customerName != 'Guest' && customerName != 'Walk-in Customer';
-        }
-      }
-
-      // 6. Staff Filter
-      bool matchesStaff = true;
-      if (_selectedStaff != null && _selectedStaff!.isNotEmpty) {
-        final staffName = (data['staffName'] ?? '').toString();
-        matchesStaff = staffName == _selectedStaff;
-      }
-
-      return matchesSearch && matchesDate && matchesPayment && matchesStatus && matchesCustomerType && matchesStaff;
+      return true;
     }).toList();
+
+    // 2. Sort
+    filtered.sort((a, b) {
+      final dataA = a.data() as Map<String, dynamic>;
+      final dataB = b.data() as Map<String, dynamic>;
+
+      switch (_currentSort) {
+        case SortOption.amountHigh:
+          return (dataB['total'] ?? 0.0).compareTo(dataA['total'] ?? 0.0);
+        case SortOption.amountLow:
+          return (dataA['total'] ?? 0.0).compareTo(dataB['total'] ?? 0.0);
+        case SortOption.dateOldest:
+          return (dataA['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(dataB['timestamp'] as Timestamp? ?? Timestamp.now());
+        case SortOption.dateNewest:
+        default:
+          return (dataB['timestamp'] as Timestamp? ?? Timestamp.now()).compareTo(dataA['timestamp'] as Timestamp? ?? Timestamp.now());
+      }
+    });
+
+    return filtered;
   }
 
-    @override
-    Widget build(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-
-        title: Text(context.tr('billhistory'), style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2F7CF6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: widget.onBack, // Use the provided callback
-        ),
+        backgroundColor: kPrimaryColor,
         centerTitle: true,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+          onPressed: widget.onBack,
+        ),
+        title: Text(context.tr('billhistory'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
       ),
-      body: Container(
-        color: kGreyBg,
+      body: Column(
+        children: [
+          _buildHeaderSection(),
+          Expanded(
+            child: FutureBuilder<int>(
+              future: PlanPermissionHelper.getBillHistoryDaysLimit(),
+              builder: (context, planSnap) {
+                final limit = planSnap.data ?? 7;
+                return StreamBuilder<List<QueryDocumentSnapshot>>(
+                  stream: _combinedStream,
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                    final list = _processList(snapshot.data!, limit);
+                    if (list.isEmpty) return _buildEmpty();
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: list.length,
+                      separatorBuilder: (c, i) => const SizedBox(height: 10),
+                      itemBuilder: (c, i) => _buildBillCard(list[i]),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderSection() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey200)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kGrey200),
+              ),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: context.tr('search'),
+                  hintStyle: TextStyle(color: kBlack54, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 7),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
+          const SizedBox(width: 8),
+          _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderActionBtn(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 46, width: 46,
+        decoration: BoxDecoration(
+          color: kPrimaryColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kGrey200),
+        ),
+        child: Icon(icon, color: kPrimaryColor, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildBillCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final inv = data['invoiceNumber'] ?? 'N/A';
+    final total = (data['total'] ?? 0.0).toDouble();
+    final customerName = data['customerName'] ?? 'Walk-in Customer';
+    final staffName = data['staffName'] ?? 'Staff';
+
+    final timestamp = data['timestamp'] as Timestamp?;
+    final formattedDateTime = timestamp != null
+        ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate())
+        : '--';
+
+    final paymentStatus = data['paymentStatus'];
+    final bool isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
+    final bool isCancelled = data['status'] == 'cancelled';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _handleOnTap(doc, data, isSettled, isCancelled, total),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text("$inv", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                  Text(formattedDateTime, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500))
+                ]),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
+                    child: const Icon(Icons.person_rounded, size: 16, color: kBlack54),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
+                  ),
+                  Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                ]),
+                const Divider(height: 20, color: kGreyBg),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text("BILLED BY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    Text(staffName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))
+                  ]),
+                  _badge(isSettled, isCancelled)
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _badge(bool settled, bool cancelled) {
+    if (cancelled) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: kBlack54.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+        child: const Text("CANCELLED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+      );
+    }
+    // Logic: Unsettled (Open) is Green, Settled (Closed) is Red
+    final Color statusColor = settled ? kErrorColor : kGoogleGreen;
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+            color: statusColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: statusColor.withOpacity(0.2))),
+        child: Text(settled ? "SETTLED" : "UNSETTLED",
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor)));
+  }
+
+  void _handleOnTap(QueryDocumentSnapshot doc, Map<String, dynamic> data, bool isSettled, bool isCancelled, double total) {
+    if (!isSettled && !isCancelled) {
+      final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
+          .map((item) => CartItem(
+        productId: item['productId'] ?? '',
+        name: item['name'] ?? '',
+        price: (item['price'] ?? 0).toDouble(),
+        quantity: item['quantity'] is int ? item['quantity'] : int.tryParse(item['quantity'].toString()) ?? 1,
+      ))
+          .toList();
+
+      final isUnsettledSale = data.containsKey('paymentStatus') && data['paymentStatus'] == 'unsettled';
+
+      Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => BillPage(
+            uid: widget.uid,
+            cartItems: cartItems,
+            totalAmount: total,
+            userEmail: widget.userEmail,
+            savedOrderId: isUnsettledSale ? null : doc.id,
+            existingInvoiceNumber: data['invoiceNumber'],
+            unsettledSaleId: isUnsettledSale ? doc.id : null,
+            discountAmount: (data['discount'] ?? 0.0).toDouble(),
+            customerPhone: data['customerPhone'],
+            customerName: data['customerName'],
+            customerGST: data['customerGST'],
+            quotationId: data['quotationId'],
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(context, CupertinoPageRoute(builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data, uid: widget.uid)));
+    }
+  }
+
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
-
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Single row with 3 columns: Search, Date Filter, Status Filter
-
-            Padding(
-
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  // Column 1: Search Bar
-                  Expanded(
-                    flex: 2,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: context.tr('search'),
-                          prefixIcon: Icon(Icons.search, color: Colors.grey, size: 20),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Column 2: Date Filter Dropdown
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedFilter,
-                          isExpanded: true,
-                          icon: const Icon(Icons.calendar_today, color: Color(0xFF2F7CF6), size: 18),
-                          items: <String>[
-                            'All Time',
-                            'Today',
-                            'Yesterday',
-                            'This Week',
-                            'This Month',
-                            'Last Month',
-                            'Custom Range'
-                          ].map((String value) {
-                            String displayText = value;
-                            if (value == 'All Time') displayText = context.tr('all');
-                            else if (value == 'Today') displayText = 'Today';
-                            else if (value == 'Yesterday') displayText = 'Yesterday';
-                            else if (value == 'This Week') displayText = 'This Week';
-                            else if (value == 'This Month') displayText = context.tr('thismonth');
-                            else if (value == 'Last Month') displayText = context.tr('lastmonth');
-                            else if (value == 'Custom Range') displayText = 'Custom';
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(displayText, style: const TextStyle(fontSize: 12)),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) async {
-                            if (newValue == 'Custom Range') {
-                              // Show date range picker in popup
-                              final DateTimeRange? picked = await showDateRangePicker(
-                                context: context,
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime.now(),
-                                initialDateRange: _customDateRange,
-                                builder: (context, child) {
-                                  return Dialog(
-                                    child: Container(
-                                      constraints: BoxConstraints(maxWidth: 400, maxHeight: 600),
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _customDateRange = picked;
-                                  _selectedFilter = newValue!;
-                                });
-                              }
-                            } else if (newValue != null) {
-                              setState(() {
-                                _selectedFilter = newValue;
-                                _customDateRange = null;
-                              });
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Column 3: Status Filter Dropdown
-                  Expanded(
-                    flex: 1,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _statusFilter,
-                          isExpanded: true,
-                          icon: const Icon(Icons.filter_list, color: Color(0xFF2F7CF6), size: 18),
-                          items: <String>[
-                            'all',
-                            'settled',
-                            'unsettled',
-                            'edited',
-                            'cancelled',
-                            'returned'
-                          ].map((String value) {
-                            String displayText = value == 'all' ? 'All' :
-                                                value == 'settled' ? 'Settled' :
-                                                value == 'unsettled' ? 'Unsettled' :
-                                                value == 'edited' ? 'Edited' :
-                                                value == 'cancelled' ? 'Cancelled' : 'Returned';
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(displayText, style: const TextStyle(fontSize: 12)),
-                            );
-                          }).toList(),
-                          onChanged: (newValue) {
-                            if (newValue != null) {
-                              setState(() => _statusFilter = newValue);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-
-            Expanded(
-              child: _combinedStream == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : FutureBuilder<int>(
-                future: PlanPermissionHelper.getBillHistoryDaysLimit(),
-                builder: (context, planSnapshot) {
-                  if (!planSnapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final historyDaysLimit = planSnapshot.data!;
-
-                  return StreamBuilder<List<QueryDocumentSnapshot>>(
-                    stream: _combinedStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final rawData = snapshot.data ?? [];
-                      // Apply client-side filters with plan-based limit
-                      final filteredData = _filterDocumentsWithLimit(rawData, historyDaysLimit);
-
-                      if (filteredData.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children:  [
-                              Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text(context.tr('nobillsfound'), style: const TextStyle(color: Colors.grey)),
-                            ],
-                          ),
-                        );
-                      }
-
-                      // Group bills by date
-                      final groupedData = _groupBillsByDate(filteredData);
-                      final sortedDates = groupedData.keys.toList()..sort((a, b) {
-                    // Parse "dd MMM, yyyy" back to Sortable Date if needed,
-                    // but since we rely on the list order which is already sorted by timestamp,
-                    // we can just iterate.
-                    // To be safe, we rely on the order of keys as inserted?
-                    // Map iteration order is preserved in Dart.
-                    // However, to be extra safe, let's parse.
-                    DateFormat fmt = DateFormat('dd MMM, yyyy');
-                    return fmt.parse(b).compareTo(fmt.parse(a));
-                  });
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    itemCount: sortedDates.length,
-                    itemBuilder: (context, index) {
-                      final date = sortedDates[index];
-                      final bills = groupedData[date]!;
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Date Header
-                          Padding(
-                            padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-                            child: Text(
-                              '$date (${bills.length})',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.grey),
-                            ),
-                          ),
-                          // List of Bills
-                          ...bills.map((doc) => _buildBillCard(context, doc)).toList(),
-                        ],
-                      );
-                    },
-                  );
-                },
-              );
-                },
-              ),
-            ),
+            const Text('Sort History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+            const SizedBox(height: 16),
+            _sortItem("Newest First", SortOption.dateNewest),
+            _sortItem("Oldest First", SortOption.dateOldest),
+            _sortItem("Amount: High to Low", SortOption.amountHigh),
+            _sortItem("Amount: Low to High", SortOption.amountLow),
           ],
         ),
       ),
     );
-    }
+  }
 
-  Widget _buildFilterChip(String label, String value, String currentValue, Function(String) onSelected) {
-    final isSelected = currentValue == value;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: FilterChip(
-        label: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black87,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        selected: isSelected,
-        onSelected: (selected) => onSelected(value),
-        selectedColor: const Color(0xFF2F7CF6),
-        backgroundColor: Colors.grey.shade200,
-        checkmarkColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isSelected ? const Color(0xFF2F7CF6) : Colors.grey.shade300,
-          ),
+  Widget _sortItem(String label, SortOption option) {
+    bool isSelected = _currentSort == option;
+    return ListTile(
+      onTap: () { setState(() => _currentSort = option); Navigator.pop(context); },
+      contentPadding: EdgeInsets.zero,
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kPrimaryColor : kBlack87)),
+      trailing: isSelected ? const Icon(Icons.check_circle, color: kPrimaryColor) : null,
+    );
+  }
+
+  void _showFilterMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kWhite,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Filter Bills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+            const SizedBox(height: 16),
+            _filterItem("All Records", 'all'),
+            _filterItem("Settled Only", 'settled'),
+            _filterItem("Unsettled Only", 'unsettled'),
+            _filterItem("Cancelled Only", 'cancelled'),
+          ],
         ),
       ),
     );
   }
 
-  // Group documents by formatted date string
-  Map<String, List<QueryDocumentSnapshot>> _groupBillsByDate(List<QueryDocumentSnapshot> docs) {
-    final Map<String, List<QueryDocumentSnapshot>> grouped = {};
-    for (var doc in docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final timestamp = data['timestamp'];
-
-      if (timestamp is Timestamp) {
-        final date = timestamp.toDate();
-        final dateString = DateFormat('dd MMM, yyyy').format(date);
-
-        if (!grouped.containsKey(dateString)) {
-          grouped[dateString] = [];
-        }
-        grouped[dateString]!.add(doc);
-      }
-    }
-    return grouped;
-  }
-
-  Widget _buildBillCard(BuildContext context, QueryDocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
-    final inv = data['invoiceNumber'] ?? 'N/A';
-    // Handle total as int or double safely
-    final rawTotal = data['total'];
-    final totalVal = (rawTotal is int) ? rawTotal.toDouble() : (rawTotal is double ? rawTotal : 0.0);
-    final total = totalVal.toStringAsFixed(1);
-
-    final itemsCount = (data['items'] as List<dynamic>? ?? []).length;
-    final staffName = data['staffName'] ?? 'Staff';
-    final customerName = data['customerName'] ?? 'Guest'; // Added field for better context
-
-    final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
-    final timeString = time != null ? DateFormat('h:mm a').format(time) : '-';
-    final dateString = time != null ? DateFormat('dd MMM, yyyy').format(time) : '-';
-
-    // Status Logic - Check paymentStatus field first, fallback to old logic
-    final paymentStatus = data['paymentStatus'];
-    final isSettled = paymentStatus != null
-        ? paymentStatus != 'unsettled'
-        : (data.containsKey('paymentMode') && data['paymentMode'] != null);
-    final isCancelled = data['status'] == 'cancelled';
-    final editCount = data['editCount'] ?? 0;
-    final hasReturns = data['hasReturns'] == true;
-
-    return GestureDetector(
-      onTap: () {
-        if (!isSettled && !isCancelled) {
-          // Logic to resume/settle bill
-          final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
-              .map((item) => CartItem(
-            productId: item['productId'] ?? '',
-            name: item['name'] ?? '',
-            price: (item['price'] ?? 0).toDouble(),
-            quantity: (item['quantity'] ?? 1) is int
-                ? item['quantity']
-                : int.tryParse(item['quantity'].toString()) ?? 1,
-          ))
-              .toList();
-
-          // Determine if this is an unsettled sale (from 'sales' collection) or a saved order (from 'savedOrders' collection)
-          // Unsettled sales have 'paymentStatus' field, saved orders don't
-          final isUnsettledSale = data.containsKey('paymentStatus') && data['paymentStatus'] == 'unsettled';
-
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => BillPage(
-                uid: widget.uid,
-                cartItems: cartItems,
-                totalAmount: totalVal,
-                userEmail: widget.userEmail,
-                // Only pass savedOrderId for saved orders (not unsettled sales)
-                savedOrderId: isUnsettledSale ? null : doc.id,
-                existingInvoiceNumber: data['invoiceNumber'], // Pass existing invoice number
-                // Only pass unsettledSaleId for unsettled sales (not saved orders)
-                unsettledSaleId: isUnsettledSale ? doc.id : null,
-                discountAmount: (data['discount'] ?? 0.0) as double, // Pass discount from saved data
-                customerPhone: data['customerPhone'],
-                customerName: data['customerName'],
-                customerGST: data['customerGST'],
-                quotationId: data['quotationId'], // Pass quotation ID if exists
-              ),
-            ),
-          ).then((_) {
-            // Optional: Refresh or handle return
-            setState(() {});
-          });
-        } else {
-          // View Receipt
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => SalesDetailPage(
-                documentId: doc.id,
-                initialData: data,
-                uid: widget.uid,
-              ),
-            ),
-          );
-        }
-      },
-      child: Card(
-        elevation: 0,
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(color: Colors.grey.shade200)
-        ),
-        margin: const EdgeInsets.only(bottom: 10),
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Row 1: Invoice No & Status Badges
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Bill No. $inv', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Row(
-                    children: [
-                      // Cancelled Badge
-                      if (isCancelled)
-                        Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: Text(
-                            'Cancelled',
-                            style: TextStyle(
-                              color: Colors.red.shade700,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-
-                      // Edited Badge
-                      if (editCount > 0 && !isCancelled)
-                        Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Text(
-                            'Edited',
-                            style: TextStyle(
-                              color: Colors.blue.shade700,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-
-                      // Returned Badge
-                      if (hasReturns && !isCancelled)
-                        Container(
-                          margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.shade50,
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: Colors.purple.shade200),
-                          ),
-                          child: Text(
-                            'Returned',
-                            style: TextStyle(
-                              color: Colors.purple.shade700,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-
-                      // Settled/Unsettled Badge
-                      if (!isCancelled)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                              color: isSettled ? Colors.green.shade50 : Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                  color: isSettled ? Colors.green.shade200 : Colors.orange.shade200
-                              )
-                          ),
-                          child: Text(
-                            isSettled ? 'Settled' : 'UnSettled',
-                            style: TextStyle(
-                              color: isSettled ? Colors.green.shade700 : Colors.orange.shade800,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 3),
-
-              // Row 2: Info Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  _infoRow(Icons.calendar_today, dateString),
-                                  const SizedBox(width: 8),
-                                  _infoRow(Icons.access_time, timeString),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        _infoRow(Icons.person_outline, customerName, textStyle: const TextStyle(fontSize: 16, color: kOrange, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '$total',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Color(0xFF2F7CF6)),
-                      ),
-                      Text(
-                        '$itemsCount Items',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-
-              const SizedBox(height: 8),
-              const Divider(height: 1, color: Color(0xFFEEEEEE)),
-              const SizedBox(height: 8),
-
-              // Row 3: Creator info and View Details button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Billed by ',
-                          style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500),
-                        ),
-                        TextSpan(
-                          text: staffName,
-                          style: TextStyle(fontSize: 14, color:Colors.grey.shade600, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // View Details Button
-                  SizedBox(
-                    height: 32,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // Navigate to detail page
-                        Navigator.push(
-                          context,
-                          CupertinoPageRoute(
-                            builder: (context) => SalesDetailPage(
-                              documentId: doc.id,
-                              initialData: data,
-                              uid: widget.uid,
-                            ),
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.arrow_forward, size: 14, color: Colors.white),
-                      label: Text(
-                        'View',
-                        style: const TextStyle(color: Colors.white, fontSize: 12),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2F7CF6),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+  Widget _filterItem(String label, String value) {
+    bool isSelected = _statusFilter == value;
+    return ListTile(
+      onTap: () { setState(() => _statusFilter = value); Navigator.pop(context); },
+      contentPadding: EdgeInsets.zero,
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kPrimaryColor : kBlack87)),
+      trailing: isSelected ? const Icon(Icons.check_circle, color: kPrimaryColor) : null,
     );
   }
 
-  // Helper widget for small info rows
-  Widget _infoRow(IconData icon, String text, {TextStyle? textStyle}) {
-    return Row(
-      children: [
-        Icon(icon, size: 14, color: Colors.grey),
-        const SizedBox(width: 4),
-        Text(text, style: textStyle ?? const TextStyle(fontSize: 13, color: Colors.black87)),
-      ],
-    );
-  }
+  Widget _buildEmpty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.receipt_long, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('nobillsfound'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 }
 
 // ==========================================
@@ -2588,7 +2200,10 @@ class SalesDetailPage extends StatelessWidget {
     required this.uid,
   });
 
-  // Calculate tax totals from items
+  // ==========================================
+  // LOGIC METHODS (PRESERVED BIT-BY-BIT)
+  // ==========================================
+
   Map<String, dynamic> _calculateTaxTotals(List<Map<String, dynamic>> items) {
     double subtotalWithoutTax = 0.0;
     double totalTax = 0.0;
@@ -2677,626 +2292,6 @@ class SalesDetailPage extends StatelessWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${context.tr('invoice')} ${initialData['invoiceNumber'] ?? ''}', style: const TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF2F7CF6),
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-      ),
-      body: FutureBuilder<DocumentReference>(
-        future: FirestoreService().getDocumentReference('sales', documentId),
-        builder: (context, docRefSnapshot) {
-          if (!docRefSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          return StreamBuilder<DocumentSnapshot>(
-            // Use documentId to fetch the latest state of the bill
-            stream: docRefSnapshot.data!.snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (!snapshot.hasData || !snapshot.data!.exists) {
-                return Center(child: Text(context.tr('bill_not_found')));
-              }
-
-              final data = snapshot.data!.data() as Map<String, dynamic>;
-              final time = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
-              final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
-
-              // Calculate tax information
-              final taxInfo = _calculateTaxTotals(items);
-              final subtotalWithoutTax = taxInfo['subtotalWithoutTax'] as double;
-              final totalTax = taxInfo['totalTax'] as double;
-              final taxBreakdown = taxInfo['taxBreakdown'] as Map<String, double>;
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with Invoice Number and Date
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${context.tr('invoicenumber')} ${data['invoiceNumber'] ?? 'N/A'}',
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF2F7CF6),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                '${context.tr('created_by')} ${data['staffName'] ?? 'Admin'}',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.black87,
-                                ),
-                              ),
-
-                              // Show edit count indicator
-                              if ((data['editCount'] ?? 0) > 0) ...[
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: (data['editCount'] ?? 0) >= 2
-                                        ? Colors.red.shade100
-                                        : Colors.orange.shade100,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'Edited ${data['editCount']}x (${2 - (data['editCount'] ?? 0)} edits left)',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: (data['editCount'] ?? 0) >= 2
-                                          ? Colors.red.shade700
-                                          : Colors.orange.shade700,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${context.tr('issued_on')} :',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                time != null ? DateFormat('dd MMM yyyy').format(time) : 'N/A',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              Text(
-                                time != null ? DateFormat('h:mm a').format(time) : 'N/A',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Customer Details
-                Text(
-                  context.tr('customerdetails'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        data['customerName'] ?? 'A',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        context.tr('phone'),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                      Text(
-                        data['customerPhone'] ?? '-',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Invoice Items
-                Text(
-                  context.tr('invoice_items'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: Column(
-                    children: [
-                      // Header row
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              context.tr('items'),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            Text(
-                              context.tr('amount'),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      // Items list
-                      ...items.map((item) => _buildItemRow(item)).toList(),
-                      // Summary section
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                        ),
-                        child: Column(
-                          children: [
-                            // Items count and quantity
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${context.tr('totalitems')} : ${items.length}',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                                ),
-                                Text(
-                                  '${context.tr('totalquantity')} : ${items.fold(0, (sum, item) => sum + (item['quantity'] as int? ?? 0))}',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-
-                            // Subtotal (without tax)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${context.tr('subtotal')} (${context.tr('excluding_tax')}):',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black87),
-                                ),
-                                Text(
-                                  'Rs ${subtotalWithoutTax.toStringAsFixed(2)}',
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87),
-                                ),
-                              ],
-                            ),
-
-                            // Discount (if any)
-                            if ((data['discount'] ?? 0.0) > 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${context.tr('discount')}:',
-                                    style: const TextStyle(fontSize: 14, color: kBorderColor),
-                                  ),
-                                  Text(
-                                    '- Rs ${(data['discount'] ?? 0.0).toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBorderColor),
-                                  ),
-                                ],
-                              ),
-                            ],
-
-                            // Tax breakdown
-                            if (taxBreakdown.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              ...taxBreakdown.entries.map((entry) => Padding(
-                                padding: const EdgeInsets.only(bottom: 4),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      '${entry.key}:',
-                                      style: const TextStyle(fontSize: 13, color: Colors.black54),
-                                    ),
-                                    Text(
-                                      'Rs ${entry.value.toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.black54),
-                                    ),
-                                  ],
-                                ),
-                              )).toList(),
-                            ],
-
-                            // Total Tax
-                            if (totalTax > 0) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${context.tr('total_tax')}:',
-                                    style: const TextStyle(fontSize: 14, color: Colors.green),
-                                  ),
-                                  Text(
-                                    'Rs ${totalTax.toStringAsFixed(2)}',
-                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.green),
-                                  ),
-                                ],
-                              ),
-                            ],
-
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-
-                            // Total Amount
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${context.tr('totalamount')}:',
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                Text(
-                                  'Rs ${(data['total'] ?? 0.0).toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2F7CF6),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Payment mode details
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${context.tr('payment_mode')}:',
-                                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: data['paymentMode'] == 'Credit'
-                                        ? Colors.orange.shade50
-                                        : Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    data['paymentMode'] ?? 'Cash',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: data['paymentMode'] == 'Credit'
-                                          ? Colors.orange.shade700
-                                          : Colors.green.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            // Split payment details
-                            if (data['paymentMode'] == 'Split') ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('${context.tr('cash')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                  Text('Rs ${(data['cashReceived_split'] ?? 0.0).toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('${context.tr('online')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                  Text('Rs ${(data['onlineReceived_split'] ?? 0.0).toStringAsFixed(2)}',
-                                      style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                ],
-                              ),
-                              if ((data['creditIssued_split'] ?? 0.0) > 0) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${context.tr('credit')}:', style: const TextStyle(fontSize: 13, color: Colors.orange)),
-                                    Text('Rs ${(data['creditIssued_split'] ?? 0.0).toStringAsFixed(2)}',
-                                        style: const TextStyle(fontSize: 13, color: Colors.orange)),
-                                  ],
-                                ),
-                              ],
-                            ],
-
-                            // Cash/Online received and change
-                            if (data['paymentMode'] == 'Cash' || data['paymentMode'] == 'Online') ...[
-                              if ((data['cashReceived'] ?? 0.0) > 0) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${context.tr('received')}:', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                    Text('Rs ${(data['cashReceived'] ?? 0.0).toStringAsFixed(2)}',
-                                        style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                                  ],
-                                ),
-                              ],
-                              if ((data['change'] ?? 0.0) > 0) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${context.tr('change')}:', style: const TextStyle(fontSize: 13, color: Colors.green)),
-                                    Text('Rs ${(data['change'] ?? 0.0).toStringAsFixed(2)}',
-                                        style: const TextStyle(fontSize: 13, color: Colors.green)),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 30),
-                // Action buttons (Sale Return, Cancel Bill, Receipt, Edit) - with permission checks
-                FutureBuilder<Map<String, dynamic>>(
-                  future: _getUserPermissions(),
-                  builder: (context, permSnapshot) {
-                    if (!permSnapshot.hasData) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    }
-
-                    final permissions = permSnapshot.data!;
-                    final canSaleReturn = permissions['canSaleReturn'] as bool;
-                    final canCancelBill = permissions['canCancelBill'] as bool;
-                    final canEditBill = permissions['canEditBill'] as bool;
-                    final isAdmin = permissions['isAdmin'] as bool;
-
-                    // Check if bill is cancelled
-                    final isCancelled = data['status'] == 'cancelled';
-
-                    // Debug logging
-                    debugPrint('=== Permission Check Debug ===');
-                    debugPrint('isAdmin: $isAdmin');
-                    debugPrint('canSaleReturn: $canSaleReturn');
-                    debugPrint('canCancelBill: $canCancelBill');
-                    debugPrint('canEditBill: $canEditBill');
-                    debugPrint('isCancelled: $isCancelled');
-                    debugPrint('============================');
-
-                    // Build list of available actions
-                    List<Widget> actions = [];
-
-                    // Sale Return button (hide if cancelled)
-                    if (!isCancelled && (canSaleReturn || isAdmin)) {
-                      actions.add(_buildActionButton(
-                        context,
-                        icon: Icons.shopping_cart_outlined,
-                        label: context.tr('sale_return'),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            CupertinoPageRoute(
-                              builder: (context) => SaleReturnPage(
-                                documentId: documentId,
-                                invoiceData: data,
-                              ),
-                            ),
-                          );
-                        },
-                      ));
-                    }
-
-                    // Cancel Bill button (hide if already cancelled)
-                    if (!isCancelled && (canCancelBill || isAdmin)) {
-                      actions.add(_buildActionButton(
-                        context,
-                        icon: Icons.delete_outline,
-                        label: context.tr('cancel_bill'),
-                        color: Colors.red,
-                        onTap: () {
-                          _showCancelBillDialog(context, documentId, data);
-                        },
-                      ));
-                    }
-
-                    // Receipt button (always visible)
-                    actions.add(_buildActionButton(
-                      context,
-                      icon: Icons.receipt_long_outlined,
-                      label: context.tr('receipt'),
-                      onTap: () => _printInvoiceReceipt(context, documentId, data),
-                    ));
-
-                    // Edit button (hide if cancelled)
-                    if (!isCancelled && (canEditBill || isAdmin)) {
-                      actions.add(_buildActionButton(
-                        context,
-                        icon: Icons.edit_outlined,
-                        label: context.tr('edit'),
-                        onTap: () async {
-                          // Check edit count - max 2 edits allowed
-                          final editCount = (data['editCount'] ?? 0) as int;
-                          if (editCount >= 2) {
-                            if (context.mounted) {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                  title: Row(
-                                    children: [
-                                      Icon(Icons.warning_amber_rounded, color: Colors.orange[700]),
-                                      const SizedBox(width: 8),
-                                      const Text('Edit Limit Reached'),
-                                    ],
-                                  ),
-                                  content: const Text(
-                                    'This bill has already been edited 2 times.\n\n'
-                                    'To make further changes, please contact the admin to cancel this bill and create a new corrected bill.',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(ctx),
-                                      child: const Text('OK'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                            return;
-                          }
-
-                          // Check if plan allows edit bill
-                          final canEdit = await PlanPermissionHelper.canEditBill();
-                          if (!canEdit) {
-                            if (context.mounted) {
-                              PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill', uid: uid);
-                            }
-                            return;
-                          }
-                          if (context.mounted) {
-                            Navigator.push(
-                              context,
-                              CupertinoPageRoute(
-                                builder: (context) => EditBillPage(
-                                  documentId: documentId,
-                                  invoiceData: data,
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ));
-                    }
-
-                    // Return row with actions
-                    if (actions.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-
-                    return Row(
-                      mainAxisAlignment: actions.length <= 2
-                          ? MainAxisAlignment.center
-                          : MainAxisAlignment.spaceEvenly,
-                      children: actions,
-                    );
-                  },
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ); // Close SingleChildScrollView
-            }, // Close StreamBuilder builder
-          ); // Close StreamBuilder
-        }, // Close FutureBuilder builder
-      ), // Close FutureBuilder
-    ); // Close Scaffold
-  } // Close build method
-
   Future<void> _printInvoiceReceipt(BuildContext context, String documentId, Map<String, dynamic> data) async {
     try {
       // Show loading
@@ -3327,15 +2322,19 @@ class SalesDetailPage extends StatelessWidget {
         }
       }
 
-      // Prepare items for invoice page
+      // Prepare items for invoice page with complete tax information
       final items = (data['items'] as List<dynamic>? ?? [])
           .map((item) => {
-                'name': item['name'] ?? '',
-                'quantity': item['quantity'] ?? 0,
-                'price': (item['price'] ?? 0).toDouble(),
-                'total': ((item['price'] ?? 0) * (item['quantity'] ?? 1)).toDouble(),
-                'productId': item['productId'] ?? '',
-              })
+        'name': item['name'] ?? '',
+        'quantity': item['quantity'] ?? 0,
+        'price': (item['price'] ?? 0).toDouble(),
+        'total': ((item['price'] ?? 0) * (item['quantity'] ?? 1)).toDouble(),
+        'productId': item['productId'] ?? '',
+        'taxName': item['taxName'],
+        'taxPercentage': (item['taxPercentage'] ?? 0).toDouble(),
+        'taxAmount': (item['taxAmount'] ?? 0).toDouble(),
+        'taxType': item['taxType'],
+      })
           .toList();
 
       // Get timestamp
@@ -3345,6 +2344,13 @@ class SalesDetailPage extends StatelessWidget {
       } else if (data['date'] != null) {
         dateTime = DateTime.tryParse(data['date'].toString()) ?? DateTime.now();
       }
+
+      // Calculate tax information from items
+      final taxCalculations = _calculateTaxTotals(items.cast<Map<String, dynamic>>());
+      final taxBreakdown = taxCalculations['taxBreakdown'] as Map<String, double>;
+      final taxList = taxBreakdown.entries
+          .map((e) => {'name': e.key, 'amount': e.value})
+          .toList();
 
       // Close loading
       if (context.mounted) {
@@ -3363,9 +2369,9 @@ class SalesDetailPage extends StatelessWidget {
               invoiceNumber: data['invoiceNumber']?.toString() ?? 'N/A',
               dateTime: dateTime,
               items: items.cast<Map<String, dynamic>>(),
-              subtotal: (data['subtotal'] ?? data['total'] ?? 0).toDouble(),
+              subtotal: taxCalculations['subtotalWithoutTax'] as double,
               discount: (data['discount'] ?? 0).toDouble(),
-              taxes: null, // Will be calculated from items if needed
+              taxes: taxList.isNotEmpty ? taxList : null,
               total: (data['total'] ?? 0).toDouble(),
               paymentMode: data['paymentMode'] ?? 'Cash',
               cashReceived: (data['cashReceived'] ?? data['total'] ?? 0).toDouble(),
@@ -3389,53 +2395,11 @@ class SalesDetailPage extends StatelessWidget {
     }
   }
 
-  Widget _buildActionButton(BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 32, color: color ?? const Color(0xFF2F7CF6)),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: color ?? Colors.black87,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showCancelBillDialog(BuildContext context, String documentId, Map<String, dynamic> data) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           'Are you sure ?',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -3554,9 +2518,9 @@ class SalesDetailPage extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        data['customerPhone'] != null
-                            ? 'Bill cancelled. Credit note created for customer. Stock restored.'
-                            : 'Bill cancelled successfully. Stock has been restored.'
+                          data['customerPhone'] != null
+                              ? 'Bill cancelled. Credit note created for customer. Stock restored.'
+                              : 'Bill cancelled successfully. Stock has been restored.'
                       ),
                       backgroundColor: Colors.green,
                     ),
@@ -3588,116 +2552,431 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildItemRow(Map<String, dynamic> item) {
-    final name = item['name'] ?? 'Item';
-    final price = (item['price'] ?? 0).toDouble();
-    final quantity = item['quantity'] ?? 1;
-    final taxName = item['taxName'] as String?;
-    final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
-    final taxType = item['taxType'] as String?;
+  // ==========================================
+  // UI BUILD METHODS (QUOTATION PAGE STYLE)
+  // ==========================================
 
-    // Calculate amounts
-    double itemTotal = price * quantity;
-    double itemTax = 0.0;
-    double itemBaseAmount = itemTotal;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kPrimaryColor, // Primary color background like QuotationPage entry
+      appBar: AppBar(
+        title: const Text('Invoice Details', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+      ),
+      body: FutureBuilder<DocumentReference>(
+        future: FirestoreService().getDocumentReference('sales', documentId),
+        builder: (context, docRefSnapshot) {
+          if (!docRefSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kWhite));
 
-    if (taxPercentage > 0 && taxType != null) {
-      if (taxType == 'Price includes Tax') {
-        // Tax is included in price, extract it
-        itemBaseAmount = itemTotal / (1 + taxPercentage / 100);
-        itemTax = itemTotal - itemBaseAmount;
-      } else if (taxType == 'Price is without Tax') {
-        // Tax needs to be added
-        itemTax = itemTotal * (taxPercentage / 100);
-      }
-    }
+          return StreamBuilder<DocumentSnapshot>(
+            stream: docRefSnapshot.data!.snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kWhite));
+              if (!snapshot.hasData || !snapshot.data!.exists) return Center(child: Text(context.tr('bill_not_found'), style: const TextStyle(color: kWhite)));
 
-    final finalTotal = itemBaseAmount + itemTax;
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              final ts = data['timestamp'] as Timestamp?;
+              final dateStr = ts != null ? DateFormat('dd MMM yy • hh:mm a').format(ts.toDate()) : '--';
+              final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
+
+              // Calculate tax from items (for new sales with tax fields)
+              final taxInfo = _calculateTaxTotals(items);
+              double subtotalWithoutTax = taxInfo['subtotalWithoutTax'] as double;
+              Map<String, double> taxBreakdown = taxInfo['taxBreakdown'] as Map<String, double>;
+
+              // Fallback: If no tax in items, check if document has taxes field (backward compatibility)
+              if (taxBreakdown.isEmpty && data['taxes'] != null) {
+                final docTaxes = data['taxes'] as List<dynamic>?;
+                if (docTaxes != null) {
+                  for (var tax in docTaxes) {
+                    final taxName = tax['name'] as String?;
+                    final taxAmount = (tax['amount'] ?? 0).toDouble();
+                    if (taxName != null && taxAmount > 0) {
+                      taxBreakdown[taxName] = taxAmount;
+                    }
+                  }
+                }
+                // Use stored subtotal if available
+                if (data['subtotal'] != null) {
+                  subtotalWithoutTax = (data['subtotal'] ?? 0).toDouble();
+                }
+              }
+
+              // Fallback: If still no tax but totalTax exists
+              if (taxBreakdown.isEmpty && data['totalTax'] != null) {
+                final totalTax = (data['totalTax'] ?? 0).toDouble();
+                if (totalTax > 0) {
+                  taxBreakdown['Tax'] = totalTax;
+                }
+              }
+
+              final status = data['paymentStatus'];
+              final bool settled = status != null ? status != 'unsettled' : (data.containsKey('paymentMode'));
+              final bool isCancelled = data['status'] == 'cancelled';
+
+              return Column(
+                children: [
+                  // Top Floating Card: Customer Info (Reduced vertical gap)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12,0, 12, 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: kWhite,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                              backgroundColor: kOrange.withOpacity(0.1),
+                              radius: 18,
+                              child: const Icon(Icons.person, color: kOrange, size: 18)
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  data['customerName'] ?? 'Walk-in Customer',
+                                  style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700),
+                                ),
+                                if (data['customerPhone'] != null)
+                                  Text(data['customerPhone'], style: const TextStyle(color: kBlack54, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          _buildStatusTag(settled, isCancelled),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Main Body: White Container extending to bottom
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: kWhite,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
+                      ),
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text('BILLING OVERVIEW', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: kSuccessGreen.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: kSuccessGreen.withOpacity(0.3)),
+                                        ),
+                                        child: Text(
+                                          '${items.length} ${items.length == 1 ? 'Item' : 'Items'}',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: kSuccessGreen,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', 'INV-${data['invoiceNumber']}'),
+                                  _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'Admin'),
+                                  _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
+                                  _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
+
+                                  const Padding(padding: EdgeInsets.symmetric(vertical: 0), child: Divider(color: kGreyBg, thickness: 1)),
+
+                                  // Table-formatted Item List
+                                  const Text('ITEMS LIST', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                  const SizedBox(height: 8),
+                                  _buildTableHeader(),
+                                  ...items.map((item) => _buildItemTableRow(item)).toList(),
+
+                                  const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(color: kGreyBg, thickness: 1)),
+
+                                  const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                  const SizedBox(height: 8),
+                                  _buildPriceRow('Subtotal (Net)', subtotalWithoutTax),
+                                  if ((data['discount'] ?? 0.0) > 0)
+                                    _buildPriceRow(context.tr('discount'), -(data['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
+
+                                  // Tax Breakdown
+                                  ...taxBreakdown.entries.map((e) => _buildPriceRow(e.key, e.value)).toList(),
+
+                                  const SizedBox(height: 32),
+                                ],
+                              ),
+                            ),
+                          ),
+                          _buildFixedBottomArea(context, data),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatusTag(bool settled, bool cancelled) {
+    String label = cancelled ? "CANCELLED" : (settled ? "SETTLED" : "UNSETTLED");
+    Color color = cancelled ? kBlack54 : (settled ? kErrorColor : kGoogleGreen);
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade200),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-              ),
-              Text(
-                'Rs ${finalTotal.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Rs ${price.toStringAsFixed(2)} × $quantity',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              if (itemTax > 0)
-                Text(
-                  'Base: Rs ${itemBaseAmount.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
-                ),
-            ],
-          ),
-          // Show tax information if applicable
-          if (itemTax > 0 && taxName != null && taxName.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$taxName ($taxPercentage%)',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green.shade600,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-                Text(
-                  '+ Rs ${itemTax.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.green.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          Icon(icon, size: 14, color: kGrey400),
+          const SizedBox(width: 10),
+          Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis)),
         ],
       ),
-    ); // Close Container
-  } // Close _buildItemRow method
-} // Close BillHistoryPage class
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
+      child: const Row(
+        children: [
+          Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 1, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('RATE', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 1, child: Text('TAX %', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('TAX AMT', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('TOTAL', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildItemTableRow(Map<String, dynamic> item) {
+    final price = (item['price'] ?? 0).toDouble();
+    final quantity = (item['quantity'] ?? 1);
+    final itemSubtotal = price * quantity;
+
+    // Try to get tax info from item
+    double taxVal = (item['taxAmount'] ?? 0.0).toDouble();
+    int taxPerc = ((item['taxPercentage'] ?? 0) as num).toInt();
+    String? taxName = item['taxName'] as String?;
+    final taxType = item['taxType'] as String?;
+
+    debugPrint('📊 Item: ${item['name']}, taxVal=$taxVal, taxPerc=$taxPerc, taxType=$taxType');
+
+    // Calculate based on taxType if we have percentage but no amount
+    if (taxVal == 0 && taxPerc > 0 && taxType != null) {
+      if (taxType == 'Price includes Tax') {
+        final baseAmount = itemSubtotal / (1 + taxPerc / 100);
+        taxVal = itemSubtotal - baseAmount;
+      } else if (taxType == 'Price is without Tax') {
+        taxVal = itemSubtotal * (taxPerc / 100);
+      }
+      debugPrint('   ✅ Calculated tax from type: $taxVal');
+    }
+
+    final itemTotalWithTax = itemSubtotal + taxVal;
+
+    debugPrint('   Final: taxPerc=$taxPerc, taxVal=$taxVal, total=$itemTotalWithTax');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGreyBg))),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 3, 
+            child: Text(
+              item['name'] ?? 'Item', 
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: kBlack87), 
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis
+            )
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              '${item['quantity']}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
+            )
+          ),
+          Expanded(
+            flex: 2, 
+            child: Text(
+              price.toStringAsFixed(2),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
+            )
+          ),
+          Expanded(
+            flex: 1,
+            child: Text(
+              taxPerc > 0 ? '$taxPerc%' : '0%',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: kBlack87, fontWeight: FontWeight.w700)
+            )
+          ),
+          Expanded(
+            flex: 2, 
+            child: Text(
+              taxVal > 0.01 ? taxVal.toStringAsFixed(2) : '0',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10,  color: kBlack87, fontWeight: FontWeight.w700)
+            )
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              itemTotalWithTax.toStringAsFixed(2), 
+              textAlign: TextAlign.right, 
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800,  color: kPrimaryColor)
+            )
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, double val, {Color? valueColor}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: kBlack54)),
+          Text('${val.toStringAsFixed(2)}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: valueColor ?? kBlack87)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFixedBottomArea(BuildContext context, Map<String, dynamic> data) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      decoration: BoxDecoration(
+          color: kWhite,
+          border: const Border(top: BorderSide(color: kGrey200)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))]
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Row 1: Net Amount Fixed at Bottom
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Final Total Payable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+              Text('${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Row 2: Square Action Buttons (Reordered)
+          _buildActionGrid(context, data),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionGrid(BuildContext context, Map<String, dynamic> data) {
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _getUserPermissions(),
+      builder: (context, permSnap) {
+        if (!permSnap.hasData) return const SizedBox.shrink();
+        final perms = permSnap.data!;
+        final bool isCancelled = data['status'] == 'cancelled';
+
+        List<Widget> actions = [];
+
+        // 1. Receipt
+        actions.add(_squareActionButton(Icons.receipt_long_rounded, 'Receipt', kPrimaryColor, () => _printInvoiceReceipt(context, documentId, data)));
+
+        // 2. Edit
+        if (!isCancelled && (perms['canEditBill'] || perms['isAdmin'])) {
+          actions.add(_squareActionButton(Icons.edit_note_rounded, 'Edit', kPrimaryColor, () async {
+            if ((data['editCount'] ?? 0) >= 2) {
+              showDialog(context: context, builder: (_) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), title: const Text('Limit Reached'), content: const Text('This bill has been edited 2 times. Please cancel and create a new bill for further changes.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
+              return;
+            }
+            if (await PlanPermissionHelper.canEditBill()) {
+              if (context.mounted) Navigator.push(context, CupertinoPageRoute(builder: (_) => EditBillPage(documentId: documentId, invoiceData: data)));
+            } else {
+              if (context.mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill', uid: uid);
+            }
+          }));
+        }
+
+        // 3. Return
+        if (!isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
+          actions.add(_squareActionButton(Icons.keyboard_return_rounded, 'Return', kPrimaryColor, () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SaleReturnPage(documentId: documentId, invoiceData: data)))));
+        }
+
+        // 4. Cancel
+        if (!isCancelled && (perms['canCancelBill'] || perms['isAdmin'])) {
+          actions.add(_squareActionButton(Icons.cancel_outlined, 'Cancel', kErrorColor, () => _showCancelBillDialog(context, documentId, data)));
+        }
+
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: actions,
+        );
+      },
+    );
+  }
+
+  Widget _squareActionButton(IconData icon, String lbl, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 68, height: 68,
+        decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.2))
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(height: 6),
+            Text(lbl, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 9)),
+          ],
+        ),
+      ),
+    );
+  }
+}// Close BillHistoryPage class
 
 // ==========================================
 // 4. CUSTOMER RELATED PAGES
@@ -3753,46 +3032,46 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhite,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         title: Text(context.tr('credit_notes'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite),
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
           onPressed: widget.onBack,
         ),
       ),
       body: Column(
         children: [
-          // Search & Filter Header (Matches SaleAllPage look)
+          // ENTERPRISE SEARCH & FILTER HEADER
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            decoration: const BoxDecoration(
               color: kWhite,
-              border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+              border: Border(bottom: BorderSide(color: kGrey200)),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
-                    height: 48,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
+                      color: kPrimaryColor.withOpacity(0.04),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: kGrey200),
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: kDeepNavy, fontSize: 14),
+                      style: const TextStyle(color: kBlack87, fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: context.tr('search'),
-                        hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: Colors.grey[600], size: 20),
+                        hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                        prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 7),
                       ),
                     ),
                   ),
@@ -3807,12 +3086,12 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
             child: FutureBuilder<CollectionReference>(
               future: FirestoreService().getStoreCollection('creditNotes'),
               builder: (context, collectionSnapshot) {
-                if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 
                 return StreamBuilder<QuerySnapshot>(
                   stream: collectionSnapshot.data!.orderBy('timestamp', descending: true).snapshots(),
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return _buildEmptyState();
@@ -3829,9 +3108,10 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       return true;
                     }).toList();
 
-                    return ListView.builder(
+                    return ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: docs.length,
+                      separatorBuilder: (c, i) => const SizedBox(height: 10),
                       itemBuilder: (context, index) => _buildCreditNoteCard(docs[index]),
                     );
                   },
@@ -3846,21 +3126,21 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
 
   Widget _buildStatusFilter() {
     return Container(
-      height: 48,
+      height: 46,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: kWhite,
+        color: kPrimaryColor.withOpacity(0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kPrimaryBlue),
+        border: Border.all(color: kGrey200),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _filterStatus,
           dropdownColor: kWhite,
-          icon: const Icon(Icons.filter_list, color: kPrimaryBlue, size: 20),
+          icon: const Icon(Icons.tune_rounded, color: kPrimaryColor, size: 20),
           items: ['All', 'Available', 'Used'].map((s) => DropdownMenuItem(
               value: s,
-              child: Text(s, style: const TextStyle(color: kDeepNavy, fontWeight: FontWeight.bold, fontSize: 13))
+              child: Text(s, style: const TextStyle(color: kBlack87, fontWeight: FontWeight.bold, fontSize: 13))
           )).toList(),
           onChanged: (v) => setState(() => _filterStatus = v!),
         ),
@@ -3873,52 +3153,82 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
     final status = data['status'] ?? 'Available';
     final amount = (data['amount'] ?? 0.0) as num;
     final timestamp = data['timestamp'] as Timestamp?;
+    final dateStr = timestamp != null ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate()) : '--';
     final isAvailable = status.toLowerCase() == 'available';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
-      child: InkWell(
-        onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => CreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kDeepNavy)),
-                      const SizedBox(height: 4),
-                      Text(timestamp != null ? DateFormat('dd MMM, yyyy').format(timestamp.toDate()) : '--', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    ],
-                  ),
-                  _buildStatusPill(status),
-                ],
-              ),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildLabelValue("CUSTOMER", data['customerName'] ?? 'Walk-in'),
-                  Text("${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: isAvailable ? kSuccessGreen : kErrorRed)),
-                ],
-              ),
-            ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => _CreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(data['creditNoteNumber'] ?? 'CN-N/A', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                    Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
+                      child: const Icon(Icons.note_rounded, size: 16, color: kBlack54),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(data['customerName'] ?? 'Walk-in Customer',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
+                    ),
+                    Text("Rs ${amount.toStringAsFixed(2)}",
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                  ],
+                ),
+                const Divider(height: 20, color: kGrey100),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("FOR INVOICE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                          Text(data['invoiceNumber'] ?? 'Manual Entry', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87))
+                        ],
+                      ),
+                    ),
+                    _statusBadge(isAvailable),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _statusBadge(bool available) {
+    final Color c = available ? kGoogleGreen : kErrorColor;
+    return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+            color: c.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: c.withOpacity(0.2))),
+        child: Text(available ? "AVAILABLE" : "USED",
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c)));
   }
 
   Widget _buildEmptyState() {
@@ -3926,10 +3236,350 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey[200]),
-          const SizedBox(height: 12),
-          Text("No records found", style: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w600)),
+          Icon(Icons.inventory_2_outlined, size: 64, color: kGrey300),
+          const SizedBox(height: 16),
+          Text(context.tr('no_records_found'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// INTERNAL SUB-PAGE: CREDIT NOTE DETAIL
+// ==========================================
+class _CreditNoteDetailPage extends StatelessWidget {
+  final String documentId;
+  final Map<String, dynamic> creditNoteData;
+
+  const _CreditNoteDetailPage({required this.documentId, required this.creditNoteData});
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = (creditNoteData['amount'] ?? 0.0) as num;
+    final status = creditNoteData['status'] ?? 'Available';
+    final items = (creditNoteData['items'] as List<dynamic>? ?? []);
+    final ts = creditNoteData['timestamp'] as Timestamp?;
+    final dateStr = ts != null ? DateFormat('dd MMM yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final bool isAvailable = status.toLowerCase() == 'available';
+
+    return Scaffold(
+      backgroundColor: kPrimaryColor,
+      appBar: AppBar(
+        title: const Text('Credit Note Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
+              child: Row(
+                children: [
+                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.person, color: kOrange, size: 18)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(creditNoteData['customerName'] ?? 'Walk-in Customer', style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700)),
+                      Text(creditNoteData['customerPhone'] ?? '--', style: const TextStyle(color: kBlack54, fontSize: 11)),
+                    ]),
+                  ),
+                  _buildStatusTag(isAvailable),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('NOTE INFORMATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 12),
+                    _buildDetailRow(Icons.receipt_long_rounded, 'Reference ID', creditNoteData['creditNoteNumber'] ?? 'N/A'),
+                    _buildDetailRow(Icons.history_rounded, 'Against Invoice', creditNoteData['invoiceNumber'] ?? 'Manual'),
+                    _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
+                    _buildDetailRow(Icons.info_outline_rounded, 'Reason', creditNoteData['reason'] ?? 'Not Specified'),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      const Text('TOTAL CREDIT VALUE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
+                      Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    ]),
+                    const SizedBox(height: 24),
+                    const Text('RETURNED ITEMS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 12),
+                    ...items.map((i) => _buildItemTile(i)).toList(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildStatusTag(bool available) {
+    final Color c = available ? kGoogleGreen : kErrorColor;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+      child: Text(available ? "AVAILABLE" : "USED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: c)),
+    );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(icon, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
+
+  Widget _buildItemTile(Map<String, dynamic> i) => Container(padding: const EdgeInsets.symmetric(vertical: 8), decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(i['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87)), Text("${i['quantity']} × Rs ${(i['price'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(color: kBlack54, fontSize: 11))])), Text("Rs ${((i['price'] ?? 0) * (i['quantity'] ?? 1)).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))]));
+}
+
+class LedgerEntry {
+  final DateTime date; final String type; final String desc; final double debit; final double credit; double balance;
+  LedgerEntry({required this.date, required this.type, required this.desc, required this.debit, required this.credit, this.balance = 0});
+}
+
+class CustomerLedgerPage extends StatefulWidget {
+  final String customerId; final String customerName;
+  const CustomerLedgerPage({super.key, required this.customerId, required this.customerName});
+  @override State<CustomerLedgerPage> createState() => _CustomerLedgerPageState();
+}
+
+class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
+  List<LedgerEntry> _entries = []; bool _loading = true;
+
+  @override
+  void initState() { super.initState(); _loadLedger(); }
+
+  Future<void> _loadLedger() async {
+    final sales = await FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: widget.customerId).get());
+    final credits = await FirestoreService().getStoreCollection('credits').then((c) => c.where('customerId', isEqualTo: widget.customerId).get());
+    List<LedgerEntry> entries = [];
+    for (var doc in sales.docs) {
+      final d = doc.data() as Map<String, dynamic>;
+      final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final total = (d['total'] ?? 0.0).toDouble();
+      final mode = d['paymentMode'] ?? 'Unknown';
+      entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0));
+      if (mode == 'Cash' || mode == 'Online') {
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Immediate Payment", debit: 0, credit: total));
+      } else if (mode == 'Split') {
+        final paid = (d['cashReceived'] ?? 0.0).toDouble();
+        if (paid > 0) entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Partial Payment", debit: 0, credit: paid));
+      }
+    }
+    for (var doc in credits.docs) {
+      final d = doc.data() as Map<String, dynamic>;
+      final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+      final amt = (d['amount'] ?? 0.0).toDouble();
+      final type = d['type'] ?? '';
+      final method = d['method'] ?? '';
+      if (type == 'payment_received') {
+        entries.add(LedgerEntry(date: date, type: 'CR', desc: "Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: amt));
+      } else if (type == 'add_credit') {
+        entries.add(LedgerEntry(date: date, type: 'DR', desc: "Sales Credit Added (${method.isNotEmpty ? method : 'Manual'})", debit: amt, credit: 0));
+      }
+    }
+    entries.sort((a, b) => a.date.compareTo(b.date));
+    double running = 0;
+    for (var e in entries) {
+      running += (e.debit - e.credit);
+      e.balance = running;
+    }
+    if (mounted) setState(() { _entries = entries.reversed.toList(); _loading = false; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kWhite,
+      appBar: AppBar(title: Text("${widget.customerName} Ledger", style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+      body: _loading ? const Center(child: CircularProgressIndicator(color: kPrimaryColor)) : Column(children: [
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          color: kPrimaryColor.withOpacity(0.05),
+          child: const Row(children: [
+            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
+          ]),
+        ),
+        Expanded(child: ListView.separated(
+          itemCount: _entries.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+          itemBuilder: (c, i) {
+            final e = _entries[i];
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              child: Row(children: [
+                Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
+                Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
+              ]),
+            );
+          },
+        )),
+        _buildClosingBar(),
+      ]),
+    );
+  }
+
+  Widget _buildClosingBar() {
+    final bal = _entries.isNotEmpty ? _entries.first.balance : 0.0;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+        const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+        Text("Rs ${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+      ]),
+    );
+  }
+}
+class CustomerBillsPage extends StatelessWidget {
+  final String phone; const CustomerBillsPage({super.key, required this.phone});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      body: FutureBuilder<QuerySnapshot>(
+        future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          final docs = snapshot.data!.docs;
+          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)));
+          return ListView.separated(
+            padding: const EdgeInsets.all(16), itemCount: docs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+              return Container(
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: ListTile(
+                  title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
+                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  trailing: Text("Rs ${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class CustomerCreditsPage extends StatelessWidget {
+  final String customerId; const CustomerCreditsPage({super.key, required this.customerId});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(title: const Text("Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      body: FutureBuilder<QuerySnapshot>(
+        future: _fetchCredits(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))]));
+          final docs = snapshot.data!.docs;
+          return ListView.separated(
+            padding: const EdgeInsets.all(16), itemCount: docs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final data = docs[index].data() as Map<String, dynamic>;
+              bool isPayment = data['type'] == 'payment_received';
+              final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+              return Container(
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: ListTile(
+                  leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
+                  title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+                  subtitle: Text("${DateFormat('dd MMM yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  trailing: Text("Rs ${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<QuerySnapshot> _fetchCredits() async {
+    try {
+      final collection = await FirestoreService().getStoreCollection('credits');
+      return await collection.where('customerId', isEqualTo: customerId).orderBy('timestamp', descending: true).get();
+    } catch (e) {
+      final collection = await FirestoreService().getStoreCollection('credits');
+      return await collection.where('customerId', isEqualTo: customerId).get();
+    }
+  }
+}
+class _ReceiveCreditPage extends StatefulWidget {
+  final String customerId; final Map<String, dynamic> customerData; final double currentBalance;
+  const _ReceiveCreditPage({required this.customerId, required this.customerData, required this.currentBalance});
+  @override State<_ReceiveCreditPage> createState() => _ReceiveCreditPageState();
+}
+
+class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
+  final TextEditingController _amountController = TextEditingController();
+  double _amt = 0.0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(widget.customerData['name'] ?? 'Customer', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kOrange)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
+              Text("Rs ${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
+            ]),
+          ),
+          const SizedBox(height: 32),
+          const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
+            decoration: InputDecoration(prefixText: "Rs ", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
+          ),
+          const Spacer(),
+          SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () async {
+              if (_amt <= 0) return;
+              final cCol = await FirestoreService().getStoreCollection('customers');
+              final crCol = await FirestoreService().getStoreCollection('credits');
+              await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
+              await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+          )),
+        ]),
       ),
     );
   }
@@ -4027,7 +3677,7 @@ class CreditNoteDetailPage extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: kPrimaryBlue,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [BoxShadow(color: kPrimaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Column(
@@ -4054,7 +3704,7 @@ class CreditNoteDetailPage extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: const Text('Confirm Refund', style: TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -4245,20 +3895,20 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: _bgColor,
+        backgroundColor: kGreyBg,
         appBar: AppBar(
           elevation: 0,
-          backgroundColor: _primaryColor,
-          iconTheme: const IconThemeData(color: Colors.white),
+          backgroundColor: kPrimaryColor,
+          iconTheme: const IconThemeData(color: kWhite),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back, size: 22),
+            onPressed: widget.onBack,
           ),
           title: _isSearching
               ? TextField(
             controller: _searchController,
             autofocus: true,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: kWhite, fontSize: 16),
             decoration: const InputDecoration(
               hintText: "Search name or contact...",
               hintStyle: TextStyle(color: Colors.white70),
@@ -4267,12 +3917,12 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           )
               : const Text(
             'Credit Tracker',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18),
           ),
           centerTitle: true,
           actions: [
             IconButton(
-              icon: Icon(_isSearching ? Icons.close : Icons.search),
+              icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
               onPressed: () => setState(() {
                 _isSearching = !_isSearching;
                 if (!_isSearching) _searchController.clear();
@@ -4280,10 +3930,10 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ),
           ],
           bottom: const TabBar(
-            indicatorColor: Colors.white,
-            indicatorWeight: 10,
-            labelStyle: TextStyle(fontWeight: FontWeight.bold, color: Colors.white,fontSize: 13),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal,  color: Colors.white,fontSize: 13),
+            indicatorColor: kWhite,
+            indicatorWeight: 4,
+            labelStyle: TextStyle(fontWeight: FontWeight.w800, color: kWhite, fontSize: 12, letterSpacing: 0.5),
+            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70, fontSize: 12),
             tabs: [
               Tab(text: "SALES CREDIT"),
               Tab(text: "PURCHASE CREDIT"),
@@ -4313,7 +3963,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             final docs = snapshot.data?.docs ?? [];
             final filtered = docs.where((d) {
               final data = d.data() as Map<String, dynamic>;
-              final name = data['name'].toString().toLowerCase();
+              final name = (data['name'] ?? '').toString().toLowerCase();
               final phone = (data['phone'] ?? '').toString().toLowerCase();
               return name.contains(_searchQuery) || phone.contains(_searchQuery);
             }).toList();
@@ -4331,7 +3981,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               itemCount: filtered.length + 1,
               separatorBuilder: (c, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index == 0) return _buildTotalSummary(totalSalesCredit, _successColor, "TOTAL RECEIVABLE");
+                if (index == 0) return _buildTotalSummary(totalSalesCredit, kGoogleGreen, "TOTAL RECEIVABLE");
                 return _buildSalesCard(filtered[index - 1]);
               },
             );
@@ -4354,7 +4004,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             final docs = snapshot.data?.docs ?? [];
             final filtered = docs.where((d) {
               final data = d.data() as Map<String, dynamic>;
-              final supplier = data['supplierName'].toString().toLowerCase();
+              final supplier = (data['supplierName'] ?? '').toString().toLowerCase();
               final noteNo = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
               return supplier.contains(_searchQuery) || noteNo.contains(_searchQuery);
             }).toList();
@@ -4373,7 +4023,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               itemCount: filtered.length + 1,
               separatorBuilder: (c, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index == 0) return _buildTotalSummary(totalPurchaseCredit, _errorColor, "TOTAL PAYABLE");
+                if (index == 0) return _buildTotalSummary(totalPurchaseCredit, kErrorColor, "TOTAL PAYABLE");
                 return _buildPurchaseCard(filtered[index - 1]);
               },
             );
@@ -4385,11 +4035,11 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildTotalSummary(double amount, Color color, String title) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.1)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.15)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -4397,11 +4047,16 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color.withOpacity(0.7))),
-              Text('${amount.toStringAsFixed(2)}', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: color)),
+              Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+              const SizedBox(height: 4),
+              Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
             ],
           ),
-          Icon(Icons.account_balance_wallet_rounded, color: color.withOpacity(0.3), size: 32),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(Icons.account_balance_wallet_rounded, color: color, size: 24),
+          ),
         ],
       ),
     );
@@ -4412,20 +4067,17 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final customerName = (data['name'] ?? 'Walk-in Customer').toString();
     final balance = (data['balance'] ?? 0.0).toDouble();
     final phone = (data['phone'] ?? 'N/A').toString();
-    final lastUpdated = data['lastUpdated'] as Timestamp?;
-    final date = lastUpdated != null ? DateFormat('dd MMM yyyy').format(lastUpdated.toDate()) : 'Recent';
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _showCustomerSettlementDialog(doc.id, data, balance),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -4433,31 +4085,35 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               children: [
                 Row(
                   children: [
-                    Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.grey[50], shape: BoxShape.circle), child: const Icon(Icons.person_outline, size: 18, color: Colors.grey)),
-                    const SizedBox(width: 12),
+                    CircleAvatar(
+                      backgroundColor: kOrange.withOpacity(0.1),
+                      radius: 18,
+                      child: const Icon(Icons.person, color: kOrange, size: 18),
+                    ),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), overflow: TextOverflow.ellipsis),
-                          Text(phone, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                          Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                          Text(phone, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: _cardBorder)),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('BALANCE DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text('${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _successColor)),
+                        const Text('BALANCE DUE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        Text('Rs ${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
-                    _statusBadge("SETTLE", _primaryColor),
+                    _statusBadge("SETTLE", kGoogleGreen),
                   ],
                 ),
               ],
@@ -4476,19 +4132,18 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final supplierName = (data['supplierName'] ?? 'Supplier').toString();
     final noteNumber = (data['creditNoteNumber'] ?? 'N/A').toString();
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yyyy').format(timestamp.toDate()) : 'Recent';
+    final date = timestamp != null ? DateFormat('dd MMM yy').format(timestamp.toDate()) : 'Recent';
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _showSettleDialog(doc.id, data, remaining),
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -4497,30 +4152,34 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('CN-$noteNumber', style: const TextStyle(fontWeight: FontWeight.w900, color: _primaryColor, fontSize: 13)),
-                    Text(date, style: TextStyle(color: Colors.grey[400], fontSize: 11, fontWeight: FontWeight.w500)),
+                    Text('$noteNumber', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 12)),
+                    Text(date, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.grey[50], shape: BoxShape.circle), child: const Icon(Icons.store_outlined, size: 18, color: Colors.grey)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), overflow: TextOverflow.ellipsis)),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
+                      child: const Icon(Icons.store_rounded, size: 16, color: kBlack54),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBlack87), overflow: TextOverflow.ellipsis)),
                   ],
                 ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: _cardBorder)),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('PENDING AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-                        Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: _errorColor)),
+                        const Text('PENDING AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
-                    _statusBadge("RECORD", _successColor),
+                    _statusBadge("RECORD", kGoogleGreen),
                   ],
                 ),
               ],
@@ -4533,13 +4192,13 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _statusBadge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: color.withOpacity(0.2))),
-      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.2))),
+      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
     );
   }
 
-  // --- REFINED DIALOGS WITH FULL LOGIC ---
+  // --- REFINED DIALOGS ---
 
   void _showSettleDialog(String docId, Map<String, dynamic> data, double remaining) {
     final TextEditingController amountController = TextEditingController();
@@ -4550,42 +4209,33 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Settle Purchase', style: TextStyle(fontWeight: FontWeight.w900, color: _primaryColor)),
+          backgroundColor: kWhite,
+          title: const Text('Settle Purchase', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: _errorColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(color: kErrorColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: kErrorColor.withOpacity(0.15))),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('DUE AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _errorColor)),
-                    Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(color: _errorColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                    const Text('DUE AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
+                    Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Amount to Pay',
-                  prefixText: ' ',
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _cardBorder)),
-                ),
-              ),
+              _buildDialogField(amountController, 'Amount to Pay', Icons.money_rounded),
               const SizedBox(height: 20),
-              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, _successColor, (v) => paymentMode = v),
+              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
               const SizedBox(height: 8),
-              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, _primaryColor, (v) => paymentMode = v),
+              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -4593,8 +4243,8 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 Navigator.pop(ctx);
                 _performAsyncAction(() => _settlePurchaseCredit(docId, data, amount, paymentMode), "Purchase settled successfully");
               },
-              style: ElevatedButton.styleFrom(backgroundColor: _successColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-              child: const Text('CONFIRM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: const Text('CONFIRM', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -4611,46 +4261,37 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Customer Payment', style: TextStyle(fontWeight: FontWeight.w900, color: _primaryColor)),
+          backgroundColor: kWhite,
+          title: const Text('Customer Payment', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: _successColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withOpacity(0.15))),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('TOTAL DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _successColor)),
-                      Text('${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: _successColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                      const Text('TOTAL DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
+                      Text('Rs ${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                     ],
                   ),
                 ),
                 const SizedBox(height: 20),
-                TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: InputDecoration(
-                    labelText: 'Settlement Amount',
-                    prefixText: ' ',
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: _cardBorder)),
-                  ),
-                ),
+                _buildDialogField(amountController, 'Settlement Amount', Icons.currency_rupee_rounded),
                 const SizedBox(height: 20),
-                _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, _successColor, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
                 const SizedBox(height: 8),
-                _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, _primaryColor, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
                 const SizedBox(height: 8),
-                _buildPayOption(setDialogState, paymentMode, 'Waive Off', Icons.block_outlined, Colors.orange, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Waive Off', Icons.block_outlined, kOrange, (v) => paymentMode = v),
               ],
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -4658,10 +4299,25 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 Navigator.pop(ctx);
                 _performAsyncAction(() => _settleCustomerCredit(customerId, customerData, amount, paymentMode, currentBalance), "Payment recorded successfully");
               },
-              style: ElevatedButton.styleFrom(backgroundColor: _primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-              child: const Text('SETTLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon) {
+    return Container(
+      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        decoration: InputDecoration(
+          labelText: label, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
@@ -4674,12 +4330,12 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: sel ? color.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: sel ? color : _cardBorder)),
+        decoration: BoxDecoration(color: sel ? color.withOpacity(0.08) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: sel ? color : kGrey200)),
         child: Row(
           children: [
-            Icon(icon, color: sel ? color : Colors.grey, size: 18),
+            Icon(icon, color: sel ? color : kBlack54, size: 18),
             const SizedBox(width: 12),
-            Text(val, style: TextStyle(color: sel ? color : Colors.black87, fontWeight: sel ? FontWeight.w900 : FontWeight.bold, fontSize: 13)),
+            Text(val, style: TextStyle(color: sel ? color : kBlack87, fontWeight: sel ? FontWeight.w900 : FontWeight.w600, fontSize: 13)),
             const Spacer(),
             if (sel) Icon(Icons.check_circle_rounded, color: color, size: 18),
           ],
@@ -4688,19 +4344,19 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     );
   }
 
-  // --- ASYNC HELPERS FOR 0MS FEEL ---
+  // --- ASYNC HELPERS ---
 
   Future<void> _performAsyncAction(Future<void> Function() action, String successMsg) async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: _primaryColor)));
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
     try {
       await action();
       if (!mounted) return;
-      Navigator.pop(context); // Close loader
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMsg), backgroundColor: _successColor));
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(successMsg), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loader
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: _errorColor));
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))));
     }
   }
 
@@ -4730,13 +4386,13 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildEmptyState(String msg) {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.receipt_long_outlined, size: 60, color: _primaryColor.withOpacity(0.1)),
+      Icon(Icons.receipt_long_outlined, size: 60, color: kPrimaryColor.withOpacity(0.1)),
       const SizedBox(height: 16),
-      Text(msg, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+      Text(msg, style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
     ]));
   }
 
-  Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: _primaryColor));
+  Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 }
 // 4. PURCHASE CREDIT NOTE DETAIL PAGE
 // ==========================================
@@ -4843,7 +4499,7 @@ Widget _buildSectionCard({required Widget child, EdgeInsets? padding}) {
     padding: padding ?? const EdgeInsets.all(20),
     decoration: BoxDecoration(
       color: kWhite,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       border: Border.all(color: Colors.grey.shade200),
       boxShadow: [
         BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))
@@ -4964,7 +4620,7 @@ Widget _buildDialogOption({required VoidCallback onSelect, required String mode,
 
 
 // ==========================================
-// 1. CUSTOMERS MANAGEMENT PAGE
+// 1. CUSTOMEMANAGEMENT PAGE
 // ==========================================
 class CustomersPage extends StatefulWidget {
   final String uid;
@@ -5031,10 +4687,10 @@ class _CustomersPageState extends State<CustomersPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: kWhite,
         title: Text(context.tr('addnewcustomer'),
-            style: const TextStyle(fontWeight: FontWeight.w900, color: kDeepNavy, fontSize: 20)),
+            style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 18)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -5048,12 +4704,13 @@ class _CustomersPageState extends State<CustomersPage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: kErrorRed, fontWeight: FontWeight.bold))
+              child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: kPrimaryBlue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(context.tr('add'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
             onPressed: () async {
@@ -5079,102 +4736,113 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
+  void _showSortMenu() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Sort Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+            const SizedBox(height: 20),
+            _buildSortOption('Sort by Sales', 'sales', Icons.trending_up_rounded),
+            _buildSortOption('Sort by Credit', 'credit', Icons.account_balance_wallet_rounded),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortOption(String label, String value, IconData icon) {
+    bool isSelected = _sortBy == value;
+    return ListTile(
+      onTap: () {
+        setState(() => _sortBy = value);
+        Navigator.pop(context);
+      },
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isSelected ? kPrimaryBlue.withOpacity(0.1) : kGreyBg,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: isSelected ? kPrimaryBlue : kBlack54, size: 22),
+      ),
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? kPrimaryBlue : kBlack87)),
+      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryBlue, size: 20) : null,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kWhite,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         title: Text(context.tr('customer_management'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite),
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
           onPressed: widget.onBack,
         ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort, color: kWhite),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onSelected: (value) => setState(() => _sortBy = value),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'sales',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.arrow_upward,
-                      color: _sortBy == 'sales' ? kPrimaryBlue : Colors.grey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Sort by Sales',
-                      style: TextStyle(
-                        fontWeight: _sortBy == 'sales' ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'credit',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.arrow_downward,
-                      color: _sortBy == 'credit' ? kPrimaryBlue : Colors.grey,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Sort by Credit',
-                      style: TextStyle(
-                        fontWeight: _sortBy == 'credit' ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
       body: Column(
         children: [
-          // Search Header Area
+          // Updated Search Header Area with Sort Button
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             decoration: const BoxDecoration(
               color: kWhite,
-              border: Border(bottom: BorderSide(color: kSoftAzure, width: 2)),
+              border: Border(bottom: BorderSide(color: kGrey200)),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Container(
-                    height: 50,
+                    height: 46,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F5F5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: kSoftAzure),
+                      color: kPrimaryColor.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kGrey200),
                     ),
                     child: TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: kDeepNavy, fontWeight: FontWeight.w600, fontSize: 14),
+                      style: const TextStyle(color: kBlack87, fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search, color: kPrimaryBlue, size: 22),
+                        prefixIcon: const Icon(Icons.search, color: kPrimaryBlue, size: 20),
                         hintText: context.tr('search'),
-                        hintStyle: const TextStyle(color: kMediumBlue, fontSize: 14),
+                        hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 7),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                GestureDetector(
+                const SizedBox(width: 8),
+                // New Sort Button UI
+                InkWell(
+                  onTap: _showSortMenu,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 46,
+                    width: 46,
+                    decoration: BoxDecoration(
+                      color: kPrimaryBlue.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kGrey200),
+                    ),
+                    child: const Icon(Icons.sort_rounded, color: kPrimaryBlue, size: 22),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
                   onTap: () {
                     Navigator.push(
                       context,
@@ -5191,14 +4859,13 @@ class _CustomersPageState extends State<CustomersPage> {
                     });
                   },
                   child: Container(
-                    height: 50,
-                    width: 50,
+                    height: 46,
+                    width: 46,
                     decoration: BoxDecoration(
                       color: kPrimaryBlue,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(color: kPrimaryBlue.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.add, color: kWhite, size: 28),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: kWhite, size: 22),
                   ),
                 ),
               ],
@@ -5210,11 +4877,11 @@ class _CustomersPageState extends State<CustomersPage> {
             child: FutureBuilder<Stream<QuerySnapshot>>(
               future: FirestoreService().getCollectionStream('customers'),
               builder: (context, streamSnapshot) {
-                if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                if (!streamSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                 return StreamBuilder<QuerySnapshot>(
                   stream: streamSnapshot.data,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildManagerNoDataState(context.tr('no_customers_found'));
 
                     final docs = snapshot.data!.docs.where((d) {
@@ -5239,9 +4906,10 @@ class _CustomersPageState extends State<CustomersPage> {
                       }
                     });
 
-                    return ListView.builder(
+                    return ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: docs.length,
+                      separatorBuilder: (ctx, i) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final docId = docs[index].id;
                         final data = docs[index].data() as Map<String, dynamic>;
@@ -5267,62 +4935,107 @@ class _CustomersPageState extends State<CustomersPage> {
 
   Widget _buildCustomerCard(String docId, Map<String, dynamic> data) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kSoftAzure, width: 1.5),
-        boxShadow: [
-          BoxShadow(color: kPrimaryBlue.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            CupertinoPageRoute(builder: (context) => CustomerDetailsPage(customerId: docId, customerData: data)),
-          );
-        },
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: kSoftAzure,
-                    radius: 22,
-                    child: Text((data['name'] ?? 'U')[0].toUpperCase(),
-                        style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900, fontSize: 18)),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(data['name'] ?? 'Unknown',
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kDeepNavy)),
-                        Text(data['phone'] ?? '--',
-                            style: const TextStyle(color: kMediumBlue, fontSize: 13, fontWeight: FontWeight.w600)),
-                      ],
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(builder: (context) => CustomerDetailsPage(customerId: docId, customerData: data)),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: kPrimaryBlue.withOpacity(0.08),
+                      radius: 20,
+                      child: Text((data['name'] ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900, fontSize: 16)),
                     ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios, color: kSoftAzure, size: 16),
-                ],
-              ),
-              const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(height: 1, color: kSoftAzure, thickness: 1.5)),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kSuccessGreen),
-                  _buildManagerStatItem("CREDIT DUE", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
-                ],
-              ),
-            ],
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(data['name'] ?? 'Unknown',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                          Text(data['phone'] ?? '--',
+                              style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: kGrey400, size: 20),
+                  ],
+                ),
+                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryBlue),
+                    _buildManagerStatItem("CREDIT DUE", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
+    return Container(
+      decoration: BoxDecoration(
+          color: kPrimaryColor.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kGrey200)
+      ),
+      child: TextField(
+        controller: ctrl,
+        keyboardType: type,
+        style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87, fontSize: 14),
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: kPrimaryBlue, size: 18),
+          hintText: label,
+          hintStyle: const TextStyle(color: kBlack54, fontSize: 13),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManagerStatItem(String label, String value, Color color, {CrossAxisAlignment align = CrossAxisAlignment.start}) {
+    return Column(
+      crossAxisAlignment: align,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text("$value", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: color)),
+      ],
+    );
+  }
+
+  Widget _buildManagerNoDataState(String msg) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.people_outline_rounded, size: 64, color: kGrey300),
+          const SizedBox(height: 16),
+          Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
@@ -5381,7 +5094,7 @@ class StaffManagementList extends StatelessWidget {
                   stream: FirebaseFirestore.instance.collection('users').where('storeId', isEqualTo: storeIdSnapshot.data).snapshots(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
-                    if (snapshot.data!.docs.isEmpty) return _buildManagerNoDataState("No staff members registered");
+                    if (snapshot.data!.docs.isEmpty) return _buildManagerNoDataState("No staff memberegistered");
 
                     return ListView.builder(
                       padding: const EdgeInsets.all(16),
@@ -5394,7 +5107,7 @@ class StaffManagementList extends StatelessWidget {
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: kWhite,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: kSoftAzure, width: 1.5),
                           ),
                           child: ListTile(
@@ -5475,7 +5188,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kSoftAzure),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -5512,7 +5225,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryBlue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: const Text("CREATE STAFF ACCOUNT",
@@ -5530,7 +5243,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
     return Container(
       decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kSoftAzure)
       ),
       child: TextFormField(
@@ -5556,7 +5269,7 @@ Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconD
     height: 54,
     decoration: BoxDecoration(
         color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kSoftAzure)
     ),
     child: TextField(
@@ -5891,7 +5604,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                     children: [
                       Text(context.tr('amount')),
                       Text(
-                        'Rs ${totalReturnAmount.toStringAsFixed(2)}',
+                        '${totalReturnAmount.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -5904,7 +5617,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('${context.tr('gst')} :'),
-                      Text('Rs ${(totalReturnAmount * 0).toStringAsFixed(1)}'),
+                      Text('${(totalReturnAmount * 0).toStringAsFixed(1)}'),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -5919,7 +5632,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         ),
                       ),
                       Text(
-                        'Rs ${totalReturnAmount.toStringAsFixed(1)}',
+                        '${totalReturnAmount.toStringAsFixed(1)}',
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -6571,7 +6284,7 @@ class _EditBillPageState extends State<EditBillPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Add Discount', style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
           controller: _discountController,
@@ -6618,7 +6331,7 @@ class _EditBillPageState extends State<EditBillPage> {
           List<Map<String, dynamic>> tempSelected = List.from(_selectedCreditNotes);
           return StatefulBuilder(
             builder: (context, setDialogState) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               title: const Text('Select Credit Notes', style: TextStyle(fontWeight: FontWeight.bold)),
               content: SizedBox(
                 width: double.maxFinite,

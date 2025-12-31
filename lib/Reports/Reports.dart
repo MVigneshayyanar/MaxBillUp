@@ -454,7 +454,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                     ),
                                     barTouchData: BarTouchData(
                                       touchTooltipData: BarTouchTooltipData(
-                                        tooltipBgColor: kTextPrimary,
+                                        getTooltipColor: (group) => kTextPrimary,
                                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
                                           return BarTooltipItem(
                                             rod.toY.toStringAsFixed(0),
@@ -1100,7 +1100,7 @@ class TopCustomersPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Top Customers by Sales", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          const Text("Top Customeby Sales", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 20),
                           Expanded(
                             child: BarChart(

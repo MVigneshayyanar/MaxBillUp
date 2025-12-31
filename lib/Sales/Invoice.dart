@@ -24,7 +24,7 @@ enum InvoiceTemplate {
   colorful,   // Colorful Creative
 }
 
-// Template Colors - Classic (Black & White)
+// Template Colo- Classic (Black & White)
 const Color _bwPrimary = Colors.black;
 const Color _bwBg = Colors.white;
 const Color _textMain = Colors.black;
@@ -32,19 +32,19 @@ const Color _textSub = Color(0xFF424242); // Grey 800
 const Color _dividerColor = Color(0xFFE0E0E0); // Grey 300
 const Color _headerBg = Color(0xFFF5F5F5); // Grey 100
 
-// Template Colors - Modern (Blue)
+// Template Colo- Modern (Blue)
 const Color _modernPrimary = Color(0xFF2F7CF6);
 const Color _modernBg = Colors.white;
 const Color _modernAccent = Color(0xFF1565C0);
 const Color _modernHeaderBg = Color(0xFFE3F2FD);
 
-// Template Colors - Minimal (Gray)
+// Template Colo- Minimal (Gray)
 const Color _minimalPrimary = Color(0xFF37474F);
 const Color _minimalBg = Colors.white;
 const Color _minimalAccent = Color(0xFF78909C);
 const Color _minimalHeaderBg = Color(0xFFF5F5F5);
 
-// Template Colors - Colorful (Multi-color)
+// Template Colo- Colorful (Multi-color)
 const Color _colorfulPrimary = Color(0xFF6A1B9A);
 const Color _colorfulBg = Colors.white;
 const Color _colorfulAccent = Color(0xFFFF6F00);
@@ -1124,7 +1124,7 @@ class _InvoicePageState extends State<InvoicePage> {
                 ),
               ),
               Text(
-                "Rs ${widget.total.toStringAsFixed(2)}",
+                "${widget.total.toStringAsFixed(2)}",
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -1146,7 +1146,7 @@ class _InvoicePageState extends State<InvoicePage> {
         children: [
           Text(label, style: TextStyle(fontSize: 13, color: colors['textSub'])),
           Text(
-            "${isNegative ? '-' : ''}Rs ${amount.toStringAsFixed(2)}",
+            "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -1670,12 +1670,12 @@ class _InvoicePageState extends State<InvoicePage> {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.end,
               children: [
-                pw.Text("Subtotal: Rs ${widget.subtotal.toStringAsFixed(2)}"),
-                if (widget.discount > 0) pw.Text("Discount: Rs ${widget.discount.toStringAsFixed(2)}"),
+                pw.Text("Subtotal: ${widget.subtotal.toStringAsFixed(2)}"),
+                if (widget.discount > 0) pw.Text("Discount: ${widget.discount.toStringAsFixed(2)}"),
                 if (widget.taxes != null)
-                  ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
+                  ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
                 pw.Divider(),
-                pw.Text("TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                pw.Text("TOTAL: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
               ],
             ),
           ),
@@ -1794,10 +1794,10 @@ class _InvoicePageState extends State<InvoicePage> {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text("Subtotal: Rs ${widget.subtotal.toStringAsFixed(2)}"),
-                      if (widget.discount > 0) pw.Text("Discount: Rs ${widget.discount.toStringAsFixed(2)}"),
+                      pw.Text("Subtotal: ${widget.subtotal.toStringAsFixed(2)}"),
+                      if (widget.discount > 0) pw.Text("Discount: ${widget.discount.toStringAsFixed(2)}"),
                       if (widget.taxes != null)
-                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
+                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
                       pw.Container(
                         margin: const pw.EdgeInsets.only(top: 10),
                         padding: const pw.EdgeInsets.all(16),
@@ -1805,7 +1805,7 @@ class _InvoicePageState extends State<InvoicePage> {
                           color: PdfColors.blue,
                           borderRadius: pw.BorderRadius.circular(8),
                         ),
-                        child: pw.Text("TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                        child: pw.Text("TOTAL: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
                       ),
                     ],
                   ),
@@ -1879,12 +1879,12 @@ class _InvoicePageState extends State<InvoicePage> {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text("Subtotal: Rs ${widget.subtotal.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11)),
-                      if (widget.discount > 0) pw.Text("Discount: Rs ${widget.discount.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11)),
+                      pw.Text("Subtotal: ${widget.subtotal.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11)),
+                      if (widget.discount > 0) pw.Text("Discount: ${widget.discount.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11)),
                       if (widget.taxes != null)
-                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11))),
+                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 11))),
                       pw.Divider(),
-                      pw.Text("TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                      pw.Text("TOTAL: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -2002,10 +2002,10 @@ class _InvoicePageState extends State<InvoicePage> {
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text("Subtotal: Rs ${widget.subtotal.toStringAsFixed(2)}"),
-                      if (widget.discount > 0) pw.Text("Discount: Rs ${widget.discount.toStringAsFixed(2)}"),
+                      pw.Text("Subtotal: ${widget.subtotal.toStringAsFixed(2)}"),
+                      if (widget.discount > 0) pw.Text("Discount: ${widget.discount.toStringAsFixed(2)}"),
                       if (widget.taxes != null)
-                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
+                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
                       pw.Container(
                         margin: const pw.EdgeInsets.only(top: 10),
                         padding: const pw.EdgeInsets.all(16),
@@ -2013,7 +2013,7 @@ class _InvoicePageState extends State<InvoicePage> {
                           color: PdfColors.purple,
                           borderRadius: pw.BorderRadius.circular(8),
                         ),
-                        child: pw.Text("TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                        child: pw.Text("TOTAL: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
                       ),
                     ],
                   ),

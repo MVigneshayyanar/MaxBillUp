@@ -61,7 +61,7 @@ class LocalStockService extends ChangeNotifier {
       // Track pending update for sync when online
       await _addPendingUpdate(productId, quantityChange);
 
-      // NOTIFY ALL LISTENERS - This triggers UI rebuild in SaleAll page!
+      // NOTIFY ALL LISTENE- This triggeUI rebuild in SaleAll page!
       notifyListeners();
     } catch (e) {
       print('❌ Error updating local stock: $e');
@@ -125,7 +125,7 @@ class LocalStockService extends ChangeNotifier {
       // Clear pending updates since we have fresh data
       await clearPendingUpdates();
 
-      // Notify all listeners to update UI
+      // Notify all listeneto update UI
       notifyListeners();
     } catch (e) {
       print('❌ Error refreshing from Firestore: $e');

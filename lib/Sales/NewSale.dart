@@ -35,6 +35,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   // Track specific highlighted product ID
   String? _highlightedProductId;
 
+  // Animation counter to force re-animation of same product
+  int _animationCounter = 0;
+
   // Animation controller for smooth highlight effect
   AnimationController? _highlightController;
   Animation<Color?>? _highlightAnimation;
@@ -52,7 +55,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
-  // Saved orders count
+  // Saved ordecount
   int _savedOrderCount = 0;
 
   @override
@@ -63,16 +66,16 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
     // Initialize animation controller
     _highlightController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 1000),  // Increased from 600ms to 1000ms for better visibility
       vsync: this,
     );
 
     _highlightAnimation = ColorTween(
-      begin: Colors.green.withOpacity(0.4),
-      end: Colors.green.withOpacity(0.05),
+      begin: Colors.green.withValues(alpha: 0.6),  // More prominent green (60% opacity)
+      end: Colors.green.withValues(alpha: 0.0),    // Fade to transparent
     ).animate(CurvedAnimation(
       parent: _highlightController!,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,  // Smooth fade out
     ));
 
     if (widget.savedOrderData != null) {
@@ -81,7 +84,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       _selectedTabIndex = 1; // Switch to "All" tab to show the cart with items
     }
 
-    // Listen to saved orders count
+    // Listen to saved ordecount
     _listenToSavedOrdersCount();
   }
 
@@ -157,59 +160,32 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
   /// Enhanced logic to detect which specific item changed and trigger its highlight.
   void _updateCartItems(List<CartItem> items) {
+    print('🔄 _updateCartItems called with ${items.length} items');
     String? triggerId;
     List<CartItem> updatedItems = List<CartItem>.from(items);
 
-    // 1. Detect if an item quantity increased (already in cart)
-    if (_sharedCartItems != null) {
-      for (var newItem in items) {
-        try {
-          final oldItem = _sharedCartItems!.firstWhere((i) => i.productId == newItem.productId);
-          if (newItem.quantity > oldItem.quantity) {
-            triggerId = newItem.productId;
-            break;
-          }
-        } catch (_) {}
-      }
+    // Simple approach: The first item in the cart is always the one just added/modified
+    // because saleall.dart moves it to index 0
+    if (items.isNotEmpty) {
+      triggerId = items[0].productId;
+      print('✅ Triggering animation for first item (most recently modified): $triggerId');
     }
 
-    // 2. Detect if a brand new item was added
-    if (triggerId == null && items.length > (_sharedCartItems?.length ?? 0)) {
-      final oldIds = _sharedCartItems?.map((i) => i.productId).toSet() ?? {};
-      for (var item in items) {
-        if (!oldIds.contains(item.productId)) {
-          triggerId = item.productId;
-          break;
-        }
-      }
-    }
+    print('🎯 Final triggerId: $triggerId');
 
-    // 3. Move the triggered item to the top and activate its specific highlight
+    // Move the triggered item to the top (should already be there, but ensure it)
     if (triggerId != null) {
       final idx = updatedItems.indexWhere((e) => e.productId == triggerId);
-      if (idx != -1) {
+      if (idx != -1 && idx != 0) {
         final item = updatedItems.removeAt(idx);
         updatedItems.insert(0, item);
       }
 
-      // FORCE animation restart by clearing highlight first
-      if (_highlightedProductId == triggerId) {
-        // Item already highlighted - force re-animation
-        setState(() {
-          _highlightedProductId = null;
-        });
-
-        // Wait a frame before re-triggering
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _triggerHighlight(triggerId!, updatedItems);
-          }
-        });
-      } else {
-        // New item to highlight
-        _triggerHighlight(triggerId, updatedItems);
-      }
+      // Always trigger highlight - the counter ensures animation restarts even for same item
+      print('🟢 Calling _triggerHighlight for $triggerId');
+      _triggerHighlight(triggerId, updatedItems);
     } else {
+      print('⚠️ No trigger detected, just updating state');
       setState(() {
         _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
       });
@@ -217,20 +193,29 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _triggerHighlight(String productId, List<CartItem> updatedItems) {
-    // Reset and restart animation
+    print('🎬 _triggerHighlight called for productId: $productId');
+    print('   Current _highlightedProductId: $_highlightedProductId');
+    print('   Current _animationCounter: $_animationCounter');
+
+    // Always reset and restart animation, even for same product
     _highlightController?.reset();
+    print('   ✓ Animation controller reset');
 
     setState(() {
       _highlightedProductId = productId;
+      _animationCounter++; // Increment to force state change
       _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
+      print('   ✓ State updated - new counter: $_animationCounter');
     });
 
     // Start the highlight animation
     _highlightController?.forward();
+    print('   ✓ Animation started forward');
 
     // Clear highlight after animation completes + delay
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && _highlightedProductId == productId) {
+        print('   🔚 Clearing highlight for $productId');
         setState(() {
           _highlightedProductId = null;
         });
@@ -303,7 +288,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                             _dialogLabel('Quantity'),
                             Container(
                               decoration: BoxDecoration(
-                                color: kGrey100,
+                                color: kGreyBg,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: kGrey300),
                               ),
@@ -660,7 +645,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                 animation: _highlightAnimation!,
                 builder: (context, child) {
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 0),
                     itemCount: _sharedCartItems?.length ?? 0,
                     separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F9)),
                     itemBuilder: (ctx, idx) {
@@ -676,7 +661,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         decoration: BoxDecoration(
                           // Use animated color for smooth transition
                           color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(0),
                         ),
                         child: Row(
                           children: [

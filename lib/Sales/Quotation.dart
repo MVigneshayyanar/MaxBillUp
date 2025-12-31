@@ -483,7 +483,7 @@ class _QuotationPageState extends State<QuotationPage> {
     final bool isPerc = _isItemDiscountPercentage[index];
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGreyBg))),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -621,7 +621,7 @@ class _QuotationPageState extends State<QuotationPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
+        Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
       ],
     );
   }
@@ -655,7 +655,7 @@ class _QuotationPageState extends State<QuotationPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Subtotal', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-            Text('Rs ${subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+            Text('${subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
           ]
         ),
         const SizedBox(height: 8),
@@ -666,7 +666,7 @@ class _QuotationPageState extends State<QuotationPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Tax', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-              Text('Rs ${totalTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+              Text('${totalTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
             ]
           ),
           const SizedBox(height: 8),
@@ -678,7 +678,7 @@ class _QuotationPageState extends State<QuotationPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Discount (${perc.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-              Text('- Rs ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
+              Text('- ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
             ]
           ),
           const SizedBox(height: 8),
@@ -691,7 +691,7 @@ class _QuotationPageState extends State<QuotationPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Net Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
-            Text('Rs ${finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))
+            Text('${finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))
           ]
         ),
       ],
@@ -789,10 +789,10 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                         final p = (data['phone'] ?? '').toString().toLowerCase();
                         return n.contains(_searchQuery) || p.contains(_searchQuery);
                       }).toList();
-                      if (docs.isEmpty) return const Center(child: Text('No customers found'));
+                      if (docs.isEmpty) return const Center(child: Text('No customefound'));
                       return ListView.separated(
                         itemCount: docs.length,
-                        separatorBuilder: (ctx, i) => const Divider(color: kGrey100),
+                        separatorBuilder: (ctx, i) => const Divider(color: kGreyBg),
                         itemBuilder: (context, index) {
                           final data = docs[index].data() as Map<String, dynamic>;
                           return ListTile(

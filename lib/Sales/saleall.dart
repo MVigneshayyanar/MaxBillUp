@@ -25,7 +25,7 @@ class SaleAllPage extends StatefulWidget {
   final Function(List<CartItem>)? onCartChanged;
   final String? savedOrderId;
   final bool isQuotationMode;
-  final Function(bool)? onSearchFocusChanged; // Callback to notify parent when search focus changes
+  final Function(bool)? onSearchFocusChanged;
   final String? customerPhone;
   final String? customerName;
   final String? customerGST;
@@ -92,7 +92,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
       _loadOrder(widget.savedOrderData!);
     }
 
-    // Sync local customer state with parent
     _selectedCustomerPhone = widget.customerPhone;
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
@@ -109,7 +108,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
   @override
   void didUpdateWidget(SaleAllPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Sync cart changes from parent when initialCartItems changes
     if (widget.initialCartItems != oldWidget.initialCartItems) {
       if (widget.initialCartItems != null) {
         setState(() {
@@ -118,7 +116,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
         });
       }
     }
-    // Sync local customer state with parent on update
     if (widget.customerPhone != oldWidget.customerPhone ||
         widget.customerName != oldWidget.customerName ||
         widget.customerGST != oldWidget.customerGST) {
@@ -148,7 +145,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final snap = await collection.get();
 
       final categorySet = <String>{};
-      bool hasLowStockProducts = false;
 
       for (var doc in snap.docs) {
         final data = doc.data() as Map<String, dynamic>;
@@ -156,39 +152,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
         if (cat.toString().isNotEmpty) {
           categorySet.add(cat.toString());
         }
-
-        // Check if product has low stock
-        final stockEnabled = data['stockEnabled'] ?? false;
-        if (stockEnabled) {
-          final currentStock = (data['currentStock'] ?? 0.0).toDouble();
-          final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
-          final lowStockAlertType = data['lowStockAlertType'] ?? 'Count';
-
-          if (lowStockAlert > 0) {
-            bool isLowStock = false;
-            if (lowStockAlertType == 'Count') {
-              isLowStock = currentStock <= lowStockAlert;
-            } else if (lowStockAlertType == 'Percentage') {
-              // Assuming initial stock was stored or we use a reasonable estimate
-              // For simplicity, we'll use current stock vs alert percentage
-              isLowStock = currentStock <= lowStockAlert;
-            }
-
-            if (isLowStock) {
-              hasLowStockProducts = true;
-            }
-          }
-        }
       }
 
       if (mounted) {
         setState(() {
           _categories.clear();
           _categories.add('All');
-          if (hasLowStockProducts) {
-            _categories.add('Low Stock');
-          }
-          _categories.add('Favorite'); // Heart icon tab
+          _categories.add('Favorite');
           _categories.addAll(categorySet.toList()..sort());
           _isLoadingCategories = false;
         });
@@ -252,23 +222,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ));
     }
 
-    // Trigger +1 animation
     setState(() {
       _animatingProductId = id;
       _animationCounter++;
     });
 
-    // Clear animation after 800ms
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted && _animatingProductId == id) {
         setState(() {
           _animatingProductId = null;
         });
       }
-    });
-
-    Future.delayed(const Duration(seconds: 1), () {
-      if (mounted) setState(() {});
     });
 
     widget.onCartChanged?.call(_cart);
@@ -317,359 +281,131 @@ class _SaleAllPageState extends State<SaleAllPage> {
     }
   }
 
-  Future<void> _directPrintWithCash() async {
-    if (_cart.isEmpty) {
-      CommonWidgets.showSnackBar(context, 'Cart is empty!', bgColor: kOrange);
-      return;
-    }
-
-    try {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      // Generate invoice number
-      final invoiceNumber = await NumberGeneratorService.generateInvoiceNumber();
-
-      // Check connectivity
-      bool isOnline = false;
-      try {
-        final connectivityResult = await Connectivity().checkConnectivity().timeout(
-          const Duration(seconds: 2),
-          onTimeout: () => [ConnectivityResult.none],
-        );
-        isOnline = !connectivityResult.contains(ConnectivityResult.none);
-      } catch (e) {
-        isOnline = false;
-      }
-
-      // Fetch business details
-      final businessDetails = await _fetchBusinessDetails();
-      final staffName = await _fetchStaffName(widget.uid);
-      final businessName = businessDetails['businessName'];
-      final businessLocation = businessDetails['location'];
-      final businessPhone = businessDetails['businessPhone'];
-
-      debugPrint('✅ Using Business Name: $businessName');
-      debugPrint('✅ Using Location: $businessLocation');
-      debugPrint('✅ Using Phone: $businessPhone');
-      debugPrint('✅ Staff Name: $staffName');
-
-      // Calculate tax information
-      final Map<String, double> taxMap = {};
-      for (var item in _cart) {
-        if (item.taxAmount > 0 && item.taxName != null) {
-          taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount;
-        }
-      }
-      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
-      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
-
-      final subtotalAmount = _cart.fold(0.0, (sum, item) {
-        if (item.taxType == 'Price includes Tax') {
-          return sum + (item.basePrice * item.quantity);
-        } else {
-          return sum + item.total;
-        }
-      });
-      final totalWithTax = _cart.fold(0.0, (sum, item) => sum + item.totalWithTax);
-
-      // Base sale data
-      final baseSaleData = {
-        'invoiceNumber': invoiceNumber,
-        'items': _cart.map((e) => {
-          'productId': e.productId,
-          'name': e.name,
-          'quantity': e.quantity,
-          'price': e.price,
-          'total': e.total
-        }).toList(),
-        'subtotal': _total,
-        'discount': 0.0,
-        'total': _total,
-        'taxes': taxList,
-        'totalTax': totalTax,
-        'paymentMode': 'Cash',
-        'cashReceived': _total,
-        'change': 0.0,
-        'creditAmount': 0.0,
-        'date': DateTime.now().toIso8601String(),
-        'staffId': widget.uid,
-        'staffName': staffName ?? 'Staff',
-        'businessLocation': businessLocation ?? 'Location',
-        'businessPhone': businessPhone ?? '',
-        'businessName': businessName ?? 'Business',
-      };
-
-      if (isOnline) {
-        // Save online
-        final saleData = {...baseSaleData, 'timestamp': FieldValue.serverTimestamp()};
-        await FirestoreService().addDocument('sales', saleData).timeout(const Duration(seconds: 10));
-        await _updateProductStock();
-      } else {
-        // Save offline
-        final saleSyncService = context.read<SaleSyncService>();
-        final sale = Sale(
-          id: invoiceNumber,
-          data: baseSaleData,
-          isSynced: false,
-        );
-        await saleSyncService.saveSale(sale);
-        final localStockService = context.read<LocalStockService>();
-        for (var item in _cart) {
-          if (item.productId.isNotEmpty) {
-            final currentStock = localStockService.getStock(item.productId);
-            final newStock = currentStock - item.quantity;
-            localStockService.cacheStock(item.productId, newStock);
-          }
-        }
-      }
-
-      // Close loading dialog
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
-
-      // Navigate to Invoice
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          CupertinoPageRoute(
-            builder: (_) => InvoicePage(
-              uid: widget.uid,
-              userEmail: widget.userEmail,
-              businessName: businessName ?? 'Business',
-              businessLocation: businessLocation ?? 'Location',
-              businessPhone: businessPhone ?? '',
-              invoiceNumber: invoiceNumber,
-              dateTime: DateTime.now(),
-              items: _cart.map((e) => {
-                'name': e.name,
-                'quantity': e.quantity,
-                'price': e.price,
-                'total': e.totalWithTax,
-                'taxPercentage': e.taxPercentage ?? 0,
-                'taxAmount': e.taxAmount,
-              }).toList(),
-              subtotal: subtotalAmount,
-              discount: 0.0,
-              taxes: taxList,
-              total: totalWithTax,
-              paymentMode: 'Cash',
-              cashReceived: _total,
-            ),
-          ),
-        ).then((_) {
-          // Clear cart after invoice
-          _cart.clear();
-          widget.onCartChanged?.call(_cart);
-          if (mounted) setState(() {});
-        });
-      }
-    } catch (e) {
-      debugPrint('Error in direct print: $e');
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        CommonWidgets.showSnackBar(context, 'Error: ${e.toString()}', bgColor: kErrorColor);
-      }
-    }
-  }
-
-  Future<Map<String, String?>> _fetchBusinessDetails() async {
-    try {
-      debugPrint('🔍 Fetching business details for uid: ${widget.uid}');
-
-      // Use FirestoreService to get current store document
-      final firestoreService = FirestoreService();
-      final storeDoc = await firestoreService.getCurrentStoreDoc();
-
-      debugPrint('📄 Store doc exists: ${storeDoc?.exists}');
-
-      if (storeDoc != null && storeDoc.exists) {
-        final data = storeDoc.data() as Map<String, dynamic>?;
-        debugPrint('📦 Store data: $data');
-        debugPrint('🏢 Business Name: ${data?['businessName']}');
-        debugPrint('📍 Location: ${data?['location']} or ${data?['businessLocation']}');
-        debugPrint('📞 Phone: ${data?['businessPhone']}');
-
-        return {
-          'businessName': data?['businessName'] as String?,
-          'location': data?['location'] as String? ?? data?['businessLocation'] as String?,
-          'businessPhone': data?['businessPhone'] as String?,
-        };
-      }
-
-      debugPrint('⚠️ Returning null business details - store doc not found');
-      return {'businessName': null, 'location': null, 'businessPhone': null};
-    } catch (e) {
-      debugPrint('❌ Error fetching business details: $e');
-      return {'businessName': null, 'location': null, 'businessPhone': null};
-    }
-  }
-
-  Future<String?> _fetchStaffName(String uid) async {
-    try {
-      debugPrint('👤 Fetching staff name for uid: $uid');
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      final staffName = userDoc.data()?['name'];
-      debugPrint('👤 Staff name: $staffName');
-      return staffName;
-    } catch (e) {
-      debugPrint('❌ Error fetching staff name: $e');
-      return null;
-    }
-  }
-
-  Future<void> _updateProductStock() async {
-    final localStockService = context.read<LocalStockService>();
-    for (var item in _cart) {
-      if (item.productId.isNotEmpty) {
-        try {
-          final productRef = await FirestoreService().getStoreCollection('Products');
-          final doc = await productRef.doc(item.productId).get();
-          if (doc.exists) {
-            final data = doc.data() as Map<String, dynamic>;
-            final currentStock = (data['currentStock'] ?? 0.0).toDouble();
-            final newStock = currentStock - item.quantity;
-            await productRef.doc(item.productId).update({'currentStock': newStock});
-            localStockService.cacheStock(item.productId, newStock.toInt());
-          }
-        } catch (e) {
-          debugPrint('Error updating stock for ${item.productId}: $e');
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
     return PopScope(
-      canPop: !_searchFocusNode.hasFocus, // Allow pop when search is NOT focused
-      onPopInvokedWithResult: (didPop, result) async {
+      canPop: !_searchFocusNode.hasFocus,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
         // If back is pressed while search is focused, unfocus it
-        if (!didPop && _searchFocusNode.hasFocus) {
+        if (_searchFocusNode.hasFocus) {
           _searchFocusNode.unfocus();
         }
       },
       child: GestureDetector(
-        onTap: () {
-          // Unfocus the search field when tapping anywhere on the screen
-          FocusScope.of(context).unfocus();
-        },
+        onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
           backgroundColor: kGreyBg,
           resizeToAvoidBottomInset: false,
           body: Column(
-          children: [
-            _buildHeader(w),
-            Expanded(
-              child: Column(
-                children: [
-                  // Hide category selector when search is focused
-                  if (!_searchFocusNode.hasFocus)
-                    _buildCategorySelector(w),
-                  Expanded(child: _buildProductGrid(w)),
-                ],
+            children: [
+              _buildHeader(w),
+              Expanded(
+                child: Column(
+                  children: [
+                    if (!_searchFocusNode.hasFocus)
+                      _buildCategorySelector(w),
+                    Expanded(child: _buildProductGrid(w)),
+                  ],
+                ),
               ),
-            ),
-            // Build action buttons with customer selection
-            CommonWidgets.buildActionButtons(
-            context: context,
-            isQuotationMode: widget.isQuotationMode,
-            onSaveOrder: () {
-              CommonWidgets.showSaveOrderDialog(
+              CommonWidgets.buildActionButtons(
                 context: context,
-                uid: widget.uid,
-                cartItems: _cart,
+                isQuotationMode: widget.isQuotationMode,
+                onSaveOrder: () {
+                  CommonWidgets.showSaveOrderDialog(
+                    context: context,
+                    uid: widget.uid,
+                    cartItems: _cart,
+                    totalBill: _total,
+                    onSuccess: () {
+                      _cart.clear();
+                      widget.onCartChanged?.call(_cart);
+                      setState(() {});
+                    },
+                  );
+                },
+                onCustomer: () {
+                  CommonWidgets.showCustomerSelectionDialog(
+                    context: context,
+                    onCustomerSelected: (phone, name, gst) {
+                      setState(() {
+                        _selectedCustomerPhone = phone;
+                        _selectedCustomerName = name;
+                        _selectedCustomerGST = gst;
+                      });
+                      widget.onCustomerChanged?.call(phone, name, gst);
+                    },
+                    selectedCustomerPhone: _selectedCustomerPhone,
+                  );
+                },
+                customerName: _selectedCustomerName,
+                onBill: () {
+                  if (_cart.isNotEmpty) {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(
+                        builder: (ctx) => BillPage(
+                          uid: widget.uid,
+                          userEmail: widget.userEmail,
+                          cartItems: _cart,
+                          totalAmount: _total,
+                          savedOrderId: widget.savedOrderId,
+                          customerPhone: _selectedCustomerPhone,
+                          customerName: _selectedCustomerName,
+                          customerGST: _selectedCustomerGST,
+                        ),
+                      ),
+                    );
+                  }
+                },
                 totalBill: _total,
-                onSuccess: () {
-                  _cart.clear();
-                  widget.onCartChanged?.call(_cart);
-                  setState(() {});
-                },
-              );
-            },
-            onCustomer: () {
-              CommonWidgets.showCustomerSelectionDialog(
-                context: context,
-                onCustomerSelected: (phone, name, gst) {
-                  setState(() {
-                    _selectedCustomerPhone = phone;
-                    _selectedCustomerName = name;
-                    _selectedCustomerGST = gst;
-                  });
-                  // Notify parent about customer selection
-                  widget.onCustomerChanged?.call(phone, name, gst);
-                },
-                selectedCustomerPhone: _selectedCustomerPhone,
-              );
-            },
-            customerName: _selectedCustomerName,
-            onBill: () {
-              if (_cart.isNotEmpty) {
-                Navigator.push(
-                  context,
-                  CupertinoPageRoute(
-                    builder: (ctx) => BillPage(
-                      uid: widget.uid,
-                      userEmail: widget.userEmail,
-                      cartItems: _cart,
-                      totalAmount: _total,
-                      savedOrderId: widget.savedOrderId,
-                      customerPhone: _selectedCustomerPhone,
-                      customerName: _selectedCustomerName,
-                      customerGST: _selectedCustomerGST,
-                    ),
-                  ),
-                );
-              }
-            },
-            totalBill: _total,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-      ), // Scaffold
-      ), // GestureDetector
-    ); // PopScope
+    );
   }
 
   Widget _buildHeader(double w) {
     return Container(
-      color: kWhite,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 8, w * 0.04, 8),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey200)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 48,
+              height: 46,
               decoration: BoxDecoration(
-                color: kGreyBg,
+                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kBorderColor),
+                border: Border.all(color: kGrey200),
               ),
               child: TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocusNode,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 22),
-                  // Show close button when search is focused
+                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
                   suffixIcon: _searchFocusNode.hasFocus
                       ? IconButton(
-                          icon: const Icon(Icons.close, color: kPrimaryColor, size: 22),
-                          onPressed: () {
-                            // Clear search text and unfocus
-                            _searchCtrl.clear();
-                            _searchFocusNode.unfocus();
-                          },
-                          tooltip: 'Close search',
-                        )
+                    icon: const Icon(Icons.close, color: kPrimaryColor, size: 20),
+                    onPressed: () {
+                      _searchCtrl.clear();
+                      _searchFocusNode.unfocus();
+                    },
+                  )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 7),
                 ),
               ),
             ),
@@ -678,14 +414,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
           GestureDetector(
             onTap: _openScanner,
             child: Container(
-              height: 48,
-              width: 48,
+              height: 46,
+              width: 46,
               decoration: BoxDecoration(
                 color: kPrimaryColor,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: kPrimaryColor.withAlpha((0.2 * 255).toInt()), blurRadius: 8, offset: const Offset(0, 4))],
               ),
-              child: const Icon(Icons.qr_code_scanner, color: kWhite),
+              child: const Icon(Icons.qr_code_scanner, color: kWhite, size: 22),
             ),
           ),
         ],
@@ -698,55 +433,53 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Container(
       color: kWhite,
-      padding: EdgeInsets.fromLTRB(w * 0.04, 0, 0, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 0, 10),
       child: SizedBox(
-        height: 38,
+        height: 36,
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           itemCount: _categories.length,
           itemBuilder: (context, index) {
             final cat = _categories[index];
-            final isSelected = _selectedCategory == (cat == 'All' ? context.tr('all') : cat) || (_showFavoritesOnly && cat == 'Favorite');
-            final isLowStock = cat == 'Low Stock';
+            final isAll = cat == 'All';
+            final isSelected = _selectedCategory == (isAll ? context.tr('all') : cat) || (_showFavoritesOnly && cat == 'Favorite');
 
             return GestureDetector(
               onTap: () {
-                if (cat == 'Favorite') {
-                  setState(() {
+                setState(() {
+                  if (cat == 'Favorite') {
                     _showFavoritesOnly = true;
                     _selectedCategory = cat;
-                  });
-                } else {
-                  setState(() {
+                  } else {
                     _showFavoritesOnly = false;
-                    _selectedCategory = (cat == 'All' ? context.tr('all') : cat);
-                  });
-                }
+                    _selectedCategory = (isAll ? context.tr('all') : cat);
+                  }
+                });
               },
-              child: Container(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
                 margin: const EdgeInsets.only(right: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: isSelected ? (isLowStock ? kOrange : kPrimaryColor) : kWhite,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: isSelected ? (isLowStock ? kOrange : kPrimaryColor) : kGrey200),
-                  boxShadow: isSelected ? [BoxShadow(color: (isLowStock ? kOrange : kPrimaryColor).withAlpha((0.2 * 255).toInt()), blurRadius: 6, offset: const Offset(0, 3))] : null,
+                  color: isSelected ? kPrimaryColor : kGreyBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
                 ),
                 child: Center(
                   child: cat == 'Favorite'
                       ? Icon(
-                          Icons.favorite,
-                          size: 18,
-                          color: isSelected ? kWhite : kPrimaryColor,
-                        )
+                    Icons.favorite_rounded,
+                    size: 16,
+                    color: isSelected ? kWhite : kPrimaryColor,
+                  )
                       : Text(
-                          cat,
-                          style: TextStyle(
-                            color: isSelected ? kWhite : (isLowStock ? kOrange : kBlack54),
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
+                    cat,
+                    style: TextStyle(
+                      color: isSelected ? kWhite : kBlack54,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
               ),
             );
@@ -774,24 +507,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
           if (_showFavoritesOnly) return data['isFavorite'] == true;
 
-          if (_selectedCategory == 'Low Stock') {
-            // Check if product has low stock
-            final stockEnabled = data['stockEnabled'] ?? false;
-            if (!stockEnabled) return false;
-
-            final currentStock = (data['currentStock'] ?? 0.0).toDouble();
-            final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
-            final lowStockAlertType = data['lowStockAlertType'] ?? 'Count';
-
-            if (lowStockAlert <= 0) return false;
-
-            if (lowStockAlertType == 'Count') {
-              return currentStock <= lowStockAlert;
-            } else if (lowStockAlertType == 'Percentage') {
-              return currentStock <= lowStockAlert;
-            }
-            return false;
-          }
 
           if (_selectedCategory == context.tr('all')) return true;
           return (data['category'] ?? 'General').toString() == _selectedCategory;
@@ -799,7 +514,6 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
         if (filtered.isEmpty) return Center(child: Text(context.tr('no_results'), style: const TextStyle(color: kBlack54)));
 
-        // Sort favorite products to the top
         filtered.sort((a, b) {
           final dataA = a.data() as Map<String, dynamic>;
           final dataB = b.data() as Map<String, dynamic>;
@@ -811,12 +525,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
         });
 
         return GridView.builder(
-          padding: EdgeInsets.fromLTRB(w * 0.04, 8, w * 0.04, 80),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: w > 600 ? 200 : 150,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: 0.95,
+            childAspectRatio: 1.0,
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {
@@ -837,138 +551,267 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final unit = data['stockUnit'] ?? '';
     final isFavorite = data['isFavorite'] ?? false;
     final isAnimating = _animatingProductId == id;
+    final category = data['category'] ?? 'General';
+    final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
+
+    // Check expiry date
+    final expiryDateStr = data['expiryDate'] as String?;
+    bool isExpired = false;
+    if (expiryDateStr != null && expiryDateStr.isNotEmpty) {
+      try {
+        final expiryDate = DateTime.parse(expiryDateStr);
+        isExpired = expiryDate.isBefore(DateTime.now());
+      } catch (e) {
+        // Invalid date format, ignore
+      }
+    }
 
     return Consumer<LocalStockService>(
       builder: (context, localStockService, child) {
-        localStockService.cacheStock(id, firestoreStock.toInt());
         final stock = localStockService.hasStock(id) ? localStockService.getStock(id).toDouble() : firestoreStock;
         final isOutOfStock = stockEnabled && stock <= 0;
-        final isLowStock = stockEnabled && stock > 0 && stock < 10;
+        final isLowStock = stockEnabled && lowStockAlert > 0 && stock > 0 && stock <= lowStockAlert;
 
         return GestureDetector(
           onTap: () {
+            // Check if product is expired
+            if (isExpired) {
+              _showExpiredProductDialog(name);
+              return;
+            }
             if (price > 0) {
               _addToCart(id, name, price, stockEnabled, stock,
                   taxName: data['taxName'], taxPercentage: data['taxPercentage'], taxType: data['taxType']);
             }
           },
-          child: AspectRatio(
-            aspectRatio: 1.0, // Force square card
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kBorderColor),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              name,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, height: 1.2, color: kBlack87),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          if (isFavorite)
-                            const Icon(Icons.favorite, color: kPrimaryColor, size: 16),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${price.toStringAsFixed(0)}",
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor),
-                          ),
-                          const SizedBox(height: 4),
-                          if (stockEnabled)
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isOutOfStock ? kErrorColor.withAlpha((0.1 * 255).toInt()) : (isLowStock ? kOrange.withAlpha((0.1 * 255).toInt()) : kGoogleGreen.withAlpha((0.1 * 255).toInt())),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isOutOfStock ? 'Out of Stock' : '${stock.toInt()} $unit',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: isOutOfStock ? kErrorColor : (isLowStock ? kOrange : kGoogleGreen),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ],
+          child: Stack(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                decoration: BoxDecoration(
+                  color: isExpired
+                      ? kErrorColor.withOpacity(0.05)
+                      : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: isExpired
+                          ? kErrorColor.withOpacity(0.5)
+                          : (isAnimating ? kGoogleGreen : kGrey200),
+                      width: isAnimating ? 2 : 1
                   ),
                 ),
-                // +1 Animation Overlay
-                if (isAnimating)
-                  Positioned.fill(
-                    child: TweenAnimationBuilder<double>(
-                      key: ValueKey(_animationCounter),
-                      tween: Tween<double>(begin: 0.0, end: 1.0),
-                      duration: const Duration(milliseconds: 800),
-                      builder: (context, value, child) {
-                        return Opacity(
-                          opacity: 1.0 - value,
-                          child: Transform.translate(
-                            offset: Offset(0, -30 * value),
-                            child: Transform.scale(
-                              scale: 1.0 + (value * 0.5),
-                              child: Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: kOrange,
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: kOrange.withAlpha((0.4 * 255).toInt()),
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Text(
-                                    '+1',
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              height: 1.2,
+                              color: isExpired ? kErrorColor : kBlack87,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (isFavorite)
+                          const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 14),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          category.toUpperCase(),
+                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "${price.toStringAsFixed(0)}",
                                     style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
                                       fontWeight: FontWeight.w900,
+                                      fontSize: 16,
+                                      color: isExpired ? kErrorColor : kPrimaryColor,
                                     ),
+                                  ),
+                                  if (stockEnabled) ...[
+                                    const SizedBox(height: 4),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isOutOfStock ? kErrorColor.withOpacity(0.08) : kGoogleGreen.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        isOutOfStock ? 'OUT OF STOCK' : '${stock.toInt()} $unit',
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          color: isOutOfStock ? kErrorColor : kGoogleGreen,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            // Low stock indicator at right bottom
+                            if (isLowStock && !isOutOfStock)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: kOrange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: kOrange.withOpacity(0.3)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: kOrange, size: 10),
+                                    SizedBox(width: 2),
+                                    Text(
+                                      'LOW',
+                                      style: TextStyle(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w900,
+                                        color: kOrange,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (isAnimating)
+                Positioned.fill(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey(_animationCounter),
+                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    duration: const Duration(milliseconds: 800),
+                    builder: (context, value, child) {
+                      return Opacity(
+                        opacity: 1.0 - value,
+                        child: Transform.translate(
+                          offset: Offset(0, -30 * value),
+                          child: Transform.scale(
+                            scale: 1.0 + (value * 0.5),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: kOrange,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  '+1',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
                                   ),
                                 ),
                               ),
                             ),
                           ),
-                        );
-                      },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              // Expired badge overlay
+              if (isExpired)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: kErrorColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'EXPIRED',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        color: kWhite,
+                      ),
                     ),
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         );
       },
     );
   }
+
+  void _showExpiredProductDialog(String productName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kErrorColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_rounded, color: kErrorColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Product Expired',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              productName,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kPrimaryColor),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This product has expired and cannot be added to the cart. Please update the product details or remove it from inventory.',
+              style: TextStyle(color: kBlack54, fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
 }
-
-
-
-
-
-
-
-
-

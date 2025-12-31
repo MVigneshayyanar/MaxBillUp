@@ -6,12 +6,6 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 
-// --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2F7CF6);
-const Color _errorColor = Color(0xFFFF5252);
-const Color _cardBorder = Color(0xFFE3F2FD);
-const Color _scaffoldBg = Colors.white;
-
 class ExpenseCategoriesPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -54,34 +48,32 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(context.tr('expense_categories'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
+        title: Text(context.tr('Expense Types'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+          onPressed: widget.onBack,
+        ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          indicatorColor: kWhite,
+          indicatorWeight: 4,
+          labelColor: kWhite,
+          unselectedLabelColor: kWhite.withOpacity(0.7),
+          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
           tabs: [
-            Tab(text: context.tr('categories')),
-            Tab(text: context.tr('expense_names')),
+            Tab(text: context.tr('Types').toUpperCase()),
+            Tab(text: context.tr('expense_names').toUpperCase()),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Expense Categories
           _buildCategoriesTab(),
-          // Tab 2: Expense Names
           _buildExpenseNamesTab(),
         ],
       ),
@@ -91,148 +83,109 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
   Widget _buildCategoriesTab() {
     return Column(
       children: [
-        // Search Bar and Add Button Section
+        // ENTERPRISE SEARCH & ADD HEADER
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4))
-            ],
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: const BoxDecoration(
+            color: kWhite,
+            border: Border(bottom: BorderSide(color: kGrey200)),
           ),
           child: Row(
             children: [
               Expanded(
                 child: Container(
+                  height: 46,
                   decoration: BoxDecoration(
-                    color: _primaryColor.withOpacity(0.04),
+                    color: kPrimaryColor.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _cardBorder),
+                    border: Border.all(color: kGrey200),
                   ),
                   child: TextField(
                     controller: _searchController,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
                     decoration: InputDecoration(
                       hintText: context.tr('search'),
-                      prefixIcon: const Icon(Icons.search, color: _primaryColor),
+                      hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 7),
                     ),
                   ),
                 ),
               ),
               const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: () => _showAddCategoryDialog(context),
-                icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                label: const Text(
-                  'Add',
-                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              InkWell(
+                onTap: () => _showAddCategoryDialog(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 46,
+                  width: 46,
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
                 ),
               ),
             ],
           ),
         ),
 
-        // List of Categories
         Expanded(
           child: FutureBuilder<Stream<QuerySnapshot>>(
             future: _categoriesStreamFuture,
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
               }
-
-              if (!futureSnapshot.hasData) {
-                return const Center(child: Text("Unable to load categories"));
-              }
+              if (!futureSnapshot.hasData) return const Center(child: Text("Unable to load categories"));
 
               return StreamBuilder<QuerySnapshot>(
                 stream: futureSnapshot.data!,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                   }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildEmptyState();
-                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
 
                   final categories = snapshot.data!.docs.where((doc) {
-                    if (_searchQuery.isEmpty) return true;
                     final data = doc.data() as Map<String, dynamic>;
                     final name = (data['name'] ?? '').toString().toLowerCase();
-                    final description = (data['description'] ?? '').toString().toLowerCase();
-                    return name.contains(_searchQuery) || description.contains(_searchQuery);
+                    return name.contains(_searchQuery);
                   }).toList();
 
-                  if (categories.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No matching categories found',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    );
-                  }
+                  if (categories.isEmpty) return _buildNoResults();
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     itemCount: categories.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final data = categories[index].data() as Map<String, dynamic>;
-                      final name = data['name'] ?? 'Unnamed Category';
-                      final timestamp = data['timestamp'] as Timestamp?;
-                      final date = timestamp?.toDate();
-                      final dateString =
-                      date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+                      final name = data['name'] ?? 'Unnamed Type';
+                      final ts = data['timestamp'] as Timestamp?;
+                      final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _cardBorder),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
-                          ],
+                          border: Border.all(color: kGrey200),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                           leading: Container(
-                            width: 48,
-                            height: 48,
+                            width: 44, height: 44,
                             decoration: BoxDecoration(
-                              color: _primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              color: kPrimaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(
-                              Icons.category_outlined,
-                              color: _primaryColor,
-                              size: 24,
-                            ),
+                            child: const Icon(Icons.category_rounded, color: kPrimaryColor, size: 20),
                           ),
-                          title: Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Created: $dateString',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
+                          title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBlack87)),
+                          subtitle: Text('Created: $dateStr', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                           trailing: IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: _primaryColor),
+                            icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -260,138 +213,94 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
   Widget _buildExpenseNamesTab() {
     return Column(
       children: [
-        // Search Bar Section
+        // ENTERPRISE SEARCH HEADER
         Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4))
-            ],
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          decoration: const BoxDecoration(
+            color: kWhite,
+            border: Border(bottom: BorderSide(color: kGrey200)),
           ),
           child: Container(
+            height: 46,
             decoration: BoxDecoration(
-              color: _primaryColor.withOpacity(0.04),
+              color: kPrimaryColor.withOpacity(0.04),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _cardBorder),
+              border: Border.all(color: kGrey200),
             ),
             child: TextField(
               controller: _searchController,
-              decoration: InputDecoration(
-                hintText: context.tr('search'),
-                prefixIcon: const Icon(Icons.search, color: _primaryColor),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+              decoration: const InputDecoration(
+                hintText: "Search expense titles...",
+                hintStyle: TextStyle(color: kBlack54, fontSize: 14),
+                prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: EdgeInsets.symmetric(vertical: 7),
               ),
             ),
           ),
         ),
 
-        // List of Expense Names
         Expanded(
           child: FutureBuilder<Stream<QuerySnapshot>>(
             future: _expenseNamesStreamFuture,
             builder: (context, futureSnapshot) {
               if (futureSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
               }
-
-              if (!futureSnapshot.hasData) {
-                return const Center(child: Text("Unable to load expense names"));
-              }
+              if (!futureSnapshot.hasData) return const Center(child: Text("Unable to load expense names"));
 
               return StreamBuilder<QuerySnapshot>(
                 stream: futureSnapshot.data!,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                   }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return _buildEmptyStateExpenseNames();
-                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyStateExpenseNames();
 
                   final expenseNames = snapshot.data!.docs.where((doc) {
-                    if (_searchQuery.isEmpty) return true;
                     final data = doc.data() as Map<String, dynamic>;
                     final name = (data['name'] ?? '').toString().toLowerCase();
                     return name.contains(_searchQuery);
                   }).toList();
 
-                  if (expenseNames.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No matching expense names found',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    );
-                  }
+                  if (expenseNames.isEmpty) return _buildNoResults();
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                     itemCount: expenseNames.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final data = expenseNames[index].data() as Map<String, dynamic>;
                       final name = data['name'] ?? 'Unnamed';
                       final usageCount = data['usageCount'] ?? 1;
-                      final timestamp = data['lastUsed'] as Timestamp?;
-                      final date = timestamp?.toDate();
-                      final dateString =
-                      date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+                      final ts = data['lastUsed'] as Timestamp?;
+                      final dateStr = ts != null ? DateFormat('dd MMM yy').format(ts.toDate()) : 'N/A';
 
                       return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: kWhite,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _cardBorder),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
-                          ],
+                          border: Border.all(color: kGrey200),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
+                          contentPadding: const EdgeInsets.all(14),
                           leading: Container(
-                            width: 48,
-                            height: 48,
+                            width: 44, height: 44,
                             decoration: BoxDecoration(
-                              color: _primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
+                              color: kOrange.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(
-                              Icons.receipt_long_outlined,
-                              color: _primaryColor,
-                              size: 24,
-                            ),
+                            child: const Icon(Icons.receipt_long_rounded, color: kOrange, size: 20),
                           ),
-                          title: Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(
-                                'Used $usageCount time${usageCount > 1 ? 's' : ''}',
-                                style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Last used: $dateString',
-                                style: const TextStyle(fontSize: 12, color: Colors.grey),
-                              ),
-                            ],
+                          title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBlack87)),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text('Used $usageCount times • Last: $dateStr',
+                                style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.edit_outlined, color: _primaryColor),
+                            icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -416,160 +325,69 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     );
   }
 
-  Widget _buildEmptyStateExpenseNames() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.receipt_long_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
-          const SizedBox(height: 16),
-          const Text(
-            'No expense names found',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Expense titles will appear here',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.category_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
-          const SizedBox(height: 16),
-          const Text(
-            'No categories found',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmptyStateExpenseNames() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No expense names found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.category_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No categories found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 
   void _showAddCategoryDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
-
-    final List<String> suggestions = [
-      'Salary', 'Bill', 'Fuel', 'Rent', 'Insurance',
-      'Food', 'Tax', 'Advertisement', 'Fee', 'Loan',
-      'Transportation', 'Miscellaneous'
-    ];
+    final List<String> suggestions = ['Salary', 'Rent', 'Fuel', 'Food', 'Electricity', 'Bill', 'Insurance', 'Miscellaneous'];
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              title: const Row(
-                children: [
-                  Icon(Icons.category_outlined, color: _primaryColor),
-                  SizedBox(width: 8),
-                  Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
-                ],
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              backgroundColor: kWhite,
+              title: const Text('Add New Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Quick Select:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
+                    _buildSectionLabel("QUICK SELECT"),
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: suggestions.map((suggestion) {
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: suggestions.map((s) {
+                        final bool isSel = nameController.text == s;
                         return GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              nameController.text = suggestion;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          onTap: () => setDialogState(() => nameController.text = s),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: nameController.text == suggestion
-                                  ? _primaryColor
-                                  : _primaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: nameController.text == suggestion
-                                    ? _primaryColor
-                                    : _primaryColor.withOpacity(0.3),
-                              ),
+                              color: isSel ? kPrimaryColor : kGreyBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: isSel ? kPrimaryColor : kGrey200),
                             ),
-                            child: Text(
-                              suggestion,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: nameController.text == suggestion
-                                    ? Colors.white
-                                    : _primaryColor,
-                              ),
-                            ),
+                            child: Text(s, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: isSel ? kWhite : kBlack54)),
                           ),
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 16),
-                    _buildDialogField(nameController, 'Category Name *', Icons.category_outlined),
+                    const SizedBox(height: 24),
+                    _buildSectionLabel("CATEGORY IDENTITY"),
+                    _buildDialogField(nameController, 'Category Name', Icons.category_rounded),
                   ],
                 ),
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(context.tr('cancel')),
-                ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
                 ElevatedButton(
                   onPressed: () async {
-                    if (nameController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(context.tr('enter_category_name'))),
-                      );
-                      return;
-                    }
-
-                    try {
-                      await FirestoreService().addDocument('expenseCategories', {
-                        'name': nameController.text,
-                        'timestamp': Timestamp.now(),
-                        'uid': widget.uid,
-                      });
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Category added successfully')),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
-                    }
+                    if (nameController.text.trim().isEmpty) return;
+                    await FirestoreService().addDocument('expenseCategories', {
+                      'name': nameController.text.trim(),
+                      'timestamp': FieldValue.serverTimestamp(),
+                      'uid': widget.uid,
+                    });
+                    if (mounted) Navigator.pop(context);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryColor,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  child: const Text('ADD Type', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
                 ),
               ],
             );
@@ -579,31 +397,35 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     );
   }
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon,
-      {int lines = 1}) {
-    return TextField(
-      controller: ctrl,
-      maxLines: lines,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: _primaryColor, size: 20),
-        filled: true,
-        fillColor: _primaryColor.withOpacity(0.04),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      ),
+  Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
+
+  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon) {
+    return ValueListenableBuilder(
+      valueListenable: ctrl,
+      builder: (context, val, child) {
+        bool filled = ctrl.text.isNotEmpty;
+        return Container(
+          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
+          child: TextField(
+            controller: ctrl,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            decoration: InputDecoration(hintText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+          ),
+        );
+      },
     );
   }
 }
 
-// Edit/Delete Category Dialog matching Expense Names style
+// -----------------------------------------------------------------------------
+// INTERNAL DIALOG: EDIT/DELETE CATEGORY
+// -----------------------------------------------------------------------------
 class _EditDeleteCategoryDialog extends StatefulWidget {
   final String docId;
   final String initialName;
   final VoidCallback onChanged;
   const _EditDeleteCategoryDialog({required this.docId, required this.initialName, required this.onChanged});
-
-  @override
-  State<_EditDeleteCategoryDialog> createState() => _EditDeleteCategoryDialogState();
+  @override State<_EditDeleteCategoryDialog> createState() => _EditDeleteCategoryDialogState();
 }
 
 class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
@@ -611,463 +433,94 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialName);
-  }
-
+  void initState() { super.initState(); _controller = TextEditingController(text: widget.initialName); }
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  void dispose() { _controller.dispose(); super.dispose(); }
 
   Future<void> _update() async {
-    final newName = _controller.text.trim();
-    if (newName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a category name')),
-      );
-      return;
-    }
-
+    if (_controller.text.trim().isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      await FirestoreService().updateDocument('expenseCategories', widget.docId, {'name': newName});
+      await FirestoreService().updateDocument('expenseCategories', widget.docId, {'name': _controller.text.trim()});
       widget.onChanged();
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Category updated successfully'), backgroundColor: _primaryColor),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e'), backgroundColor: _errorColor),
-        );
-      }
-    }
-    if (mounted) setState(() => _isLoading = false);
+      if (mounted) Navigator.pop(context);
+    } catch (e) { print(e.toString()); }
+    finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: _errorColor),
-            SizedBox(width: 8),
-            Text('Delete Category?'),
-          ],
-        ),
-        content: const Text('Are you sure you want to delete this category? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _errorColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-
+    final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), title: const Text('Delete Category?'), content: const Text('This will remove this category from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: kWhite)))]));
     if (confirm == true) {
       setState(() => _isLoading = true);
-      try {
-        await FirestoreService().deleteDocument('expenseCategories', widget.docId);
-        widget.onChanged();
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Category deleted successfully'), backgroundColor: _primaryColor),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: _errorColor),
-          );
-        }
-      }
-      if (mounted) setState(() => _isLoading = false);
+      await FirestoreService().deleteDocument('expenseCategories', widget.docId);
+      widget.onChanged();
+      if (mounted) Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Edit Category',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Input Field
-            _buildCategoryInput(),
-
-            const SizedBox(height: 24),
-
-            // Update Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _update,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : const Text(
-                  'Update',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Delete Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton(
-                onPressed: _isLoading ? null : _delete,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: _errorColor, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: _errorColor,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : const Text(
-                  'Delete',
-                  style: TextStyle(color: _errorColor, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Custom Input Field matching AddExpenseTypePopup ---
-  Widget _buildCategoryInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: _controller,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-          decoration: InputDecoration(
-            labelText: 'Category Name',
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-            floatingLabelStyle: const TextStyle(color: _primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-            filled: true,
-            fillColor: kGreyBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kGrey300, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+      backgroundColor: kWhite,
+      title: const Text('Edit Type', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kPrimaryColor, width: 1.5)),
+            child: TextField(
+              controller: _controller,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.edit_rounded, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
             ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          "e.g. Salary, Rent, Fuel, Insurance, etc.",
-          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-        ),
+        ],
+      ),
+      actions: [
+        TextButton(onPressed: _delete, child: const Text("DELETE", style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: _update, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
       ],
     );
   }
 }
 
+// -----------------------------------------------------------------------------
+// INTERNAL DIALOG: EDIT/DELETE EXPENSE NAME
+// -----------------------------------------------------------------------------
 class _EditDeleteExpenseNameDialog extends StatefulWidget {
   final String docId;
   final String initialName;
   final VoidCallback onChanged;
   const _EditDeleteExpenseNameDialog({required this.docId, required this.initialName, required this.onChanged});
-  @override
-  State<_EditDeleteExpenseNameDialog> createState() => _EditDeleteExpenseNameDialogState();
+  @override State<_EditDeleteExpenseNameDialog> createState() => _EditDeleteExpenseNameDialogState();
 }
 
 class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDialog> {
   late TextEditingController _controller;
-  bool _isLoading = false;
-
   @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.initialName);
-  }
-
+  void initState() { super.initState(); _controller = TextEditingController(text: widget.initialName); }
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _update() async {
-    final newName = _controller.text.trim();
-    if (newName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a name')),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
-    try {
-      await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': newName});
-      widget.onChanged();
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Expense name updated successfully'), backgroundColor: _primaryColor),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e'), backgroundColor: _errorColor),
-        );
-      }
-    }
-    if (mounted) setState(() => _isLoading = false);
-  }
-
-  Future<void> _delete() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: _errorColor),
-            SizedBox(width: 8),
-            Text('Delete Expense Name?'),
-          ],
-        ),
-        content: const Text('Are you sure you want to delete this expense name? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _errorColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      setState(() => _isLoading = true);
-      try {
-        await FirestoreService().deleteDocument('expenseNames', widget.docId);
-        widget.onChanged();
-        if (mounted) {
-          Navigator.pop(context);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Expense name deleted successfully'), backgroundColor: _primaryColor),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to delete: $e'), backgroundColor: _errorColor),
-          );
-        }
-      }
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+  void dispose() { _controller.dispose(); super.dispose(); }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Edit Expense Name',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Input Field
-            _buildExpenseNameInput(),
-
-            const SizedBox(height: 24),
-
-            // Update Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _update,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _primaryColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : const Text(
-                  'Update',
-                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Delete Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton(
-                onPressed: _isLoading ? null : _delete,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: _errorColor, width: 1.5),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-                child: _isLoading
-                    ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: _errorColor,
-                    strokeWidth: 2,
-                  ),
-                )
-                    : const Text(
-                  'Delete',
-                  style: TextStyle(color: _errorColor, fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
+      backgroundColor: kWhite,
+      title: const Text('Edit Expense Title', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+      content: Container(
+        decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kPrimaryColor, width: 1.5)),
+        child: TextField(
+          controller: _controller,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          decoration: const InputDecoration(prefixIcon: Icon(Icons.text_fields_rounded, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
         ),
       ),
-    );
-  }
-
-  // --- Custom Input Field matching AddExpenseTypePopup ---
-  Widget _buildExpenseNameInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: _controller,
-          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
-          decoration: InputDecoration(
-            labelText: 'Expense Name',
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-            floatingLabelStyle: const TextStyle(color: _primaryColor, fontSize: 13, fontWeight: FontWeight.w600),
-            filled: true,
-            fillColor: kGreyBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kGrey300, width: 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
-            ),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          "e.g. Rent Payment, Electricity Bill, Staff Salary, etc.",
-          style: TextStyle(fontSize: 13, color: Colors.grey[500]),
-        ),
+      actions: [
+        TextButton(onPressed: () async { await FirestoreService().deleteDocument('expenseNames', widget.docId); widget.onChanged(); if(mounted) Navigator.pop(context); }, child: const Text("DELETE", style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: () async { await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': _controller.text.trim()}); widget.onChanged(); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
       ],
     );
   }
 }
-

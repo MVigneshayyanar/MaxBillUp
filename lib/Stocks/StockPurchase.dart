@@ -7,11 +7,6 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 
-// --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2F7CF6);
-const Color _cardBorder = Color(0xFFE3F2FD);
-const Color _scaffoldBg = Colors.white;
-
 class StockPurchasePage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
@@ -26,19 +21,13 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-
   late Future<Stream<QuerySnapshot>> _purchasesStreamFuture;
 
   @override
   void initState() {
     super.initState();
     _purchasesStreamFuture = FirestoreService().getCollectionStream('stockPurchases');
-
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
-    });
+    _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
   }
 
   @override
@@ -54,17 +43,11 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2030),
       builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          colorScheme: const ColorScheme.light(primary: _primaryColor),
-        ),
+        data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: kPrimaryColor)),
         child: child!,
       ),
     );
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+    if (picked != null && picked != _selectedDate) setState(() => _selectedDate = picked);
   }
 
   @override
@@ -72,46 +55,41 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(context.tr('stock_purchase'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
+        title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+          onPressed: widget.onBack,
         ),
         centerTitle: true,
         elevation: 0,
       ),
       body: Column(
         children: [
-          // Filter & Add Button Section
+          // ENTERPRISE HEADER: DATE & NEW BUTTON
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))
-              ],
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
             child: Row(
               children: [
                 Expanded(
                   child: GestureDetector(
                     onTap: () => _selectDate(context),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      height: 46,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: _primaryColor.withOpacity(0.04),
+                        color: kPrimaryColor.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: _cardBorder),
+                        border: Border.all(color: kGrey200),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_month_outlined, color: _primaryColor, size: 20),
+                          const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
                           const SizedBox(width: 12),
                           Text(
-                            DateFormat('dd - MM - yyyy').format(_selectedDate),
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            DateFormat('dd MMM yyyy').format(_selectedDate),
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87),
                           ),
                         ],
                       ),
@@ -119,99 +97,74 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => CreateStockPurchasePage(
-                          uid: widget.uid,
-                          onBack: () => Navigator.pop(context),
-                        ),
-                      ),
-                    );
+                InkWell(
+                  onTap: () {
+                    Navigator.push(context, CupertinoPageRoute(builder: (_) => CreateStockPurchasePage(uid: widget.uid, onBack: () { Navigator.pop(context); setState(() {}); })));
                   },
-                  icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                  label: const Text(
-                    'New',
-                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryColor,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    height: 46, width: 46,
+                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          // SEARCH BAR
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
             child: Container(
+              height: 46,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: kPrimaryColor.withOpacity(0.04),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _cardBorder),
+                border: Border.all(color: kGrey200),
               ),
               child: TextField(
                 controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: context.tr('search'),
-                  prefixIcon: const Icon(Icons.search, color: _primaryColor),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+                decoration: const InputDecoration(
+                  hintText: "Search supplier or invoice...",
+                  hintStyle: TextStyle(color: kBlack54, fontSize: 14),
+                  prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(vertical: 7),
                 ),
               ),
             ),
           ),
 
-          // List of Purchases
           Expanded(
             child: FutureBuilder<Stream<QuerySnapshot>>(
               future: _purchasesStreamFuture,
               builder: (context, futureSnapshot) {
-                if (futureSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (!futureSnapshot.hasData) {
-                  return const Center(child: Text("Unable to load purchases"));
-                }
+                if (futureSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                if (!futureSnapshot.hasData) return const Center(child: Text("Unable to load purchases"));
 
                 return StreamBuilder<QuerySnapshot>(
                   stream: futureSnapshot.data!,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return _buildEmptyState();
-                    }
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
 
                     final purchases = snapshot.data!.docs.where((doc) {
-                      if (_searchQuery.isEmpty) return true;
                       final data = doc.data() as Map<String, dynamic>;
-                      final supplierName = (data['supplierName'] ?? '').toString().toLowerCase();
-                      final invoiceNumber = (data['invoiceNumber'] ?? '').toString().toLowerCase();
-                      return supplierName.contains(_searchQuery) || invoiceNumber.contains(_searchQuery);
+                      final sName = (data['supplierName'] ?? '').toString().toLowerCase();
+                      final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
+                      return sName.contains(_searchQuery) || inv.contains(_searchQuery);
                     }).toList();
 
-                    if (purchases.isEmpty) {
-                      return const Center(
-                        child: Text('No matching purchases found', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                      );
-                    }
+                    if (purchases.isEmpty) return _buildNoResults();
 
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
                       itemCount: purchases.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final data = purchases[index].data() as Map<String, dynamic>;
-                        return _buildPurchaseCard(context, purchases[index].id, data);
+                        return _buildPurchaseCard(context, purchases[index].id, purchases[index].data() as Map<String, dynamic>);
                       },
                     );
                   },
@@ -225,67 +178,63 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   }
 
   Widget _buildPurchaseCard(BuildContext context, String id, Map<String, dynamic> data) {
-    final date = (data['timestamp'] as Timestamp?)?.toDate();
-    final dateString = date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+    final ts = data['timestamp'] as Timestamp?;
+    final dateStr = ts != null ? DateFormat('dd MMM yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final amount = (data['totalAmount'] ?? 0.0).toDouble();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (context) => StockPurchaseDetailsPage(
-                purchaseId: id,
-                purchaseData: data,
-              ),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => StockPurchaseDetailsPage(purchaseId: id, purchaseData: data))),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${data['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 12)),
+                    Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: kOrange.withOpacity(0.1), radius: 18,
+                      child: const Icon(Icons.store_rounded, color: kOrange, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(data['supplierName'] ?? 'Unknown Supplier',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    Text("Rs ${amount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                  ],
+                ),
+                const Divider(height: 24, color: kGrey100),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text((data['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: kGrey400),
+                  ],
+                ),
+              ],
             ),
-          );
-        },
-        title: Text(
-          data['supplierName'] ?? 'Unknown Supplier',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 8),
-            Text('Invoice: ${data['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontSize: 14, color: Colors.black54)),
-            const SizedBox(height: 4),
-            Text(dateString, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
-        trailing: Text(
-          '${(data['totalAmount'] ?? 0.0).toStringAsFixed(2)}',
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _primaryColor),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.shopping_cart_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
-          const SizedBox(height: 16),
-          const Text('No stock purchases found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-        ],
-      ),
-    );
-  }
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.shopping_cart_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No stock purchases found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No matches for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 }
 
-// ---------------- CreateStockPurchasePage ----------------
 // ---------------- CreateStockPurchasePage ----------------
 class CreateStockPurchasePage extends StatefulWidget {
   final String uid;
@@ -298,428 +247,327 @@ class CreateStockPurchasePage extends StatefulWidget {
 }
 
 class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
-  final TextEditingController _supplierNameController = TextEditingController();
-  final TextEditingController _supplierPhoneController = TextEditingController();
-  final TextEditingController _invoiceNumberController = TextEditingController();
-  final TextEditingController _totalAmountController = TextEditingController();
-  final TextEditingController _creditAmountController = TextEditingController();
-  final TextEditingController _taxAmountController = TextEditingController();
-  final TextEditingController _notesController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _supplierNameController = TextEditingController(), _supplierPhoneController = TextEditingController(), _supplierGstinController = TextEditingController(), _invoiceNumberController = TextEditingController(), _totalAmountController = TextEditingController(), _paidAmountController = TextEditingController(), _taxAmountController = TextEditingController(), _notesController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   String _paymentMode = 'Cash';
-  bool _showAdvancedDetails = false;
-  bool _isLoading = false;
+  bool _isLoading = false, _showAdvanced = false;
+  List<Map<String, dynamic>> _vendors = [];
+  String? _selectedVendorId;
 
-  @override
-  void dispose() {
-    _supplierNameController.dispose();
-    _supplierPhoneController.dispose();
-    _invoiceNumberController.dispose();
-    _totalAmountController.dispose();
-    _creditAmountController.dispose();
-    _taxAmountController.dispose();
-    _notesController.dispose();
-    super.dispose();
+  // Auto-calculated credit amount
+  double get _creditAmount {
+    final total = double.tryParse(_totalAmountController.text) ?? 0.0;
+    final paid = double.tryParse(_paidAmountController.text) ?? 0.0;
+    return (total - paid).clamp(0.0, double.infinity);
   }
 
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2020),
-      lastDate: DateTime(2030),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(colorScheme: const ColorScheme.light(primary: _primaryColor)),
-        child: child!,
-      ),
-    );
-    if (picked != null) setState(() => _selectedDate = picked);
+  @override
+  void initState() { super.initState(); _loadVendors(); }
+
+  @override
+  void dispose() { _supplierNameController.dispose(); _supplierPhoneController.dispose(); _supplierGstinController.dispose(); _invoiceNumberController.dispose(); _totalAmountController.dispose(); _paidAmountController.dispose(); _taxAmountController.dispose(); _notesController.dispose(); super.dispose(); }
+
+  Future<void> _loadVendors() async {
+    try {
+      final vendorsCollection = await FirestoreService().getStoreCollection('vendors');
+      final snapshot = await vendorsCollection.get();
+      if (mounted) setState(() => _vendors = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>}).toList());
+    } catch (e) { debugPrint(e.toString()); }
+  }
+
+  void _selectVendor(Map<String, dynamic> v) => setState(() {
+    _selectedVendorId = v['id'];
+    _supplierNameController.text = v['name'] ?? '';
+    _supplierPhoneController.text = v['phone'] ?? '';
+    _supplierGstinController.text = v['gstin'] ?? '';
+  });
+
+  Future<void> _addOrUpdateVendor(double amt) async {
+    final sName = _supplierNameController.text.trim();
+    final sPhone = _supplierPhoneController.text.trim();
+    final sGstin = _supplierGstinController.text.trim();
+    if (sName.isEmpty) return;
+    try {
+      final vendorsCol = await FirestoreService().getStoreCollection('vendors');
+      if (_selectedVendorId != null) {
+        await vendorsCol.doc(_selectedVendorId).update({
+          'totalPurchases': FieldValue.increment(amt),
+          'purchaseCount': FieldValue.increment(1),
+          'lastPurchaseDate': Timestamp.now(),
+          'lastUpdated': FieldValue.serverTimestamp(),
+          if (sGstin.isNotEmpty) 'gstin': sGstin,
+        });
+      } else {
+        final existing = await vendorsCol.where('name', isEqualTo: sName).get();
+        if (existing.docs.isNotEmpty) {
+          await vendorsCol.doc(existing.docs.first.id).update({
+            'totalPurchases': FieldValue.increment(amt),
+            'purchaseCount': FieldValue.increment(1),
+            'lastPurchaseDate': Timestamp.now(),
+            'lastUpdated': FieldValue.serverTimestamp(),
+            if (sPhone.isNotEmpty) 'phone': sPhone,
+            if (sGstin.isNotEmpty) 'gstin': sGstin,
+          });
+        } else {
+          await vendorsCol.add({
+            'name': sName,
+            'phone': sPhone,
+            'gstin': sGstin.isEmpty ? null : sGstin,
+            'totalPurchases': amt,
+            'purchaseCount': 1,
+            'createdAt': FieldValue.serverTimestamp(),
+            'lastPurchaseDate': Timestamp.now(),
+            'source': 'stock_purchase'
+          });
+        }
+      }
+    } catch (e) { debugPrint(e.toString()); }
   }
 
   Future<void> _savePurchase() async {
-    if (_supplierNameController.text.isEmpty || _totalAmountController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill in required fields')));
-      return;
-    }
-
+    if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
-
     try {
-      final totalAmount = double.parse(_totalAmountController.text);
-      final taxAmount = _taxAmountController.text.isEmpty ? 0.0 : double.parse(_taxAmountController.text);
-      final creditAmount = _paymentMode == 'Credit'
-          ? double.tryParse(_creditAmountController.text) ?? totalAmount
-          : null;
+      final amt = double.parse(_totalAmountController.text);
+      final tax = double.tryParse(_taxAmountController.text) ?? 0.0;
+      final paid = double.tryParse(_paidAmountController.text) ?? (_paymentMode == 'Credit' ? 0.0 : amt);
+      final credit = _paymentMode == 'Credit' ? _creditAmount : 0.0;
+      final inv = _invoiceNumberController.text.isEmpty ? 'INV${DateTime.now().millisecondsSinceEpoch}' : _invoiceNumberController.text;
 
-      final invoiceNumber = _invoiceNumberController.text.isEmpty
-          ? 'INV${DateTime.now().millisecondsSinceEpoch}'
-          : _invoiceNumberController.text;
-
+      await _addOrUpdateVendor(amt);
       await FirestoreService().addDocument('stockPurchases', {
-        'supplierName': _supplierNameController.text,
-        'supplierPhone': _supplierPhoneController.text,
-        'invoiceNumber': invoiceNumber,
-        'totalAmount': totalAmount,
-        'taxAmount': taxAmount,
+        'supplierName': _supplierNameController.text.trim(),
+        'supplierPhone': _supplierPhoneController.text.trim(),
+        'supplierGstin': _supplierGstinController.text.trim().isEmpty ? null : _supplierGstinController.text.trim(),
+        'invoiceNumber': inv,
+        'totalAmount': amt,
+        'paidAmount': paid,
+        'creditAmount': credit,
+        'taxAmount': tax,
         'paymentMode': _paymentMode,
         'notes': _notesController.text,
         'timestamp': Timestamp.fromDate(_selectedDate),
         'uid': widget.uid,
+        'vendorId': _selectedVendorId,
       });
 
-      if (_paymentMode == 'Credit') {
-        final creditNoteNumber = await NumberGeneratorService.generatePurchaseCreditNoteNumber();
-        await FirestoreService().addDocument('purchaseCreditNotes', {
-          'creditNoteNumber': creditNoteNumber,
-          'invoiceNumber': invoiceNumber,
-          'purchaseNumber': invoiceNumber,
-          'supplierName': _supplierNameController.text,
-          'supplierPhone': _supplierPhoneController.text,
-          'amount': creditAmount,
-          'timestamp': Timestamp.fromDate(_selectedDate),
-          'status': 'Available',
-          'notes': _notesController.text,
-          'uid': widget.uid,
-          'type': 'Purchase Credit',
-          'items': [],
-        });
+      if (_paymentMode == 'Credit' && credit > 0) {
+        final cn = await NumberGeneratorService.generatePurchaseCreditNoteNumber();
+        await FirestoreService().addDocument('purchaseCreditNotes', {'creditNoteNumber': cn, 'invoiceNumber': inv, 'purchaseNumber': inv, 'supplierName': _supplierNameController.text.trim(), 'supplierPhone': _supplierPhoneController.text.trim(), 'amount': credit, 'paidAmount': paid, 'timestamp': Timestamp.fromDate(_selectedDate), 'status': 'Available', 'notes': _notesController.text, 'uid': widget.uid, 'type': 'Purchase Credit', 'items': []});
       }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_paymentMode == 'Credit' ? 'Purchase saved & credit note created' : 'Purchase saved successfully')),
-        );
-        widget.onBack();
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+      if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Purchase recorded successfully'), backgroundColor: kGoogleGreen)); widget.onBack(); }
+    } catch (e) { debugPrint(e.toString()); } finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('New Stock Purchase', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: widget.onBack),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+      backgroundColor: kGreyBg,
+      appBar: AppBar(title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
+      body: Form(
+        key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Basic Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildTextField(controller: _supplierNameController, label: 'Supplier Name *', isRequired: true),
-            const SizedBox(height: 12),
-            _buildTextField(controller: _supplierPhoneController, label: 'Supplier Phone', keyboardType: TextInputType.phone),
-            const SizedBox(height: 12),
-            _buildTextField(controller: _invoiceNumberController, label: 'Invoice Number'),
-            const SizedBox(height: 12),
-            _buildTextField(controller: _totalAmountController, label: 'Total Amount *', isRequired: true, keyboardType: TextInputType.number),
-            const SizedBox(height: 12),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildSectionLabel("SUPPLIER DETAILS"),
+                  _buildSupplierAutocomplete(),
+                  const SizedBox(height: 16),
+                  _buildModernField(_supplierPhoneController, 'Phone Number', Icons.phone_android_rounded, type: TextInputType.phone),
+                  const SizedBox(height: 16),
+                  _buildModernField(_supplierGstinController, 'Tax Number', Icons.receipt_long_rounded),
 
-            // Date & Payment Mode row
-            // Date & Payment Mode Row
-            Row(
-              children: [
-                // Date
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _selectDate(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                      decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(height: 24),
+                  _buildSectionLabel("INVOICE DETAILS"),
+                  _buildModernField(_totalAmountController, 'Total Amount *', Icons.payments_rounded, type: TextInputType.number, isMandatory: true, onChanged: () => setState(() {})),
+                  const SizedBox(height: 16),
+                  _buildModernField(_invoiceNumberController, 'Reference Invoice No', Icons.receipt_long_rounded),
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    Expanded(child: _buildDateSelector()),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPaymentDropdown()),
+                  ]),
+                  if (_paymentMode == 'Credit') ...[
+                    const SizedBox(height: 16),
+                    _buildModernField(_paidAmountController, 'Paid Amount', Icons.payment_rounded, type: TextInputType.number, onChanged: () => setState(() {})),
+                    const SizedBox(height: 12),
+                    // Credit Amount Display (auto-calculated)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _creditAmount > 0 ? Colors.orange.shade50 : kGoogleGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: _creditAmount > 0 ? Colors.orange : kGoogleGreen),
+                      ),
                       child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.calendar_today_outlined, size: 18, color: _primaryColor),
-                          const SizedBox(width: 8),
-                          Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+                          Row(
+                            children: [
+                              Icon(Icons.account_balance_wallet_rounded, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
+                              const SizedBox(width: 8),
+                              Text('Credit Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
+                            ],
+                          ),
+                          Text('₹${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                         ],
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
+                  ],
 
-                // Payment Mode
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
-                    child: DropdownButton<String>(
-                      value: _paymentMode,
-                      isExpanded: true,
-                      underline: const SizedBox(),
-                      items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                      onChanged: (v) => setState(() => _paymentMode = v!),
+                  const SizedBox(height: 24),
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: _buildSectionLabel("ADDITIONAL INFORMATION"),
+                      children: [
+                        _buildModernField(_taxAmountController, 'Tax Component (Amount)', Icons.percent_rounded, type: TextInputType.number),
+                        const SizedBox(height: 16),
+                        _buildModernField(_notesController, 'Internal Notes', Icons.notes_rounded, maxLines: 3),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-// Credit Amount (only if Payment Mode = Credit)
-            if (_paymentMode == 'Credit')
-              _buildTextField(
-                controller: _creditAmountController,
-                label: 'Credit Amount',
-                keyboardType: TextInputType.number,
-              ),
-
-
-            const SizedBox(height: 20),
-            // Advanced Details Dropdown
-            InkWell(
-              onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Advanced Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Icon(_showAdvancedDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            if (_showAdvancedDetails)
-              Column(
-                children: [
-                  _buildTextField(controller: _taxAmountController, label: 'Tax Amount', keyboardType: TextInputType.number),
-                  const SizedBox(height: 12),
-                  _buildTextField(controller: _notesController, label: 'Notes', maxLines: 3),
-                  const SizedBox(height: 12),
-                  if (_paymentMode == 'Credit')
-                    _buildTextField(controller: _creditAmountController, label: 'Credit Amount', keyboardType: TextInputType.number),
-                ],
-              ),
-
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isLoading ? null : _savePurchase,
-                style: ElevatedButton.styleFrom(backgroundColor: _primaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: _isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Purchase', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              ),
-            ),
+            _buildBottomAction(),
           ],
-        )
-        ,
+        ),
       ),
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    bool isRequired = false,
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    IconData? suffixIcon,
-    VoidCallback? onSuffixTap,
-  }) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
+  Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
 
+  Widget _buildModernField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false, VoidCallback? onChanged}) {
+    return ValueListenableBuilder(
+      valueListenable: ctrl,
+      builder: (context, val, child) {
+        bool filled = ctrl.text.isNotEmpty;
         return TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
+          controller: ctrl, keyboardType: type, maxLines: maxLines,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+          onChanged: (v) { if (onChanged != null) onChanged(); setState(() {}); },
           decoration: InputDecoration(
-            labelText: label,
-            floatingLabelBehavior: FloatingLabelBehavior.auto,
-            labelStyle: TextStyle(
-              color: hasText ? _primaryColor : Colors.black54,
-              fontSize: 15,
-            ),
-            floatingLabelStyle: const TextStyle(
-              color: _primaryColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-            filled: true,
-            fillColor: Colors.grey[100],
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            suffixIcon: suffixIcon != null
-                ? IconButton(
-              icon: Icon(suffixIcon, size: 20, color: _primaryColor),
-              onPressed: onSuffixTap,
-            )
-                : null,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: hasText ? _primaryColor : Colors.grey.shade300, width: hasText ? 1.5 : 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red, width: 1),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: Colors.red, width: 1.5),
-            ),
-            errorStyle: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+            labelText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
+            filled: true, fillColor: kWhite, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kErrorColor)),
           ),
-          validator: isRequired
-              ? (v) => v == null || v.trim().isEmpty ? 'Required' : null
-              : null,
+          validator: isMandatory ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
         );
       },
     );
   }
 
+  Widget _buildSupplierAutocomplete() {
+    return Autocomplete<Map<String, dynamic>>(
+      optionsBuilder: (v) => v.text.isEmpty ? _vendors : _vendors.where((ven) => ven['name'].toString().toLowerCase().contains(v.text.toLowerCase())),
+      displayStringForOption: (o) => o['name'] ?? '',
+      onSelected: _selectVendor,
+      fieldViewBuilder: (ctx, ctrl, focus, onSub) {
+        if (_supplierNameController.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text = _supplierNameController.text;
+        ctrl.addListener(() => _supplierNameController.text = ctrl.text);
+        return _buildModernField(ctrl, 'Supplier Name *', Icons.store_rounded, isMandatory: true);
+      },
+      optionsViewBuilder: (ctx, onSel, options) => Align(alignment: Alignment.topLeft, child: Material(elevation: 4, borderRadius: BorderRadius.circular(12), child: Container(width: MediaQuery.of(context).size.width - 40, constraints: const BoxConstraints(maxHeight: 250), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: ListView.separated(padding: EdgeInsets.zero, shrinkWrap: true, itemCount: options.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) { final v = options.elementAt(i); return ListTile(dense: true, leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), radius: 16, child: Text(v['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12))), title: Text(v['name'], style: const TextStyle(fontWeight: FontWeight.w600)), subtitle: Text(v['phone'] ?? '--', style: const TextStyle(fontSize: 10)), onTap: () => onSel(v)); })))),
+    );
+  }
+
+  Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
+
+  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54), items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
+
+  Widget _buildBottomAction() => Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 32), decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _isLoading ? null : _savePurchase, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: kWhite) : const Text('SAVE PURCHASE', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)))));
 }
 
-
 // ---------------- StockPurchaseDetailsPage ----------------
-class StockPurchaseDetailsPage extends StatefulWidget {
+class StockPurchaseDetailsPage extends StatelessWidget {
   final String purchaseId;
   final Map<String, dynamic> purchaseData;
 
   const StockPurchaseDetailsPage({super.key, required this.purchaseId, required this.purchaseData});
 
   @override
-  State<StockPurchaseDetailsPage> createState() => _StockPurchaseDetailsPageState();
-}
-
-class _StockPurchaseDetailsPageState extends State<StockPurchaseDetailsPage> {
-  bool _showAdvancedDetails = false;
-
-  @override
   Widget build(BuildContext context) {
-    final data = widget.purchaseData;
-    final date = (data['timestamp'] as Timestamp?)?.toDate();
-    final dateString = date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
-    final paymentMode = data['paymentMode'] ?? 'N/A';
-    final totalAmount = (data['totalAmount'] ?? 0.0).toStringAsFixed(2);
-    final creditAmount = paymentMode == 'Credit' ? totalAmount : null;
+    final date = (purchaseData['timestamp'] as Timestamp?)?.toDate();
+    final dateStr = date != null ? DateFormat('dd MMM yyyy, hh:mm a').format(date) : 'N/A';
+    final total = (purchaseData['totalAmount'] ?? 0.0).toDouble();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kPrimaryColor,
       appBar: AppBar(
-        title: const Text('Purchase Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: _primaryColor,
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
-        elevation: 0,
+        title: const Text('Purchase Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: _cardBorder),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15)],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top basic info row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      data['supplierName'] ?? 'Unknown Supplier',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _primaryColor),
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(dateString, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                      Text(paymentMode, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                    ],
-                  )
-                ],
-              ),
-              const Divider(height: 32, color: _cardBorder),
-
-              // Total amount row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  Text(
-                    "$totalAmount",
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: _primaryColor),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Advanced Details Toggle
-              InkWell(
-                onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Advanced Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    Icon(_showAdvancedDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down)
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Advanced Details content
-              if (_showAdvancedDetails)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildDetailRow('Invoice', data['invoiceNumber'] ?? 'N/A'),
-                    _buildDetailRow('Phone', data['supplierPhone'] ?? 'N/A'),
-                    _buildDetailRow('Notes', data['notes'] ?? 'N/A'),
-                    _buildDetailRow('Payment Mode', paymentMode),
-                    if (creditAmount != null) _buildDetailRow('Credit Amount', "$creditAmount"),
-                    if (data['taxAmount'] != null) _buildDetailRow('Tax Amount', "${data['taxAmount'].toString()}"),
-                  ],
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      body: Column(
         children: [
-          SizedBox(
-            width: 120,
-            child: Text('$label:', style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
+              child: Row(
+                children: [
+                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.store_rounded, color: kOrange, size: 18)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(purchaseData['supplierName'] ?? 'Unknown Supplier', style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700)),
+                      Text(purchaseData['supplierPhone'] ?? '--', style: const TextStyle(color: kBlack54, fontSize: 11)),
+                    ]),
+                  ),
+                  Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Text((purchaseData['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor))),
+                ],
+              ),
+            ),
           ),
           Expanded(
-            child: Text(value, style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.bold)),
+            child: Container(
+              decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('LOGISTICS INFORMATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 12),
+                    _buildRow(Icons.receipt_long_rounded, 'Ref Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
+                    if (purchaseData['supplierGstin'] != null && purchaseData['supplierGstin'].toString().isNotEmpty)
+                      _buildRow(Icons.business_rounded, 'Tax No', purchaseData['supplierGstin']),
+                    _buildRow(Icons.calendar_month_rounded, 'Date Recorded', dateStr),
+                    _buildRow(Icons.notes_rounded, 'Note', purchaseData['notes'] ?? '--'),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100)),
+
+                    Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                      const Text('TOTAL PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
+                      Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    ]),
+
+                    if (purchaseData['taxAmount'] != null) ...[
+                      const SizedBox(height: 8),
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        const Text('Includes Tax (EST)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                        Text('Rs ${purchaseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
+                      ]),
+                    ],
+                  ],
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
+
+  Widget _buildRow(IconData i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 }

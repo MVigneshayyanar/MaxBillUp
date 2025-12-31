@@ -1,11 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
-import 'package:maxbillup/Settings/Profile.dart';
+import 'package:maxbillup/Settings/Profile.dart' hide kPrimaryColor, kBlack54;
 import 'package:maxbillup/Stocks/Stock.dart' as stock;
-import 'package:maxbillup/Reports/Reports.dart';
-import 'package:maxbillup/Menu/Menu.dart';
+import 'package:maxbillup/Reports/Reports.dart' hide kPrimaryColor;
+import 'package:maxbillup/Menu/Menu.dart' hide kWhite;
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/Colors.dart';
 
 class CommonBottomNav extends StatelessWidget {
   final String uid;
@@ -25,53 +26,37 @@ class CommonBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     // Calculate width for 5 items
     final itemWidth = screenWidth / 5;
-    final indicatorWidth = itemWidth * 0.5;
+    final indicatorWidth = itemWidth * 0.45; // Refined width for enterprise look
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(
-          top: BorderSide(color: Color(0xFFE3F2FD), width: 1),
+        color: kWhite,
+        border: Border(
+          top: BorderSide(color: kGrey200, width: 1),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
       ),
       child: SafeArea(
         child: Container(
-          height: 65,
-          padding: const EdgeInsets.only(bottom: 5),
+          height: 68, // Increased height for standard modern mobile feel
+          padding: const EdgeInsets.only(bottom: 4),
           child: Stack(
             children: [
-              // Sliding animated indicator bar
-              // We use Alignment x from -1.0 (left) to 1.0 (right)
-              // For 5 items, the positions are: -1.0, -0.5, 0.0, 0.5, 1.0
+              // Sliding animated indicator bar (Flat design)
               AnimatedAlign(
                 duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
+                curve: Curves.fastOutSlowIn,
                 alignment: Alignment(-1.0 + (currentIndex * 0.5), -1.0),
                 child: Container(
                   width: itemWidth,
                   alignment: Alignment.topCenter,
                   child: Container(
                     width: indicatorWidth,
-                    height: 4,
+                    height: 3, // Slimmer bar
                     decoration: BoxDecoration(
-                      color: const Color(0xFF2F7CF6),
-                      borderRadius: const BorderRadius.vertical(
-                        bottom: Radius.circular(2),
+                      color: kPrimaryColor,
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(4),
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF2F7CF6).withOpacity(0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -80,9 +65,9 @@ class CommonBottomNav extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(context, 0, Icons.menu_rounded, context.tr('menu')),
-                  _buildNavItem(context, 1, Icons.assessment_rounded, context.tr('reports')),
-                  _buildNavItem(context, 2, Icons.receipt_long_rounded, context.tr('new_sale')),
+                  _buildNavItem(context, 0, Icons.grid_view_rounded, context.tr('menu')),
+                  _buildNavItem(context, 1, Icons.bar_chart_rounded, context.tr('reports')),
+                  _buildNavItem(context, 2, Icons.add_circle_rounded, context.tr('new_sale')),
                   _buildNavItem(context, 3, Icons.inventory_2_rounded, context.tr('stock')),
                   _buildNavItem(context, 4, Icons.settings_rounded, context.tr('settings')),
                 ],
@@ -104,28 +89,21 @@ class CommonBottomNav extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 8),
-            AnimatedScale(
-              scale: isSelected ? 1.1 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
-              child: Icon(
-                icon,
-                color: isSelected ? const Color(0xFF2F7CF6) : Colors.black45, // Lighter unselected icon
-                size: 25,
-              ),
+            const SizedBox(height: 6),
+            Icon(
+              icon,
+              color: isSelected ? kPrimaryColor : kBlack54.withOpacity(0.4),
+              size: 26, // Slightly larger icon to balance increased height
             ),
             const SizedBox(height: 4),
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeInOut,
+            Text(
+              label.toUpperCase(), // Enterprise standard uppercase
               style: TextStyle(
-                fontSize: 13,
-                fontFamily: 'MiSans',
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF2F7CF6) : Colors.black38, // Lighter unselected text
+                fontSize: 9,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                color: isSelected ? kPrimaryColor : kBlack54.withOpacity(0.4),
+                letterSpacing: 0.5,
               ),
-              child: Text(label),
             ),
           ],
         ),
@@ -151,7 +129,6 @@ class CommonBottomNav extends StatelessWidget {
         targetPage = stock.StockPage(uid: uid, userEmail: userEmail);
         break;
       case 4:
-      // Assuming SettingsPage is defined in Profile.dart
         targetPage = SettingsPage(uid: uid, userEmail: userEmail);
         break;
       default:
@@ -165,7 +142,7 @@ class CommonBottomNav extends StatelessWidget {
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(opacity: animation, child: child);
         },
-        transitionDuration: const Duration(milliseconds: 250),
+        transitionDuration: const Duration(milliseconds: 200),
       ),
     );
   }

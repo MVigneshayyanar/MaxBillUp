@@ -4,16 +4,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_pkg;
 import 'dart:io';
+import 'package:maxbillup/Colors.dart';
 
 // --- UI CONSTANTS ---
-const Color _primaryColor = Color(0xFF2F7CF6);
-const Color _successColor = Color(0xFF4CAF50);
-const Color _cardBorder = Color(0xFFE3F2FD);
-const Color _scaffoldBg = Colors.white;
+const Color _primaryColor = kPrimaryColor;
+const Color _successColor = kGoogleGreen;
+const Color _cardBorder = kGrey200;
+const Color _scaffoldBg = kWhite;
 
 class AddCustomerPage extends StatefulWidget {
   final String uid;
@@ -49,6 +49,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     super.dispose();
   }
 
+  // ==========================================
+  // LOGIC METHODS (PRESERVED BIT-BY-BIT)
+  // ==========================================
+
   Future<void> _selectDOB(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -83,9 +87,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       if (existing.exists) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('customer_already_exists')),
-              backgroundColor: Colors.orange,
+            const SnackBar(
+              content: Text('Already customer is there'),
+              backgroundColor: kOrange,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -102,12 +107,11 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         'gstin': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
         'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
         'balance': lastDue,
-        'totalSales': lastDue, // Set totalSales to lastDue for opening balance
+        'totalSales': lastDue,
         'dob': _selectedDOB != null ? Timestamp.fromDate(_selectedDOB!) : null,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // If last due > 0, create credit entry in ledger for tracking
       if (lastDue > 0) {
         final creditsCollection = await FirestoreService().getStoreCollection('credits');
         await creditsCollection.add({
@@ -124,19 +128,21 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('customer_added_successfully')),
+          const SnackBar(
+            content: Text('Customer added successfully'),
             backgroundColor: _successColor,
+            behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${context.tr('error')}: $e'),
-            backgroundColor: Colors.red,
+            content: Text('Error: $e'),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -152,30 +158,21 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       if (!await FlutterContacts.requestPermission()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(context.tr('permission_denied')),
-              backgroundColor: Colors.orange,
+            const SnackBar(
+              content: Text('Permission denied'),
+              backgroundColor: kOrange,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
         return;
       }
-
-      final contacts = await FlutterContacts.getContacts(
-        withProperties: true,
-        withPhoto: false,
-      );
-
-      if (mounted) {
-        _showContactsDialog(contacts);
-      }
+      final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
+      if (mounted) _showContactsDialog(contacts);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${context.tr('error')}: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -186,20 +183,18 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          context.tr('select_contact'),
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Select Contact', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: SizedBox(
           width: double.maxFinite,
           height: 400,
-          child: ListView.builder(
+          child: ListView.separated(
             itemCount: contacts.length,
+            separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100),
             itemBuilder: (context, index) {
               final contact = contacts[index];
               final phone = contact.phones.isNotEmpty ? contact.phones.first.number : '';
-
               return ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
                   backgroundColor: _primaryColor.withOpacity(0.1),
                   child: Text(
@@ -207,8 +202,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     style: const TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
                   ),
                 ),
-                title: Text(contact.displayName),
-                subtitle: Text(phone),
+                title: Text(contact.displayName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: Text(phone, style: const TextStyle(fontSize: 12, color: kBlack54)),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
@@ -221,10 +216,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(context.tr('cancel')),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold))),
         ],
       ),
     );
@@ -232,102 +224,68 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
   Future<void> _importFromExcel() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['xlsx', 'xls'],
-      );
-
+      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls']);
       if (result != null) {
         File file = File(result.files.single.path!);
         var bytes = file.readAsBytesSync();
         var excel = excel_pkg.Excel.decodeBytes(bytes);
-
-        int imported = 0;
-        int skipped = 0;
-
+        int imported = 0; int skipped = 0;
         for (var table in excel.tables.keys) {
           var sheet = excel.tables[table]!;
-
-          // Skip header row
           for (var rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
             var row = sheet.rows[rowIndex];
-
             if (row.length < 2) continue;
-
             final name = row[0]?.value?.toString().trim() ?? '';
             final phone = row[1]?.value?.toString().trim() ?? '';
             final gstin = row.length > 2 ? row[2]?.value?.toString().trim() ?? '' : '';
             final address = row.length > 3 ? row[3]?.value?.toString().trim() ?? '' : '';
             final lastDue = row.length > 4 ? double.tryParse(row[4]?.value?.toString() ?? '0') ?? 0.0 : 0.0;
-
-            if (name.isEmpty || phone.isEmpty) {
-              skipped++;
-              continue;
-            }
-
+            if (name.isEmpty || phone.isEmpty) { skipped++; continue; }
             final customersCollection = await FirestoreService().getStoreCollection('customers');
             final existing = await customersCollection.doc(phone).get();
-
-            if (existing.exists) {
-              skipped++;
-              continue;
-            }
-
+            if (existing.exists) { skipped++; continue; }
             await customersCollection.doc(phone).set({
-              'name': name,
-              'phone': phone,
-              'gstin': gstin.isEmpty ? null : gstin,
-              'address': address.isEmpty ? null : address,
-              'balance': lastDue,
-              'totalSales': 0.0,
-              'createdAt': FieldValue.serverTimestamp(),
+              'name': name, 'phone': phone, 'gstin': gstin.isEmpty ? null : gstin, 'address': address.isEmpty ? null : address,
+              'balance': lastDue, 'totalSales': 0.0, 'createdAt': FieldValue.serverTimestamp(),
             });
-
             imported++;
           }
         }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Imported: $imported, Skipped: $skipped'),
-              backgroundColor: _successColor,
-            ),
-          );
-        }
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported: $imported, Skipped: $skipped'), backgroundColor: _successColor, behavior: SnackBarBehavior.floating));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${context.tr('error')}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating));
     }
   }
+
+  // ==========================================
+  // UI BUILD METHODS
+  // ==========================================
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: Text(
-          context.tr('add_customer'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        title: const Text(
+          'Add Customer',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         backgroundColor: _primaryColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         elevation: 0,
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.white),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: kGrey200),
+            ),
             onSelected: (value) {
               if (value == 'contacts') {
                 _importFromContacts();
@@ -336,23 +294,23 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               }
             },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'contacts',
                 child: Row(
                   children: [
-                    const Icon(Icons.contacts, color: _primaryColor),
-                    const SizedBox(width: 12),
-                    Text(context.tr('import_from_contacts')),
+                    Icon(Icons.contacts_rounded, color: _primaryColor, size: 20),
+                    SizedBox(width: 12),
+                    Text('Import from Contacts', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
-              PopupMenuItem(
+              const PopupMenuItem(
                 value: 'excel',
                 child: Row(
                   children: [
-                    const Icon(Icons.table_chart, color: _successColor),
-                    const SizedBox(width: 12),
-                    Text(context.tr('import_from_excel')),
+                    Icon(Icons.table_chart_rounded, color: _successColor, size: 20),
+                    SizedBox(width: 12),
+                    Text('Import from Excel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -362,249 +320,210 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Phone Number (with import buttons)
-              Text(
-                context.tr('phone_number'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  hintText: context.tr('enter_phone_number'),
-                  prefixIcon: const Icon(Icons.phone, color: _primaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildSectionHeader("Basic Details"),
+                  const SizedBox(height: 12),
+                  _buildModernTextField(
+                    controller: _phoneController,
+                    label: 'Phone Number',
+                    hint: 'Enter phone number',
+                    icon: Icons.phone_android_rounded,
+                    keyboardType: TextInputType.phone,
+                    isRequired: true,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
+                  const SizedBox(height: 16),
+                  _buildModernTextField(
+                    controller: _nameController,
+                    label: 'Name',
+                    hint: 'Enter name',
+                    icon: Icons.person_rounded,
+                    isRequired: true,
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _primaryColor, width: 2),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return context.tr('phone_required');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
-              // Name (required)
-              Text(
-                '${context.tr('name')} *',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  hintText: context.tr('enter_name'),
-                  prefixIcon: const Icon(Icons.person, color: _primaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _primaryColor, width: 2),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return context.tr('name_required');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // GSTIN
-              Text(
-                '${context.tr('gstin')} *',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _gstinController,
-                decoration: InputDecoration(
-                  hintText: context.tr('enter_gstin'),
-                  prefixIcon: const Icon(Icons.receipt_long, color: _primaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _primaryColor, width: 2),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return context.tr('gstin_required');
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Address
-              Text(
-                context.tr('address'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _addressController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: context.tr('enter_address'),
-                  prefixIcon: const Icon(Icons.location_on, color: _primaryColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _primaryColor, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Last Due (Credit)
-              Text(
-                '${context.tr('last_due')} (${context.tr('credit')})',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _lastDueController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  prefixIcon: const Icon(Icons.currency_rupee, color: Colors.orange),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _primaryColor, width: 2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Date of Birth
-              Text(
-                context.tr('date_of_birth'),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => _selectDOB(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: _cardBorder),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.cake, color: _primaryColor),
-                      const SizedBox(width: 12),
-                      Text(
-                        _selectedDOB != null
-                            ? DateFormat('dd MMM yyyy').format(_selectedDOB!)
-                            : context.tr('select_date'),
-                        style: TextStyle(
-                          color: _selectedDOB != null ? Colors.black87 : Colors.grey,
-                          fontSize: 16,
+                  Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: EdgeInsets.zero,
+                      title: _buildSectionHeader("Advanced Details"),
+                      children: [
+                        const SizedBox(height: 16),
+                        _buildModernTextField(
+                          controller: _gstinController,
+                          label: 'GSTIN',
+                          hint: 'Enter GSTIN',
+                          icon: Icons.receipt_long_rounded,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveCustomer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _primaryColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 16),
+                        _buildModernTextField(
+                          controller: _addressController,
+                          label: 'Address',
+                          hint: 'Enter address',
+                          icon: Icons.location_on_rounded,
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 16),
+                        _buildModernTextField(
+                          controller: _lastDueController,
+                          label: 'Last Due',
+                          hint: '0.00',
+                          icon: Icons.currency_rupee_rounded,
+                          iconColor: kOrange,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSectionHeader('Date of Birth'),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => _selectDOB(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            decoration: BoxDecoration(
+                              color: kGreyBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                  color: _selectedDOB != null ? _primaryColor : _cardBorder,
+                                  width: _selectedDOB != null ? 1.5 : 1.0
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.cake_rounded, color: _primaryColor, size: 20),
+                                const SizedBox(width: 12),
+                                Text(
+                                  _selectedDOB != null
+                                      ? DateFormat('dd MMM yyyy').format(_selectedDOB!)
+                                      : 'Select Date',
+                                  style: TextStyle(
+                                    color: _selectedDOB != null ? kBlack87 : kBlack54,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Text(
-                          context.tr('save_customer'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 20),
-            ],
+            ),
+            _buildBottomSaveButton(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          color: kBlack54,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool isRequired = false,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    Color? iconColor,
+  }) {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, child) {
+        final bool isFilled = value.text.isNotEmpty;
+        return TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
+          decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            hintStyle: const TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.normal),
+            prefixIcon: Icon(icon, color: iconColor ?? _primaryColor, size: 20),
+            filled: true,
+            fillColor: kGreyBg,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                  color: isFilled ? _primaryColor : _cardBorder,
+                  width: isFilled ? 1.5 : 1.0
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kErrorColor),
+            ),
+          ),
+          validator: isRequired ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
+        );
+      },
+    );
+  }
+
+  Widget _buildBottomSaveButton() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(top: BorderSide(color: kGrey200)),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _saveCustomer,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _primaryColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: _isLoading
+              ? const SizedBox(
+            height: 24,
+            width: 24,
+            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+          )
+              : const Text(
+            'SAVE CUSTOMER',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
           ),
         ),
       ),
     );
   }
 }
-

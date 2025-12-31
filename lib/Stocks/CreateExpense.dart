@@ -47,6 +47,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
   DateTime _selectedDate = DateTime.now();
   String _selectedCategory = 'General';
+  String _paymentMode = 'Cash'; // Payment mode: Cash, Online, Credit
   bool _isLoading = false;
   List<String> _categories = ['General', 'Salary', 'EB Bill', 'Stock Purchase', 'Other'];
   String? _selectedVendor;
@@ -101,6 +102,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               'phone': data['phone'] ?? '',
               'gstin': data['gstin'] ?? '',
               'address': data['address'] ?? '',
+              'totalPurchases': data['totalPurchases'] ?? 0.0,
+              'purchaseCount': data['purchaseCount'] ?? 0,
+              'source': data['source'] ?? '',
             };
           }).toList();
         });
@@ -168,16 +172,32 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         itemCount: _vendors.length,
                         itemBuilder: (context, index) {
                           final vendor = _vendors[index];
+                          final totalPurchases = (vendor['totalPurchases'] ?? 0.0).toDouble();
+                          final purchaseCount = vendor['purchaseCount'] ?? 0;
+                          final hasStats = totalPurchases > 0 || purchaseCount > 0;
+
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: _primaryColor.withValues(alpha: 0.1),
                               child: Text(
-                                vendor['name'][0].toUpperCase(),
+                                (vendor['name'] ?? 'V').toString().isNotEmpty
+                                    ? vendor['name'][0].toUpperCase()
+                                    : 'V',
                                 style: const TextStyle(color: _primaryColor),
                               ),
                             ),
-                            title: Text(vendor['name']),
-                            subtitle: Text(vendor['phone']),
+                            title: Text(vendor['name'] ?? 'Unknown'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(vendor['phone'] ?? ''),
+                                if (hasStats)
+                                  Text(
+                                    '$purchaseCount bills • ₹${totalPurchases.toStringAsFixed(0)} total',
+                                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                                  ),
+                              ],
+                            ),
                             onTap: () {
                               Navigator.pop(context);
                               setState(() {
@@ -335,9 +355,11 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
     try {
       final totalAmount = double.tryParse(_totalAmountController.text.trim()) ?? 0.0;
-      final paidAmount = double.tryParse(_paidAmountController.text.trim()) ?? 0.0;
+      final paidAmount = _paymentMode == 'Credit'
+          ? (double.tryParse(_paidAmountController.text.trim()) ?? 0.0)
+          : totalAmount;
       final gstAmount = double.tryParse(_gstAmountController.text.trim()) ?? 0.0;
-      final creditAmount = totalAmount - paidAmount;
+      final creditAmount = _paymentMode == 'Credit' ? _creditAmount : 0.0;
 
       final expensesCollection = await FirestoreService().getStoreCollection('expenses');
 
@@ -346,6 +368,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         'title': _nameController.text.trim(), // For backward compatibility
         'billNumber': _billNumberController.text.trim(),
         'category': _selectedCategory,
+        'paymentMode': _paymentMode,
         'totalAmount': totalAmount,
         'paidAmount': paidAmount,
         'creditAmount': creditAmount,
@@ -389,7 +412,38 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   double get _creditAmount {
     final total = double.tryParse(_totalAmountController.text.trim()) ?? 0.0;
     final paid = double.tryParse(_paidAmountController.text.trim()) ?? 0.0;
-    return total - paid;
+    return (total - paid).clamp(0.0, double.infinity);
+  }
+
+  Widget _buildPaymentModeChip(String mode, IconData icon) {
+    final isSelected = _paymentMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _paymentMode = mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? _primaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey),
+              const SizedBox(width: 6),
+              Text(
+                mode,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.grey[700],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -543,72 +597,98 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               ),
               const SizedBox(height: 20),
 
-              // Paid/Advance Amount
+              // Payment Mode
               Text(
-                'Paid/Advance Amount *',
+                'Payment Mode *',
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
               ),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _paidAmountController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  hintText: '0.00',
-                  prefixIcon: const Icon(Icons.payment, color: _successColor),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: _cardBorder),
-                  ),
-                ),
-                onChanged: (val) => setState(() {}),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Paid amount is required';
-                  }
-                  final paid = double.tryParse(value);
-                  final total = double.tryParse(_totalAmountController.text.trim());
-                  if (paid == null) return 'Enter a valid amount';
-                  if (total != null && paid > total) {
-                    return 'Paid amount cannot exceed total';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-
-              // Credit Amount Display
               Container(
-                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _creditAmount > 0 ? Colors.orange.shade50 : _successColor.withValues(alpha: 0.1),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _creditAmount > 0 ? Colors.orange : _successColor,
-                  ),
+                  border: Border.all(color: _cardBorder),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Credit Amount:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor,
-                      ),
-                    ),
-                    Text(
-                      '${_creditAmount.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor,
-                      ),
-                    ),
+                    _buildPaymentModeChip('Cash', Icons.money),
+                    _buildPaymentModeChip('Online', Icons.qr_code),
+                    _buildPaymentModeChip('Credit', Icons.account_balance_wallet),
                   ],
                 ),
               ),
+
+              // Paid Amount & Credit Display (only in Credit mode)
+              if (_paymentMode == 'Credit') ...[
+                const SizedBox(height: 20),
+                Text(
+                  'Paid Amount',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _paidAmountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    prefixIcon: const Icon(Icons.payment, color: _successColor),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: _cardBorder),
+                    ),
+                  ),
+                  onChanged: (val) => setState(() {}),
+                  validator: (value) {
+                    final paid = double.tryParse(value ?? '') ?? 0.0;
+                    final total = double.tryParse(_totalAmountController.text.trim()) ?? 0.0;
+                    if (paid > total) {
+                      return 'Paid amount cannot exceed total';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Credit Amount Display (auto-calculated)
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: _creditAmount > 0 ? Colors.orange.shade50 : _successColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _creditAmount > 0 ? Colors.orange : _successColor,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Credit Amount:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '₹${_creditAmount.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
 
               // GSTIN

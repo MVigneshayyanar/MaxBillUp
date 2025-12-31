@@ -29,6 +29,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: kWhite,
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -37,15 +39,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Delete Customer", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close)),
+                  const Text("Delete Customer", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kBlack87)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 48),
               const SizedBox(height: 16),
               const Text("This action cannot be undone. All customer data and credit history will be removed.",
-                  textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 14)),
+                  textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 14, height: 1.4)),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity, height: 50,
@@ -54,7 +56,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     await FirestoreService().deleteDocument('customers', widget.customerId);
                     if (mounted) { Navigator.pop(context); Navigator.pop(context); }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: const Text("DELETE PERMANENTLY", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
                 ),
               ),
@@ -73,6 +75,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: kWhite,
+        elevation: 0,
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
@@ -81,8 +85,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Edit Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close)),
+                  const Text("Edit Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -100,7 +104,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     });
                     if (mounted) Navigator.pop(context);
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: const Text("UPDATE DETAILS", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
                 ),
               ),
@@ -129,8 +133,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Add Sales Credit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close)),
+                  const Text("Add Sales Credit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
                 ],
               ),
               const SizedBox(height: 24),
@@ -148,7 +152,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               SizedBox(
                 width: double.infinity, height: 54,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () async {
                     final amount = double.tryParse(amountController.text) ?? 0.0;
                     if (amount <= 0) return;
@@ -176,7 +180,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
       decoration: InputDecoration(
         labelText: label, prefixIcon: Icon(icon, color: kPrimaryColor, size: 20),
-        filled: true, fillColor: kGreyBg, contentPadding: const EdgeInsets.all(16),
+        filled: true, fillColor: kGreyBg, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
       ),
@@ -189,13 +193,12 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       onTap: () => onSelect(label),
       child: Column(children: [
         AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 250),
           width: 54, height: 54,
           decoration: BoxDecoration(
             color: isActive ? kPrimaryColor : kWhite,
             shape: BoxShape.circle,
             border: Border.all(color: isActive ? kPrimaryColor : kGrey200, width: 1.5),
-            boxShadow: isActive ? [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
           ),
           child: Icon(icon, color: isActive ? kWhite : kBlack54, size: 22),
         ),
@@ -221,7 +224,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         });
       });
 
-      // Save to credits collection with complete data
       await creditsCollection.add({
         'customerId': widget.customerId,
         'customerName': widget.customerData['name'],
@@ -236,9 +238,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Credit of Rs ${amount.toStringAsFixed(0)} added successfully'),
-            backgroundColor: Colors.green,
+            content: Text('Credit of ${amount.toStringAsFixed(0)} added successfully'),
+            backgroundColor: kGoogleGreen,
             duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -248,7 +252,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error adding credit: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -260,11 +266,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return FutureBuilder<DocumentReference>(
       future: FirestoreService().getDocumentReference('customers', widget.customerId),
       builder: (context, docRefSnapshot) {
-        if (!docRefSnapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (!docRefSnapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
         return StreamBuilder<DocumentSnapshot>(
           stream: docRefSnapshot.data!.snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
             if (!snapshot.data!.exists) return const Scaffold(body: Center(child: Text("Customer not found")));
 
             var data = snapshot.data!.data() as Map<String, dynamic>;
@@ -274,7 +280,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             return Scaffold(
               backgroundColor: kGreyBg,
               appBar: AppBar(
-                title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 18)),
+                title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
                 backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
                 iconTheme: const IconThemeData(color: kWhite),
               ),
@@ -284,13 +290,12 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 8), // Reduced gap
                           Container(
                             margin: const EdgeInsets.symmetric(horizontal: 16),
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                              color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -298,17 +303,23 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87))),
+                                    CircleAvatar(
+                                      backgroundColor: kOrange.withOpacity(0.1),
+                                      radius: 24,
+                                      child: const Icon(Icons.person, color: kOrange, size: 24),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kOrange))),
                                     Row(children: [
-                                      IconButton(icon: const Icon(Icons.edit_outlined, color: kPrimaryColor, size: 20), onPressed: () => _showEditDialog(context, data['name'], data['gst'])),
-                                      IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 20), onPressed: () => _confirmDelete(context)),
+                                      IconButton(icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26), onPressed: () => _showEditDialog(context, data['name'], data['gst'])),
+                                      IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 24), onPressed: () => _confirmDelete(context)),
                                     ])
                                   ],
                                 ),
-                                const Divider(height: 32, color: kGrey200),
+                                const Divider(height: 32, color: kGrey100),
                                 _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
-                                const SizedBox(height: 12),
-                                _buildInfoRow(Icons.pin_drop_outlined, "GST No", data['gst'] ?? 'Not Provided'),
+                                const SizedBox(height: 10),
+                                _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? 'Not Provided'),
                                 const SizedBox(height: 24),
                                 Row(children: [
                                   _buildStatBox("Total Sales", totalSales, kGoogleGreen),
@@ -318,7 +329,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                           _buildMenuItem(context, "View Bills", Icons.receipt_long_rounded),
                           const SizedBox(height: 10),
                           _buildMenuItem(context, "Payment History", Icons.history_rounded),
@@ -342,8 +353,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return Row(children: [
       Icon(icon, size: 16, color: kBlack54),
       const SizedBox(width: 10),
-      Text("$label: ", style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w500)),
-      Text(value, style: const TextStyle(color: kBlack87, fontSize: 13, fontWeight: FontWeight.w600)),
+      Text("$label: ", style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
+      Text(value, style: const TextStyle(color: kBlack87, fontSize: 13, fontWeight: FontWeight.w700)),
     ]);
   }
 
@@ -355,9 +366,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(lbl, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-            const SizedBox(height: 4),
-            Text("Rs ${amt.toStringAsFixed(2)}", style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w600)),
+            Text(lbl.toUpperCase(), style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            const SizedBox(height: 6),
+            Text("${amt.toStringAsFixed(2)}", style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -369,9 +380,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ListTile(
-        leading: Icon(icon, color: kPrimaryColor, size: 22),
-        title: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87)),
-        trailing: const Icon(Icons.arrow_forward_rounded, size: 14, color: kGrey400),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 20)),
+        title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
         onTap: () {
           if (title.contains("Bills")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
@@ -383,19 +394,19 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
   Widget _buildBottomActionArea(double balance, double totalSales) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, -4))]),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
       child: Row(children: [
         Expanded(child: ElevatedButton(
           onPressed: () => _showAddCreditModal(context, balance, totalSales),
-          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          child: const Text("ADD CREDIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+          child: const Text("ADD CREDIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         )),
         const SizedBox(width: 12),
         Expanded(child: OutlinedButton(
           onPressed: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => _ReceiveCreditPage(customerId: widget.customerId, customerData: widget.customerData, currentBalance: balance))),
-          style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-          child: const Text("RECEIVE PAYMENT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600)),
+          style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          child: const Text("RECEIVE PAYMENT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         )),
       ]),
     );
@@ -420,32 +431,32 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.customerData['name'] ?? 'Customer', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87)),
+          Text(widget.customerData['name'] ?? 'Customer', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kOrange)),
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: kBlack54)),
-              Text("Rs ${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kErrorColor)),
+              const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
+              Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
             ]),
           ),
           const SizedBox(height: 32),
-          const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack54)),
+          const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
           const SizedBox(height: 12),
           TextField(
             controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w600, color: kPrimaryColor),
-            decoration: InputDecoration(prefixText: "Rs ", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
+            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
+            decoration: InputDecoration(prefixText: "", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
           ),
           const Spacer(),
-          SizedBox(width: double.infinity, height: 56, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {
               if (_amt <= 0) return;
               final cCol = await FirestoreService().getStoreCollection('customers');
@@ -454,7 +465,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
               await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
               if (mounted) Navigator.pop(context);
             },
-            child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w600)),
+            child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
           )),
         ]),
       ),
@@ -484,23 +495,15 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   void initState() { super.initState(); _loadLedger(); }
 
   Future<void> _loadLedger() async {
-    // 1. Fetch Transactions (Sales & Credits)
     final sales = await FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: widget.customerId).get());
     final credits = await FirestoreService().getStoreCollection('credits').then((c) => c.where('customerId', isEqualTo: widget.customerId).get());
-
     List<LedgerEntry> entries = [];
-
-    // 2. Map Sales (Sale = Debit if on Credit)
     for (var doc in sales.docs) {
       final d = doc.data() as Map<String, dynamic>;
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final total = (d['total'] ?? 0.0).toDouble();
       final mode = d['paymentMode'] ?? 'Unknown';
-
-      // standard accounting: invoice is a debit to customer
       entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0));
-
-      // if paid instantly, it's a matching credit
       if (mode == 'Cash' || mode == 'Online') {
         entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Immediate Payment", debit: 0, credit: total));
       } else if (mode == 'Split') {
@@ -508,30 +511,24 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         if (paid > 0) entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Partial Payment", debit: 0, credit: paid));
       }
     }
-
-    // 3. Map Credits (Payment = Credit, Manual Add = Debit)
     for (var doc in credits.docs) {
       final d = doc.data() as Map<String, dynamic>;
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final amt = (d['amount'] ?? 0.0).toDouble();
       final type = d['type'] ?? '';
       final method = d['method'] ?? '';
-
       if (type == 'payment_received') {
         entries.add(LedgerEntry(date: date, type: 'CR', desc: "Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: amt));
       } else if (type == 'add_credit') {
         entries.add(LedgerEntry(date: date, type: 'DR', desc: "Sales Credit Added (${method.isNotEmpty ? method : 'Manual'})", debit: amt, credit: 0));
       }
     }
-
-    // 4. Sort and Calculate Running Balance
     entries.sort((a, b) => a.date.compareTo(b.date));
     double running = 0;
     for (var e in entries) {
       running += (e.debit - e.credit);
       e.balance = running;
     }
-
     if (mounted) setState(() { _entries = entries.reversed.toList(); _loading = false; });
   }
 
@@ -539,32 +536,32 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kWhite,
-      appBar: AppBar(title: Text("${widget.customerName} Ledger", style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0),
-      body: _loading ? const Center(child: CircularProgressIndicator()) : Column(children: [
+      appBar: AppBar(title: Text("${widget.customerName} Ledger", style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+      body: _loading ? const Center(child: CircularProgressIndicator(color: kPrimaryColor)) : Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           color: kPrimaryColor.withOpacity(0.05),
           child: const Row(children: [
-            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54))),
-            Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54))),
-            Expanded(flex: 2, child: Text("DEBIT (+)", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("CREDIT (-)", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen))),
-            Expanded(flex: 2, child: Text("REAL BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54))),
+            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
-        Expanded(child: ListView.builder(
+        Expanded(child: ListView.separated(
           itemCount: _entries.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
           itemBuilder: (c, i) {
             final e = _entries[i];
             return Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               child: Row(children: [
-                Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
-                Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 12, fontWeight: FontWeight.w600))),
-                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w600))),
-                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.bold))),
+                Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
+                Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
               ]),
             );
           },
@@ -577,18 +574,18 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   Widget _buildClosingBar() {
     final bal = _entries.isNotEmpty ? _entries.first.balance : 0.0;
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text("Real Closing Balance:", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack54)),
-        Text("Rs ${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+        const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+        Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
       ]),
     );
   }
 }
 
 // =============================================================================
-// SUB-PAGE: LIST VIEWS (UI UPDATED)
+// SUB-PAGE: LIST VIEWS
 // =============================================================================
 
 class CustomerBillsPage extends StatelessWidget {
@@ -597,13 +594,13 @@ class CustomerBillsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 16)), backgroundColor: kPrimaryColor, iconTheme: const IconThemeData(color: kWhite), centerTitle: true),
+      appBar: AppBar(title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text("No bills found"));
+          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)));
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -613,9 +610,9 @@ class CustomerBillsPage extends StatelessWidget {
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
-                  title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87)),
-                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 12, color: kBlack54)),
-                  trailing: Text("Rs ${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 15)),
+                  title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
+                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
                 ),
               );
             },
@@ -632,50 +629,13 @@ class CustomerCreditsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Credit & Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      appBar: AppBar(title: const Text("Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: _fetchCredits(),
         builder: (context, snapshot) {
-          // Show loading
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          // Show error if any
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
-                  const SizedBox(height: 16),
-                  Text('Error loading data: ${snapshot.error}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.red)),
-                ],
-              ),
-            );
-          }
-
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))]));
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
-            return const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history, color: kBlack54, size: 48),
-                  SizedBox(height: 16),
-                  Text("No transaction history", style: TextStyle(color: kBlack54, fontSize: 16)),
-                  SizedBox(height: 8),
-                  Text("Add credit or receive payment to see history",
-                    style: TextStyle(color: kBlack54, fontSize: 12),
-                    textAlign: TextAlign.center),
-                ],
-              ),
-            );
-          }
-
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -683,30 +643,13 @@ class CustomerCreditsPage extends StatelessWidget {
               final data = docs[index].data() as Map<String, dynamic>;
               bool isPayment = data['type'] == 'payment_received';
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-              final method = data['method'] ?? '';
-              final note = data['note'] ?? '';
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1),
-                    child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward,
-                      color: isPayment ? kGoogleGreen : kErrorColor, size: 18)
-                  ),
-                  title: Text(isPayment ? "Payment Received" : "Sales Credit Added",
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)}${method.isNotEmpty ? ' • $method' : ''}",
-                        style: const TextStyle(fontSize: 11)),
-                      if (note.isNotEmpty)
-                        Text(note, style: const TextStyle(fontSize: 10, color: kBlack54, fontStyle: FontStyle.italic)),
-                    ],
-                  ),
-                  trailing: Text("Rs ${data['amount']}",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15,
-                      color: isPayment ? kGoogleGreen : kErrorColor)),
+                  leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
+                  title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+                  subtitle: Text("${DateFormat('dd MMM yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
                 ),
               );
             },
@@ -718,32 +661,12 @@ class CustomerCreditsPage extends StatelessWidget {
 
   Future<QuerySnapshot> _fetchCredits() async {
     try {
-      // Try with orderBy first
       final collection = await FirestoreService().getStoreCollection('credits');
-      return await collection
-          .where('customerId', isEqualTo: customerId)
-          .orderBy('timestamp', descending: true)
-          .get();
+      return await collection.where('customerId', isEqualTo: customerId).orderBy('timestamp', descending: true).get();
     } catch (e) {
-      // If composite index error, fallback to just where clause and sort in memory
-      debugPrint('Composite index error, using fallback query: $e');
       final collection = await FirestoreService().getStoreCollection('credits');
-      final snapshot = await collection
-          .where('customerId', isEqualTo: customerId)
-          .get();
-
-      // Sort manually in Dart
-      final sortedDocs = snapshot.docs.toList()
-        ..sort((a, b) {
-          final aData = a.data() as Map<String, dynamic>?;
-          final bData = b.data() as Map<String, dynamic>?;
-          final aTime = (aData?['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-          final bTime = (bData?['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-          return bTime.compareTo(aTime); // Descending order
-        });
-      
-      // Return the snapshot as-is (docs are already sorted)
-      return snapshot;
+      return await collection.where('customerId', isEqualTo: customerId).get();
     }
   }
 }
+

@@ -1,15 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
-
-// Professional Corporate Palette
-const Color _primaryColor = Color(0xFF2F7CF6); // Slate 900 (Navy)
-const Color _accentColor = Color(0xFF2F7CF6);  // Professional Blue
-const Color _secondaryColor = Color(0xFF64748B); // Slate 500 (Grey)
-const Color _cardBorder = Color(0xFFE2E8F0); // Slate 200
-const Color _scaffoldBg = Color(0xFFF1F5F9); // Slate 100
-const Color _surfaceColor = Colors.white;
+import 'package:maxbillup/Colors.dart';
 
 class KnowledgePage extends StatefulWidget {
   final VoidCallback onBack;
@@ -30,15 +22,15 @@ class _KnowledgePageState extends State<KnowledgePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _scaffoldBg,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(context.tr('knowledge_base'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: _primaryColor,
+        title: const Text('Knowledge Base',
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 25),
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
           onPressed: widget.onBack,
         ),
       ),
@@ -55,10 +47,9 @@ class _KnowledgePageState extends State<KnowledgePage> {
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: _accentColor));
+                  return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                 }
 
-                // Error handling modified to hide technical error messages
                 if (snapshot.hasError) {
                   return _buildEmptyState();
                 }
@@ -97,7 +88,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                 }
 
                 return RefreshIndicator(
-                  color: _accentColor,
+                  color: kPrimaryColor,
                   onRefresh: () async => setState(() {}),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -128,39 +119,40 @@ class _KnowledgePageState extends State<KnowledgePage> {
 
   Widget _buildCategoryFilter() {
     return Container(
-      height: 64,
+      height: 56,
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: _surfaceColor,
-        border: Border(bottom: BorderSide(color: _cardBorder)),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey200)),
       ),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = _selectedCategory == category;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: ChoiceChip(
-              label: Text(category),
-              selected: isSelected,
-              onSelected: (selected) => setState(() => _selectedCategory = category),
-              selectedColor: _primaryColor,
-              backgroundColor: _scaffoldBg,
-              elevation: 0,
-              pressElevation: 0,
-              showCheckmark: false,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: isSelected ? _primaryColor : _cardBorder),
-              ),
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : _primaryColor,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedCategory = category),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isSelected ? kPrimaryColor : kGreyBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  category,
+                  style: TextStyle(
+                    color: isSelected ? kWhite : kBlack54,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                  ),
+                ),
               ),
             ),
           );
@@ -182,19 +174,17 @@ class _KnowledgePageState extends State<KnowledgePage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: _surfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _cardBorder),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
         child: InkWell(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           onTap: () => _showKnowledgeDetail(context, title, content, category, createdAt, updatedAt),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -205,46 +195,46 @@ class _KnowledgePageState extends State<KnowledgePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
                         color: categoryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         category.toUpperCase(),
-                        style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        style: TextStyle(color: categoryColor, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                       ),
                     ),
                     Row(
                       children: [
-                        Icon(Icons.schedule_rounded, size: 14, color: _secondaryColor.withOpacity(0.6)),
+                        Icon(Icons.schedule_rounded, size: 12, color: kBlack54.withOpacity(0.6)),
                         const SizedBox(width: 4),
-                        Text(timeAgo, style: TextStyle(fontSize: 11, color: _secondaryColor, fontWeight: FontWeight.w500)),
+                        Text(timeAgo, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryColor, height: 1.3),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kBlack87, height: 1.3),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   content,
-                  style: TextStyle(fontSize: 13, color: _secondaryColor, height: 1.5),
-                  maxLines: 3,
+                  style: const TextStyle(fontSize: 12, color: kBlack54, height: 1.5),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      'Read Article',
-                      style: TextStyle(color: _accentColor, fontSize: 13, fontWeight: FontWeight.bold),
+                    const Text(
+                      'READ ARTICLE',
+                      style: TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_rounded, size: 16, color: _accentColor),
+                    const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: kPrimaryColor),
                   ],
                 ),
               ],
@@ -270,77 +260,75 @@ class _KnowledgePageState extends State<KnowledgePage> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: _surfaceColor,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              // Drag Handle
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: _cardBorder, borderRadius: BorderRadius.circular(2)),
-              ),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: categoryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(_getCategoryIcon(category), size: 14, color: categoryColor),
-                            const SizedBox(width: 8),
-                            Text(category, style: TextStyle(color: categoryColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // Drag Handle
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2)),
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: categoryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(_getCategoryIcon(category), size: 12, color: categoryColor),
+                          const SizedBox(width: 6),
+                          Text(category.toUpperCase(), style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Text(title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: _primaryColor, height: 1.2)),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today_rounded, size: 14, color: _secondaryColor),
-                        const SizedBox(width: 8),
-                        Text(formattedDate, style: TextStyle(fontSize: 13, color: _secondaryColor, fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 24), child: Divider(height: 1, color: _cardBorder)),
-                    Text(
-                      content,
-                      style: const TextStyle(fontSize: 15, color: _primaryColor, height: 1.7, letterSpacing: 0.2),
-                    ),
-                    const SizedBox(height: 40),
-                    ElevatedButton(
+                  ),
+                  const SizedBox(height: 16),
+                  Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: kBlack87, height: 1.2)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today_rounded, size: 12, color: kBlack54),
+                      const SizedBox(width: 6),
+                      Text(formattedDate, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Divider(height: 1, color: kGrey200)),
+                  Text(
+                    content,
+                    style: const TextStyle(fontSize: 14, color: kBlack87, height: 1.6, letterSpacing: 0.2),
+                  ),
+                  const SizedBox(height: 40),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: kPrimaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         elevation: 0,
                       ),
-                      child: const Text('Finished Reading', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      child: const Text('FINISHED READING', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -353,13 +341,13 @@ class _KnowledgePageState extends State<KnowledgePage> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: _surfaceColor, shape: BoxShape.circle, border: Border.all(color: _cardBorder)),
-            child: Icon(Icons.lightbulb_outline_rounded, size: 48, color: _secondaryColor.withOpacity(0.4)),
+            decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, border: Border.all(color: kGrey200)),
+            child: Icon(Icons.lightbulb_outline_rounded, size: 48, color: kBlack54.withOpacity(0.2)),
           ),
           const SizedBox(height: 24),
-          const Text('No knowledge posts yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _primaryColor)),
+          const Text('No knowledge posts yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87)),
           const SizedBox(height: 8),
-          Text('Check back later for tutorials and tips.', style: TextStyle(fontSize: 13, color: _secondaryColor)),
+          const Text('Check back later for tutorials and tips.', style: TextStyle(fontSize: 13, color: kBlack54)),
         ],
       ),
     );
@@ -367,11 +355,11 @@ class _KnowledgePageState extends State<KnowledgePage> {
 
   Color _getCategoryColor(String category) {
     switch (category.toLowerCase()) {
-      case 'tutorial': return _accentColor;
-      case 'faq': return const Color(0xFFF59E0B); // Amber 500
-      case 'tips': return const Color(0xFF10B981); // Emerald 500
-      case 'updates': return const Color(0xFF8B5CF6); // Violet 500
-      default: return _secondaryColor;
+      case 'tutorial': return kPrimaryColor;
+      case 'faq': return const Color(0xFFF59E0B);
+      case 'tips': return const Color(0xFF10B981);
+      case 'updates': return const Color(0xFF8B5CF6);
+      default: return kBlack54;
     }
   }
 
@@ -396,6 +384,6 @@ class _KnowledgePageState extends State<KnowledgePage> {
 
   String _formatDate(Timestamp? timestamp) {
     if (timestamp == null) return '';
-    return DateFormat('MMMM dd, yyyy • hh:mm a').format(timestamp.toDate());
+    return DateFormat('MMM dd, yyyy • hh:mm a').format(timestamp.toDate());
   }
 }

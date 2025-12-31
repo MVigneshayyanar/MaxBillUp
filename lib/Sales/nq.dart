@@ -31,6 +31,9 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   // Track specific highlighted product ID
   String? _highlightedProductId;
 
+  // Animation counter to force re-animation of same product
+  int _animationCounter = 0;
+
   // Animation controller for smooth highlight effect
   AnimationController? _highlightController;
   Animation<Color?>? _highlightAnimation;
@@ -53,16 +56,16 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
     // Initialize animation controller
     _highlightController = AnimationController(
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 1000),  // Increased from 600ms to 1000ms
       vsync: this,
     );
 
     _highlightAnimation = ColorTween(
-      begin: Colors.green.withValues(alpha: 0.4),
-      end: Colors.green.withValues(alpha: 0.05),
+      begin: Colors.green.withValues(alpha: 0.6),  // More prominent green (60% opacity)
+      end: Colors.green.withValues(alpha: 0.0),    // Fade to transparent
     ).animate(CurvedAnimation(
       parent: _highlightController!,
-      curve: Curves.easeInOut,
+      curve: Curves.easeOut,  // Smooth fade out
     ));
   }
 
@@ -79,25 +82,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _updateCartItems(List<CartItem> items, {String? triggerId}) {
+    print('🔄 [nq.dart] _updateCartItems called with ${items.length} items, triggerId: $triggerId');
     List<CartItem> updatedItems = List<CartItem>.from(items);
 
-    // If triggerId is provided, check if it's a quantity increase (highlight)
-    if (triggerId != null && triggerId.isNotEmpty) {
-      final existingIndex = _sharedCartItems?.indexWhere((item) => item.productId == triggerId);
-      final newIndex = updatedItems.indexWhere((item) => item.productId == triggerId);
-
-      if (existingIndex != null && existingIndex >= 0 && newIndex >= 0) {
-        // Existing item quantity changed - trigger highlight after frame
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            _triggerHighlight(triggerId, updatedItems);
-          }
-        });
-      } else {
-        // New item to highlight
-        _triggerHighlight(triggerId, updatedItems);
-      }
+    // Simple approach: The first item in the cart is always the one just added/modified
+    // because SaleAllPage and QuickSalePage move it to index 0
+    if (items.isNotEmpty) {
+      final firstItemId = items[0].productId;
+      print('✅ [nq.dart] Triggering animation for first item: $firstItemId');
+      _triggerHighlight(firstItemId, updatedItems);
     } else {
+      print('⚠️ [nq.dart] Cart is empty, just updating state');
       setState(() {
         _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
         if (updatedItems.isEmpty) {
@@ -108,20 +103,29 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   void _triggerHighlight(String productId, List<CartItem> updatedItems) {
-    // Reset and restart animation
+    print('🎬 [nq.dart] _triggerHighlight called for productId: $productId');
+    print('   Current _highlightedProductId: $_highlightedProductId');
+    print('   Current _animationCounter: $_animationCounter');
+
+    // Always reset and restart animation, even for same product
     _highlightController?.reset();
+    print('   ✓ Animation controller reset');
 
     setState(() {
       _highlightedProductId = productId;
+      _animationCounter++; // Increment to force state change
       _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
+      print('   ✓ State updated - new counter: $_animationCounter');
     });
 
     // Start the highlight animation
     _highlightController?.forward();
+    print('   ✓ Animation started forward');
 
     // Clear highlight after animation completes + delay
-    Future.delayed(const Duration(milliseconds: 2000), () {
+    Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && _highlightedProductId == productId) {
+        print('   🔚 [nq.dart] Clearing highlight for $productId');
         setState(() {
           _highlightedProductId = null;
         });
@@ -652,7 +656,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                 animation: _highlightAnimation!,
                 builder: (context, child) {
                   return ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 0),
                     itemCount: _sharedCartItems?.length ?? 0,
                     separatorBuilder: (context, index) => const Divider(height: 1, indent: 16, endIndent: 16, color: Color(0xFFF1F5F9)),
                     itemBuilder: (ctx, idx) {
@@ -668,7 +672,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         decoration: BoxDecoration(
                           // Use animated color for smooth transition
                           color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(0),
                         ),
                         child: Row(
                           children: [
