@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -28,109 +29,75 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'name': 'Starter',
       'rank': 0,
       'price': {'1': 0, '6': 0, '12': 0},
-      'icon': Icons.rocket_launch_outlined,
-      'staffText': 'Single admin + no staff',
+      'icon': Icons.rocket_launch_rounded,
+      'staffText': 'Single admin account',
       'included': [
-        'bill history for 7 days',
+        'Bill history (7 days)',
         'POS Billing',
-        'Expense',
-        'Purchase',
-        'Credit',
+        'Expense Tracking',
+        'Purchase Records',
         'Cloud Storage'
       ],
       'excluded': [
-        'DayBook',
-        'Report',
-        'Quotation',
-        'Bulk Inventory Upload',
-        'Logo On Bill',
-        'Customer credit details',
-        'Edit Bill',
-        'TAX Report',
-        'Import Contacts'
+        'Advanced DayBook',
+        'Quotations',
+        'Bulk Uploads',
+        'Business Logo',
+        'TAX Reports',
       ],
     },
     {
       'name': 'Essential',
       'rank': 1,
       'price': {'1': 249, '6': 1299, '12': 1999},
-      'icon': Icons.business_center_outlined,
-      'staffText': 'Single admin + no staff account',
+      'icon': Icons.business_center_rounded,
+      'staffText': 'Admin + 1 Manager',
       'included': [
-        'bill history full',
+        'Full Bill History',
         'POS Billing',
-        'Expense',
-        'Purchase',
-        'Credit',
-        'Cloud Storage',
-        'DayBook',
-        'Report',
-        'Quotation',
-        'Bulk Inventory Upload',
-        'Logo On Bill',
-        'Customer credit details',
-        'Edit Bill',
-        'TAX Report',
-        'Import Contacts'
+        'Full Reports',
+        'Quotations',
+        'Bulk Inventory',
+        'Business Logo',
+        'TAX Report'
       ],
       'excluded': [
-        'Up to 3 Staff Accounts',
-        'Advanced Team Analytics',
-        'Priority Support',
+        'Multiple Staff Accounts',
+        'Advanced Analytics',
       ],
     },
     {
       'name': 'Growth',
       'rank': 2,
       'price': {'1': 429, '6': 2299, '12': 3499},
-      'icon': Icons.trending_up_outlined,
+      'icon': Icons.trending_up_rounded,
       'popular': true,
-      'staffText': 'Single admin + upto 3 staff account',
+      'staffText': 'Admin + 3 Staff accounts',
       'included': [
-        'bill history full',
-        'POS Billing',
-        'Expense',
-        'Purchase',
-        'Credit',
-        'Cloud Storage',
-        'DayBook',
-        'Report',
-        'Quotation',
-        'Bulk Inventory Upload',
-        'Logo On Bill',
-        'Customer credit details',
-        'Edit Bill',
-        'TAX Report',
-        'Import Contacts'
+        'Full Bill History',
+        'Full Reports & GST',
+        'Customer Credit Details',
+        'Quotations & Proforma',
+        'Bulk SMS Support',
+        'Contact Imports'
       ],
       'excluded': [
         'Up to 15 Staff Accounts',
-        'Bulk SMS Marketing',
-        'Dedicated Account Manager'
+        'Dedicated Manager'
       ],
     },
     {
       'name': 'Pro',
       'rank': 3,
       'price': {'1': 529, '6': 2899, '12': 4299},
-      'icon': Icons.workspace_premium_outlined,
-      'staffText': 'Single admin + up to 15 staff account',
+      'icon': Icons.workspace_premium_rounded,
+      'staffText': 'Admin + 15 Staff accounts',
       'included': [
-        'bill history full',
-        'POS Billing',
-        'Expense',
-        'Purchase',
-        'Credit',
-        'Cloud Storage',
-        'DayBook',
-        'Report',
-        'Quotation',
-        'Bulk Inventory Upload',
-        'Logo On Bill',
-        'Customer credit details',
-        'Edit Bill',
-        'TAX Report',
-        'Import Contacts'
+        'Full Enterprise Access',
+        'All Modules Included',
+        'Priority Support',
+        'Advanced Data Exports',
+        'Custom Invoice Hooks'
       ],
       'excluded': [],
     },
@@ -141,7 +108,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     super.initState();
     _razorpay = Razorpay();
     // Default to 'Growth' if current plan is Starter or Free
-    _selectedPlan = (widget.currentPlan == 'Starter' || widget.currentPlan == 'Free' || widget.currentPlan == 'Free Plan')
+    _selectedPlan = (widget.currentPlan.toLowerCase().contains('starter') || widget.currentPlan.toLowerCase().contains('free'))
         ? 'Growth'
         : widget.currentPlan;
 
@@ -173,12 +140,13 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'subscriptionExpiryDate': expiryDate.toIso8601String(),
       'paymentId': paymentId,
       'lastPaymentDate': now.toIso8601String(),
+      'updatedAt': FieldValue.serverTimestamp(),
     });
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text("🎉 Plan Upgraded Successfully!"),
+          content: Text("🎉 ${context.tr('plan_upgraded_successfully')}"),
           backgroundColor: kGoogleGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -192,7 +160,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Payment Failed: ${response.message}'),
+          content: Text('${context.tr('payment_failed')}: ${response.message}'),
           backgroundColor: kErrorColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -232,8 +200,6 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   Widget build(BuildContext context) {
     final selectedPlanData = plans.firstWhere((p) => p['name'] == _selectedPlan);
     final currentPrice = selectedPlanData['price'][_selectedDuration.toString()] ?? 0;
-
-    // Logic to handle matching plans accurately
     final bool isCurrentPlanActive = _selectedPlan.toLowerCase() == widget.currentPlan.toLowerCase();
 
     return Scaffold(
@@ -242,33 +208,29 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 18),
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          context.tr('Subscription Plans'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+          context.tr('Subscription Plans').toUpperCase(),
+          style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5),
         ),
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Divider(height: 1, color: kBorderColor, thickness: 1.5),
-        ),
       ),
       body: Column(
         children: [
           _buildHorizontalPlanSelector(),
-
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+                  _buildSectionLabel("Choose Billing Cycle"),
+                  const SizedBox(height: 8),
                   _buildDurationSelector(),
                   const SizedBox(height: 24),
-
                   _buildFeatureContainer(
                     title: "What's Included",
                     features: selectedPlanData['included'],
@@ -276,14 +238,12 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                     color: kGoogleGreen,
                     icon: Icons.check_circle_rounded,
                   ),
-
                   const SizedBox(height: 16),
-
                   if (selectedPlanData['excluded'].isNotEmpty)
                     _buildFeatureContainer(
                       title: "Not Included",
                       features: selectedPlanData['excluded'],
-                      color: kGoogleRed,
+                      color: kErrorColor,
                       icon: Icons.cancel_rounded,
                       isExcluded: true,
                     ),
@@ -298,13 +258,18 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     );
   }
 
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4),
+    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+  );
+
   Widget _buildHorizontalPlanSelector() {
     return Container(
-      height: 110,
+      height: 120,
       color: kWhite,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
         itemCount: plans.length,
         itemBuilder: (context, index) {
           final plan = plans[index];
@@ -314,34 +279,34 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           return GestureDetector(
             onTap: () => setState(() => _selectedPlan = plan['name']),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              width: 87,
+              duration: const Duration(milliseconds: 200),
+              width: 90,
               margin: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
                 color: isSelected ? kPrimaryColor : kWhite,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isSelected ? kPrimaryColor : kBorderColor, width: 2),
-                boxShadow: isSelected ? [BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))] : null,
+                border: Border.all(color: isSelected ? kPrimaryColor : kGrey200, width: isSelected ? 2 : 1),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(plan['icon'], color: isSelected ? kWhite : kBlack54, size: 22),
-                  const SizedBox(height: 4),
+                  Icon(plan['icon'], color: isSelected ? kWhite : kPrimaryColor, size: 22),
+                  const SizedBox(height: 6),
                   Text(
                     plan['name'],
                     style: TextStyle(
                       color: isSelected ? kWhite : kBlack87,
                       fontWeight: FontWeight.w900,
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
+                  const SizedBox(height: 2),
                   Text(
-                    monthlyPrice == 0 ? "Free" : "$monthlyPrice/mo",
+                    monthlyPrice == 0 ? "Free" : "₹$monthlyPrice",
                     style: TextStyle(
-                      color: isSelected ? kWhite.withOpacity(0.9) : kBlack54,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 11,
+                      color: isSelected ? kWhite.withOpacity(0.8) : kBlack54,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
                     ),
                   ),
                 ],
@@ -359,14 +324,14 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kGrey200),
       ),
       child: Row(
         children: [
-          _durationToggleItem("1 Month", 1),
-          _durationToggleItem("6 Months", 6),
-          _durationToggleItem("1 Year", 12, badge: "SAVE 20%"),
+          _durationToggleItem("1 MONTH", 1),
+          _durationToggleItem("6 MONTHS", 6),
+          _durationToggleItem("ANNUAL", 12, badge: "SAVE 20%"),
         ],
       ),
     );
@@ -381,7 +346,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: isActive ? kPrimaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
           ),
           alignment: Alignment.center,
           child: Column(
@@ -391,8 +356,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 label,
                 style: TextStyle(
                   color: isActive ? kWhite : kBlack54,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10,
+                  letterSpacing: 0.5,
                 ),
               ),
               if (badge != null && isActive)
@@ -420,7 +386,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withOpacity(0.2), width: 2),
       ),
       child: Column(
@@ -428,22 +394,22 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 22),
+              Icon(icon, color: color, size: 18),
               const SizedBox(width: 10),
               Text(
                 title.toUpperCase(),
-                style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1),
+                style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           if (!isExcluded && staffText != null)
-            _buildFeatureRow(staffText, kOrange, Icons.people_alt_rounded),
+            _buildFeatureRow(staffText, kPrimaryColor, Icons.people_alt_rounded),
 
           ...features.map((feature) => _buildFeatureRow(
               feature,
               kBlack87,
-              isExcluded ? Icons.remove_circle_outline : Icons.check_circle_outline
+              isExcluded ? Icons.remove_circle_outline_rounded : Icons.check_circle_outline_rounded
           )),
         ],
       ),
@@ -452,19 +418,19 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   Widget _buildFeatureRow(String text, Color textColor, IconData icon) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: textColor.withOpacity(0.6), size: 18),
+          Icon(icon, color: textColor.withOpacity(0.3), size: 16),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: TextStyle(
                 color: textColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -474,76 +440,79 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   }
 
   Widget _buildCheckoutBottom(int price, bool isCurrent) {
-    // Current Plan Rank mapping
     final currentPlanData = plans.firstWhere(
             (p) => p['name'].toLowerCase() == widget.currentPlan.toLowerCase(),
-        orElse: () => plans[0] // Defaults to Starter if current plan is unknown
+        orElse: () => plans[0]
     );
-
-    // Selected Plan Rank mapping
     final selectedPlanData = plans.firstWhere((p) => p['name'] == _selectedPlan);
-
-    // Switch logic: Only allowed to move to a HIGHER rank
     final bool isUpgrade = selectedPlanData['rank'] > currentPlanData['rank'];
 
     String buttonText;
     bool isEnabled;
 
     if (isCurrent) {
-      buttonText = "Active Plan";
+      buttonText = "ACTIVE PLAN";
       isEnabled = false;
     } else if (isUpgrade) {
-      buttonText = "Upgrade Now";
+      buttonText = "UPGRADE NOW";
       isEnabled = true;
     } else {
-      buttonText = "Higher Plan Only";
+      buttonText = "LOCKED";
       isEnabled = false;
     }
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: kWhite,
-        border: Border(top: BorderSide(color: kBorderColor, width: 2)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        border: Border(top: BorderSide(color: kGrey200, width: 1.5)),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Total Payable", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 12)),
-                Text("$price", style: const TextStyle(color: kPrimaryColor, fontSize: 26, fontWeight: FontWeight.w900)),
-              ],
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("TOTAL PAYABLE", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text("₹$price", style: const TextStyle(color: kPrimaryColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            flex: 2,
-            child: SizedBox(
-              height: 56,
-              child: ElevatedButton(
-                onPressed: isEnabled ? _startPayment : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isEnabled ? kPrimaryColor : kGrey300,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                  disabledBackgroundColor: kGrey300,
-                ),
-                child: Text(
-                  buttonText,
-                  style: TextStyle(
-                      color: isEnabled ? kWhite : kBlack54,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900
+            const SizedBox(width: 16),
+            Expanded(
+              flex: 2,
+              child: SizedBox(
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: isEnabled ? _startPayment : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    disabledBackgroundColor: kGreyBg,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: isEnabled
+                        ? BorderSide.none
+                        : const BorderSide(color: kGrey200),
+                  ),
+                  child: Text(
+                    buttonText,
+                    style: TextStyle(
+                        color: isEnabled ? kWhite : kBlack54,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.0
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

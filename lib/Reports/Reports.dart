@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 
 import 'package:maxbillup/components/common_bottom_nav.dart';
@@ -51,7 +52,6 @@ class _ReportsPageState extends State<ReportsPage> {
   Map<String, dynamic> _permissions = {};
   String _role = 'staff';
 
-  // Add ScrollController to preserve scroll position
   final ScrollController _scrollController = ScrollController();
   double _savedScrollOffset = 0.0;
 
@@ -82,19 +82,19 @@ class _ReportsPageState extends State<ReportsPage> {
   void _reset() {
     setState(() {
       _currentView = null;
-      // Restore scroll position after returning from subpage
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.jumpTo(_savedScrollOffset);
+        if (_scrollController.hasClients) {
+          _scrollController.jumpTo(_savedScrollOffset);
+        }
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // --- ROUTER LOGIC ---
+    // --- ENTERPRISE ROUTER LOGIC ---
     if (_currentView != null) {
-      // Save scroll position before navigating away
-      _savedScrollOffset = _scrollController.offset;
+      _savedScrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
       switch (_currentView) {
         case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
         case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
@@ -113,15 +113,14 @@ class _ReportsPageState extends State<ReportsPage> {
       }
     }
 
-    // --- MAIN MENU UI - Always fetch fresh plan data from Firestore ---
     final planProvider = Provider.of<PlanProvider>(context);
+
     return FutureBuilder<String>(
       future: planProvider.getCurrentPlan(),
       builder: (context, snapshot) {
         final currentPlan = snapshot.data ?? 'Free';
-        final isPaidPlan = currentPlan != 'Free';
+        final isPaidPlan = currentPlan.toLowerCase() != 'free';
 
-        // Helper to check if feature available (fresh data every time)
         bool isFeatureAvailable(String permission) {
           if (isAdmin) return isPaidPlan;
           final userPerm = _permissions[permission] == true;
@@ -129,42 +128,44 @@ class _ReportsPageState extends State<ReportsPage> {
         }
 
         return Scaffold(
-          backgroundColor: kBackgroundColor,
+          backgroundColor: kGreyBg,
           appBar: AppBar(
-            title: Text(context.tr('reports'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
+            title: Text(context.tr('reports').toUpperCase(),
+                style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
             backgroundColor: kPrimaryColor,
             elevation: 0,
             centerTitle: true,
             automaticallyImplyLeading: false,
           ),
           body: ListView(
-            controller: _scrollController, // Attach controller
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 3),
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             children: [
-              _sectionHeader(context.tr('analytics_overview')),
-              _buildModernTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & Trends', isLocked: !isFeatureAvailable('analytics')),
-              _buildModernTile(context.tr('daybook_today'), Icons.menu_book_rounded, kTealCharts, 'DayBook', subtitle: 'Daily transactions', isLocked: false), // FREE
-              _buildModernTile(context.tr('sales_summary'), Icons.analytics_rounded, kIndigoColor, 'Summary', isLocked: !isFeatureAvailable('salesSummary')),
+              _buildSectionLabel(context.tr('analytics_overview')),
+              _buildReportTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends', isLocked: !isFeatureAvailable('analytics')),
+              _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log', isLocked: false),
+              _buildReportTile(context.tr('sales_summary'), Icons.analytics_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Condensed performance', isLocked: !isFeatureAvailable('salesSummary')),
 
-              // const SizedBox(height: 12),
-              _sectionHeader(context.tr('sales_transactions')),
-              _buildModernTile(context.tr('sales_report'), Icons.shopping_cart_rounded, kPurpleCharts, 'SalesReport', isLocked: !isFeatureAvailable('salesReport')),
-              _buildModernTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, kCyanColor, 'ItemSales', isLocked: !isFeatureAvailable('itemSalesReport')),
-              _buildModernTile(context.tr('top_customers'), Icons.emoji_events_rounded, kAmberColor, 'TopCustomers', isLocked: !isFeatureAvailable('topCustomer')),
-              _buildModernTile(context.tr('staff_sale_report'), Icons.person_rounded, kCyanColor, 'StaffReport', isLocked: !isFeatureAvailable('staffSalesReport')),
+              const SizedBox(height: 12),
+              _buildSectionLabel(context.tr('sales_transactions')),
+              _buildReportTile(context.tr('sales_report'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history', isLocked: !isFeatureAvailable('salesReport')),
+              _buildReportTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product', isLocked: !isFeatureAvailable('itemSalesReport')),
+              _buildReportTile(context.tr('top_customers'), Icons.emoji_events_rounded, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients', isLocked: !isFeatureAvailable('topCustomer')),
+              _buildReportTile(context.tr('staff_sale_report'), Icons.person_rounded, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user', isLocked: !isFeatureAvailable('staffSalesReport')),
 
-              // const SizedBox(height: 12),
-              _sectionHeader(context.tr('inventory_products')),
-              _buildModernTile(context.tr('stock_report'), Icons.warehouse_rounded, kIndigoColor, 'StockReport', isLocked: !isFeatureAvailable('stockReport')),
-              _buildModernTile(context.tr('low_stock_products'), Icons.inventory_rounded, kWarningOrange, 'LowStock', subtitle: 'Action Required', isLocked: !isFeatureAvailable('lowStockProduct')),
-              _buildModernTile(context.tr('top_products'), Icons.trending_up_rounded, kIncomeGreen, 'TopProducts', isLocked: !isFeatureAvailable('topProducts')),
-              _buildModernTile(context.tr('top_categories'), Icons.category_rounded, kPurpleCharts, 'TopCategories', isLocked: !isFeatureAvailable('topCategory')),
+              const SizedBox(height: 12),
+              _buildSectionLabel(context.tr('inventory_products')),
+              _buildReportTile(context.tr('stock_report'), Icons.warehouse_rounded, const Color(0xFF303F9F), 'StockReport', subtitle: 'Full inventory valuation', isLocked: !isFeatureAvailable('stockReport')),
+              _buildReportTile(context.tr('low_stock_products'), Icons.inventory_rounded, kOrange, 'LowStock', subtitle: 'Restock action required', isLocked: !isFeatureAvailable('lowStockProduct')),
+              _buildReportTile(context.tr('top_products'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items', isLocked: !isFeatureAvailable('topProducts')),
+              _buildReportTile(context.tr('top_categories'), Icons.category_rounded, const Color(0xFFE91E63), 'TopCategories', subtitle: 'Department performance', isLocked: !isFeatureAvailable('topCategory')),
 
-              // const SizedBox(height: 12),
-              _sectionHeader(context.tr('financials_tax')),
-              _buildModernTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kExpenseRed, 'ExpenseReport', isLocked: !isFeatureAvailable('expensesReport')),
-              _buildModernTile(context.tr('tax_report'), Icons.receipt_rounded, kIncomeGreen, 'TaxReport', isLocked: !isFeatureAvailable('taxReport')),
-              _buildModernTile(context.tr('hsn_report'), Icons.assignment_rounded, kTealCharts, 'HSNReport', isLocked: !isFeatureAvailable('hsnReport')),
+              const SizedBox(height: 12),
+              _buildSectionLabel(context.tr('financials_tax')),
+              _buildReportTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking', isLocked: !isFeatureAvailable('expensesReport')),
+              _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance', isLocked: !isFeatureAvailable('taxReport')),
+              _buildReportTile(context.tr('hsn_report'), Icons.assignment_rounded, const Color(0xFF795548), 'HSNReport', subtitle: 'GST / HSN code summary', isLocked: !isFeatureAvailable('hsnReport')),
+              const SizedBox(height: 40),
             ],
           ),
           bottomNavigationBar: CommonBottomNav(
@@ -178,29 +179,25 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4, bottom: 12, top: 12),
-      child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextSecondary, letterSpacing: 1.0)),
-    );
-  }
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 12, top: 12),
+    child: Text(text.toUpperCase(),
+        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
+  );
 
-  Widget _buildModernTile(String title, IconData icon, Color iconColor, String viewName, {String? subtitle, bool isLocked = false}) {
+  Widget _buildReportTile(String title, IconData icon, Color color, String viewName, {String? subtitle, bool isLocked = false}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12), // Increased margin for more spacing
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16), // Increased radius for modern look
-        border: Border.all(color: kBorderColor),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))], // Slightly increased blur
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: () {
             if (isLocked) {
-              // Show upgrade dialog for locked reports with uid
               PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid);
             } else {
               setState(() => _currentView = viewName);
@@ -208,50 +205,38 @@ class _ReportsPageState extends State<ReportsPage> {
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.all(16.0), // Increased padding for larger tile
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
+                // Enterprise Icon Container
                 Container(
-                  width: 48, // Increased size for icon container
-                  height: 48,
+                  width: 46, height: 46,
                   decoration: BoxDecoration(
-                    color: iconColor.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12), // Match Profile page
+                    color: color.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: iconColor, size: 24), // Larger icon
+                  child: Icon(icon, color: color, size: 22),
                 ),
-                const SizedBox(width: 16), // Increased spacing
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15, // Increased font size
-                                color: kTextPrimary,
-                              ),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: kTextSecondary, fontSize: 12)), // Increased font size
+                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(width: 8), // Slightly increased spacing
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: kTextSecondary.withOpacity(0.5),
-                  size: 22, // Slightly larger arrow
-                ),
+                if (isLocked)
+                  Icon(Icons.lock_rounded, color: kGrey400.withOpacity(0.5), size: 18)
+                else
+                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
               ],
             ),
           ),
@@ -260,7 +245,6 @@ class _ReportsPageState extends State<ReportsPage> {
     );
   }
 }
-
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================

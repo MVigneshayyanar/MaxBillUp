@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/Sales/Saved.dart';
 import 'package:maxbillup/Sales/components/sale_app_bar.dart';
@@ -7,6 +8,7 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/services/cart_service.dart';
 
 class NewSalePage extends StatefulWidget {
   final String uid;
@@ -78,6 +80,20 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       curve: Curves.easeOut,  // Smooth fade out
     ));
 
+    // Load cart from CartService (persisted across navigation)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final cartService = context.read<CartService>();
+      if (cartService.hasItems) {
+        setState(() {
+          _sharedCartItems = List<CartItem>.from(cartService.cartItems);
+          _loadedSavedOrderId = cartService.savedOrderId;
+          _selectedCustomerPhone = cartService.customerPhone;
+          _selectedCustomerName = cartService.customerName;
+          _selectedCustomerGST = cartService.customerGST;
+        });
+      }
+    });
+
     if (widget.savedOrderData != null) {
       _loadSavedOrderData(widget.savedOrderData!);
       _loadedSavedOrderId = widget.savedOrderId;
@@ -122,6 +138,14 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       ))
           .toList();
 
+      // Sync with CartService for persistence
+      context.read<CartService>().updateCart(cartItems);
+      context.read<CartService>().setCustomer(
+        orderData['customerPhone'] as String?,
+        orderData['customerName'] as String?,
+        orderData['customerGST'] as String?,
+      );
+
       setState(() {
         _sharedCartItems = cartItems;
         // Load customer information from saved order
@@ -163,6 +187,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     print('🔄 _updateCartItems called with ${items.length} items');
     String? triggerId;
     List<CartItem> updatedItems = List<CartItem>.from(items);
+
+    // Sync with CartService for persistence across navigation
+    context.read<CartService>().updateCart(updatedItems);
 
     // Simple approach: The first item in the cart is always the one just added/modified
     // because saleall.dart moves it to index 0
@@ -420,6 +447,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
 
     if (confirm == true) {
+      // Clear CartService for persistence
+      context.read<CartService>().clearCart();
+
       setState(() {
         _sharedCartItems = null;
         _loadedSavedOrderId = null;
@@ -427,6 +457,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         _highlightedProductId = null;
         // Reset search focus when cart is cleared to show AppBar and categories
         _isSearchFocused = false;
+        // Clear customer info
+        _selectedCustomerPhone = null;
+        _selectedCustomerName = null;
+        _selectedCustomerGST = null;
       });
       _updateCartItems([]);
 
@@ -472,6 +506,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _setSelectedCustomer(String? phone, String? name, String? gst) {
+    // Sync with CartService for persistence
+    context.read<CartService>().setCustomer(phone, name, gst);
+
     setState(() {
       _selectedCustomerPhone = phone;
       _selectedCustomerName = name;

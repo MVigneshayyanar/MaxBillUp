@@ -16,6 +16,7 @@ import 'models/sale.dart';
 import 'services/sale_sync_service.dart';
 import 'services/local_stock_service.dart';
 import 'services/direct_notification_service.dart';
+import 'services/cart_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,9 @@ void main() async {
   // Initialize PlanProvider for real-time plan updates
   final planProvider = PlanProvider();
 
+  // Initialize CartService for cart persistence across navigation
+  final cartService = CartService();
+
   // DirectNotificationService will be initialized lazily when needed
   // Permissions will be requested only when user interacts with notification features
 
@@ -59,6 +63,7 @@ void main() async {
         ChangeNotifierProvider<PlanProvider>.value(value: planProvider),
         Provider<SaleSyncService>.value(value: saleSyncService),
         ChangeNotifierProvider<LocalStockService>.value(value: localStockService),
+        ChangeNotifierProvider<CartService>.value(value: cartService),
       ],
       child: const MyApp(),
     ),
