@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:google_places_flutter/google_places_flutter.dart';
+import 'package:maxbillup/Colors.dart';
 
 class BusinessDetailsPage extends StatefulWidget {
   final String uid;
@@ -25,34 +26,52 @@ class BusinessDetailsPage extends StatefulWidget {
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
-  final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
+  // Controllers - matching Profile.dart fields
   final _businessNameCtrl = TextEditingController();
   final _businessPhoneCtrl = TextEditingController();
-  final _gstinCtrl = TextEditingController(); // Added GSTIN Controller
+  final _ownerPhoneCtrl = TextEditingController();
+  final _gstinCtrl = TextEditingController();
+  final _licenseNumberCtrl = TextEditingController();
   final _businessLocationCtrl = TextEditingController();
+  final _ownerNameCtrl = TextEditingController();
   final _businessLocationFocusNode = FocusNode();
 
   bool _loading = false;
+  String _selectedCurrency = 'USD';
+  bool _showAdvancedDetails = false;
+
+  final List<Map<String, String>> _currencies = [
+    {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
+    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
+    {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
+    {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
+    {'code': 'MYR', 'symbol': 'RM', 'name': 'Malaysian Ringgit'},
+    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
+    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
+    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
+    {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
+    {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
+    {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
+    {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Pre-fill name from Google account if available
     if (widget.displayName != null && widget.displayName!.isNotEmpty) {
-      _nameCtrl.text = widget.displayName!;
+      _ownerNameCtrl.text = widget.displayName!;
     }
   }
 
   @override
   void dispose() {
-    _nameCtrl.dispose();
-    _phoneCtrl.dispose();
     _businessNameCtrl.dispose();
     _businessPhoneCtrl.dispose();
+    _ownerPhoneCtrl.dispose();
     _gstinCtrl.dispose();
+    _licenseNumberCtrl.dispose();
     _businessLocationCtrl.dispose();
+    _ownerNameCtrl.dispose();
     _businessLocationFocusNode.dispose();
     super.dispose();
   }
@@ -61,17 +80,16 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg),
-        backgroundColor: isError ? Colors.red : const Color(0xFF2F7CF6),
+        content: Text(msg, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        backgroundColor: isError ? kErrorColor : kPrimaryColor,
         behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   Future<int> _getNextStoreId() async {
     final firestore = FirebaseFirestore.instance;
-
-    // Get the highest store ID from existing stores
     final querySnapshot = await firestore
         .collection('store')
         .orderBy('storeId', descending: true)
@@ -79,7 +97,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         .get();
 
     if (querySnapshot.docs.isEmpty) {
-      return 100001; // First store ID
+      return 100001;
     }
 
     final lastStoreId = querySnapshot.docs.first.data()['storeId'] as int? ?? 100000;
@@ -88,56 +106,48 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   Future<void> _saveBusinessDetails() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _loading = true);
 
     try {
       final firestore = FirebaseFirestore.instance;
-
-      // Get next store ID
       final storeId = await _getNextStoreId();
 
-      // Create store document with default Free plan
       final storeData = {
         'storeId': storeId,
-        'ownerName': _nameCtrl.text.trim(),
-        'ownerPhone': _phoneCtrl.text.trim(),
         'businessName': _businessNameCtrl.text.trim(),
         'businessPhone': _businessPhoneCtrl.text.trim(),
         'businessLocation': _businessLocationCtrl.text.trim(),
-        'gstin': _gstinCtrl.text.trim(), // Save GSTIN (Optional)
+        'gstin': _gstinCtrl.text.trim(),
+        'licenseNumber': _licenseNumberCtrl.text.trim(),
+        'currency': _selectedCurrency,
+        'ownerName': _ownerNameCtrl.text.trim(),
+        'ownerPhone': _ownerPhoneCtrl.text.trim(),
         'ownerEmail': widget.email,
         'ownerUid': widget.uid,
-        'plan': 'Free', // Default to Free plan
+        'plan': 'Free',
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // Save store with storeId as document ID
       await firestore.collection('store').doc(storeId.toString()).set(storeData);
 
-      // Create/update user document with uid as document ID
       final userData = {
         'uid': widget.uid,
         'email': widget.email,
-        'name': _nameCtrl.text.trim(),
-        'phone': _phoneCtrl.text.trim(),
+        'name': _ownerNameCtrl.text.trim(),
         'storeId': storeId,
-        'role': 'admin', // First user is Admin
+        'role': 'admin',
         'isActive': true,
         'isEmailVerified': true,
-        'businessLocation': _businessLocationCtrl.text.trim(),
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
       await firestore.collection('users').doc(widget.uid).set(userData);
 
-      _showMsg(context.tr('business_registered_success'));
-
-      // Navigate to main app
       if (mounted) {
-        Navigator.push(
+        _showMsg(context.tr('business_registered_success'));
+        Navigator.pushReplacement(
           context,
           CupertinoPageRoute(
             builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.email),
@@ -154,276 +164,328 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        title: Text("BUSINESS PROFILE",
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
-        title: Text(
-          context.tr('businessdetails'),
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    _buildSectionLabel("IDENTITY & CONTACT (REQUIRED)"),
+                    _buildModernField("Business Name", _businessNameCtrl, Icons.store_rounded, isMandatory: true),
+                    _buildModernField("Owner Name", _ownerNameCtrl, Icons.person_rounded, isMandatory: true),
+                    Row(
+                      children: [
+                        // Personal phone is mandatory as a primary contact
+                        Expanded(child: _buildModernField("Personal Phone", _ownerPhoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 50 123 4567")),
+                        const SizedBox(width: 12),
+                        // Business phone is NOT mandatory but stays in Basic Details
+                        Expanded(child: _buildModernField("Business Phone", _businessPhoneCtrl, Icons.call_rounded, type: TextInputType.phone, isMandatory: false, hint: "Optional")),
+                      ],
+                    ),
+                    _buildModernField("Email Address", TextEditingController(text: widget.email), Icons.email_rounded, enabled: false),
+                    _buildCurrencyField(isMandatory: true),
 
-                // Welcome message
-                Text(
-                  context.tr('complete_profile_title'),
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  context.tr('complete_profile_subtitle'),
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Personal Details Section
-                _sectionHeader(context.tr('personaldetails')),
-                const SizedBox(height: 16),
-
-                _label(context.tr('your_name')),
-                _buildTextField(
-                  controller: _nameCtrl,
-                  hint: context.tr('enter_full_name'),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? context.tr('name_required')
-                      : null,
-                ),
-                const SizedBox(height: 20),
-
-                _label(context.tr('your_phone')),
-                _buildTextField(
-                  controller: _phoneCtrl,
-                  hint: context.tr('enter_phone'),
-                  keyboardType: TextInputType.phone,
-                  formatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
+                    const SizedBox(height: 24),
+                    _buildAdvancedDetailsDropdown(),
+                    const SizedBox(height: 40),
                   ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return context.tr('phone_required');
-                    if (v.trim().length != 10) return context.tr('phone_invalid_10_digit');
-                    return null;
-                  },
                 ),
-                const SizedBox(height: 32),
-
-                // Business Details Section
-                _sectionHeader(context.tr('businessdetails')),
-                const SizedBox(height: 16),
-
-                _label(context.tr('businessname')),
-                _buildTextField(
-                  controller: _businessNameCtrl,
-                  hint: context.tr('enter_business_name'),
-                  validator: (v) => v == null || v.trim().isEmpty
-                      ? context.tr('business_name_required')
-                      : null,
-                ),
-                const SizedBox(height: 20),
-
-                _label(context.tr('businessphone')),
-                _buildTextField(
-                  controller: _businessPhoneCtrl,
-                  hint: context.tr('enter_business_phone'),
-                  keyboardType: TextInputType.phone,
-                  formatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return context.tr('business_phone_required');
-                    if (v.trim().length != 10) return context.tr('phone_invalid_10_digit');
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-
-                _label(context.tr('gstin_optional')),
-                _buildTextField(
-                  controller: _gstinCtrl,
-                  hint: context.tr('enter_gstin'),
-                  validator: (v) => null, // Optional
-                ),
-                const SizedBox(height: 20),
-
-                _label(context.tr('businesslocation')),
-                GooglePlaceAutoCompleteTextField(
-                  textEditingController: _businessLocationCtrl,
-                  focusNode: _businessLocationFocusNode,
-                  googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
-                  inputDecoration: InputDecoration(
-                    hintText: context.tr('enter_business_location'),
-                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
-                    filled: true,
-                    fillColor: const Color(0xFFF5F5F5),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  debounceTime: 600,
-                  countries: const ["in"], // Focus on India for better suggestions
-                  isLatLngRequired: false,
-                  getPlaceDetailWithLatLng: (prediction) {
-                    _businessLocationCtrl.text = prediction.description ?? '';
-                    // Close keyboard after selection
-                    FocusScope.of(context).unfocus();
-                  },
-                  itemClick: (prediction) {
-                    _businessLocationCtrl.text = prediction.description ?? '';
-                    _businessLocationCtrl.selection = TextSelection.fromPosition(
-                      TextPosition(offset: _businessLocationCtrl.text.length),
-                    );
-                    // Close keyboard after selection
-                    FocusScope.of(context).unfocus();
-                  },
-                ),
-                const SizedBox(height: 40),
-
-                // Submit Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _saveBusinessDetails,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2F7CF6),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      disabledBackgroundColor: const Color(0xFF2F7CF6).withValues(alpha: 0.6),
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                        : Text(
-                      context.tr('complete_registration'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
+          ),
+          _buildBottomActionArea(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12, left: 4),
+        child: Text(
+          text.toUpperCase(),
+          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdvancedDetailsDropdown() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.tune_rounded, color: kPrimaryColor, size: 18),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Text(
+                      "ADVANCED DETAILS (OPTIONAL)",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5),
+                    ),
+                  ),
+                  Icon(
+                    _showAdvancedDetails ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                    color: kGrey400,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_showAdvancedDetails) ...[
+            const Divider(height: 1, color: kGrey100),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildLocationField(),
+                  _buildModernField(
+                    "TRN / GST Number",
+                    _gstinCtrl,
+                    Icons.receipt_long_rounded,
+                    hint: "e.g. 100XXXXXXXXXXXX",
+                  ),
+                  _buildModernField(
+                    "License Number",
+                    _licenseNumberCtrl,
+                    Icons.badge_rounded,
+                    hint: "e.g. LIC-12345678",
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernField(
+      String label,
+      TextEditingController ctrl,
+      IconData icon, {
+        bool enabled = true,
+        TextInputType type = TextInputType.text,
+        bool isMandatory = false,
+        String? hint,
+      }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: ctrl,
+        builder: (context, value, child) {
+          final bool isFilled = value.text.isNotEmpty;
+          return TextFormField(
+            controller: ctrl,
+            enabled: enabled,
+            keyboardType: type,
+            inputFormatters: type == TextInputType.phone
+                ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))]
+                : null,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
+              prefixIcon: Icon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              filled: true,
+              fillColor: enabled ? kWhite : kGreyBg,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kGrey200),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor),
+              ),
+              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+            ),
+            validator: (v) {
+              if (isMandatory && (v == null || v.trim().isEmpty)) return "$label is required";
+              if (type == TextInputType.phone && v != null && v.trim().isNotEmpty && v.trim().length < 7) {
+                return "Enter valid phone number";
+              }
+              return null;
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildLocationField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: GooglePlaceAutoCompleteTextField(
+        textEditingController: _businessLocationCtrl,
+        focusNode: _businessLocationFocusNode,
+        googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
+        inputDecoration: InputDecoration(
+          labelText: "Business Address",
+          hintText: "Enter full business address",
+          hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
+          prefixIcon: const Icon(Icons.location_on_rounded, color: kPrimaryColor, size: 18),
+          filled: true,
+          fillColor: kWhite,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
+          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+        ),
+        debounceTime: 600,
+        countries: const ["in", "ae"],
+        isLatLngRequired: false,
+        itemClick: (p) {
+          _businessLocationCtrl.text = p.description ?? '';
+          FocusScope.of(context).unfocus();
+        },
+      ),
+    );
+  }
+
+  Widget _buildCurrencyField({bool isMandatory = false}) {
+    final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: InkWell(
+        onTap: _showCurrencyPicker,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kGrey200),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 18),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "BUSINESS CURRENCY ${isMandatory ? '*' : ''}",
+                      style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      "${sel['symbol']} ${sel['code']} - ${sel['name']}",
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.expand_more_rounded, color: kGrey400),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _sectionHeader(String title) => Row(
-    children: [
-      Container(
-        width: 4,
-        height: 20,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2F7CF6),
-          borderRadius: BorderRadius.circular(2),
+  void _showCurrencyPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Container(
+        height: 450,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          children: [
+            const Text("SELECT CURRENCY", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView.separated(
+                itemCount: _currencies.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                itemBuilder: (context, i) {
+                  final c = _currencies[i];
+                  final isSelected = c['code'] == _selectedCurrency;
+                  return ListTile(
+                    onTap: () { setState(() => _selectedCurrency = c['code']!); Navigator.pop(ctx); },
+                    contentPadding: EdgeInsets.zero,
+                    leading: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(10)),
+                      child: Center(child: Text(c['symbol']!, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? kPrimaryColor : kBlack54))),
+                    ),
+                    title: Text(c['name']!, style: TextStyle(fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600, fontSize: 14)),
+                    trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor) : null,
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
-      const SizedBox(width: 8),
-      Text(
-        title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: Colors.black87,
-        ),
-      ),
-    ],
-  );
+    );
+  }
 
-  Widget _label(String txt) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      txt,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-        color: Colors.black87,
+  Widget _buildBottomActionArea() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(top: BorderSide(color: kGrey200)),
       ),
-    ),
-  );
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? formatters,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      inputFormatters: formatters,
-      validator: validator,
-      style: const TextStyle(fontSize: 16, color: Colors.black87),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 16),
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+      child: SizedBox(
+        width: double.infinity,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: _loading ? null : _saveBusinessDetails,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimaryColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          child: _loading
+              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kWhite))
+              : Text(
+            "COMPLETE REGISTRATION",
+            style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.red, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

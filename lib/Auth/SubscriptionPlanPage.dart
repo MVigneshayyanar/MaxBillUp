@@ -183,10 +183,17 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     var options = {
       'key': 'rzp_test_1DP5mmOlF5G5ag',
       'amount': amount,
-      'name': 'MAXbillup',
+      'name': 'MAXmybill',
       'description': '$_selectedPlan Plan Upgrade',
-      'currency': 'INR',
-      'theme': {'color': '#2F7CF6'}
+      // Multi-currency support - auto-detects user location
+      // Image removed - Razorpay shows professional "M" circle with brand color
+      'prefill': {
+        'contact': '',
+        'email': 'maxmybillapp@gmail.com'
+      },
+      'theme': {
+        'color': '#2F7CF6'
+      }
     };
 
     try {

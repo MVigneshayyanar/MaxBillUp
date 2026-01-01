@@ -278,7 +278,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
                       _isExternalScannerConnected
                           ? context.tr('External Scanner Ready')
                           : context.tr('Connect External Scanner'),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold, fontSize: 12),
                     ),
                   ],
                 ),

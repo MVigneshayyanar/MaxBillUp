@@ -3,14 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/services/direct_notification_service.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
-
-// --- Modern Design Tokens ---
-const Color kBrandPrimary = Color(0xFF2F7CF6); // Indigo
-const Color kBrandSecondary = Color(0xFF2F7CF6);
-const Color kBgColor = Color(0xFFF8FAFC);
-const Color kCardColor = Colors.white;
-const Color kTextDark = Color(0xFF1E293B);
-const Color kTextMuted = Color(0xFF64748B);
+import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:intl/intl.dart';
 
 class HomePage extends StatefulWidget {
   final String uid;
@@ -40,74 +35,60 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgColor,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: const Text('Admin Console',
-            style: TextStyle(color: kTextDark, fontWeight: FontWeight.w800, fontSize: 22)),
-        backgroundColor: Colors.transparent,
+        title: const Text('ADMIN CONSOLE',
+            style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
-        centerTitle: false,
+        centerTitle: true,
         automaticallyImplyLeading: false,
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 16, top: 8, bottom: 8),
-            decoration: BoxDecoration(
-              color: Colors.red.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.logout_rounded, color: Colors.red.shade600, size: 20),
-              onPressed: () async {
-                try {
-                  await FirebaseAuth.instance.signOut();
-                  if (mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const LoginPage()),
-                      (route) => false,
-                    );
-                  }
-                } catch (e) {
-                  debugPrint('Logout error: $e');
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Logout failed: $e')),
-                    );
-                  }
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: kWhite, size: 22),
+            onPressed: () async {
+              try {
+                await FirebaseAuth.instance.signOut();
+                if (mounted) {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginPage()),
+                        (route) => false,
+                  );
                 }
-              },
-            ),
+              } catch (e) {
+                debugPrint('Logout error: $e');
+              }
+            },
           ),
         ],
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
+          preferredSize: const Size.fromHeight(64),
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: kBrandPrimary,
-                boxShadow: [
-                  BoxShadow(
-                    color: kBrandPrimary.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  )
+            color: kWhite,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: kGreyBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: kGrey200),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: kPrimaryColor,
+                ),
+                dividerColor: Colors.transparent,
+                labelColor: kWhite,
+                unselectedLabelColor: kBlack54,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                tabs: const [
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.store_rounded, size: 16), SizedBox(width: 8), Text('STORES')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.auto_stories_rounded, size: 16), SizedBox(width: 8), Text('KNOWLEDGE')])),
                 ],
               ),
-              dividerColor: Colors.transparent,
-              labelColor: Colors.white,
-              unselectedLabelColor: kTextMuted,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              tabs: const [
-                Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.store_rounded, size: 18), SizedBox(width: 8), Text('Stores')])),
-                Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.auto_awesome_rounded, size: 18), SizedBox(width: 8), Text('Knowledge')])),
-              ],
             ),
           ),
         ),
@@ -124,7 +105,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
 }
 
 // ==========================================
-// STORES TAB
+// STORES TAB (REMASTERED)
 // ==========================================
 class StoresTab extends StatelessWidget {
   final String? adminEmail;
@@ -136,7 +117,7 @@ class StoresTab extends StatelessWidget {
       stream: FirebaseFirestore.instance.collection('store').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: kBrandPrimary));
+          return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -145,9 +126,10 @@ class StoresTab extends StatelessWidget {
 
         final stores = snapshot.data!.docs;
 
-        return ListView.builder(
+        return ListView.separated(
           padding: const EdgeInsets.all(16),
           itemCount: stores.length,
+          separatorBuilder: (c, i) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final store = stores[index];
             final data = store.data() as Map<String, dynamic>;
@@ -157,50 +139,59 @@ class StoresTab extends StatelessWidget {
             final isActive = data['isActive'] ?? true;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                color: kCardColor,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
-                border: Border.all(color: Colors.grey.shade100),
+                color: kWhite,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: kGrey200),
               ),
-              child: InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StoreDetailPage(storeId: store.id, storeData: data))),
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            height: 48, width: 48,
-                            decoration: BoxDecoration(color: kBrandPrimary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                            child: Center(child: Text(businessName[0].toUpperCase(), style: const TextStyle(color: kBrandPrimary, fontWeight: FontWeight.bold, fontSize: 20))),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(businessName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextDark)),
-                                const SizedBox(height: 2),
-                                Text(ownerName, style: const TextStyle(fontSize: 13, color: kTextMuted)),
-                              ],
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StoreDetailPage(storeId: store.id, storeData: data))),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              height: 48, width: 48,
+                              decoration: BoxDecoration(
+                                color: kPrimaryColor.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Center(
+                                child: Text(
+                                    businessName.isNotEmpty ? businessName[0].toUpperCase() : 'S',
+                                    style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 18)
+                                ),
+                              ),
                             ),
-                          ),
-                          _buildPlanBadge(plan),
-                        ],
-                      ),
-                      const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1)),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildStatusIndicator(isActive),
-                          const Icon(Icons.arrow_forward_rounded, size: 14, color: kTextMuted),
-                        ],
-                      )
-                    ],
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(businessName, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kBlack87)),
+                                  const SizedBox(height: 2),
+                                  Text(ownerName, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
+                                ],
+                              ),
+                            ),
+                            _buildPlanBadge(plan),
+                          ],
+                        ),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 14), child: Divider(height: 1, color: kGrey100)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            _buildStatusBadge(isActive),
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: kGrey400),
+                          ],
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -212,32 +203,44 @@ class StoresTab extends StatelessWidget {
   }
 
   Widget _buildPlanBadge(String plan) {
-    bool isMax = plan.toLowerCase() == 'Pro';
+    bool isPremium = plan.toLowerCase() == 'pro' || plan.toLowerCase() == 'growth';
+    Color c = isPremium ? Colors.amber.shade800 : kBlack54;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: isMax ? Colors.amber.shade50 : Colors.blueGrey.shade50,
+        color: isPremium ? Colors.amber.shade50 : kGreyBg,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: isPremium ? Colors.amber.shade100 : kGrey200),
       ),
       child: Text(plan.toUpperCase(),
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isMax ? Colors.amber.shade800 : Colors.blueGrey.shade700)),
+          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c, letterSpacing: 0.5)),
     );
   }
 
-  Widget _buildStatusIndicator(bool active) {
-    return Row(
-      children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: active ? Colors.green : Colors.red, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Text(active ? 'Active' : 'Deactivated',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: active ? Colors.green.shade700 : Colors.red.shade700)),
-      ],
+  Widget _buildStatusBadge(bool active) {
+    Color c = active ? kGoogleGreen : kErrorColor;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: c.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: c.withOpacity(0.15)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 6, height: 6, decoration: BoxDecoration(color: c, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text(active ? 'ACTIVE' : 'DEACTIVATED',
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c, letterSpacing: 0.5)),
+        ],
+      ),
     );
   }
 }
 
 // ==========================================
-// KNOWLEDGE TAB
+// KNOWLEDGE TAB (REMASTERED)
 // ==========================================
 class KnowledgeTab extends StatelessWidget {
   const KnowledgeTab({super.key});
@@ -245,36 +248,41 @@ class KnowledgeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgColor,
+      backgroundColor: kGreyBg,
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('knowledge').orderBy('createdAt', descending: true).snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: kBrandPrimary));
+            return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState(Icons.lightbulb_outline, 'Knowledge base is empty.');
+            return _buildEmptyState(Icons.lightbulb_outline_rounded, 'Knowledge base is empty.');
           }
 
           final posts = snapshot.data!.docs;
 
-          return ListView.builder(
+          return ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: posts.length,
+            separatorBuilder: (c, i) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final data = posts[index].data() as Map<String, dynamic>;
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
                 decoration: BoxDecoration(
-                  color: kCardColor,
+                  color: kWhite,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade100),
+                  border: Border.all(color: kGrey200),
                 ),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(data['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.bold, color: kTextDark)),
-                  subtitle: Text(data['content'] ?? '', maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: kTextMuted, fontSize: 13)),
-                  trailing: const Icon(Icons.edit_note_rounded, color: kBrandPrimary),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  leading: Container(
+                    width: 44, height: 44,
+                    decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.article_rounded, color: kPrimaryColor, size: 22),
+                  ),
+                  title: Text(data['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack87, fontSize: 14)),
+                  subtitle: Text(data['content'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
+                  trailing: const Icon(Icons.edit_note_rounded, color: kGrey400, size: 24),
                   onTap: () => _showKnowledgeDialog(context, docId: posts[index].id, data: data),
                 ),
               );
@@ -284,10 +292,11 @@ class KnowledgeTab extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showKnowledgeDialog(context),
-        backgroundColor: kBrandPrimary,
-        elevation: 4,
-        label: const Text('Post Knowledge', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        label: const Text('POST ARTICLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+        icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
       ),
     );
   }
@@ -300,45 +309,41 @@ class KnowledgeTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(docId == null ? 'New Post' : 'Edit Post', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(docId == null ? 'NEW ARTICLE' : 'EDIT ARTICLE',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: titleController, decoration: const InputDecoration(labelText: 'Title', border: OutlineInputBorder())),
+              _buildDialogField(titleController, 'Article Title', Icons.title_rounded),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: category,
-                decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
-                items: ['General', 'Tutorial', 'Updates', 'Tips'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-                onChanged: (v) => category = v!,
-              ),
+              _buildCategoryDropdown(category, (v) => category = v!),
               const SizedBox(height: 16),
-              TextField(controller: contentController, maxLines: 4, decoration: const InputDecoration(labelText: 'Content', border: OutlineInputBorder())),
+              _buildDialogField(contentController, 'Content', Icons.notes_rounded, maxLines: 4),
             ],
           ),
         ),
         actions: [
           if (docId != null)
-            TextButton(child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            TextButton(
+                child: const Text('DELETE', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 12)),
                 onPressed: () async {
                   await FirebaseFirestore.instance.collection('knowledge').doc(docId).delete();
-                  Navigator.pop(context);
-                }),
-          TextButton(child: const Text('Cancel'), onPressed: () => Navigator.pop(context)),
+                  if (context.mounted) Navigator.pop(context);
+                }
+            ),
+          TextButton(
+              child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
+              onPressed: () => Navigator.pop(context)
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kBrandPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             onPressed: () async {
               final titleText = titleController.text.trim();
               final contentText = contentController.text.trim();
-
-              if (titleText.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a title')),
-                );
-                return;
-              }
+              if (titleText.isEmpty) return;
 
               final payload = {
                 'title': titleText,
@@ -349,67 +354,58 @@ class KnowledgeTab extends StatelessWidget {
 
               try {
                 if (docId == null) {
-                  // Creating new post
                   payload['createdAt'] = FieldValue.serverTimestamp();
                   await FirebaseFirestore.instance.collection('knowledge').add(payload);
-
-                  // Send notification to all users
-                  // Using Firestore method - works with Cloud Functions
                   await DirectNotificationService().sendKnowledgeNotificationViaFirestore(
-                    title: titleText,
-                    content: contentText,
-                    category: category,
+                    title: titleText, content: contentText, category: category,
                   );
-
-                  // Alternative: Direct FCM API (requires valid server key)
-                  // await DirectNotificationService().sendKnowledgeNotificationDirect(
-                  //   title: titleText,
-                  //   content: contentText,
-                  //   category: category,
-                  // );
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Knowledge posted & notifications sent!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
                 } else {
-                  // Updating existing post
                   await FirebaseFirestore.instance.collection('knowledge').doc(docId).update(payload);
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('✅ Knowledge updated successfully!'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
-                  }
                 }
-
                 if (context.mounted) Navigator.pop(context);
               } catch (e) {
-                debugPrint('Error saving knowledge: $e');
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                  );
-                }
+                debugPrint('Error: $e');
               }
             },
-            child: Text(docId == null ? 'Post' : 'Save', style: const TextStyle(color: Colors.white)),
+            child: Text(docId == null ? 'POST' : 'SAVE', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDialogField(TextEditingController ctrl, String hint, IconData icon, {int maxLines = 1}) {
+    return Container(
+      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+      child: TextField(
+        controller: ctrl, maxLines: maxLines,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryDropdown(String current, Function(String?) onSel) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: current, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+          items: ['General', 'Tutorial', 'Updates', 'Tips'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          onChanged: onSel,
+        ),
       ),
     );
   }
 }
 
 // ==========================================
-// STORE DETAIL PAGE
+// STORE DETAIL PAGE (REMASTERED)
 // ==========================================
 class StoreDetailPage extends StatelessWidget {
   final String storeId;
@@ -420,96 +416,102 @@ class StoreDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBgColor,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(storeData['businessName'] ?? 'Store Details', style: const TextStyle(color: kTextDark, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent, elevation: 0,
-        iconTheme: const IconThemeData(color: kTextDark),
+        title: Text(storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
+        backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status/Revenue Header
+            // Enterprise Overview Section
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [kBrandPrimary, kBrandSecondary], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: kBrandPrimary.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10))],
+                color: kPrimaryColor,
+                borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildHeaderChip(storeData['plan'] ?? 'Free'),
-                      _buildHeaderChip(storeData['isActive'] == true ? 'Active' : 'Inactive', isStatus: true),
+                      _buildHeaderTag(storeData['plan'] ?? 'Free'),
+                      _buildHeaderTag(storeData['isActive'] == true ? 'Active' : 'Inactive'),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  const Text('Revenue Insight (Preview)', style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+                  const Text('PREVIEW REVENUE', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
                   const SizedBox(height: 4),
-                  const Text('\$ 0.00', style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
+                  const Text('Rs 0.00', style: TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
                 ],
               ),
             ),
             const SizedBox(height: 24),
 
-            // Stats Grid
+            _buildSectionLabel('REAL-TIME ANALYTICS'),
             Row(
               children: [
-                Expanded(child: _buildRealTimeStat(storeId, 'Products', 'Products', Icons.inventory_2_rounded, Colors.blue)),
+                Expanded(child: _buildEnterpriseStat(storeId, 'Products', 'Products', Icons.inventory_2_rounded, kPrimaryColor)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildRealTimeStat(storeId, 'Sales', 'sales', Icons.receipt_long_rounded, Colors.green)),
+                Expanded(child: _buildEnterpriseStat(storeId, 'Sales', 'sales', Icons.receipt_long_rounded, kGoogleGreen)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildRealTimeStat(storeId, 'Customers', 'customers', Icons.people_alt_rounded, Colors.orange)),
+                Expanded(child: _buildEnterpriseStat(storeId, 'Customers', 'customers', Icons.people_alt_rounded, kOrange)),
               ],
             ),
             const SizedBox(height: 24),
 
-            // Detail Card
+            _buildSectionLabel('BUSINESS IDENTITY'),
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
               child: Column(
                 children: [
-                  _detailTile(Icons.person_rounded, 'Owner', storeData['ownerName']),
-                  _detailTile(Icons.alternate_email_rounded, 'Email', storeData['ownerEmail']),
-                  _detailTile(Icons.phone_iphone_rounded, 'Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
-                  _detailTile(Icons.pin_drop_rounded, 'Location', storeData['businessLocation']),
-                  _detailTile(Icons.description_rounded, 'GSTIN', storeData['gstIn']),
+                  _detailRow(Icons.person_rounded, 'Legal Owner', storeData['ownerName']),
+                  _detailRow(Icons.alternate_email_rounded, 'System Email', storeData['ownerEmail']),
+                  _detailRow(Icons.phone_iphone_rounded, 'Direct Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
+                  _detailRow(Icons.location_on_rounded, 'Business Address', storeData['businessLocation']),
+                  _detailRow(Icons.description_rounded, 'TRN / GSTIN', storeData['gstIn'], isLast: true),
                 ],
               ),
             ),
+            const SizedBox(height: 40),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeaderChip(String label, {bool isStatus = false}) {
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 12),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
+  );
+
+  Widget _buildHeaderTag(String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
-      child: Text(label.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+      child: Text(label.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
     );
   }
 
-  Widget _buildRealTimeStat(String sId, String label, String collection, IconData icon, Color color) {
+  Widget _buildEnterpriseStat(String sId, String label, String collection, IconData icon, Color color) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('store').doc(sId).collection(collection).snapshots(),
       builder: (context, snapshot) {
         String count = snapshot.hasData ? '${snapshot.data!.docs.length}' : '...';
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 20),
-          decoration: BoxDecoration(color: kCardColor, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100)),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           child: Column(
             children: [
-              Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 22)),
-              const SizedBox(height: 12),
-              Text(count, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kTextDark)),
-              Text(label, style: const TextStyle(color: kTextMuted, fontSize: 11, fontWeight: FontWeight.bold)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
+              const SizedBox(height: 10),
+              Text(count, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kBlack87)),
+              Text(label.toUpperCase(), style: const TextStyle(color: kBlack54, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             ],
           ),
         );
@@ -517,11 +519,16 @@ class StoreDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _detailTile(IconData icon, String label, String? value) {
-    return ListTile(
-      leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kBgColor, borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: kBrandPrimary, size: 20)),
-      title: Text(label, style: const TextStyle(fontSize: 11, color: kTextMuted, fontWeight: FontWeight.bold)),
-      subtitle: Text(value ?? 'N/A', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextDark)),
+  Widget _detailRow(IconData icon, String label, String? value, {bool isLast = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: kGrey100))),
+      child: ListTile(
+        dense: true,
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 18)),
+        title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        subtitle: Text(value ?? 'NOT SET', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
+      ),
     );
   }
 }
@@ -531,9 +538,9 @@ Widget _buildEmptyState(IconData icon, String msg) {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 80, color: Colors.grey.shade300),
+        Icon(icon, size: 64, color: kGrey300),
         const SizedBox(height: 16),
-        Text(msg, style: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.w600, fontSize: 16)),
+        Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 14)),
       ],
     ),
   );

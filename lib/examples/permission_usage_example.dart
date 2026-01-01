@@ -127,7 +127,7 @@ class _ExampleProtectedPageState extends State<ExampleProtectedPage> {
                     'Your Permissions:',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                     fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -158,7 +158,7 @@ class _ExampleProtectedPageState extends State<ExampleProtectedPage> {
               title,
               style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
+               fontWeight: FontWeight.bold,
                 color: color,
               ),
             ),

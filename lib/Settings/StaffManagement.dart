@@ -295,7 +295,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBlack87)),
+                          Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           const SizedBox(height: 2),
                           Row(children: [
                             Text(role.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: roleColor, letterSpacing: 0.5)),
@@ -398,7 +398,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     ));
   }
 
-  Widget _info(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Text("$l: ", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBlack54)), Text(v, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87))]));
+  Widget _info(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Text("$l: ", style: const TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: kBlack54)), Text(v, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87))]));
 
   void _showDeleteConfirmation(BuildContext context, String staffId, String name) {
     showDialog(context: context, builder: (context) => AlertDialog(
@@ -408,7 +408,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       content: Text('This will permanently delete access for $name. They won\'t be able to login again.', style: const TextStyle(color: kBlack54, fontSize: 13)),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
-        ElevatedButton(onPressed: () async { await _firestoreService.deleteDocument('users', staffId); await FirebaseFirestore.instance.collection('users').doc(staffId).delete().catchError((_) {}); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0), child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: () async { await _firestoreService.deleteDocument('users', staffId); await FirebaseFirestore.instance.collection('users').doc(staffId).delete().catchError((_) {}); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0), child: const Text("DELETE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))),
       ],
     ));
   }
@@ -433,7 +433,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           await _firestoreService.updateDocument('users', sid, upd);
           await FirebaseFirestore.instance.collection('users').doc(sid).update(upd).catchError((_) {});
           if(mounted) Navigator.pop(context);
-        }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("UPDATE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))),
+        }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("UPDATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))),
       ],
     )));
   }

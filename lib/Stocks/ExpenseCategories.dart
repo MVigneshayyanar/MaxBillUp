@@ -164,7 +164,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                       final data = categories[index].data() as Map<String, dynamic>;
                       final name = data['name'] ?? 'Unnamed Type';
                       final ts = data['timestamp'] as Timestamp?;
-                      final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
+                      final dateStr = ts != null ? DateFormat('dd-MM-yyyy').format(ts.toDate()) : 'N/A';
 
                       return Container(
                         decoration: BoxDecoration(
@@ -182,7 +182,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                             ),
                             child: const Icon(Icons.category_rounded, color: kPrimaryColor, size: 20),
                           ),
-                          title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBlack87)),
+                          title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           subtitle: Text('Created: $dateStr', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                           trailing: IconButton(
                             icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26),
@@ -275,7 +275,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                       final name = data['name'] ?? 'Unnamed';
                       final usageCount = data['usageCount'] ?? 1;
                       final ts = data['lastUsed'] as Timestamp?;
-                      final dateStr = ts != null ? DateFormat('dd MMM yy').format(ts.toDate()) : 'N/A';
+                      final dateStr = ts != null ? DateFormat('dd-MM-yy').format(ts.toDate()) : 'N/A';
 
                       return Container(
                         decoration: BoxDecoration(
@@ -293,7 +293,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                             ),
                             child: const Icon(Icons.receipt_long_rounded, color: kOrange, size: 20),
                           ),
-                          title: Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBlack87)),
+                          title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           subtitle: Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text('Used $usageCount times • Last: $dateStr',
@@ -478,7 +478,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: _delete, child: const Text("DELETE", style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold))),
+        TextButton(onPressed: _delete, child: const Text("DELETE", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
         ElevatedButton(onPressed: _update, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
       ],
     );
@@ -518,7 +518,7 @@ class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDial
         ),
       ),
       actions: [
-        TextButton(onPressed: () async { await FirestoreService().deleteDocument('expenseNames', widget.docId); widget.onChanged(); if(mounted) Navigator.pop(context); }, child: const Text("DELETE", style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold))),
+        TextButton(onPressed: () async { await FirestoreService().deleteDocument('expenseNames', widget.docId); widget.onChanged(); if(mounted) Navigator.pop(context); }, child: const Text("DELETE", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
         ElevatedButton(onPressed: () async { await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': _controller.text.trim()}); widget.onChanged(); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
       ],
     );

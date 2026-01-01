@@ -96,19 +96,26 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        backgroundColor: kPrimaryColor,
-        centerTitle: true,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
-          onPressed: () => Navigator.pop(context),
+    return WillPopScope(
+      onWillPop: () async {
+        widget.onBack(); // Reset MenuPage state
+        return false; // Prevent navigation pop
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          backgroundColor: kPrimaryColor,
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            onPressed: () {
+              widget.onBack(); // Call onBack to reset MenuPage state
+            },
+          ),
+          title: Text(context.tr('quotations'),
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         ),
-        title: Text(context.tr('quotations'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-      ),
       body: Column(
         children: [
           _buildHeaderSection(),
@@ -153,11 +160,10 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           );
         },
         backgroundColor: kPrimaryColor,
-        elevation: 0, // Removed elevation to remove shadow
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         icon: const Icon(Icons.add, color: kWhite),
         label: const Text('NEW QUOTATION', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
       ),
+      ), // WillPopScope closing
     );
   }
 
@@ -251,7 +257,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                       style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
                   Text(
                       data['date'] != null
-                          ? DateFormat('dd MMM yy • hh:mm a').format(DateTime.parse(data['date']))
+                          ? DateFormat('dd-MM-yy • hh:mm a').format(DateTime.parse(data['date']))
                           : '',
                       style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500))
                 ]),
@@ -264,7 +270,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                      child: Text(data['customerName'] ?? 'Walk-in Customer',
+                      child: Text(data['customerName'] ?? 'Guest',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange))),
                   Text("${total.toStringAsFixed(2)}",
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),

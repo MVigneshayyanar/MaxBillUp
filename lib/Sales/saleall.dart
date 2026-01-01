@@ -16,6 +16,9 @@ import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:maxbillup/Stocks/Products.dart';
+
+import '../Stocks/Stock.dart';
 
 class SaleAllPage extends StatefulWidget {
   final String uid;
@@ -496,7 +499,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
     return StreamBuilder<QuerySnapshot>(
       stream: _productsStream,
       builder: (ctx, snap) {
-        if (!snap.hasData || snap.data!.docs.isEmpty) return Center(child: Text(context.tr('no_products'), style: const TextStyle(color: kBlack54)));
+        if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+
+        // Check if there are no products at all (empty database)
+        if (snap.data!.docs.isEmpty) {
+          return _buildEmptyState();
+        }
 
         final filtered = snap.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
@@ -504,6 +512,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
           final barcode = (data['barcode'] ?? '').toString().toLowerCase();
           final productCode = (data['productCode'] ?? '').toString().toLowerCase();
           final matchesSearch = name.contains(_query) || barcode.contains(_query) || productCode.contains(_query);
+
+          // If user is searching, show all products that match the search (ignore category filter)
+          if (_query.isNotEmpty) {
+            return matchesSearch;
+          }
+
+          // If not searching, apply category filters
           if (!matchesSearch) return false;
 
           if (_showFavoritesOnly) return data['isFavorite'] == true;
@@ -544,6 +559,80 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.inventory_2_outlined,
+                size: 60,
+                color: kPrimaryColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              "No Products Yet",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: kBlack87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Add your first product and\ngrow your business",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: kBlack54,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                // Navigate to Products page to add product
+                Navigator.push(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+              label: const Text(
+                "Add Your First Product",
+                style: TextStyle(
+                  color: kWhite,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildProductCard(String id, Map<String, dynamic> data) {
     final name = data['itemName'] ?? 'Unnamed';
     final price = (data['price'] ?? 0.0).toDouble();
@@ -569,7 +658,24 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
     return Consumer<LocalStockService>(
       builder: (context, localStockService, child) {
-        final stock = localStockService.hasStock(id) ? localStockService.getStock(id).toDouble() : firestoreStock;
+        // FIX: Always sync Firestore stock to local cache to ensure cache is up-to-date
+        // This prevents stale cache from showing "OUT OF STOCK" when Firestore has stock
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (localStockService.hasStock(id)) {
+            final cachedStock = localStockService.getStock(id);
+            // If Firestore stock is different, update the cache
+            if (cachedStock != firestoreStock.toInt()) {
+              print('📦 Syncing stock cache for $name: cache=$cachedStock, firestore=${firestoreStock.toInt()}');
+              localStockService.cacheStock(id, firestoreStock.toInt());
+            }
+          } else {
+            // No cache yet, initialize it with Firestore value
+            localStockService.cacheStock(id, firestoreStock.toInt());
+          }
+        });
+
+        // Use Firestore stock as source of truth (it's fresher after each rebuild)
+        final stock = firestoreStock;
         final isOutOfStock = stockEnabled && stock <= 0;
         final isLowStock = stockEnabled && lowStockAlert > 0 && stock > 0 && stock <= lowStockAlert;
 
@@ -613,7 +719,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           child: Text(
                             name,
                             style: TextStyle(
-                              fontWeight: FontWeight.bold,
+                             fontWeight: FontWeight.bold,
                               fontSize: 13,
                               height: 1.2,
                               color: isExpired ? kErrorColor : kBlack87,

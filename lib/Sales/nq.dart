@@ -270,7 +270,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)))),
+                  Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)))),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(

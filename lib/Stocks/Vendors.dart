@@ -224,7 +224,7 @@ class _VendorsPageState extends State<VendorsPage> {
     if (vendor['lastPurchaseDate'] != null) {
       try {
         final lastDate = (vendor['lastPurchaseDate'] as Timestamp).toDate();
-        lastPurchaseText = 'Last: ${DateFormat('dd MMM yy').format(lastDate)}';
+        lastPurchaseText = 'Last: ${DateFormat('dd-MM-yy').format(lastDate)}';
       } catch (e) {
         lastPurchaseText = '';
       }
@@ -530,7 +530,7 @@ class _VendorsPageState extends State<VendorsPage> {
               } catch (e) { debugPrint(e.toString()); }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("DELETE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
           ),
         ],
       ),

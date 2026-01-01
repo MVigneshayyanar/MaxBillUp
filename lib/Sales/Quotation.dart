@@ -276,7 +276,7 @@ class _QuotationPageState extends State<QuotationPage> {
         'billWiseCashDiscount': _cashDiscountAmount,
         'billWisePercDiscount': _percentageDiscount,
         'customerPhone': _selectedCustomerPhone,
-        'customerName': _selectedCustomerName ?? 'Walk-in Customer',
+        'customerName': _selectedCustomerName ?? 'Guest',
         'customerGST': (_selectedCustomerGST?.isEmpty ?? true) ? null : _selectedCustomerGST,
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
@@ -524,7 +524,7 @@ class _QuotationPageState extends State<QuotationPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                     decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: (0.1 * 255).toDouble()), borderRadius: BorderRadius.circular(6)),
-                    child: Text(isPerc ? "%" : "Amt", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 10)),
+                    child: Text(isPerc ? "%" : "Amt", style: const TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold, fontSize: 10)),
                   ),
                 ),
                 const SizedBox(width: 6),
@@ -831,7 +831,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               width: 350, height: 500,
               child: Column(
                 children: [
-                  const Padding(padding: EdgeInsets.all(16.0), child: Text('Import Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+                  const Padding(padding: EdgeInsets.all(16.0), child: Text('Import Contact', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold))),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: TextField(
@@ -875,7 +875,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text('New Customer', style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
               TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
               const SizedBox(height: 16),

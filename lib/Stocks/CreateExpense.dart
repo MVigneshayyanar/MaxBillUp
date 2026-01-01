@@ -453,7 +453,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       appBar: AppBar(
         title: Text(
           widget.isStockPurchase ? 'Add Stock Purchase' : context.tr('create_expense'),
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
         ),
         backgroundColor: _primaryColor,
         leading: IconButton(
@@ -681,7 +681,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         '₹${_creditAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                           color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor,
                         ),
                       ),
@@ -792,7 +792,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       const Icon(Icons.calendar_today, color: _primaryColor),
                       const SizedBox(width: 12),
                       Text(
-                        DateFormat('dd MMM yyyy').format(_selectedDate),
+                        DateFormat('dd-MM-yyyy').format(_selectedDate),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
@@ -850,7 +850,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                           fontWeight: FontWeight.bold,
                           ),
                         ),
                 ),

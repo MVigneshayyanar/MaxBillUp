@@ -70,7 +70,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
         title: Text(context.tr('other_expenses'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
         centerTitle: true,
         elevation: 0,
@@ -211,7 +211,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                         final timestamp = data['timestamp'] as Timestamp?;
                         final date = timestamp?.toDate();
                         final dateString =
-                        date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
+                        date != null ? DateFormat('dd-MM-yyyy').format(date) : 'N/A';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -240,7 +240,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               title,
                               style: const TextStyle(
                                 fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                               fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
                             ),
@@ -265,7 +265,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               '${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                               fontWeight: FontWeight.bold,
                                 color: _errorColor,
                               ),
                             ),
@@ -291,7 +291,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
           Icon(Icons.receipt_long_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
           const SizedBox(height: 16),
           const Text("No other expenses found",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
+              style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold, color: Colors.grey)),
         ],
       ),
     );
@@ -394,7 +394,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(context.tr('new_other_expense'),
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
         centerTitle: true,
         elevation: 0,
@@ -432,7 +432,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
                   "Save Expense",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: Colors.white, fontSize: 18,fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -447,7 +447,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 14,fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -481,7 +481,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
           children: [
             const Icon(Icons.calendar_today, size: 18, color: _primaryColor),
             const SizedBox(width: 12),
-            Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+            Text(DateFormat('dd-MM-yyyy').format(_selectedDate)),
           ],
         ),
       ),
@@ -520,13 +520,13 @@ class OtherExpenseDetailsPage extends StatelessWidget {
     final timestamp = expenseData['timestamp'] as Timestamp?;
     final date = timestamp?.toDate();
     final dateString =
-    date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
+    date != null ? DateFormat('dd-MM-yyyy, h:mm a').format(date) : 'N/A';
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Expense Details",
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
@@ -549,7 +549,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
             children: [
               Text(
                 expenseData['title'] ?? 'Expense',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _primaryColor),
+                style: const TextStyle(fontSize: 24,fontWeight: FontWeight.bold, color: _primaryColor),
               ),
               const Divider(height: 32, color: _cardBorder),
               _buildDetailRow("Date", dateString),
@@ -562,7 +562,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
                   const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
                     "${(expenseData['amount'] ?? 0).toStringAsFixed(2)}",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: _errorColor),
+                    style: const TextStyle(fontSize: 24,fontWeight: FontWeight.bold, color: _errorColor),
                   ),
                 ],
               ),

@@ -38,7 +38,7 @@ class SyncStatusIndicator extends StatelessWidget {
                     Text(
                       '$unsyncedCount sale${unsyncedCount > 1 ? 's' : ''} pending sync',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
+                       fontWeight: FontWeight.bold,
                         color: Colors.orange.shade900,
                       ),
                     ),
@@ -96,7 +96,7 @@ class SyncStatusDialog extends StatelessWidget {
                 const SizedBox(width: 12),
                 const Text(
                   'Sync Status',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -113,7 +113,7 @@ class SyncStatusDialog extends StatelessWidget {
                         'All sales synced!',
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],

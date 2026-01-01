@@ -159,11 +159,11 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
 
   Widget _buildSavedOrderCard(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final name = (data['customerName'] ?? '').toString().trim().isEmpty ? 'Walk-in Customer' : data['customerName'].toString();
+    final name = (data['customerName'] ?? '').toString().trim().isEmpty ? 'Guest' : data['customerName'].toString();
     final total = (data['total'] ?? 0.0).toDouble();
     final items = data['items'] as List<dynamic>? ?? [];
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate()) : '--';
+    final date = timestamp != null ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate()) : '--';
 
     return Container(
       decoration: BoxDecoration(

@@ -2,15 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-import 'Profile.dart';
-
-const Color kPrimaryColor = Color(0xFF2F7CF6);
-const Color kBgColor = Color(0xFFF5F5F5);
+import 'package:maxbillup/Colors.dart';
 
 class TaxSettingsPage extends StatefulWidget {
   final String uid;
+  final VoidCallback onBack;
 
-  const TaxSettingsPage({Key? key, required this.uid}) : super(key: key);
+  const TaxSettingsPage({super.key, required this.uid, required this.onBack});
 
   @override
   State<TaxSettingsPage> createState() => _TaxSettingsPageState();
@@ -18,15 +16,12 @@ class TaxSettingsPage extends StatefulWidget {
 
 class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  // Controllefor Add New Tax
   final TextEditingController _taxPercentController = TextEditingController();
-  String _selectedTaxName = 'GST';
 
-  // Predefined tax names
-  final List<String> _taxNames = ['GST', 'SGST', 'CGST', 'IGST', 'VAT'];
+  // Localized and expanded tax categories for UAE (Dubai) and global use
+  String _selectedTaxName = 'VAT';
+  final List<String> _taxNames = ['VAT', 'GST', 'CGST', 'SGST', 'IGST', 'Excise Tax', 'Zero Rated', 'Exempt'];
 
-  // Default tax type for Quick Sale
   String _defaultTaxType = 'Price is without Tax';
   final List<String> _taxTypes = [
     'Price includes Tax',
@@ -49,12 +44,11 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     super.dispose();
   }
 
-  // Load default tax type from backend (store-scoped)
   Future<void> _loadDefaultTaxType() async {
     try {
       final settingsCollection = await FirestoreService().getStoreCollection('settings');
       final doc = await settingsCollection.doc('taxSettings').get();
-      if (doc.exists) {
+      if (doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>?;
         setState(() {
           _defaultTaxType = data?['defaultTaxType'] ?? 'Price is without Tax';
@@ -65,7 +59,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     }
   }
 
-  // Save default tax type to backend (store-scoped)
   Future<void> _saveDefaultTaxType() async {
     try {
       final settingsCollection = await FirestoreService().getStoreCollection('settings');
@@ -76,27 +69,23 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tax settings updated successfully'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Tax settings updated successfully', style: TextStyle(fontWeight: FontWeight.w600)),
+            backgroundColor: kGoogleGreen,
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating),
         );
       }
     }
   }
 
-  // Update tax active status
   Future<void> _updateTaxStatus(String taxId, bool isActive) async {
     try {
       await FirestoreService().updateDocument('taxes', taxId, {
@@ -108,31 +97,13 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     }
   }
 
-  // Add new tax
   Future<void> _addNewTax() async {
-    if (_taxPercentController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please enter tax percentage'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating),
-      );
-      return;
-    }
+    if (_taxPercentController.text.isEmpty) return;
 
     final taxPercent = double.tryParse(_taxPercentController.text);
-    if (taxPercent == null || taxPercent < 0 || taxPercent > 100) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please enter valid tax percentage (0-100)'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating),
-      );
-      return;
-    }
+    if (taxPercent == null || taxPercent < 0 || taxPercent > 100) return;
 
     try {
-      // Check if tax already exists
       final existingTaxes = await FirestoreService().getStoreCollection('taxes');
       final querySnapshot = await existingTaxes
           .where('name', isEqualTo: _selectedTaxName)
@@ -142,10 +113,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       if (querySnapshot.docs.isNotEmpty) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-                content: Text('This tax already exists'),
-                backgroundColor: Colors.orange,
-                behavior: SnackBarBehavior.floating),
+            const SnackBar(content: Text('This tax rate already exists'), backgroundColor: kOrange, behavior: SnackBarBehavior.floating),
           );
         }
         return;
@@ -164,264 +132,125 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Tax added successfully'),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating),
+          const SnackBar(content: Text('Tax category added successfully'), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating),
-        );
-      }
+      debugPrint(e.toString());
     }
   }
 
-  // Show create new tax name dialog
   void _showCreateTaxNameDialog() {
     final TextEditingController nameController = TextEditingController();
-
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (context) => AlertDialog(
+        backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Create New Tax Type',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Enter a name for the new tax category (e.g., UTGST)',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 20),
-              TextField(
+        title: const Text('NEW TAX CATEGORY', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+              child: TextField(
                 controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Tax Name',
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor),
-                  ),
-                ),
                 textCapitalization: TextCapitalization.characters,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                decoration: const InputDecoration(hintText: 'e.g. CUSTOMS DUTY', prefixIcon: Icon(Icons.label_important_rounded, size: 20), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (nameController.text.trim().isNotEmpty) {
-                      setState(() {
-                        if (!_taxNames.contains(nameController.text.trim().toUpperCase())) {
-                          _taxNames.add(nameController.text.trim().toUpperCase());
-                          _selectedTaxName = nameController.text.trim().toUpperCase();
-                        }
-                      });
-                      Navigator.pop(context);
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Create Type', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          ElevatedButton(
+            onPressed: () {
+              if (nameController.text.trim().isNotEmpty) {
+                setState(() {
+                  final n = nameController.text.trim().toUpperCase();
+                  if (!_taxNames.contains(n)) _taxNames.add(n);
+                  _selectedTaxName = n;
+                });
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text('CREATE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
 
-  // Show products associated with a tax
   void _showTaxProducts(BuildContext context, Map<String, dynamic> taxData) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (_, controller) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            children: [
-              Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        child: Column(
+          children: [
+            Container(margin: const EdgeInsets.symmetric(vertical: 12), width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(taxData['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+                      Text('${taxData['percentage']}% Tax Rate', style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ]),
+                  ),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kBlack54), style: IconButton.styleFrom(backgroundColor: kGreyBg)),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${taxData['name']} Products',
-                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'Tax Rate: ${taxData['percentage']}%',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                      style: IconButton.styleFrom(backgroundColor: Colors.grey[100]),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(),
-              Expanded(
-                child: FutureBuilder<Stream<QuerySnapshot>>(
-                  future: FirestoreService().getCollectionStream('Products'),
-                  builder: (context, streamFutureSnapshot) {
-                    if (streamFutureSnapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (streamFutureSnapshot.hasError || !streamFutureSnapshot.hasData) {
-                      return Center(child: Text('Unable to load products'));
-                    }
+            ),
+            const Divider(height: 1, color: kGrey100),
+            Expanded(
+              child: FutureBuilder<Stream<QuerySnapshot>>(
+                future: FirestoreService().getCollectionStream('Products'),
+                builder: (context, streamFutureSnapshot) {
+                  if (!streamFutureSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: streamFutureSnapshot.data,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      final taxId = taxData['id'] as String?;
+                      final products = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        return (taxId != null && data['taxId'] == taxId) || (data['taxPercentage'] == taxData['percentage'] && data['taxName'] == taxData['name']);
+                      }).toList();
 
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamFutureSnapshot.data,
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
+                      if (products.isEmpty) {
+                        return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.filter_list_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No products mapped here', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
+                      }
 
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey[300]),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No products found for this tax',
-                                  style: TextStyle(color: Colors.grey[500]),
-                                ),
-                              ],
-                            ),
+                      return ListView.separated(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: products.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final p = products[index].data() as Map<String, dynamic>;
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                            child: Row(children: [
+                              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.shopping_bag_outlined, color: kBlack54, size: 20)),
+                              const SizedBox(width: 14),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), Text('Price: Rs ${p['price'] ?? 0}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600))])),
+                            ]),
                           );
-                        }
-
-                        // Filter products for this tax using taxId (primary) and fallback to percentage/name
-                        final taxId = taxData['id'] as String?;
-                        final taxPercentage = taxData['percentage'];
-                        final taxName = taxData['name'];
-
-                        final products = snapshot.data!.docs.where((doc) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          // Primary check: taxId match
-                          if (taxId != null && data['taxId'] == taxId) {
-                            return true;
-                          }
-                          // Fallback checks for backward compatibility
-                          if (data['taxPercentage'] == taxPercentage) {
-                            return true;
-                          }
-                          if (data['taxName'] == taxName) {
-                            return true;
-                          }
-                          return false;
-                        }).toList();
-
-                        if (products.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.filter_list_off, size: 48, color: Colors.grey[300]),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No products match this tax rate',
-                                  style: TextStyle(color: Colors.grey[500]),
-                                ),
-                              ],
-                            ),
-                          );
-                        }
-
-                        return ListView.separated(
-                          controller: controller,
-                          itemCount: products.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1, indent: 20, endIndent: 20),
-                          itemBuilder: (context, index) {
-                            final product = products[index].data() as Map<String, dynamic>;
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: product['imageUrl'] != null && product['imageUrl'].isNotEmpty
-                                    ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(product['imageUrl'], fit: BoxFit.cover),
-                                )
-                                    : Icon(Icons.shopping_bag_outlined, color: Colors.grey[400]),
-                              ),
-                              title: Text(
-                                product['itemName'] ?? 'Unknown Product',
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                'Price: ${product['price'] ?? 0}',
-                                style: TextStyle(color: Colors.grey[600]),
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    );
-                  },
-                ),
+                        },
+                      );
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -431,669 +260,235 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (bool didPop) {
+      onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => SettingsPage(uid: widget.uid),
-            ),
-          );
+          widget.onBack();
         }
       },
       child: Scaffold(
-        backgroundColor: kBgColor,
+        backgroundColor: kGreyBg,
         appBar: AppBar(
-          title: Text(context.tr('tax_settings'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          title: Text(context.tr('tax_settings').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,
-          iconTheme: const IconThemeData(color: Colors.white),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => SettingsPage(uid: widget.uid),
-                ),
-              );
-            },
-          ),
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
           bottom: TabBar(
             controller: _tabController,
-            indicatorColor: Colors.white,
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            unselectedLabelColor: Colors.white70,
-            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            indicatorColor: kWhite,
+            indicatorWeight: 4,
+            labelColor: kWhite,
+            unselectedLabelColor: kWhite.withOpacity(0.7),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
             tabs: const [
-              Tab(text: 'Taxes'),
-              Tab(text: 'Quick Bill Tax'),
+              Tab(text: 'TAX RATES'),
+              Tab(text: 'QUICK BILLING TAX')
             ],
           ),
         ),
         body: TabBarView(
           controller: _tabController,
-          children: [
-            _buildTaxesTab(),
-            _buildQuickSaleTaxTab(),
-          ],
+          children: [_buildTaxesTab(), _buildQuickSaleTaxTab()],
         ),
       ),
     );
   }
 
-  // Taxes Tab
   Widget _buildTaxesTab() {
-    return SingleChildScrollView(
+    return ListView(
       padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Add New Tax Section Card
-          Card(
-            elevation: 2,
-            shadowColor: Colors.black12,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel("Create New Tax Category"),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          child: Column(
+            children: [
+              Row(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Add New Tax Rate',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey[800],
-                        ),
-                      ),
-                      // Shortcut to add new tax name
-                      TextButton.icon(
-                        onPressed: _showCreateTaxNameDialog,
-                        icon: const Icon(Icons.add_circle_outline, size: 16),
-                        label: const Text("New Type"),
-                        style: TextButton.styleFrom(
-                          foregroundColor: kPrimaryColor,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          backgroundColor: kPrimaryColor.withOpacity(0.05),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                      ),
-                    ],
+                  Expanded(flex: 3, child: _buildDialogDropdown("Category", _selectedTaxName, _taxNames, (v) => setState(() => _selectedTaxName = v!))),
+                  const SizedBox(width: 12),
+                  Expanded(flex: 2, child: _buildFlatField("Rate (%)", _taxPercentController, TextInputType.number)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _showCreateTaxNameDialog,
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: const Text("NEW TYPE"),
+                      style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                    ),
                   ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      // Tax Name Dropdown
-                      Expanded(
-                        flex: 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Tax Type",
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.grey[300]!),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedTaxName,
-                                  isExpanded: true,
-                                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
-                                  style: TextStyle(fontSize: 16, color: Colors.grey[800], fontWeight: FontWeight.w500),
-                                  items: _taxNames.map((name) {
-                                    return DropdownMenuItem(value: name, child: Text(name));
-                                  }).toList(),
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _selectedTaxName = value!;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      // Tax Percentage Input
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Percentage (%)",
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[600]),
-                            ),
-                            const SizedBox(height: 6),
-                            TextField(
-                              controller: _taxPercentController,
-                              keyboardType: TextInputType.numberWithOptions(decimal: true),
-                              decoration: InputDecoration(
-                                hintText: '0.0',
-                                filled: true,
-                                fillColor: Colors.grey[50],
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                  borderSide: const BorderSide(color: kPrimaryColor),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: ElevatedButton(
                       onPressed: _addNewTax,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child: const Text('Add Tax Rate', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                      child: const Text('ADD RATE', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite)),
                     ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
-
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Text(
-              'Active Tax Rates',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Tax List
-          FutureBuilder<Stream<QuerySnapshot>>(
-            // 1. Get the stream Future first
-            future: FirestoreService().getCollectionStream('taxes'),
-            builder: (context, streamFutureSnapshot) {
-              if (streamFutureSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(),
-                ));
-              }
-              if (streamFutureSnapshot.hasError) {
-                return Center(child: Text('Error: ${streamFutureSnapshot.error}'));
-              }
-              if (!streamFutureSnapshot.hasData) {
-                return const Center(child: Text('Unable to load taxes'));
-              }
-
-              // 2. Use the retrieved stream
-              return StreamBuilder<QuerySnapshot>(
-                stream: streamFutureSnapshot.data,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: CircularProgressIndicator(),
-                    ));
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.receipt_long, size: 48, color: Colors.grey[300]),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No taxes added yet',
-                              style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final taxes = snapshot.data!.docs;
-
-                  return Card(
-                    elevation: 1,
-                    color: Colors.white,
-                    shadowColor: Colors.black12,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: taxes.length,
-                      separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[100]),
-                      itemBuilder: (context, index) {
-                        final taxDoc = taxes[index];
-                        final taxData = taxDoc.data() as Map<String, dynamic>;
-                        final taxName = taxData['name'] ?? '';
-                        final taxPercentage = taxData['percentage'] ?? 0.0;
-                        final productCount = taxData['productCount'] ?? 0;
-
-                        return ListTile(
-                          onTap: () => _showTaxProducts(context, taxData),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: kPrimaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Center(
-                              child: Text(
-                                taxName.substring(0, 1),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor),
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            taxName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          subtitle: Text(
-                            '${taxPercentage.toStringAsFixed(1)}% Rate',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                          ),
-                          trailing: SizedBox(
-                            width: 180, // Adjust width as needed
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: Colors.grey[200]!),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '$productCount',
-                                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Products',
-                                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                  tooltip: 'Delete Tax',
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Delete Tax Rate'),
-                                        content: Text('Are you sure you want to delete the tax "$taxName"? This action cannot be undone.'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(false),
-                                            child: const Text('Cancel'),
-                                          ),
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(true),
-                                            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirm == true) {
-                                      try {
-                                        await FirestoreService().deleteDocument('taxes', taxDoc.id);
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Tax "$taxName" deleted'), backgroundColor: Colors.red),
-                                          );
-                                        }
-                                      } catch (e) {
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(content: Text('Failed to delete tax: $e'), backgroundColor: Colors.red),
-                                          );
-                                        }
-                                      }
-                                    }
-                                  },
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionLabel("Active Tax Categories"),
+        _buildLiveTaxList(),
+      ],
     );
   }
 
-  // Quick Sale Tax Tab
+  Widget _buildLiveTaxList() {
+    return FutureBuilder<Stream<QuerySnapshot>>(
+      future: FirestoreService().getCollectionStream('taxes'),
+      builder: (context, streamFutureSnapshot) {
+        if (!streamFutureSnapshot.hasData) return const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()));
+        return StreamBuilder<QuerySnapshot>(
+          stream: streamFutureSnapshot.data,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState("No tax rates configured.");
+            final taxes = snapshot.data!.docs;
+            return Container(
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              child: ListView.separated(
+                shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+                itemCount: taxes.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                itemBuilder: (context, index) {
+                  final taxData = taxes[index].data() as Map<String, dynamic>;
+                  final name = taxData['name'] ?? '';
+                  final perc = taxData['percentage'] ?? 0.0;
+                  final count = taxData['productCount'] ?? 0;
+                  return ListTile(
+                    onTap: () => _showTaxProducts(context, {...taxData, 'id': taxes[index].id}),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), radius: 18, child: Text(name[0], style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14))),
+                    title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                    subtitle: Text('$perc% Rate', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(6)), child: Text('$count ITEMS', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+                        const SizedBox(width: 4),
+                        IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 20), onPressed: () => _deleteTax(taxes[index].id, name)),
+                        const Icon(Icons.arrow_forward_ios_rounded, color: kGrey300, size: 12),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _deleteTax(String id, String name) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Tax Category?'),
+        content: Text('Remove "$name"? This will affect products mapped to this category.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: kWhite))),
+        ],
+      ),
+    );
+    if (confirm == true) await FirestoreService().deleteDocument('taxes', id);
+  }
+
   Widget _buildQuickSaleTaxTab() {
-    return SingleChildScrollView(
+    return ListView(
       padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Default Tax Type Card
-          Card(
-            elevation: 2,
-            shadowColor: Colors.black12,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            color: Colors.white,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.settings_suggest, color: kPrimaryColor),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Default Configuration',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            Text(
-                              'How tax is calculated for quick sales',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[500],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[300]!),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _defaultTaxType,
-                        isExpanded: true,
-                        icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
-                        style: TextStyle(fontSize: 15, color: Colors.grey[800], fontWeight: FontWeight.w500),
-                        items: _taxTypes.map((type) {
-                          return DropdownMenuItem(value: type, child: Text(type));
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _defaultTaxType = value!;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          // Update the backend with the new default tax configuration (store-scoped)
-                          final settingsCollection = await FirestoreService().getStoreCollection('settings');
-                          await settingsCollection.doc('taxSettings').set({
-                            'defaultTaxType': _defaultTaxType,
-                            'updatedAt': FieldValue.serverTimestamp(),
-                          }, SetOptions(merge: true));
-
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Settings updated successfully'),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error updating settings: $e'),
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                      ),
-                      child: Text(context.tr('update_settings'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
+      children: [
+        _buildSectionLabel("Tax Calculation Method"),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('DEFAULT STRATEGY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1)),
+              const SizedBox(height: 12),
+              _buildDialogDropdown(null, _defaultTaxType, _taxTypes, (v) => setState(() => _defaultTaxType = v!)),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveDefaultTaxType,
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text('SAVE PREFERENCES', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                ),
               ),
-            ),
+            ],
           ),
-
-          const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Text(
-              'Select Quick Bill Tax',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Tax Toggles
-          FutureBuilder<Stream<QuerySnapshot>>(
-            future: FirestoreService().getCollectionStream('taxes'),
-            builder: (context, streamFutureSnapshot) {
-              if (streamFutureSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: Padding(
-                  padding: EdgeInsets.all(24.0),
-                  child: CircularProgressIndicator(),
-                ));
-              }
-              if (streamFutureSnapshot.hasError) {
-                return Center(child: Text('Error: ${streamFutureSnapshot.error}'));
-              }
-              if (!streamFutureSnapshot.hasData) {
-                return const Center(child: Text('Unable to load taxes'));
-              }
-
-              return StreamBuilder<QuerySnapshot>(
-                stream: streamFutureSnapshot.data,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: Padding(
-                      padding: EdgeInsets.all(24.0),
-                      child: CircularProgressIndicator(),
-                    ));
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          'No taxes available. Add taxes in the "Taxes" tab.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey[500], fontSize: 16),
-                        ),
-                      ),
-                    );
-                  }
-
-                  final taxes = snapshot.data!.docs;
-
-                  return Card(
-                    elevation: 1,
-                    shadowColor: Colors.black12,
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: ListView.separated(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: taxes.length,
-                      separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[100]),
-                      itemBuilder: (context, index) {
-                        final taxDoc = taxes[index];
-                        final taxData = taxDoc.data() as Map<String, dynamic>;
-                        final taxName = taxData['name'] ?? '';
-                        final taxPercentage = taxData['percentage'] ?? 0.0;
-                        final isActive = taxData['isActive'] ?? false;
-
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          title: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${taxPercentage.toStringAsFixed(1)}%',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                taxName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                          trailing: Switch(
-                            value: isActive,
-                            activeColor: kPrimaryColor,
-                            onChanged: (newValue) async {
-                              if (newValue) {
-                                // CASE: Turning ON a tax.
-                                // We must turn this one ON and all otheOFF.
-
-                                final batch = FirebaseFirestore.instance.batch();
-
-                                for (var doc in taxes) {
-                                  if (doc.id == taxDoc.id) {
-                                    // Set the selected tax to active
-                                    batch.update(doc.reference, {'isActive': true});
-                                  } else {
-                                    // Set all other taxes to inactive
-                                    final otherData = doc.data() as Map<String, dynamic>;
-                                    // Only update if it is currently active (saves writes)
-                                    if (otherData['isActive'] == true) {
-                                      batch.update(doc.reference, {'isActive': false});
-                                    }
-                                  }
-                                }
-
-                                // Commit all changes simultaneously
-                                await batch.commit();
-
-                              } else {
-                                // CASE: Turning OFF the current tax.
-                                // Just turn it off (user might want 0 taxes selected).
-                                _updateTaxStatus(taxDoc.id, false);
-                              }
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  );
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+        const SizedBox(height: 24),
+        _buildSectionLabel("Active Quick Billing Tax"),
+        _buildQuickBillTaxToggles(),
+      ],
     );
   }
+
+  Widget _buildQuickBillTaxToggles() {
+    return FutureBuilder<Stream<QuerySnapshot>>(
+      future: FirestoreService().getCollectionStream('taxes'),
+      builder: (context, streamFutureSnapshot) {
+        if (!streamFutureSnapshot.hasData) return const Center(child: CircularProgressIndicator());
+        return StreamBuilder<QuerySnapshot>(
+          stream: streamFutureSnapshot.data,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState("Configure tax rates in the first tab.");
+            final taxes = snapshot.data!.docs;
+            return Container(
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              child: ListView.separated(
+                shrinkWrap: true, physics: const NeverScrollableScrollPhysics(),
+                itemCount: taxes.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                itemBuilder: (context, index) {
+                  final taxDoc = taxes[index];
+                  final data = taxDoc.data() as Map<String, dynamic>;
+                  final active = data['isActive'] ?? false;
+                  return SwitchListTile.adaptive(
+                    activeColor: kPrimaryColor,
+                    title: Text(data['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text('${data['percentage']}% Standard Rate', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                    value: active,
+                    onChanged: (v) async {
+                      if (v) {
+                        // ENFORCE SINGLE SELECTION: Activate this specific tax and deactivate all others in the store
+                        final batch = FirebaseFirestore.instance.batch();
+                        for (var doc in taxes) {
+                          batch.update(doc.reference, {'isActive': doc.id == taxDoc.id});
+                        }
+                        await batch.commit();
+                      } else {
+                        await _updateTaxStatus(taxDoc.id, false);
+                      }
+                    },
+                  );
+                },
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)));
+
+  Widget _buildFlatField(String label, TextEditingController ctrl, TextInputType type) => Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kGrey200)), child: TextField(controller: ctrl, keyboardType: type, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14), decoration: InputDecoration(hintText: label, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
+
+  Widget _buildDialogDropdown(String? label, String current, List<String> items, Function(String?) onSel) => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: items.contains(current) ? current : (items.isNotEmpty ? items.first : null), isExpanded: true, items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: onSel)));
+
+  Widget _buildEmptyState(String msg) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const SizedBox(height: 32), Icon(Icons.receipt_long_outlined, size: 48, color: kGrey300), const SizedBox(height: 16), Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 }

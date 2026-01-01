@@ -108,7 +108,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                         children: [
                           _buildInfoSection("ISSUED BY", businessName, businessLocation),
                           const Divider(height: 24, color: kGreyBg), // Reduced from 32
-                          _buildInfoSection("QUOTED TO", widget.customerName ?? "Walk-in Customer", widget.customerPhone ?? "--"),
+                          _buildInfoSection("QUOTED TO", widget.customerName ?? "Guest", widget.customerPhone ?? "--"),
                           const SizedBox(height: 16), // Reduced gap
                           Container(
                             decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),

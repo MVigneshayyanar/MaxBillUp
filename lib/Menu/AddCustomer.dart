@@ -199,7 +199,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                   backgroundColor: _primaryColor.withOpacity(0.1),
                   child: Text(
                     contact.displayName.isNotEmpty ? contact.displayName[0].toUpperCase() : '?',
-                    style: const TextStyle(color: _primaryColor, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: _primaryColor,fontWeight: FontWeight.bold),
                   ),
                 ),
                 title: Text(contact.displayName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
@@ -398,7 +398,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                 const SizedBox(width: 12),
                                 Text(
                                   _selectedDOB != null
-                                      ? DateFormat('dd MMM yyyy').format(_selectedDOB!)
+                                      ? DateFormat('dd-MM-yyyy').format(_selectedDOB!)
                                       : 'Select Date',
                                   style: TextStyle(
                                     color: _selectedDOB != null ? kBlack87 : kBlack54,

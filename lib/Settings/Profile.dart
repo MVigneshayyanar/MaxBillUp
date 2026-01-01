@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -21,7 +20,6 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:maxbillup/utils/theme_notifier.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
@@ -130,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
         case 'ReceiptCustomization':
           return ReceiptCustomizationPage(onBack: _goBack);
         case 'TaxSettings':
-          return TaxSettingsNew.TaxSettingsPage(uid: widget.uid);
+          return TaxSettingsNew.TaxSettingsPage(uid: widget.uid, onBack: _goBack);
         case 'PrinterSetup':
           return PrinterSetupPage(onBack: _goBack);
         case 'FeatureSettings':
@@ -464,8 +462,25 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final croppedFile = await ImageCropper().cropImage(
         sourcePath: pickedFile.path,
         uiSettings: [
-          AndroidUiSettings(toolbarTitle: 'Crop Logo', toolbarColor: kPrimaryColor, toolbarWidgetColor: kWhite, initAspectRatio: CropAspectRatioPreset.square, lockAspectRatio: true),
-          IOSUiSettings(title: 'Crop Logo', aspectRatioLockEnabled: true),
+          AndroidUiSettings(
+            toolbarTitle: 'Crop Logo',
+            toolbarColor: kPrimaryColor,
+            toolbarWidgetColor: kWhite,
+            initAspectRatio: CropAspectRatioPreset.square,
+            lockAspectRatio: true,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square, // Only square option
+            ],
+          ),
+          IOSUiSettings(
+            title: 'Crop Logo',
+            aspectRatioLockEnabled: true,
+            resetAspectRatioEnabled: false,
+            aspectRatioPickerButtonHidden: true,
+            aspectRatioPresets: [
+              CropAspectRatioPreset.square, // Only square option
+            ],
+          ),
         ],
       );
       if (croppedFile != null) {
@@ -522,7 +537,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
-          title: const Text("Business Profile", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+          title: const Text("Business Profile", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => _editing ? setState(() => _editing = false) : widget.onBack()),
@@ -647,7 +662,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Column(children: [
         const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
         const SizedBox(height: 16),
-        Expanded(child: ListView.separated(itemCount: _currencies.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(onTap: () { setState(() => _selectedCurrency = _currencies[i]['code']!); Navigator.pop(context); }, leading: Text(_currencies[i]['symbol']!, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryColor)), title: Text(_currencies[i]['name']!, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: _selectedCurrency == _currencies[i]['code'] ? const Icon(Icons.check_circle, color: kPrimaryColor) : null))),
+        Expanded(child: ListView.separated(itemCount: _currencies.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(onTap: () { setState(() => _selectedCurrency = _currencies[i]['code']!); Navigator.pop(context); }, leading: Text(_currencies[i]['symbol']!, style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryColor)), title: Text(_currencies[i]['name']!, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: _selectedCurrency == _currencies[i]['code'] ? const Icon(Icons.check_circle, color: kPrimaryColor) : null))),
       ]),
     ));
   }
@@ -701,7 +716,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Printer Setup", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
+      appBar: AppBar(title: const Text("Printer Setup", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -713,7 +728,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           _SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) async { (await SharedPreferences.getInstance()).setBool('enable_auto_print', v); setState(() => _enableAutoPrint = v); }, showDivider: false)]),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: _isScanning ? null : _scanForDevices, backgroundColor: kPrimaryColor, icon: _isScanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.bluetooth_searching_rounded), label: Text(_isScanning ? "SCANNING..." : "SCAN FOR PRINTERS", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+      floatingActionButton: FloatingActionButton.extended(onPressed: _isScanning ? null : _scanForDevices, backgroundColor: kPrimaryColor, icon: _isScanning ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.bluetooth_searching_rounded,color: kWhite), label: Text(_isScanning ? "SCANNING..." : "SCAN FOR PRINTERS", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12,color: kWhite))),
     );
   }
 
@@ -740,7 +755,7 @@ class FeatureSettingsPage extends StatefulWidget {
 
 class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _enableAutoPrint = true, _blockOutOfStock = true; double _decimals = 2;
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Features", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Features", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
 }
 
 // ==========================================
@@ -749,7 +764,7 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 class ReceiptSettingsPage extends StatelessWidget {
   final VoidCallback onBack; final Function(String) onNavigate; final String uid; final String? userEmail;
   const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate, required this.uid, this.userEmail});
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Receipts", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SettingsTile(title: "Bluetooth Thermal Printer", subtitle: "Connect 58mm & 80mm printers", icon: Icons.print_rounded, onTap: () => onNavigate('PrinterSetup')), _SettingsTile(title: "Invoice Customization", subtitle: "PDF & Template layout settings", icon: Icons.palette_rounded, showDivider: false, onTap: () => onNavigate('ReceiptCustomization'))])]));
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Receipts", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SettingsTile(title: "Bluetooth Thermal Printer", subtitle: "Connect 58mm & 80mm printers", icon: Icons.print_rounded, onTap: () => onNavigate('PrinterSetup')), _SettingsTile(title: "Invoice Customization", subtitle: "PDF & Template layout settings", icon: Icons.palette_rounded, showDivider: false, onTap: () => onNavigate('ReceiptCustomization'))])]));
 }
 
 class ReceiptCustomizationPage extends StatefulWidget {
@@ -764,7 +779,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   Future<void> _saveSettings() async { setState(() => _saving = true); final prefs = await SharedPreferences.getInstance(); await prefs.setBool('receipt_show_logo', _showLogo); await prefs.setBool('receipt_show_email', _showEmail); await prefs.setBool('receipt_show_phone', _showPhone); await prefs.setBool('receipt_show_gst', _showGST); await prefs.setInt('invoice_template', _selectedTemplateIndex); setState(() => _saving = false); widget.onBack(); }
   Future<void> _checkLogoPermission() async { final can = await PlanPermissionHelper.canUseLogoOnBill(); if (mounted) setState(() => _canUseLogo = can); }
 
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Invoice Style", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Invoice Style", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [
     _buildSectionLabel("TEMPLATE STYLE"),
     _buildTemplateGrid(),
     const SizedBox(height: 24),
@@ -814,7 +829,7 @@ class LanguagePage extends StatelessWidget {
     final provider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Select Language", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)),
+      appBar: AppBar(title: const Text("Select Language", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)),
       body: Column(
         children: [
           Container(
@@ -872,5 +887,5 @@ class UpcomingFeaturesPage extends StatelessWidget { final VoidCallback onBack; 
 class VideoTutorialsPage extends StatelessWidget { final VoidCallback onBack; const VideoTutorialsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Tutorial Videos", onBack); }
 class _SimplePage extends StatelessWidget {
   final String title; final VoidCallback onBack; const _SimplePage(this.title, this.onBack);
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text(title, style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: Center(child: Text("$title Content Loading...", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))));
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text(title, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: Center(child: Text("$title Content Loading...", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))));
 }

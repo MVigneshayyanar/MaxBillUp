@@ -21,7 +21,7 @@ import 'package:maxbillup/Stocks/Vendors.dart';
 import 'package:maxbillup/Settings/StaffManagement.dart' hide kPrimaryColor, kErrorColor;
 import 'package:maxbillup/Reports/Reports.dart' hide kPrimaryColor;
 import 'package:maxbillup/Stocks/Stock.dart';
-import 'package:maxbillup/Settings/Profile.dart' hide kGreyBg, kGrey300, kPrimaryColor, kBlack54, kBlack87, kErrorColor;
+import 'package:maxbillup/Settings/Profile.dart'; // For SettingsPage
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -38,68 +38,6 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 // ==========================================
 // VIDEO TUTORIAL PAGE
 // ==========================================
-class VideoTutorialPage extends StatelessWidget {
-  final VoidCallback onBack;
-  const VideoTutorialPage({super.key, required this.onBack});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Video Tutorial', style: TextStyle(color: Colors.white)),
-        backgroundColor: Color(0xFF2F7CF6),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: onBack,
-        ),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('Watch our video tutorial:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.play_circle_fill, color: Colors.white),
-              label: const Text('Open Video Tutorial', style: TextStyle(color: Colors.white)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF0288D1),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                final url = Uri.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ'); // Replace with your actual tutorial link
-                try {
-                  if (await launcher.canLaunchUrl(url)) {
-                    await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not launch video tutorial.')),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  // Fallback for missing url_launcher dependency in IDE
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not launch video tutorial. (url_launcher not available)')),
-                    );
-                  }
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ==========================================
-// 1. MAIN MENU PAGE (ROUTER)
-// ==========================================
 class MenuPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
@@ -111,41 +49,93 @@ class MenuPage extends StatefulWidget {
 }
 
 class _MenuPageState extends State<MenuPage> {
-  // Navigation State
   String? _currentView;
-
-  // Data variables
   String _businessName = "Loading...";
   String _email = "";
   String _role = "staff";
+  String? _logoUrl;
   Map<String, dynamic> _permissions = {};
 
-  // Rebuild key - increments when plan changes to force widget refresh
-  int _rebuildKey = 0;
-
-  // Stream Subscriptions
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   StreamSubscription<DocumentSnapshot>? _storeSubscription;
-
-  // Colors
-  final Color _headerBlue = Colors.blue ;
-  final Color _iconColor = const Color(0xFF424242);
-  final Color _textColor = const Color(0xFF212121);
 
   @override
   void initState() {
     super.initState();
     _email = widget.userEmail ?? "";
-    _startFastUserDataListener();
-    _startStoreDataListener();
+    _initFastFetch();
     _loadPermissions();
+    _initStoreLogo();
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Refresh permissions when returning from other pages (e.g., after plan purchase)
-    _loadPermissions();
+  /// FAST FETCH: Instant cache retrieval with reactive listener
+  void _initFastFetch() {
+    final fs = FirestoreService();
+
+    // 1. Immediate Cache Fetch
+    FirebaseFirestore.instance.collection('users').doc(widget.uid).get(
+        const GetOptions(source: Source.cache)
+    ).then((doc) {
+      if (doc.exists && mounted) {
+        final data = doc.data() as Map<String, dynamic>;
+        setState(() {
+          _businessName = data['businessName'] ?? data['name'] ?? 'My Business';
+          _role = data['role'] ?? 'Staff';
+        });
+      }
+    });
+
+    // 2. Live Sync Listener
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && mounted) {
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _businessName = data['businessName'] ?? data['name'] ?? 'My Business';
+          if (data.containsKey('email')) _email = data['email'];
+          _role = data['role'] ?? 'Staff';
+        });
+      }
+    });
+  }
+
+  /// Initialize store logo listener
+  void _initStoreLogo() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+
+    // Immediate cache fetch
+    FirebaseFirestore.instance.collection('store').doc(storeId).get(
+      const GetOptions(source: Source.cache)
+    ).then((doc) {
+      if (doc.exists && mounted) {
+        final data = doc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            _logoUrl = data['logoUrl'] as String?;
+          });
+        }
+      }
+    });
+
+    // Live sync listener
+    _storeSubscription = FirebaseFirestore.instance
+        .collection('store')
+        .doc(storeId)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && mounted) {
+        final data = snapshot.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            _logoUrl = data['logoUrl'] as String?;
+          });
+        }
+      }
+    });
   }
 
   void _loadPermissions() async {
@@ -158,49 +148,6 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  void _startStoreDataListener() async {
-    try {
-      final storeDoc = await FirestoreService().getCurrentStoreDoc();
-      if (storeDoc != null) {
-        _storeSubscription = FirebaseFirestore.instance
-            .collection('store')
-            .doc(storeDoc.id)
-            .snapshots()
-            .listen((snapshot) async {
-          if (snapshot.exists && mounted) {
-            // Don't cache data - just trigger rebuild to fetch fresh
-            setState(() {
-              _rebuildKey++;
-            });
-          }
-        });
-      }
-    } catch (e) {
-      print('Error starting store listener: $e');
-    }
-  }
-
-  void _startFastUserDataListener() {
-    try {
-      _userSubscription = FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.uid)
-          .snapshots()
-          .listen((snapshot) {
-        if (snapshot.exists && mounted) {
-          Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-          setState(() {
-            _businessName = data['businessName'] ?? data['name'] ?? 'Karadi Crackers';
-            if (data.containsKey('email')) _email = data['email'];
-            _role = data['role'] ?? 'Staff';
-          });
-        }
-      });
-    } catch (e) {
-      debugPrint("Error initializing stream: $e");
-    }
-  }
-
   @override
   void dispose() {
     _userSubscription?.cancel();
@@ -208,1461 +155,388 @@ class _MenuPageState extends State<MenuPage> {
     super.dispose();
   }
 
-  void _reset() => setState(() => _currentView = null);
-
-  bool _hasPermission(String permission) {
-    return _permissions[permission] == true;
-  }
+  bool _hasPermission(String permission) => _permissions[permission] == true;
 
   @override
   Widget build(BuildContext context) {
-    // Use Consumer for real-time plan updates (listener triggerebuild)
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
-        // ------------------------------------------
-        // CONDITIONAL RENDERING SWITCH
-        // ------------------------------------------
-        switch (_currentView) {
-        // New Sale
-          case 'NewSale':
-            return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+        // Check if user has paid plan
+        return FutureBuilder<String>(
+          future: planProvider.getCurrentPlan(),
+          builder: (context, snapshot) {
+            final currentPlan = snapshot.data ?? 'Free';
 
-        // Inline Lists
-          case 'Quotation':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessQuotationAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('quotation') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
-              },
-            );
-
-          case 'BillHistory':
-            if (!_hasPermission('billHistory') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
-
-          case 'CreditNotes':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessCustomerCreditAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('creditNotes') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return CreditNotesPage(uid: widget.uid, onBack: _reset);
-              },
-            );
-
-          case 'Customers':
-        if (!_hasPermission('customerManagement') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return CustomersPage(uid: widget.uid, onBack: _reset);
-
-          case 'CreditDetails':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessCustomerCreditAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('creditDetails') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return CreditDetailsPage(uid: widget.uid, onBack: _reset);
-              },
-            );
-
-        // Expenses Sub-menu items
-          case 'StockPurchase':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return StockPurchasePage(uid: widget.uid, onBack: _reset);
-
-      case 'Expenses':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return ExpensesPage(uid: widget.uid, onBack: _reset);
-
-      case 'ExpenseCategories':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return ExpenseCategoriesPage(uid: widget.uid, onBack: _reset);
-
-      case 'Vendors':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PermissionHelper.showPermissionDeniedDialog(context);
-            _reset();
-          });
-          return Container();
-        }
-        return VendorsPage(uid: widget.uid, onBack: _reset);
-
-          // Staff Management
-          case 'StaffManagement':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessStaffManagementAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('staffManagement') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _reset);
-              },
-            );
-
-          // Knowledge
-          case 'Knowledge':
-            return KnowledgePage(onBack: _reset);
-
-          // ==========================================
-          // REPORTS SECTION
-          // ==========================================
-
-          case 'Analytics':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('analytics') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return AnalyticsPage(uid: widget.uid, onBack: _reset);
-              },
-            );
-
-          case 'DayBook':
-            // Daybook is FREE for everyone - no restrictions
-            return DayBookPage(uid: widget.uid, onBack: _reset);
-
-          case 'Summary':
-            // Always fetch fresh from backend
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('salesSummary') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return SalesSummaryPage(onBack: _reset);
-              },
-            );
-
-          case 'SalesReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('salesReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return FullSalesHistoryPage(onBack: _reset);
-              },
-            );
-
-          case 'ItemSales':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('itemSalesReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return ItemSalesPage(onBack: _reset);
-              },
-            );
-
-          case 'TopCustomers':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('topCustomer') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return TopCustomersPage(uid: widget.uid, onBack: _reset);
-              },
-            );
-
-          case 'StockReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('stockReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return StockReportPage(onBack: _reset);
-              },
-            );
-
-          case 'LowStock':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-              });
-              return Container();
+            // Determine plan rank: Starter=0, Essential=1, Growth=2, Pro=3
+            int planRank = 0;
+            if (currentPlan.toLowerCase().contains('essential')) {
+              planRank = 1;
+            } else if (currentPlan.toLowerCase().contains('growth')) {
+              planRank = 2;
+            } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
+              planRank = 3;
+            } else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) {
+              planRank = 0;
             }
-            if (!_hasPermission('lowStockProduct') && !isAdmin) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                PermissionHelper.showPermissionDeniedDialog(context);
-                _reset();
-              });
-              return Container();
-                }
-                return LowStockPage(onBack: _reset);
-              },
-            );
 
-          case 'TopProducts':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('topProducts') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return TopProductsPage(uid: widget.uid, onBack: _reset);
-              },
-            );
+            // Helper function to check if feature is available based on plan
+            bool isFeatureAvailable(String permission, {int requiredRank = 1}) {
+              // Check plan rank first
+              if (planRank < requiredRank) return false;
 
-          case 'TopCategories':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('topCategory') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return TopCategoriesPage(onBack: _reset);
-              },
-            );
+              // If admin and has required plan, allow access
+              if (isAdmin) return true;
 
-          case 'ExpenseReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('expensesReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return ExpenseReportPage(onBack: _reset);
-              },
-            );
+              // Check user permission
+              final userPerm = _permissions[permission] == true;
+              return userPerm;
+            }
 
-          case 'TaxReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('taxReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return TaxReportPage(onBack: _reset);
-              },
-            );
+            // Conditional Rendering
+            if (_currentView != null) {
+              return _handleViewRouting(isAdmin, planProvider);
+            }
 
-          case 'HSNReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('hsnReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return HSNReportPage(onBack: _reset);
-              },
-            );
-
-          case 'StaffReport':
-            return FutureBuilder<bool>(
-              future: planProvider.canAccessReportsAsync(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                if (!snapshot.data!) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-                    _reset();
-                  });
-                  return Container();
-                }
-                if (!_hasPermission('staffSalesReport') && !isAdmin) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    PermissionHelper.showPermissionDeniedDialog(context);
-                    _reset();
-                  });
-                  return Container();
-                }
-                return StaffSaleReportPage(onBack: _reset);
-              },
-            );
-
-          // ==========================================
-          // STOCK PAGE (moved from bottom nav)
-          // ==========================================
-
-          case 'Stock':
-            return StockPage(uid: widget.uid, userEmail: widget.userEmail);
-
-          // ==========================================
-          // SETTINGS PAGE (moved from bottom nav)
-          // ==========================================
-
-          case 'Settings':
-            return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
-        }
-
-        // ------------------------------------------
-        // DEFAULT VIEW (MENU)
-        // ------------------------------------------
-        return Scaffold(
-          backgroundColor: Colors.white,
+            return Scaffold(
+          backgroundColor: kGreyBg,
           body: Column(
             children: [
-              // HEADER
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top+10, bottom: 20, left: 20, right: 20),
-                color: Color(0xFF2F7CF6),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+              _buildEnterpriseHeader(context, planProvider),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
                   children: [
-                    // Logo on left side
-                    Image.asset(
-                      'assets/max_my_bill_sq.png',
-                      width: 175,
-                      height:175,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 25),
-                    // Store info on right side
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Store name
-                          Text(
-                            _businessName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 10),
-                          // Role badge
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              _role.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          // Email
-                          Row(
-                            children: [
-                              const Icon(Icons.email_outlined, color: Colors.white70, size: 12),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  _email,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height:10),
-                          // Plan info button
-                          FutureBuilder<String>(
-                            future: Provider.of<PlanProvider>(context, listen: false).getCurrentPlan(),
-                            builder: (context, snapshot) {
-                              final currentPlan = snapshot.data ?? 'Free';
-                              return InkWell(
-                                onTap: () async {
-                                  final planProvider = Provider.of<PlanProvider>(context, listen: false);
-                                  final plan = await planProvider.getCurrentPlan();
-                                  if (!mounted) return;
-                                  Navigator.push(
-                                    context,
-                                    CupertinoPageRoute(
-                                      builder: (context) => SubscriptionPlanPage(
-                                        uid: widget.uid,
-                                        currentPlan: plan,
-                                      ),
-                                    ),
-                                  );
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: currentPlan == 'Free' ? Colors.orange.shade700 : Colors.green.shade600,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.workspace_premium, size: 12, color: Colors.white),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        currentPlan,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                    _buildSectionLabel("Core Operations"),
+                    if (_hasPermission('billHistory') || isAdmin)
+                      _buildMenuTile(
+                        context.tr('billhistory'),
+                        Icons.receipt_long_rounded,
+                        kGoogleGreen,
+                        'BillHistory',
+                        subtitle: (currentPlan.toLowerCase() == 'free' || currentPlan.toLowerCase() == 'starter')
+                            ? "Last 7 days only"
+                            : "View and manage invoices",
+                        isLocked: false  // Available to all, but with 7-day limit for free/starter users
                       ),
-                    ),
+                    if (_hasPermission('customerManagement') || isAdmin)
+                      _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances", isLocked: !isFeatureAvailable('customerManagement', requiredRank: 1)),
+                    _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns", isLocked: planRank < 1),
+
+                    const SizedBox(height: 12),
+                    _buildSectionLabel("Financials"),
+                    if (_hasPermission('expenses') || isAdmin)
+                      _buildExpenseExpansionTile(context),
+                    if (_hasPermission('creditDetails') || isAdmin)
+                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker", isLocked: !isFeatureAvailable('creditDetails', requiredRank: 2)),
+                    if (_hasPermission('quotation') || isAdmin)
+                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma", isLocked: !isFeatureAvailable('quotation', requiredRank: 1)),
+
+                    const SizedBox(height: 12),
+                    _buildSectionLabel("Administration"),
+                    if (isAdmin || _hasPermission('staffManagement'))
+                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", isLocked: !isFeatureAvailable('staffManagement', requiredRank: 2)),
+
+                    const SizedBox(height: 12),
+                    _buildSectionLabel("Support"),
+                    _buildMenuTile(context.tr('video_tutorials'), Icons.ondemand_video_rounded, const Color(0xFF2F7CF6), 'VideoTutorial', subtitle: "How-to guides"),
+                    _buildMenuTile(context.tr('knowledge_base'), Icons.school_rounded, const Color(0xFFE6AE00), 'Knowledge', subtitle: "Documentation & tips"),
+
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
+            ],
+          ),
+          bottomNavigationBar: CommonBottomNav(uid: widget.uid, userEmail: widget.userEmail, currentIndex: 0, screenWidth: MediaQuery.of(context).size.width),
+        );
+          },
+        ); // Close FutureBuilder
+      },
+    );
+  }
 
-          // MENU LIST
+  Widget _buildEnterpriseHeader(BuildContext context, PlanProvider planProvider) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 24, left: 20, right: 20),
+      decoration: const BoxDecoration(color: kPrimaryColor),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+            child: Image.asset('assets/max_my_bill_sq.png', width: 68, height: 68, fit: BoxFit.contain),
+          ),
+          const SizedBox(width: 18),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Quotation
-                if (_hasPermission('billHistory') || isAdmin) ...[
-                  _buildMenuItem(
+                Text(_businessName, style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
                     Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: kGreyBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.receipt_long_outlined, color: Color(0xFF388E3C), size: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                      child: Text(_role.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ),
-                    context.tr('billhistory'),
-                    'BillHistory',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-
-
-                // Bill History
-                // Customer Management
-                if (_hasPermission('customerManagement') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3E5F5),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.people_outline, color: Color(0xFF7B1FA2), size: 24),
-                    ),
-                    context.tr('customers'),
-                    'Customers',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-
-                // Credit Notes
-                if (_hasPermission('creditNotes') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.note_alt_outlined, color: Color(0xFFF57C00), size: 24),
-                    ),
-                    context.tr('credit_notes'),
-                    'CreditNotes',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-
-
-                // Expenses (Expansion Tile)
-                if (_hasPermission('expenses') || isAdmin) ...[
-                  Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFEBEE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.account_balance_wallet_outlined, color: Color(0xFFD32F2F), size: 24),
-                      ),
-                      title: Text(
-                        context.tr('expenses'),
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: _textColor,
-                        ),
-                      ),
-                      tilePadding: const EdgeInsets.symmetric(horizontal: 24),
-                      childrenPadding: const EdgeInsets.only(left: 72),
-                      children: [
-                        _buildSubMenuItem(context.tr('stock_purchase'), 'StockPurchase'),
-                        _buildSubMenuItem(context.tr('expenses'), 'Expenses'),
-                        _buildSubMenuItem(context.tr('expense_category'), 'ExpenseCategories'),
-                        _buildSubMenuItem('Vendors', 'Vendors'),
-                      ],
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-                // Credit Details
-                if (_hasPermission('creditDetails') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE0F2F1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.credit_card_outlined, color: Color(0xFF00796B), size: 24),
-                    ),
-                    context.tr('creditdetails'),
-                    'CreditDetails',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-                if (_hasPermission('quotation') || isAdmin) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE3F2FD),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.description_outlined, color: Color(0xFF1976D2), size: 24),
-                    ),
-                    context.tr('quotation'),
-                    'Quotation',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-                // Staff Management
-                if (isAdmin || _hasPermission('staffManagement')) ...[
-                  _buildMenuItem(
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFCE4EC),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.badge_outlined, color: Color(0xFFC2185B), size: 24),
-                    ),
-                    context.tr('staff_management'),
-                    'StaffManagement',
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                  ),
-                ],
-
-                // Video Tutorial
-                _buildMenuItem(
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE1F5FE),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.ondemand_video_rounded, color: Color(0xFF0288D1), size: 24),
-                  ),
-                  context.tr('video_tutorials'),
-                  'VideoTutorial',
+                    const SizedBox(width: 8),
+                    _buildPlanBadge(planProvider),
+                  ],
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 24),
-                  child: Divider(height: 1, thickness: 1, color: kBorderColor),
-                ),
-
-                // Knowledge
-                _buildMenuItem(
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF8E1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.school_rounded, color: Color(0xFFFFA000), size: 24),
-                  ),
-                  context.tr('knowledge_base'),
-                  'Knowledge',
-                ),
-
+                const SizedBox(height: 8),
+                Text(_email, style: TextStyle(color: kWhite.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w500)),
               ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Store logo - clickable to navigate to profile
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (_) => SettingsPage(uid: widget.uid, userEmail: widget.userEmail),
+                ),
+              );
+            },
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: kWhite.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kWhite.withOpacity(0.3), width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _logoUrl != null && _logoUrl!.isNotEmpty
+                    ? Image.network(
+                        _logoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return const Icon(Icons.store_rounded, size: 28, color: kWhite);
+                        },
+                      )
+                    : const Icon(Icons.store_rounded, size: 28, color: kWhite),
+              ),
             ),
           ),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: widget.uid,
-        userEmail: widget.userEmail,
-        currentIndex: 0,
-        screenWidth: MediaQuery.of(context).size.width,
-      ),
+    );
+  }
+
+  Widget _buildPlanBadge(PlanProvider planProvider) {
+    return FutureBuilder<String>(
+      future: planProvider.getCurrentPlan(),
+      builder: (context, snapshot) {
+        final plan = snapshot.data ?? 'Free';
+        final isPremium = !plan.toLowerCase().contains('free') && !plan.toLowerCase().contains('starter');
+        return GestureDetector(
+          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(8)),
+            child: Row(
+              children: [
+                const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
+                const SizedBox(width: 4),
+                Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ),
         );
       },
     );
   }
 
-  Widget _buildMenuItem(Widget icon, String text, String viewKey) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        leading: icon,
-        title: Text(
-          text,
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: _textColor),
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 12, left: 4),
+    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
+  );
+
+  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle, bool isLocked = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            if (isLocked) {
+              PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid);
+            } else {
+              setState(() => _currentView = viewKey);
+            }
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 44, height: 44,
+                  decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(icon, color: color, size: 22),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
+                      ],
+                    ],
+                  ),
+                ),
+                if (isLocked)
+                  Icon(Icons.lock_rounded, color: kGrey400.withOpacity(0.5), size: 18)
+                else
+                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+              ],
+            ),
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-        onTap: () {
-          _navigateToPage(viewKey);
-        },
       ),
     );
   }
 
-
+  Widget _buildExpenseExpansionTile(BuildContext context) {
+    const Color color = Color(0xFFE91E63);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.account_balance_wallet_rounded, color: color, size: 22),
+          ),
+          title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+          childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
+          children: [
+            _buildSubMenuItem(context.tr('stock_purchase'), 'StockPurchase'),
+            _buildSubMenuItem(context.tr('expenses'), 'Expenses'),
+            _buildSubMenuItem(context.tr('expense_category'), 'ExpenseCategories'),
+            _buildSubMenuItem('Vendors Management', 'Vendors'),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildSubMenuItem(String text, String viewKey) {
     return ListTile(
-      title: Text(text, style: TextStyle(fontSize: 15, color: Color.fromRGBO((_textColor.r * 255.0).round() & 0xff, (_textColor.g * 255.0).round() & 0xff, (_textColor.b * 255.0).round() & 0xff, 0.8))),
-      onTap: () async {
-        // Navigate to the page in full screen
-        await _navigateToPage(viewKey);
-      },
+      onTap: () => setState(() => _currentView = viewKey),
+      title: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack54)),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: kGrey300),
       dense: true,
       visualDensity: const VisualDensity(vertical: -2),
-      contentPadding: EdgeInsets.zero,
     );
   }
 
-  Future<void> _navigateToPage(String viewKey) async {
-    Widget? page = await _getPageForView(viewKey);
-    if (page != null) {
-      Navigator.push(
-        context,
-        CupertinoPageRoute(builder: (context) => page),
-      );
-    }
-  }
+  Widget _handleViewRouting(bool isAdmin, PlanProvider planProvider) {
+    void reset() => setState(() => _currentView = null);
 
-  Future<Widget?> _getPageForView(String viewKey) async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    switch (viewKey) {
-      case 'NewSale':
-        return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+    switch (_currentView) {
+      case 'NewSale': return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
+      case 'BillHistory': return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
+      case 'Customers': return CustomersPage(uid: widget.uid, onBack: reset);
+      case 'StockPurchase': return StockPurchasePage(uid: widget.uid, onBack: reset);
+      case 'Expenses': return ExpensesPage(uid: widget.uid, onBack: reset);
+      case 'ExpenseCategories': return ExpenseCategoriesPage(uid: widget.uid, onBack: reset);
+      case 'Vendors': return VendorsPage(uid: widget.uid, onBack: reset);
+      case 'Knowledge': return KnowledgePage(onBack: reset);
+      case 'VideoTutorial': return VideoTutorialPage(onBack: reset);
 
       case 'Quotation':
-        // Check plan permission first (async)
-        final canAccessQuotation = await PlanPermissionHelper.canAccessQuotation();
-        if (!canAccessQuotation) {
-          PlanPermissionHelper.showUpgradeDialog(context, 'Quotation', uid: widget.uid);
-          return null;
-        }
-        if (!_hasPermission('quotation') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context));
-
-      case 'BillHistory':
-        if (!_hasPermission('billHistory') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context));
-
+        return _buildAsyncRoute(planProvider.canAccessQuotationAsync(), 'Quotation', reset, QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
       case 'CreditNotes':
-        // Check plan permission first (async)
-        final canAccessCreditNotes = await PlanPermissionHelper.canAccessCustomerCredit();
-        if (!canAccessCreditNotes) {
-          PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-          return null;
-        }
-        if (!_hasPermission('creditNotes') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return CreditNotesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
-      case 'Customers':
-        if (!_hasPermission('customerManagement') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return CustomersPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
+        return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Customer Credit', reset, CreditNotesPage(uid: widget.uid, onBack: reset));
       case 'CreditDetails':
-        // Check plan permission first (async)
-        final canAccessCreditDetails = await PlanPermissionHelper.canAccessCustomerCredit();
-        if (!canAccessCreditDetails) {
-          PlanPermissionHelper.showUpgradeDialog(context, 'Customer Credit', uid: widget.uid);
-          return null;
-        }
-        if (!_hasPermission('creditDetails') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return CreditDetailsPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
-      case 'StockPurchase':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return StockPurchasePage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
-      case 'Expenses':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return ExpensesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
-      case 'ExpenseCategories':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return ExpenseCategoriesPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
-      case 'Vendors':
-        if (!_hasPermission('expenses') && !isAdmin) {
-          PermissionHelper.showPermissionDeniedDialog(context);
-          return null;
-        }
-        return VendorsPage(uid: widget.uid, onBack: () => Navigator.pop(context));
-
+        return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Customer Credit', reset, CreditDetailsPage(uid: widget.uid, onBack: reset));
       case 'StaffManagement':
-        // Staff management requires async checks, handle separately
-        _navigateToStaffManagement();
-        return null;
-
-      case 'Analytics':
-        // Analytics requires async checks, handle separately
-        _navigateToAnalytics();
-        return null;
-
-      case 'DayBook':
-        // DayBook requires async checks, handle separately
-        _navigateToDayBook();
-        return null;
-
-      case 'Summary':
-        // Summary requires async checks, handle separately
-        _navigateToSummary();
-        return null;
-
-      case 'SalesReport':
-        // SalesReport requires async checks, handle separately
-        _navigateToSalesReport();
-        return null;
-
-      case 'ItemSales':
-        // ItemSales requires async checks, handle separately
-        _navigateToItemSales();
-        return null;
-
-      case 'TopCustomers':
-        // TopCustomerequires async checks, handle separately
-        _navigateToTopCustomers();
-        return null;
-
-      case 'StockReport':
-        // StockReport requires async checks, handle separately
-        _navigateToStockReport();
-        return null;
-
-      case 'LowStock':
-        // LowStock requires async checks, handle separately
-        _navigateToLowStock();
-        return null;
-
-      case 'TopProducts':
-        // TopProducts requires async checks, handle separately
-        _navigateToTopProducts();
-        return null;
-
-      case 'TopCategories':
-        // TopCategories requires async checks, handle separately
-        _navigateToTopCategories();
-        return null;
-
-      case 'ExpenseReport':
-        // ExpenseReport requires async checks, handle separately
-        _navigateToExpenseReport();
-        return null;
-
-      case 'TaxReport':
-        // TaxReport requires async checks, handle separately
-        _navigateToTaxReport();
-        return null;
-
-      case 'HSNReport':
-        // HSNReport requires async checks, handle separately
-        _navigateToHSNReport();
-        return null;
-
-      case 'StaffReport':
-        // StaffReport requires async checks, handle separately
-        _navigateToStaffReport();
-        return null;
-
-      case 'Knowledge':
-        return KnowledgePage(onBack: () => Navigator.pop(context));
-
-      case 'VideoTutorial':
-        return VideoTutorialPage(onBack: () => Navigator.pop(context));
-
-      case 'Stock':
-        return StockPage(uid: widget.uid, userEmail: widget.userEmail);
-
-      case 'Settings':
-        return SettingsPage(uid: widget.uid, userEmail: widget.userEmail);
-
-      default:
-        return null;
+        return _buildAsyncRoute(planProvider.canAccessStaffManagementAsync(), 'Staff Management', reset, StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
     }
+    return Container();
   }
 
-  void _navigateToStaffManagement() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+  Widget _buildAsyncRoute(Future<bool> future, String featureName, VoidCallback reset, Widget targetPage) {
+    return FutureBuilder<bool>(
+      future: future,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (!snapshot.data!) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            PlanPermissionHelper.showUpgradeDialog(context, featureName, uid: widget.uid);
+            reset();
+          });
+          return Container();
+        }
+        return targetPage;
+      },
+    );
+  }
+}
 
-    bool canAccess = await PlanPermissionHelper.canAccessStaffManagement();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Staff Management', uid: widget.uid);
-      return;
-    }
+// ==========================================
+// VIDEO TUTORIAL PAGE (STYLIZED)
+// ==========================================
+class VideoTutorialPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const VideoTutorialPage({super.key, required this.onBack});
 
-    if (!_hasPermission('staffManagement') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => StaffManagementPage(
-          uid: widget.uid,
-          userEmail: widget.userEmail,
-          onBack: () => Navigator.pop(context),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kWhite,
+      appBar: AppBar(
+        title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 18), onPressed: onBack),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.05), shape: BoxShape.circle),
+              child: const Icon(Icons.play_circle_filled_rounded, size: 80, color: kPrimaryColor),
+            ),
+            const SizedBox(height: 32),
+            const Text('Master Your Business', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBlack87)),
+            const SizedBox(height: 12),
+            const Text('Watch our comprehensive video guide to learn how to manage inventory, sales, and staff effectively.',
+                textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: kBlack54, height: 1.5, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity, height: 56,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                label: const Text('WATCH ON YOUTUBE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () async {
+                  final url = Uri.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+                  if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  void _navigateToAnalytics() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('analytics') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => AnalyticsPage(
-          uid: widget.uid,
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToDayBook() async {
-    // Daybook is FREE for everyone - no restrictions
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => DayBookPage(
-          uid: widget.uid,
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToSummary() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('salesSummary') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => SalesSummaryPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToSalesReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('salesReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => FullSalesHistoryPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToItemSales() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('itemSalesReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => ItemSalesPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTopCustomers() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('topCustomers') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => TopCustomersPage(
-          uid: widget.uid,
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToStockReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('stockReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => StockReportPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToLowStock() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('lowStockProduct') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => LowStockPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTopProducts() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('topProducts') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => TopProductsPage(
-          uid: widget.uid,
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTopCategories() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('topCategory') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => TopCategoriesPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToExpenseReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('expensesReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => ExpenseReportPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToTaxReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('taxReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => TaxReportPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToHSNReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('hsnReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => HSNReportPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  void _navigateToStaffReport() async {
-    bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
-
-    bool canAccess = await PlanPermissionHelper.canAccessReports();
-    if (!canAccess) {
-      PlanPermissionHelper.showUpgradeDialog(context, 'Reports', uid: widget.uid);
-      return;
-    }
-
-    if (!_hasPermission('staffSalesReport') && !isAdmin) {
-      PermissionHelper.showPermissionDeniedDialog(context);
-      return;
-    }
-
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => StaffSaleReportPage(
-          onBack: () => Navigator.pop(context),
-        ),
-      ),
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> fetchUnsettledOrders(String uid) async {
-    final collection = await FirestoreService().getStoreCollection('savedOrders');
-    final querySnapshot = await collection.get();
-
-    return querySnapshot.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-  }
-
-
-
-  void settleBillAndReturn(String billId) async {
-    // Navigate to BillPage
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => BillPage(
-          uid: widget.uid,
-          cartItems: const [], // Replace with actual cart items
-          totalAmount: 0.0, // Replace with actual total amount
-          userEmail: widget.userEmail,
-        ),
-      ),
-    ).then((_) {
-      // Return to the current page after settling the bill
-      setState(() {
-        _currentView = null; // Go back to the main menu
-      });
-    });
   }
 }
 
@@ -1998,12 +872,12 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final data = doc.data() as Map<String, dynamic>;
     final inv = data['invoiceNumber'] ?? 'N/A';
     final total = (data['total'] ?? 0.0).toDouble();
-    final customerName = data['customerName'] ?? 'Walk-in Customer';
+    final customerName = data['customerName'] ?? 'Guest';
     final staffName = data['staffName'] ?? 'Staff';
 
     final timestamp = data['timestamp'] as Timestamp?;
     final formattedDateTime = timestamp != null
-        ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate())
+        ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate())
         : '--';
 
     final paymentStatus = data['paymentStatus'];
@@ -2402,7 +1276,7 @@ class SalesDetailPage extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text(
           'Are you sure ?',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2580,7 +1454,7 @@ class SalesDetailPage extends StatelessWidget {
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
               final ts = data['timestamp'] as Timestamp?;
-              final dateStr = ts != null ? DateFormat('dd MMM yy • hh:mm a').format(ts.toDate()) : '--';
+              final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : '--';
               final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
 
               // Calculate tax from items (for new sales with tax fields)
@@ -2642,7 +1516,7 @@ class SalesDetailPage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  data['customerName'] ?? 'Walk-in Customer',
+                                  data['customerName'] ?? 'Guest',
                                   style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700),
                                 ),
                                 if (data['customerPhone'] != null)
@@ -3140,7 +2014,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
           icon: const Icon(Icons.tune_rounded, color: kPrimaryColor, size: 20),
           items: ['All', 'Available', 'Used'].map((s) => DropdownMenuItem(
               value: s,
-              child: Text(s, style: const TextStyle(color: kBlack87, fontWeight: FontWeight.bold, fontSize: 13))
+              child: Text(s, style: const TextStyle(color: kBlack87,fontWeight: FontWeight.bold, fontSize: 13))
           )).toList(),
           onChanged: (v) => setState(() => _filterStatus = v!),
         ),
@@ -3153,7 +2027,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
     final status = data['status'] ?? 'Available';
     final amount = (data['amount'] ?? 0.0) as num;
     final timestamp = data['timestamp'] as Timestamp?;
-    final dateStr = timestamp != null ? DateFormat('dd MMM yy • hh:mm a').format(timestamp.toDate()) : '--';
+    final dateStr = timestamp != null ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate()) : '--';
     final isAvailable = status.toLowerCase() == 'available';
 
     return Container(
@@ -3188,7 +2062,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(data['customerName'] ?? 'Walk-in Customer',
+                      child: Text(data['customerName'] ?? 'Guest',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
                     ),
                     Text("Rs ${amount.toStringAsFixed(2)}",
@@ -3260,7 +2134,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
     final status = creditNoteData['status'] ?? 'Available';
     final items = (creditNoteData['items'] as List<dynamic>? ?? []);
     final ts = creditNoteData['timestamp'] as Timestamp?;
-    final dateStr = ts != null ? DateFormat('dd MMM yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : 'N/A';
     final bool isAvailable = status.toLowerCase() == 'available';
 
     return Scaffold(
@@ -3285,7 +2159,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(creditNoteData['customerName'] ?? 'Walk-in Customer', style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700)),
+                      Text(creditNoteData['customerName'] ?? 'Guest', style: const TextStyle(color: kOrange, fontSize: 15, fontWeight: FontWeight.w700)),
                       Text(creditNoteData['customerPhone'] ?? '--', style: const TextStyle(color: kBlack54, fontSize: 11)),
                     ]),
                   ),
@@ -3460,7 +2334,7 @@ class CustomerBillsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           final docs = snapshot.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)));
+          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)));
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -3471,7 +2345,7 @@ class CustomerBillsPage extends StatelessWidget {
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
                   title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
-                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  subtitle: Text(DateFormat('dd-MM-yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
                   trailing: Text("Rs ${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
                 ),
               );
@@ -3494,7 +2368,7 @@ class CustomerCreditsPage extends StatelessWidget {
         future: _fetchCredits(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))]));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
           final docs = snapshot.data!.docs;
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
@@ -3508,7 +2382,7 @@ class CustomerCreditsPage extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
                   title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd MMM yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("Rs ${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
                 ),
               );
@@ -3604,13 +2478,13 @@ class CreditNoteDetailPage extends StatelessWidget {
     final status = creditNoteData['status'] ?? 'Available';
     final items = (creditNoteData['items'] as List<dynamic>? ?? []);
     final timestamp = creditNoteData['timestamp'] as Timestamp?;
-    final dateString = timestamp != null ? DateFormat('dd MMM yyyy • h:mm a').format(timestamp.toDate()) : 'N/A';
+    final dateString = timestamp != null ? DateFormat('dd-MM-yyyy • h:mm a').format(timestamp.toDate()) : 'N/A';
 
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
         title: const Text('Detail Overview',
-            style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
@@ -3685,12 +2559,12 @@ class CreditNoteDetailPage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(id, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(id, style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
               _buildStatusPill(status, isInverse: true),
             ],
           ),
           const SizedBox(height: 20),
-          const Text("REFUND AMOUNT", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.bold, fontSize: 11)),
+          const Text("REFUND AMOUNT", style: TextStyle(color: Colors.white70,fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 4),
           Text("${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
         ],
@@ -4064,7 +2938,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildSalesCard(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final customerName = (data['name'] ?? 'Walk-in Customer').toString();
+    final customerName = (data['name'] ?? 'Guest').toString();
     final balance = (data['balance'] ?? 0.0).toDouble();
     final phone = (data['phone'] ?? 'N/A').toString();
 
@@ -4132,7 +3006,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final supplierName = (data['supplierName'] ?? 'Supplier').toString();
     final noteNumber = (data['creditNoteNumber'] ?? 'N/A').toString();
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yy').format(timestamp.toDate()) : 'Recent';
+    final date = timestamp != null ? DateFormat('dd-MM-yyyy').format(timestamp.toDate()) : 'Recent';
 
     return Container(
       decoration: BoxDecoration(
@@ -4235,7 +3109,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -4244,7 +3118,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 _performAsyncAction(() => _settlePurchaseCredit(docId, data, amount, paymentMode), "Purchase settled successfully");
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('CONFIRM', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+              child: const Text('CONFIRM', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -4291,7 +3165,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -4300,7 +3174,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 _performAsyncAction(() => _settleCustomerCredit(customerId, customerData, amount, paymentMode, currentBalance), "Payment recorded successfully");
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+              child: const Text('SETTLE', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -4418,7 +3292,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
       backgroundColor: kWhite,
       appBar: AppBar(
         title: const Text('Purchase Overview',
-            style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 18)),
+            style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: kPrimaryBlue,
         elevation: 0,
         centerTitle: true,
@@ -4437,7 +3311,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryBlue)),
                       _buildStatusPill(data['status'] ?? 'Available'),
                     ],
                   ),
@@ -4483,8 +3357,8 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: kMediumBlue, fontWeight: FontWeight.bold, fontSize: 14)),
-          Text(value, style: TextStyle(color: color ?? kDeepNavy, fontWeight: FontWeight.bold, fontSize: 15)),
+          Text(label, style: const TextStyle(color: kMediumBlue,fontWeight: FontWeight.bold, fontSize: 14)),
+          Text(value, style: TextStyle(color: color ?? kDeepNavy,fontWeight: FontWeight.bold, fontSize: 15)),
         ],
       ),
     );
@@ -4510,12 +3384,12 @@ Widget _buildSectionCard({required Widget child, EdgeInsets? padding}) {
 }
 
 Widget _buildSectionTitle(String title) {
-  return Padding(padding: const EdgeInsets.only(left: 6, bottom: 12), child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kMediumBlue, letterSpacing: 1)));
+  return Padding(padding: const EdgeInsets.only(left: 6, bottom: 12), child: Text(title, style: const TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: kMediumBlue, letterSpacing: 1)));
 }
 
 Widget _buildLabelValue(String label, String value, {CrossAxisAlignment crossAlign = CrossAxisAlignment.start, Color? color}) {
   return Column(crossAxisAlignment: crossAlign, children: [
-    Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kMediumBlue)),
+    Text(label, style: const TextStyle(fontSize: 10,fontWeight: FontWeight.bold, color: kMediumBlue)),
     const SizedBox(height: 4),
     Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: color ?? kDeepNavy)),
   ]);
@@ -4535,7 +3409,7 @@ Widget _buildStatusPill(String status, {bool isInverse = false}) {
       borderRadius: BorderRadius.circular(8),
       border: isInverse ? Border.all(color: kWhite.withOpacity(0.4)) : Border.all(color: c.withOpacity(0.2)),
     ),
-    child: Text(status.toUpperCase(), style: TextStyle(color: isInverse ? kWhite : c, fontWeight: FontWeight.bold, fontSize: 10)),
+    child: Text(status.toUpperCase(), style: TextStyle(color: isInverse ? kWhite : c,fontWeight: FontWeight.bold, fontSize: 10)),
   );
 }
 
@@ -4563,8 +3437,8 @@ Widget _buildDetailTotalRow(num amount, int itemCount) {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16))),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kMediumBlue)),
-      Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+      Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11,fontWeight: FontWeight.bold, color: kMediumBlue)),
+      Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22,fontWeight: FontWeight.bold, color: kPrimaryBlue)),
     ]),
   );
 }
@@ -4574,7 +3448,7 @@ Widget _buildIconRow(IconData icon, String label, String value, Color iconColor)
     Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
     const SizedBox(width: 16),
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kMediumBlue)),
+      Text(label, style: const TextStyle(fontSize: 10,fontWeight: FontWeight.bold, color: kMediumBlue)),
       const SizedBox(height: 2),
       Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kDeepNavy)),
     ])),
@@ -4586,7 +3460,7 @@ Widget _buildLargeButton(BuildContext context, {required String label, required 
     width: double.infinity, height: 56,
     child: ElevatedButton.icon(
       onPressed: onPressed, icon: Icon(icon, color: kWhite, size: 20),
-      label: Text(label, style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+      label: Text(label, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         elevation: 0,
@@ -4704,7 +3578,7 @@ class _CustomersPageState extends State<CustomersPage> {
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))
+              child: const Text("CANCEL", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -4712,7 +3586,7 @@ class _CustomersPageState extends State<CustomersPage> {
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(context.tr('add'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: Text(context.tr('add'), style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
             onPressed: () async {
               final name = nameController.text.trim();
               final phone = phoneController.text.trim();
@@ -5401,7 +4275,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         'Invoice No. ${widget.invoiceData['invoiceNumber']}',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                           color: Color(0xFF2F7CF6),
                         ),
                       ),
@@ -5419,7 +4293,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         'Total : ${total.toStringAsFixed(1)}',
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -5454,7 +4328,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                           'Items',
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                           fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
@@ -5515,7 +4389,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                   Text(
                                     'Total : ${itemTotal.toStringAsFixed(2)}',
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                     fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
@@ -5562,7 +4436,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                       fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                   ),
@@ -5607,7 +4481,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         '${totalReturnAmount.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -5628,14 +4502,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         '${context.tr('totalamount')} :',
                         style: const TextStyle(
                           fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
                         '${totalReturnAmount.toStringAsFixed(1)}',
                         style: const TextStyle(
                           fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                         fontWeight: FontWeight.bold,
                           color: Color(0xFF2F7CF6),
                         ),
                       ),
@@ -5711,7 +4585,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                     'Save Credit Note',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                     fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
@@ -6105,7 +4979,7 @@ class _EditBillPageState extends State<EditBillPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _selectedCustomerName ?? 'Walk-in Customer',
+                  _selectedCustomerName ?? 'Guest',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kTextPrimary),
                 ),
                 if (hasCustomer)
@@ -6200,7 +5074,7 @@ class _EditBillPageState extends State<EditBillPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kSuccessColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                     child: Text('Discount: -${discount.toStringAsFixed(0)}',
-                        style: const TextStyle(color: kSuccessColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                        style: const TextStyle(color: kSuccessColor,fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ),
               ],
@@ -6213,7 +5087,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   _buildSummaryLine('Credit Notes', '-${_creditNotesAmount.toStringAsFixed(0)}', color: Colors.orange),
                   GestureDetector(
                     onTap: _showCreditNotesDialog,
-                    child: Text('Change Notes', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text('Change Notes', style: TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),
@@ -6270,7 +5144,7 @@ class _EditBillPageState extends State<EditBillPage> {
             ),
             child: Text(mode, style: TextStyle(
                 color: isSelected ? Colors.white : kTextSecondary,
-                fontWeight: FontWeight.bold, fontSize: 12
+               fontWeight: FontWeight.bold, fontSize: 12
             )),
           ),
         );
@@ -6404,7 +5278,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 Container(width: 40, height: 4, decoration: BoxDecoration(color: kBorderColor, borderRadius: BorderRadius.circular(2))),
                 const Padding(
                   padding: EdgeInsets.all(20),
-                  child: Text('Select Product', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text('Select Product', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
                 ),
                 Expanded(
                   child: ListView.separated(

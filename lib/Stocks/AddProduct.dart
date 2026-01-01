@@ -518,7 +518,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 isDense: true,
                 items: [
                   ...categories.map((e) => DropdownMenuItem(value: e, child: Text(e))),
-                  const DropdownMenuItem(value: '__create_new__', child: Text('+ New Category', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold))),
+                  const DropdownMenuItem(value: '__create_new__', child: Text('+ New Category', style: TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold))),
                 ],
                 onChanged: (val) async {
                   if (val == '__create_new__') {
@@ -664,7 +664,7 @@ class _AddProductPageState extends State<AddProductPage> {
               if (mounted) { setState(() => _selectedStockUnit = unitController.text.trim()); Navigator.pop(ctx); }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("ADD", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("ADD", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -697,7 +697,7 @@ class _AddProductPageState extends State<AddProductPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("CREATE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text("CREATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
           )
         ],
       ),

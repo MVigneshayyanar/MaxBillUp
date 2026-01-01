@@ -443,7 +443,72 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.category_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('no_categories_yet'), style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.category_outlined,
+                size: 60,
+                color: kPrimaryColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              context.tr('no_categories_yet'),
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: kBlack87,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Add your first category here and\norganize your products",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: kBlack54,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: (isAdmin || _hasPermission('category')) ? () => _showAddCategoryDialog(context) : null,
+              icon: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+              label: const Text(
+                "Add Your First Category",
+                style: TextStyle(
+                  color: kWhite,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('no_categories_found'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 
   // ==========================================

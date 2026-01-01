@@ -415,7 +415,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                   DropdownButton<String>(
                                     value: _selectedDuration,
                                     underline: Container(),
-                                    style: const TextStyle(fontSize: 12, color: kTextPrimary, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontSize: 12, color: kTextPrimary,fontWeight: FontWeight.bold),
                                     items: ['Last 7 Days', 'Last 30 Days'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                                     onChanged: (v) => setState(() => _selectedDuration = v!),
                                   ),
@@ -442,7 +442,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                         getTooltipItem: (group, groupIndex, rod, rodIndex) {
                                           return BarTooltipItem(
                                             rod.toY.toStringAsFixed(0),
-                                            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                            const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),
                                           );
                                         },
                                       ),
@@ -465,8 +465,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                             sectionsSpace: 2,
                                             centerSpaceRadius: 30,
                                             sections: [
-                                              PieChartSectionData(color: kPrimaryColor, value: totalCash, title: '${((totalCash/(totalCash+totalOnline == 0 ? 1 : totalCash+totalOnline))*100).toStringAsFixed(0)}%', radius: 40, titleStyle: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                              PieChartSectionData(color: kPurpleCharts, value: totalOnline, title: '${((totalOnline/(totalCash+totalOnline == 0 ? 1 : totalCash+totalOnline))*100).toStringAsFixed(0)}%', radius: 40, titleStyle: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                              PieChartSectionData(color: kPrimaryColor, value: totalCash, title: '${((totalCash/(totalCash+totalOnline == 0 ? 1 : totalCash+totalOnline))*100).toStringAsFixed(0)}%', radius: 40, titleStyle: const TextStyle(color: Colors.white, fontSize: 10,fontWeight: FontWeight.bold)),
+                                              PieChartSectionData(color: kPurpleCharts, value: totalOnline, title: '${((totalOnline/(totalCash+totalOnline == 0 ? 1 : totalCash+totalOnline))*100).toStringAsFixed(0)}%', radius: 40, titleStyle: const TextStyle(color: Colors.white, fontSize: 10,fontWeight: FontWeight.bold)),
                                             ],
                                           ),
                                         ),
@@ -525,7 +525,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   }
 
   Widget _sectionTitle(String title) {
-    return Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 0.5));
+    return Text(title, style: const TextStyle(fontSize: 14,fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 0.5));
   }
 
   Widget _buildHeroCard(String title, double value, IconData icon, Color color) {
@@ -581,7 +581,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         children: [
           Row(children: [CircleAvatar(radius: 4, backgroundColor: color), const SizedBox(width: 8), Text(title, style: const TextStyle(fontSize: 12, color: kTextSecondary))]),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextPrimary)),
+          Text(value, style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kTextPrimary)),
           const SizedBox(height: 4),
           Text(subtitle, style: const TextStyle(fontSize: 11, color: kTextSecondary)),
         ],
@@ -750,7 +750,7 @@ class DayBookPage extends StatelessWidget {
                         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           const Text("Today's Revenue", style: TextStyle(color: Colors.white70, fontSize: 13)),
                           const SizedBox(height: 4),
-                          Text("${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                          Text("${total.toStringAsFixed(0)}", style: const TextStyle(color: Colors.white, fontSize: 32,fontWeight: FontWeight.bold)),
                         ]),
                         Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)), child: Text("${todayDocs.length} Bills", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
                       ],
@@ -1164,7 +1164,7 @@ class TopCustomersPage extends StatelessWidget {
                             e.key[0].toUpperCase(),
                             style: TextStyle(
                               color: Colors.primaries[sorted.indexOf(e) % Colors.primaries.length],
-                              fontWeight: FontWeight.bold,
+                             fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -1278,7 +1278,7 @@ class StockReportPage extends StatelessWidget {
                       children: [
                         const Text("Total Inventory Value", style: TextStyle(color: Colors.white70)),
                         const SizedBox(height: 8),
-                        Text("${totalVal.toStringAsFixed(0)}", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text("${totalVal.toStringAsFixed(0)}", style: const TextStyle(fontSize: 32,fontWeight: FontWeight.bold, color: Colors.white)),
                       ],
                     ),
                   ),
@@ -1329,9 +1329,9 @@ class StockReportPage extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        Text(title, style: TextStyle(color: color,fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(value, style: const TextStyle(fontSize: 20,fontWeight: FontWeight.bold)),
       ]),
     );
   }
@@ -1425,7 +1425,7 @@ class ItemSalesPage extends StatelessWidget {
                     child: ListTile(
                       leading: CircleAvatar(backgroundColor: kPrimaryColor.withValues(alpha: 0.1), child: Text("#${sorted.indexOf(e) + 1}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 12))),
                       title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      trailing: Text("${e.value} Sold", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold)),
+                      trailing: Text("${e.value} Sold", style: const TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold)),
                     ),
                   )).toList(),
                 ],
@@ -1535,7 +1535,7 @@ class LowStockPage extends StatelessWidget {
                         trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                           Container(height: 8, width: 60, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(4)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: (e.value.toDouble() / 10).clamp(0, 1), child: Container(decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(4))))),
                           const SizedBox(width: 8),
-                          Text("${e.value} Left", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold))
+                          Text("${e.value} Left", style: const TextStyle(color: kExpenseRed,fontWeight: FontWeight.bold))
                         ]),
                       ),
                     )).toList(),
@@ -1634,7 +1634,7 @@ class TopCategoriesPage extends StatelessWidget {
                       child: ListTile(
                         leading: CircleAvatar(backgroundColor: kTealCharts.withValues(alpha: 0.1), child: const Icon(Icons.category, color: kTealCharts, size: 20)),
                         title: Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600)),
-                        trailing: Text("${e.value} Products", style: const TextStyle(color: kTealCharts, fontWeight: FontWeight.bold)),
+                        trailing: Text("${e.value} Products", style: const TextStyle(color: kTealCharts,fontWeight: FontWeight.bold)),
                       ),
                     )).toList(),
                   ],
@@ -1718,7 +1718,7 @@ class ExpenseReportPage extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 8),
-                                    Text('${totalOp.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kExpenseRed)),
+                                    Text('${totalOp.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kExpenseRed)),
                                   ],
                                 ),
                               ),
@@ -1744,7 +1744,7 @@ class ExpenseReportPage extends StatelessWidget {
                                       ],
                                     ),
                                     const SizedBox(height: 8),
-                                    Text('${totalStock.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kWarningOrange)),
+                                    Text('${totalStock.toStringAsFixed(0)}', style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kWarningOrange)),
                                   ],
                                 ),
                               ),
@@ -1844,7 +1844,7 @@ class ExpenseReportPage extends StatelessWidget {
                             leading: Icon(e['type'] == 'Stock' ? Icons.inventory : Icons.money_off, color: kExpenseRed),
                             title: Text(e['title']),
                             subtitle: Text(e['type'], style: const TextStyle(fontSize: 12, color: kTextSecondary)),
-                            trailing: Text("- ${e['amount']}", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.bold)),
+                            trailing: Text("- ${e['amount']}", style: const TextStyle(color: kExpenseRed,fontWeight: FontWeight.bold)),
                           ),
                         ))
                       ],
@@ -1939,7 +1939,7 @@ class TaxReportPage extends StatelessWidget {
                       children: [
                         const Text("Total Tax Collected", style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
                         const SizedBox(height: 8),
-                        Text("${totalTaxAmount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text("${totalTaxAmount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 36,fontWeight: FontWeight.bold, color: Colors.white)),
                         const SizedBox(height: 4),
                         Text("${taxableDocs.length} taxable transactions", style: const TextStyle(color: Colors.white70, fontSize: 12)),
                       ],
@@ -1953,7 +1953,7 @@ class TaxReportPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Tax Breakdown", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                          const Text("Tax Breakdown", style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold, color: kTextPrimary)),
                           const SizedBox(height: 12),
                           ...sortedTaxTypes.map((entry) => Container(
                             margin: const EdgeInsets.only(bottom: 8),
@@ -1974,7 +1974,7 @@ class TaxReportPage extends StatelessWidget {
                                   child: Text(entry.key, style: const TextStyle(fontWeight: FontWeight.w600, color: kIncomeGreen, fontSize: 13)),
                                 ),
                                 const Spacer(),
-                                Text("${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                                Text("${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16,fontWeight: FontWeight.bold, color: kTextPrimary)),
                               ],
                             ),
                           )).toList(),
@@ -1989,7 +1989,7 @@ class TaxReportPage extends StatelessWidget {
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Align(
                       alignment: Alignment.centerLeft,
-                      child: Text("Taxable Transactions", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kTextPrimary)),
+                      child: Text("Taxable Transactions", style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold, color: kTextPrimary)),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -2040,7 +2040,7 @@ class TaxReportPage extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const SizedBox(height: 4),
-                                    Text(d['customerName'] ?? 'Walk-in Customer', style: const TextStyle(fontSize: 12, color: kTextSecondary)),
+                                    Text(d['customerName'] ?? 'Guest', style: const TextStyle(fontSize: 12, color: kTextSecondary)),
                                     if (taxDetails.isNotEmpty) ...[
                                       const SizedBox(height: 4),
                                       Text(taxDetails, style: const TextStyle(fontSize: 11, color: kIncomeGreen, fontWeight: FontWeight.w500)),
@@ -2052,7 +2052,7 @@ class TaxReportPage extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text("${(d['calculatedTax'] ?? 0).toStringAsFixed(2)}",
-                                      style: const TextStyle(color: kIncomeGreen, fontWeight: FontWeight.bold, fontSize: 15)),
+                                      style: const TextStyle(color: kIncomeGreen,fontWeight: FontWeight.bold, fontSize: 15)),
                                     const SizedBox(height: 2),
                                     Text("Total: ${(double.tryParse(d['total']?.toString() ?? '0') ?? 0).toStringAsFixed(2)}",
                                       style: const TextStyle(fontSize: 11, color: kTextSecondary)),
@@ -2157,7 +2157,7 @@ class HSNReportPage extends StatelessWidget {
                       child: ListTile(
                         leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPurpleCharts.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.tag, color: kPurpleCharts, size: 20)),
                         title: Text('HSN: ${e.key}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                        trailing: Text("${e.value} Products", style: const TextStyle(color: kPurpleCharts, fontWeight: FontWeight.bold)),
+                        trailing: Text("${e.value} Products", style: const TextStyle(color: kPurpleCharts,fontWeight: FontWeight.bold)),
                       ),
                     )).toList(),
                   ],

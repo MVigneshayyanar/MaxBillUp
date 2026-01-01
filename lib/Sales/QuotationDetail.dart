@@ -25,11 +25,11 @@ class QuotationDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final quotationNumber = quotationData['quotationNumber'] ?? 'N/A';
-    final customerName = quotationData['customerName'] ?? 'Walk-in Customer';
+    final customerName = quotationData['customerName'] ?? 'Guest';
     final staffName = quotationData['staffName'] ?? 'Staff';
     final timestamp = quotationData['timestamp'] as Timestamp?;
     final formattedDate = timestamp != null
-        ? DateFormat('dd MMM yyyy, hh:mm a').format(timestamp.toDate())
+        ? DateFormat('dd-MM-yyyy, hh:mm a').format(timestamp.toDate())
         : 'N/A';
     final items = quotationData['items'] as List<dynamic>? ?? [];
     final total = (quotationData['total'] ?? 0.0).toDouble();

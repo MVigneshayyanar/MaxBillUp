@@ -380,7 +380,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                       _removeSingleItem(idx);
                     },
                     icon: const Icon(Icons.delete_outline, color: kErrorColor, size: 18),
-                    label: const Text('Remove', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold)),
+                    label: const Text('Remove', style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold)),
                   ),
                   ElevatedButton(
                     onPressed: () {
@@ -411,7 +411,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Save Changes', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -432,7 +432,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+            child: Text('Keep Items', style: TextStyle(color: Colors.grey[600],fontWeight: FontWeight.bold)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
@@ -440,7 +440,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('Clear Total Cart', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -489,7 +489,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       style: TextStyle(
         fontSize: 15,
-        fontWeight: FontWeight.bold,
+       fontWeight: FontWeight.bold,
         color: enabled ? Colors.black : Colors.black45,
       ),
       decoration: InputDecoration(
