@@ -45,7 +45,6 @@ class _AddProductPageState extends State<AddProductPage> {
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _expiryDateController = TextEditingController();
 
-  // State
   DateTime? _selectedExpiryDate;
   String? _selectedCategory;
   bool _stockEnabled = true;
@@ -144,7 +143,6 @@ class _AddProductPageState extends State<AddProductPage> {
       int next = 1001;
       if (snap.docs.isNotEmpty) {
         final code = snap.docs.first['productCode'].toString();
-        // Assuming PRT prefix or numeric
         final numPart = int.tryParse(code.replaceAll(RegExp(r'[^0-9]'), ''));
         if (numPart != null) next = numPart + 1;
       }
@@ -198,7 +196,7 @@ class _AddProductPageState extends State<AddProductPage> {
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
             style: const TextStyle(fontWeight: FontWeight.w700, color: kWhite, fontSize: 18)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -229,7 +227,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   _buildUnitDropdown(),
                   const SizedBox(height: 24),
 
-                  // DROP DOWN SECTION FOR ADVANCED DETAILS
+                  // ADVANCED SECTION
                   Theme(
                     data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                     child: ExpansionTile(
@@ -322,6 +320,7 @@ class _AddProductPageState extends State<AddProductPage> {
     String? hint,
     IconData? suffixIcon,
     VoidCallback? onSuffixTap,
+    Color? iconColor,
   }) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
@@ -335,7 +334,7 @@ class _AddProductPageState extends State<AddProductPage> {
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
-            prefixIcon: Icon(icon, color: isFilled ? kPrimaryColor : kBlack54, size: 20),
+            prefixIcon: Icon(icon, color: isFilled ? (iconColor ?? kPrimaryColor) : kBlack54, size: 20),
             suffixIcon: suffixIcon != null
                 ? IconButton(icon: Icon(suffixIcon, color: kPrimaryColor, size: 20), onPressed: onSuffixTap)
                 : null,
@@ -460,7 +459,7 @@ class _AddProductPageState extends State<AddProductPage> {
               Expanded(
                 child: _buildModernTextField(
                   controller: _quantityController,
-                  label: "Stock QTY",
+                  label: "Initial Stock",
                   icon: Icons.inventory_2_rounded,
                   keyboardType: TextInputType.number,
                   isRequired: true,
@@ -473,6 +472,43 @@ class _AddProductPageState extends State<AddProductPage> {
         if (!_stockEnabled) ...[
           const SizedBox(height: 12),
           _buildInfinityStockIndicator(),
+        ],
+        // RESTORED: Low Stock Alert row
+        if (_stockEnabled) ...[
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _buildModernTextField(
+                  controller: _lowStockAlertController,
+                  label: "Low Stock Alert",
+                  icon: Icons.notification_important_rounded,
+                  keyboardType: TextInputType.number,
+                  hint: "0",
+                  iconColor: kOrange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _wrapDropdown(
+                  "Alert Type",
+                  DropdownButton<String>(
+                    value: _lowStockAlertType,
+                    isExpanded: true,
+                    isDense: true,
+                    items: const [
+                      DropdownMenuItem(value: 'Count', child: Text('Count')),
+                      DropdownMenuItem(value: 'Percentage', child: Text('Percentage')),
+                    ],
+                    onChanged: (val) => setState(() => _lowStockAlertType = val!),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ],
     );
@@ -518,7 +554,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 isDense: true,
                 items: [
                   ...categories.map((e) => DropdownMenuItem(value: e, child: Text(e))),
-                  const DropdownMenuItem(value: '__create_new__', child: Text('+ New Category', style: TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold))),
+                  const DropdownMenuItem(value: '__create_new__', child: Text('+ New Category', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold))),
                 ],
                 onChanged: (val) async {
                   if (val == '__create_new__') {
@@ -664,7 +700,7 @@ class _AddProductPageState extends State<AddProductPage> {
               if (mounted) { setState(() => _selectedStockUnit = unitController.text.trim()); Navigator.pop(ctx); }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("ADD", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
+            child: const Text("ADD", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -697,7 +733,7 @@ class _AddProductPageState extends State<AddProductPage> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-            child: const Text("CREATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
+            child: const Text("CREATE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           )
         ],
       ),
@@ -706,8 +742,9 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Widget _buildBottomSaveButton() {
     return SafeArea(
+      top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
         decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
         child: SizedBox(
           width: double.infinity,
@@ -734,15 +771,17 @@ class _AddProductPageState extends State<AddProductPage> {
     _hsnController.text = d['hsn'] ?? '';
     _barcodeController.text = d['barcode'] ?? '';
     _quantityController.text = d['currentStock']?.toString() ?? '';
+    _lowStockAlertController.text = d['lowStockAlert']?.toString() ?? '';
     _locationController.text = d['location'] ?? '';
     _selectedCategory = d['category'];
     _stockEnabled = d['stockEnabled'] ?? true;
     _selectedStockUnit = d['stockUnit'];
     _selectedTaxType = d['taxType'] ?? 'Price is without Tax';
+    _lowStockAlertType = d['lowStockAlertType'] ?? 'Count';
     _isFavorite = d['isFavorite'] ?? false;
     if (d['expiryDate'] != null) {
-      _selectedExpiryDate = (d['expiryDate'] as Timestamp).toDate();
-      _expiryDateController.text = DateFormat('dd/MM/yyyy').format(_selectedExpiryDate!);
+      _selectedExpiryDate = DateTime.tryParse(d['expiryDate'].toString());
+      if (_selectedExpiryDate != null) _expiryDateController.text = DateFormat('dd/MM/yyyy').format(_selectedExpiryDate!);
     }
   }
 
@@ -758,13 +797,15 @@ class _AddProductPageState extends State<AddProductPage> {
       'productCode': _productCodeController.text.trim(),
       'stockEnabled': _stockEnabled,
       'currentStock': _stockEnabled ? (double.tryParse(_quantityController.text) ?? 0.0) : 0.0,
+      'lowStockAlert': double.tryParse(_lowStockAlertController.text) ?? 0.0,
+      'lowStockAlertType': _lowStockAlertType,
       'hsn': _hsnController.text.trim(),
       'barcode': _barcodeController.text.trim(),
       'stockUnit': _selectedStockUnit ?? 'Piece',
       'taxId': _selectedTaxId,
       'taxType': _selectedTaxType,
       'location': _locationController.text.trim(),
-      'expiryDate': _selectedExpiryDate != null ? Timestamp.fromDate(_selectedExpiryDate!) : null,
+      'expiryDate': _selectedExpiryDate?.toIso8601String(),
       'isFavorite': _isFavorite,
       'updatedAt': FieldValue.serverTimestamp(),
     };

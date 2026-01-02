@@ -994,19 +994,22 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       context: context,
       backgroundColor: kWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sort History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 16),
-            _sortItem("Newest First", SortOption.dateNewest),
-            _sortItem("Oldest First", SortOption.dateOldest),
-            _sortItem("Amount: High to Low", SortOption.amountHigh),
-            _sortItem("Amount: Low to High", SortOption.amountLow),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Sort History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              const SizedBox(height: 16),
+              _sortItem("Newest First", SortOption.dateNewest),
+              _sortItem("Oldest First", SortOption.dateOldest),
+              _sortItem("Amount: High to Low", SortOption.amountHigh),
+              _sortItem("Amount: Low to High", SortOption.amountLow),
+            ],
+          ),
         ),
       ),
     );
@@ -1028,19 +1031,22 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       backgroundColor: kWhite,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Filter Bills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 16),
-            _filterItem("All Records", 'all'),
-            _filterItem("Settled Only", 'settled'),
-            _filterItem("Unsettled Only", 'unsettled'),
-            _filterItem("Cancelled Only", 'cancelled'),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Filter Bills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              const SizedBox(height: 16),
+              _filterItem("All Records", 'all'),
+              _filterItem("Settled Only", 'settled'),
+              _filterItem("Unsettled Only", 'unsettled'),
+              _filterItem("Cancelled Only", 'cancelled'),
+            ],
+          ),
         ),
       ),
     );
@@ -3622,17 +3628,20 @@ class _CustomersPageState extends State<CustomersPage> {
       context: context,
       backgroundColor: kWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sort Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 20),
-            _buildSortOption('Sort by Sales', 'sales', Icons.trending_up_rounded),
-            _buildSortOption('Sort by Credit', 'credit', Icons.account_balance_wallet_rounded),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Sort Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              const SizedBox(height: 20),
+              _buildSortOption('Sort by Sales', 'sales', Icons.trending_up_rounded),
+              _buildSortOption('Sort by Credit', 'credit', Icons.account_balance_wallet_rounded),
+            ],
+          ),
         ),
       ),
     );
@@ -5278,46 +5287,49 @@ class _EditBillPageState extends State<EditBillPage> {
         context: context,
         isScrollControlled: true,
         backgroundColor: Colors.transparent,
-        builder: (ctx) => StatefulBuilder(
-          builder: (context, setSheetState) => Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Container(width: 40, height: 4, decoration: BoxDecoration(color: kBorderColor, borderRadius: BorderRadius.circular(2))),
-                const Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Text('Select Product', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
-                ),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: products.length,
-                    separatorBuilder: (c, i) => const Divider(height: 1, indent: 20, endIndent: 20),
-                    itemBuilder: (context, index) {
-                      final p = products[index];
-                      return ListTile(
-                        title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${p['price']}'),
-                        trailing: const Icon(Icons.add_circle, color: kPrimaryColor),
-                        onTap: () {
-                          setState(() {
-                            _items.add({
-                              'productId': p['id'],
-                              'name': p['name'],
-                              'price': p['price'],
-                              'quantity': 1,
+        builder: (ctx) => SafeArea(
+          top: false,
+          child: StatefulBuilder(
+            builder: (context, setSheetState) => Container(
+              height: MediaQuery.of(context).size.height * 0.75,
+              decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: kBorderColor, borderRadius: BorderRadius.circular(2))),
+                  const Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text('Select Product', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold)),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: products.length,
+                      separatorBuilder: (c, i) => const Divider(height: 1, indent: 20, endIndent: 20),
+                      itemBuilder: (context, index) {
+                        final p = products[index];
+                        return ListTile(
+                          title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text('${p['price']}'),
+                          trailing: const Icon(Icons.add_circle, color: kPrimaryColor),
+                          onTap: () {
+                            setState(() {
+                              _items.add({
+                                'productId': p['id'],
+                                'name': p['name'],
+                                'price': p['price'],
+                                'quantity': 1,
+                              });
                             });
-                          });
-                          Navigator.pop(ctx);
-                        },
-                      );
-                    },
+                            Navigator.pop(ctx);
+                          },
+                        );
+                      },
                   ),
                 ),
               ],
             ),
           ),
+        ),
         ),
       );
     } catch (e) {

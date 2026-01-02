@@ -327,8 +327,8 @@ class _LoginPageState extends State<LoginPage> {
       const SizedBox(height: 12),
       Image.asset(
         'assets/max_my_bill_sq.png',
-        width: 220,
-        height: 50,
+        width: 300,
+        height: 175,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stackTrace) {
           return const Text("MAXBILLUP",

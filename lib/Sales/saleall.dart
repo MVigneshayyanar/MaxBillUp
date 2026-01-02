@@ -332,12 +332,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   ],
                 ),
               ),
-              // Only show action buttons when cart has items
-              if (_cart.isNotEmpty)
-                CommonWidgets.buildActionButtons(
-                  context: context,
-                  isQuotationMode: widget.isQuotationMode,
-                  onSaveOrder: () {
+              // Always show action buttons (bottom bar)
+              CommonWidgets.buildActionButtons(
+                context: context,
+                isQuotationMode: widget.isQuotationMode,
+                onSaveOrder: () {
+                  if (_cart.isEmpty) return;
                   CommonWidgets.showSaveOrderDialog(
                     context: context,
                     uid: widget.uid,

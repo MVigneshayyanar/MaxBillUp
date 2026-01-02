@@ -38,65 +38,68 @@ class CommonWidgets {
   }) {
     if (isQuotationMode) return const SizedBox.shrink();
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: kWhite,
-        border: Border(top: BorderSide(color: kGrey200, width: 1)),
-      ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        children: [
-          // Save order button
-          _buildActionIconButton(
-            Icons.bookmark_add_outlined,
-            onSaveOrder,
-            kPrimaryColor,
-          ),
-          const SizedBox(width: 12),
-
-          // Customer button
-          if (onCustomer != null) ...[
+    return SafeArea(
+      top: false,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: kWhite,
+          border: Border(top: BorderSide(color: kGrey200, width: 1)),
+        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        child: Row(
+          children: [
+            // Save order button
             _buildActionIconButton(
-              customerName != null && customerName.isNotEmpty ? Icons.person_rounded : Icons.person_add_rounded,
-              onCustomer,
-              customerName != null && customerName.isNotEmpty ? kOrange : kPrimaryColor,
+              Icons.bookmark_add_outlined,
+              onSaveOrder,
+              kPrimaryColor,
             ),
             const SizedBox(width: 12),
-          ],
 
-          const Spacer(),
-
-          // Main Bill button (Enterprise High-Density)
-          GestureDetector(
-            onTap: onBill,
-            child: Container(
-              height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(
-                color: kPrimaryColor,
-                borderRadius: BorderRadius.circular(12),
+            // Customer button
+            if (onCustomer != null) ...[
+              _buildActionIconButton(
+                customerName != null && customerName.isNotEmpty ? Icons.person_rounded : Icons.person_add_rounded,
+                onCustomer,
+                customerName != null && customerName.isNotEmpty ? kOrange : kPrimaryColor,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.receipt_long_rounded, color: kWhite, size: 20),
-                  const SizedBox(width: 12),
-                  Text(
-                    "${totalBill.toStringAsFixed(0)}",
-                    style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(width: 1, height: 16, color: kWhite.withOpacity(0.3)),
-                  const SizedBox(width: 10),
-                  Text(
-                    context.tr('bill').toUpperCase(),
-                    style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                  ),
-                ],
+              const SizedBox(width: 12),
+            ],
+
+            const Spacer(),
+
+            // Main Bill button (Enterprise High-Density)
+            GestureDetector(
+              onTap: onBill,
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.receipt_long_rounded, color: kWhite, size: 20),
+                    const SizedBox(width: 12),
+                    Text(
+                      "${totalBill.toStringAsFixed(0)}",
+                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(width: 1, height: 16, color: kWhite.withValues(alpha: 0.3)),
+                    const SizedBox(width: 10),
+                    Text(
+                      context.tr('bill').toUpperCase(),
+                      style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

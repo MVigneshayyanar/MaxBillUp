@@ -188,28 +188,30 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        child: Column(
-          children: [
-            Container(margin: const EdgeInsets.symmetric(vertical: 12), width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(taxData['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-                      Text('${taxData['percentage']}% Tax Rate', style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kBlack54), style: IconButton.styleFrom(backgroundColor: kGreyBg)),
-                ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Container(
+          height: MediaQuery.of(context).size.height * 0.8,
+          decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          child: Column(
+            children: [
+              Container(margin: const EdgeInsets.symmetric(vertical: 12), width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(taxData['name'], style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+                        Text('${taxData['percentage']}% Tax Rate', style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600)),
+                      ]),
+                    ),
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kBlack54), style: IconButton.styleFrom(backgroundColor: kGreyBg)),
+                  ],
+                ),
               ),
-            ),
-            const Divider(height: 1, color: kGrey100),
-            Expanded(
+              const Divider(height: 1, color: kGrey100),
+              Expanded(
               child: FutureBuilder<Stream<QuerySnapshot>>(
                 future: FirestoreService().getCollectionStream('Products'),
                 builder: (context, streamFutureSnapshot) {
@@ -253,6 +255,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           ],
         ),
       ),
+    )
     );
   }
 

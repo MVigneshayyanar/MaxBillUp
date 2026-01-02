@@ -369,17 +369,20 @@ class _CategoryPageState extends State<CategoryPage> {
       context: context,
       backgroundColor: kWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Sort Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
-            const SizedBox(height: 20),
-            _buildSortItem('Name (A-Z)', Icons.sort_by_alpha_rounded, true),
-            _buildSortItem('Name (Z-A)', Icons.sort_by_alpha_rounded, false),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Sort Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
+              const SizedBox(height: 20),
+              _buildSortItem('Name (A-Z)', Icons.sort_by_alpha_rounded, true),
+              _buildSortItem('Name (Z-A)', Icons.sort_by_alpha_rounded, false),
+            ],
+          ),
         ),
       ),
     );
@@ -408,18 +411,21 @@ class _CategoryPageState extends State<CategoryPage> {
       context: context,
       backgroundColor: kWhite,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Category Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
-            const SizedBox(height: 20),
-            _buildFilterItem('All Categories', 'all', Icons.all_inclusive_rounded, kPrimaryColor),
-            _buildFilterItem('With Products', 'nonEmpty', Icons.inventory_2_rounded, kGoogleGreen),
-            _buildFilterItem('Empty Categories', 'empty', Icons.layers_clear_rounded, kOrange),
-          ],
+      builder: (context) => SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Category Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
+              const SizedBox(height: 20),
+              _buildFilterItem('All Categories', 'all', Icons.all_inclusive_rounded, kPrimaryColor),
+              _buildFilterItem('With Products', 'nonEmpty', Icons.inventory_2_rounded, kGoogleGreen),
+              _buildFilterItem('Empty Categories', 'empty', Icons.layers_clear_rounded, kOrange),
+            ],
+          ),
         ),
       ),
     );
@@ -800,15 +806,18 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (c) => Container(
-        decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
-          const SizedBox(height: 20),
-          _buildActionTile(Icons.add_box_outlined, 'Add Existing Product', kPrimaryColor, () { Navigator.pop(c); _showAddExistingProductDialog(context); }),
-          _buildActionTile(Icons.add_circle_outline_rounded, 'Create New Product', kGoogleGreen, () { Navigator.pop(c); Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: widget.uid, userEmail: widget.userEmail, preSelectedCategory: widget.categoryName))); }),
-        ]),
+      builder: (c) => SafeArea(
+        top: false,
+        child: Container(
+          decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 20),
+            _buildActionTile(Icons.add_box_outlined, 'Add Existing Product', kPrimaryColor, () { Navigator.pop(c); _showAddExistingProductDialog(context); }),
+            _buildActionTile(Icons.add_circle_outline_rounded, 'Create New Product', kGoogleGreen, () { Navigator.pop(c); Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: widget.uid, userEmail: widget.userEmail, preSelectedCategory: widget.categoryName))); }),
+          ]),
+        ),
       ),
     );
   }
