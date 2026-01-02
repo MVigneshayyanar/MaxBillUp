@@ -503,7 +503,7 @@ class VideoTutorialPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 18), onPressed: onBack),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -1756,28 +1756,30 @@ class SalesDetailPage extends StatelessWidget {
   }
 
   Widget _buildFixedBottomArea(BuildContext context, Map<String, dynamic> data) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-      decoration: BoxDecoration(
-          color: kWhite,
-          border: const Border(top: BorderSide(color: kGrey200)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))]
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Row 1: Net Amount Fixed at Bottom
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Final Total Payable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-              Text('${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Row 2: Square Action Buttons (Reordered)
-          _buildActionGrid(context, data),
-        ],
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(
+            color: kWhite,
+            border: const Border(top: BorderSide(color: kGrey200)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))]
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Row 1: Net Amount Fixed at Bottom
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Final Total Payable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+                Text('${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Row 2: Square Action Buttons (Reordered)
+            _buildActionGrid(context, data),
+          ],
+        ),
       ),
     );
   }
@@ -2312,13 +2314,15 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
 
   Widget _buildClosingBar() {
     final bal = _entries.isNotEmpty ? _entries.first.balance : 0.0;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-        Text("Rs ${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
-      ]),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+          Text("Rs ${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+        ]),
+      ),
     );
   }
 }
@@ -2441,18 +2445,21 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
             decoration: InputDecoration(prefixText: "Rs ", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
           ),
           const Spacer(),
-          SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            onPressed: () async {
-              if (_amt <= 0) return;
-              final cCol = await FirestoreService().getStoreCollection('customers');
-              final crCol = await FirestoreService().getStoreCollection('credits');
-              await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
-              await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
-          )),
+          SafeArea(
+            top: false,
+            child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+              onPressed: () async {
+                if (_amt <= 0) return;
+                final cCol = await FirestoreService().getStoreCollection('customers');
+                final crCol = await FirestoreService().getStoreCollection('credits');
+                await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
+                await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
+                if (mounted) Navigator.pop(context);
+              },
+              child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+            )),
+          ),
         ]),
       ),
     );
@@ -4565,28 +4572,31 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
             ),
 
             // Save button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: returnQuantities.isEmpty
-                      ? null
-                      : () => _processSaleReturn(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2F7CF6),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: returnQuantities.isEmpty
+                        ? null
+                        : () => _processSaleReturn(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2F7CF6),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      disabledBackgroundColor: Colors.grey,
                     ),
-                    disabledBackgroundColor: Colors.grey,
-                  ),
-                  child: const Text(
-                    'Save Credit Note',
-                    style: TextStyle(
-                      fontSize: 18,
-                     fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                    child: const Text(
+                      'Save Credit Note',
+                      style: TextStyle(
+                        fontSize: 18,
+                       fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),

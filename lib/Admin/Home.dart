@@ -421,7 +421,7 @@ class StoreDetailPage extends StatelessWidget {
         title: Text(storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

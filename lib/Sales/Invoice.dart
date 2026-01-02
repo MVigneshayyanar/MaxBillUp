@@ -71,6 +71,8 @@ class InvoicePage extends StatefulWidget {
   final String? customerName;
   final String? customerPhone;
   final String? customerGSTIN;
+  final String? customNote;
+  final String? deliveryAddress;
   final bool isQuotation;
 
   const InvoicePage({
@@ -93,6 +95,8 @@ class InvoicePage extends StatefulWidget {
     this.customerName,
     this.customerPhone,
     this.customerGSTIN,
+    this.customNote,
+    this.deliveryAddress,
     this.isQuotation = false,
   });
 
@@ -111,11 +115,31 @@ class _InvoicePageState extends State<InvoicePage> {
   String? businessEmail;
   String? businessLogoUrl;
 
-  // Receipt customization settings
+  // Header Info Settings
+  String _receiptHeader = 'INVOICE';
   bool _showLogo = true;
   bool _showEmail = false;
   bool _showPhone = true;
-  bool _showGST = true;
+  bool _showGST = false;
+
+  // Item Table Settings
+  bool _showCustomerDetails = true;
+  bool _showCustomerCreditDetails = false;
+  bool _showMeasuringUnit = true;
+  bool _showMRP = false;
+  bool _showPaymentMode = true;
+  bool _showTotalItems = true;
+  bool _showTotalQty = false;
+  bool _showSaveAmountMessage = true;
+  bool _showCustomNote = false;
+  bool _showDeliveryAddress = false;
+
+  // Invoice Footer Settings
+  String _footerDescription = 'Thank you for your business!';
+  String? _footerImageUrl;
+
+  // Quotation Footer Settings
+  String _quotationFooterDescription = 'Thank You';
 
   // Template selection
   InvoiceTemplate _selectedTemplate = InvoiceTemplate.classic;
@@ -176,10 +200,31 @@ class _InvoicePageState extends State<InvoicePage> {
     try {
       final prefs = await SharedPreferences.getInstance();
       setState(() {
+        // Header Info
+        _receiptHeader = prefs.getString('receipt_header') ?? 'INVOICE';
         _showLogo = prefs.getBool('receipt_show_logo') ?? true;
         _showEmail = prefs.getBool('receipt_show_email') ?? false;
         _showPhone = prefs.getBool('receipt_show_phone') ?? true;
-        _showGST = prefs.getBool('receipt_show_gst') ?? true;
+        _showGST = prefs.getBool('receipt_show_gst') ?? false;
+
+        // Item Table
+        _showCustomerDetails = prefs.getBool('receipt_show_customer_details') ?? true;
+        _showCustomerCreditDetails = prefs.getBool('receipt_show_customer_credit') ?? false;
+        _showMeasuringUnit = prefs.getBool('receipt_show_measuring_unit') ?? true;
+        _showMRP = prefs.getBool('receipt_show_mrp') ?? false;
+        _showPaymentMode = prefs.getBool('receipt_show_payment_mode') ?? true;
+        _showTotalItems = prefs.getBool('receipt_show_total_items') ?? true;
+        _showTotalQty = prefs.getBool('receipt_show_total_qty') ?? false;
+        _showSaveAmountMessage = prefs.getBool('receipt_show_save_amount') ?? true;
+        _showCustomNote = prefs.getBool('receipt_show_custom_note') ?? false;
+        _showDeliveryAddress = prefs.getBool('receipt_show_delivery_address') ?? false;
+
+        // Invoice Footer
+        _footerDescription = prefs.getString('receipt_footer_description') ?? 'Thank you for your business!';
+        _footerImageUrl = prefs.getString('receipt_footer_image');
+
+        // Quotation Footer
+        _quotationFooterDescription = prefs.getString('quotation_footer_description') ?? 'Thank You';
       });
     } catch (e) {
       debugPrint('Error loading receipt settings: $e');
@@ -514,7 +559,21 @@ class _InvoicePageState extends State<InvoicePage> {
                 if (_showLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Image.network(businessLogoUrl!, height: 64, width: 64, fit: BoxFit.contain),
+                    child: Image.network(
+                      businessLogoUrl!,
+                      height: 64,
+                      width: 64,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 64,
+                        width: 64,
+                        decoration: BoxDecoration(
+                          color: colors['headerBg'],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.store_rounded, size: 32, color: colors['textSub']),
+                      ),
+                    ),
                   ),
                 Text(
                   businessName.toUpperCase(),
@@ -536,6 +595,9 @@ class _InvoicePageState extends State<InvoicePage> {
   }
 
   Widget _buildStandardBody(Map<String, Color> colors) {
+    // Use custom header or default
+    final headerText = widget.isQuotation ? 'QUOTATION' : _receiptHeader;
+
     return Column(
       children: [
         Padding(
@@ -543,12 +605,13 @@ class _InvoicePageState extends State<InvoicePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("${widget.isQuotation ? 'QUOTATION' : 'INVOICE'} #${widget.invoiceNumber}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: colors['text'])),
+              Text("$headerText #${widget.invoiceNumber}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: colors['text'])),
               Text(DateFormat('dd-MM-yyyy').format(widget.dateTime), style: TextStyle(fontSize: 11, color: colors['textSub'], fontWeight: FontWeight.w700)),
             ],
           ),
         ),
-        if (widget.customerName != null)
+        // Customer Details - controlled by _showCustomerDetails
+        if (_showCustomerDetails && widget.customerName != null)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.all(12),
@@ -556,11 +619,71 @@ class _InvoicePageState extends State<InvoicePage> {
               color: colors['headerBg'],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Bill To: ${widget.customerName}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: colors['text'])),
-                if (widget.customerPhone != null) Text(widget.customerPhone!, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w600)),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Bill To: ${widget.customerName}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: colors['text'])),
+                    if (widget.customerPhone != null) Text(widget.customerPhone!, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+                // Customer GSTIN if available
+                if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text("GSTIN: ${widget.customerGSTIN}", style: TextStyle(color: colors['textSub'], fontSize: 10, fontWeight: FontWeight.w600)),
+                  ),
+                // Customer Credit Details - controlled by _showCustomerCreditDetails
+                if (_showCustomerCreditDetails)
+                  FutureBuilder<double>(
+                    future: _getCustomerCredit(widget.customerPhone),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && snapshot.data! != 0) {
+                        final credit = snapshot.data!;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 6),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: credit > 0 ? kGoogleGreen.withValues(alpha: 0.1) : kErrorColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              credit > 0 ? "Credit Balance: Rs ${credit.toStringAsFixed(2)}" : "Due: Rs ${(-credit).toStringAsFixed(2)}",
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: credit > 0 ? kGoogleGreen : kErrorColor),
+                            ),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        // Delivery Address - controlled by _showDeliveryAddress
+        if (_showDeliveryAddress && widget.customerName != null)
+          Container(
+            margin: const EdgeInsets.only(left: 16, right: 16, top: 8),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colors['headerBg'],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: kGrey200),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.location_on_outlined, size: 16, color: colors['textSub']),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    "Delivery: ${widget.deliveryAddress ?? businessLocation}",
+                    style: TextStyle(fontSize: 10, color: colors['textSub'], fontWeight: FontWeight.w500),
+                  ),
+                ),
               ],
             ),
           ),
@@ -568,21 +691,81 @@ class _InvoicePageState extends State<InvoicePage> {
         _buildTableHeader(colors),
         _buildItemsList(colors),
         _buildSummary(colors),
+        // Custom Note section - controlled by _showCustomNote
+        if (_showCustomNote && widget.customNote != null && widget.customNote!.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colors['headerBg'],
+              borderRadius: BorderRadius.circular(8),
+              border: Border(left: BorderSide(color: colors['primary']!, width: 3)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.note_alt_outlined, size: 16, color: colors['primary']),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    widget.customNote!,
+                    style: TextStyle(fontSize: 11, color: colors['text'], fontWeight: FontWeight.w500, fontStyle: FontStyle.italic),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        // Footer with customizable description
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
           decoration: BoxDecoration(
             color: colors['headerBg'],
             border: Border(top: BorderSide(color: colors['primary']!, width: 1)),
           ),
-          child: Text(
-            "THANK YOU FOR YOUR BUSINESS",
-            textAlign: TextAlign.center,
-            style: TextStyle(color: colors['text'], fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0),
+          child: Column(
+            children: [
+              Text(
+                widget.isQuotation ? _quotationFooterDescription.toUpperCase() : _footerDescription.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colors['text'], fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0),
+              ),
+              // Footer Image if available (show for both invoice and quotation)
+              if (_footerImageUrl != null && _footerImageUrl!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Image.network(
+                    _footerImageUrl!,
+                    height: 50,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  // Get customer credit balance
+  Future<double> _getCustomerCredit(String? phone) async {
+    if (phone == null || phone.isEmpty || _storeId == null) return 0.0;
+    try {
+      final customerDoc = await FirebaseFirestore.instance
+          .collection('store')
+          .doc(_storeId)
+          .collection('customers')
+          .where('phone', isEqualTo: phone)
+          .limit(1)
+          .get();
+      if (customerDoc.docs.isNotEmpty) {
+        return (customerDoc.docs.first.data()['creditBalance'] ?? 0.0).toDouble();
+      }
+    } catch (e) {
+      debugPrint('Error fetching customer credit: $e');
+    }
+    return 0.0;
   }
 
   // Template 2: Modern Business Layout
@@ -615,29 +798,36 @@ class _InvoicePageState extends State<InvoicePage> {
                           const SizedBox(height: 4),
                           Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 11)),
                           if (_showPhone) Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          if (_showEmail && businessEmail != null) Text("Email: $businessEmail", style: const TextStyle(color: Colors.white70, fontSize: 11)),
                           if (_showGST && businessGSTIN != null) Text("GSTIN: $businessGSTIN", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
                         ],
                       ),
                     ),
-                    if (_showLogo && businessLogoUrl != null)
+                    if (_showLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                        child: Image.network(businessLogoUrl!, height: 48, width: 48, fit: BoxFit.contain),
+                        child: Image.network(
+                          businessLogoUrl!,
+                          height: 48,
+                          width: 48,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, size: 32, color: colors['primary']),
+                        ),
                       ),
                   ],
                 ),
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(widget.isQuotation ? "REF QUOTATION" : "TAX INVOICE", style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900)),
+                          Text(widget.isQuotation ? "REF QUOTATION" : _receiptHeader.toUpperCase(), style: const TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900)),
                           Text("#${widget.invoiceNumber}", style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w900)),
                         ],
                       ),
@@ -658,7 +848,7 @@ class _InvoicePageState extends State<InvoicePage> {
             padding: const EdgeInsets.symmetric(vertical: 20),
             child: Column(
               children: [
-                if (widget.customerName != null)
+                if (_showCustomerDetails && widget.customerName != null)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: Container(
@@ -712,6 +902,7 @@ class _InvoicePageState extends State<InvoicePage> {
                     Text(businessName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: colors['text'])),
                     Text(businessLocation, style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
                     if (_showPhone) Text("T: $businessPhone", style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
+                    if (_showEmail && businessEmail != null) Text("E: $businessEmail", style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
                     if (_showGST && businessGSTIN != null) Text("TX: $businessGSTIN", style: TextStyle(fontSize: 9, color: colors['text'], fontWeight: FontWeight.w900)),
                   ],
                 ),
@@ -729,7 +920,7 @@ class _InvoicePageState extends State<InvoicePage> {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Column(
               children: [
-                if (widget.customerName != null)
+                if (_showCustomerDetails && widget.customerName != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
                     child: Row(
@@ -764,12 +955,18 @@ class _InvoicePageState extends State<InvoicePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    if (_showLogo && businessLogoUrl != null)
-                      Image.network(businessLogoUrl!, height: 44, width: 44, color: Colors.white, fit: BoxFit.contain),
+                    if (_showLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty)
+                      Image.network(
+                        businessLogoUrl!,
+                        height: 44,
+                        width: 44,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) => const Icon(Icons.store_rounded, size: 32, color: Colors.white70),
+                      ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(widget.isQuotation ? "QUOTATION" : "TAX INVOICE", style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        Text(widget.isQuotation ? "QUOTATION" : _receiptHeader.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                         Text("#${widget.invoiceNumber}", style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)),
                       ],
                     ),
@@ -789,11 +986,13 @@ class _InvoicePageState extends State<InvoicePage> {
                           const SizedBox(height: 4),
                           Text(businessName, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
                           Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          if (_showPhone) Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          if (_showEmail && businessEmail != null) Text("Email: $businessEmail", style: const TextStyle(color: Colors.white70, fontSize: 10)),
                           if (_showGST && businessGSTIN != null) Text("GSTIN: $businessGSTIN", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
                         ],
                       ),
                     ),
-                    if (widget.customerName != null)
+                    if (_showCustomerDetails && widget.customerName != null)
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -848,13 +1047,16 @@ class _InvoicePageState extends State<InvoicePage> {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
         color: colors['headerBg'],
-        border: Border.symmetric(horizontal: BorderSide(color: colors['primary']!.withOpacity(0.2))),
+        border: Border.symmetric(horizontal: BorderSide(color: colors['primary']!.withValues(alpha: 0.2))),
       ),
       child: Row(
-        // Fix for const_eval_type_bool_num_string: removed 'const' keyword
         children: [
           Expanded(flex: 7, child: Text('PRODUCT', softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+          if (_showMeasuringUnit)
+            Expanded(flex: 2, child: Text('UNIT', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
           Expanded(flex: 3, child: Text('QTY', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+          if (_showMRP)
+            Expanded(flex: 3, child: Text('MRP', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
           Expanded(flex: 4, child: Text('RATE', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
           Expanded(flex: 3, child: Text('TAX %', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
           Expanded(flex: 5, child: Text('TAX AMT', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: const TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
@@ -875,6 +1077,8 @@ class _InvoicePageState extends State<InvoicePage> {
         final bool isLast = index == widget.items.length - 1;
         final double taxVal = (item['taxAmount'] ?? 0.0).toDouble();
         final int taxPerc = (item['taxPercentage'] ?? 0).toInt();
+        final String unit = item['unit'] ?? 'pcs';
+        final double mrp = (item['mrp'] ?? item['price'] ?? 0.0).toDouble();
 
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
@@ -885,7 +1089,11 @@ class _InvoicePageState extends State<InvoicePage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(flex: 7, child: Text(item['name'] ?? 'Unnamed', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis)),
+              if (_showMeasuringUnit)
+                Expanded(flex: 2, child: Text(unit, textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w600))),
               Expanded(flex: 3, child: Text('${item['quantity']}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700))),
+              if (_showMRP)
+                Expanded(flex: 3, child: Text(mrp.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700, decoration: TextDecoration.lineThrough))),
               Expanded(flex: 4, child: Text('${item['price'].toStringAsFixed(0)}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700))),
               Expanded(flex: 3, child: Text(taxPerc > 0 ? '$taxPerc%' : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700))),
               Expanded(flex: 5, child: Text(taxVal > 0 ? taxVal.toStringAsFixed(0) : '-', textAlign: TextAlign.center, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700))),
@@ -898,10 +1106,31 @@ class _InvoicePageState extends State<InvoicePage> {
   }
 
   Widget _buildSummary(Map<String, Color> colors) {
+    // Calculate total qty
+    int totalQty = 0;
+    double totalMRP = 0;
+    for (final item in widget.items) {
+      totalQty += (item['quantity'] ?? 1) as int;
+      if (_showMRP && item['mrp'] != null) {
+        totalMRP += (item['mrp'] as double) * (item['quantity'] as int);
+      }
+    }
+
+    // Calculate savings (MRP - actual total)
+    final savings = _showSaveAmountMessage && totalMRP > widget.total ? totalMRP - widget.total : 0.0;
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          // Total Items
+          if (_showTotalItems)
+            _summaryRow("Total Items", widget.items.length.toDouble(), colors, isCount: true),
+
+          // Total Qty
+          if (_showTotalQty)
+            _summaryRow("Total Qty", totalQty.toDouble(), colors, isCount: true),
+
           _summaryRow("Subtotal Gross", widget.subtotal, colors),
           if (widget.discount > 0) _summaryRow("Applied Discount", widget.discount, colors, isNegative: true),
           if (widget.taxes != null)
@@ -921,12 +1150,58 @@ class _InvoicePageState extends State<InvoicePage> {
               ),
             ],
           ),
+
+          // Payment Mode
+          if (_showPaymentMode)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("Payment Mode", style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: kGoogleGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      widget.paymentMode.toUpperCase(),
+                      style: const TextStyle(fontSize: 10, color: kGoogleGreen, fontWeight: FontWeight.w900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // Customer Save Amount Message
+          if (_showSaveAmountMessage && savings > 0)
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: kGoogleGreen.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kGoogleGreen.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.savings_rounded, color: kGoogleGreen, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    "You saved Rs ${savings.toStringAsFixed(0)} on this order!",
+                    style: const TextStyle(fontSize: 12, color: kGoogleGreen, fontWeight: FontWeight.w800),
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _summaryRow(String label, double amount, Map<String, Color> colors, {bool isNegative = false}) {
+  Widget _summaryRow(String label, double amount, Map<String, Color> colors, {bool isNegative = false, bool isCount = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -934,7 +1209,7 @@ class _InvoicePageState extends State<InvoicePage> {
         children: [
           Text(label, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
           Text(
-            "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}",
+            isCount ? amount.toInt().toString() : "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}",
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -948,26 +1223,28 @@ class _InvoicePageState extends State<InvoicePage> {
 
   // Bottom Action Bar
   Widget _buildBottomActionBar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      decoration: const BoxDecoration(
-        color: _bwBg,
-        border: Border(top: BorderSide(color: kGrey200, width: 1.5)),
-      ),
-      child: Row(
-        children: [
-          _buildBtn(Icons.print_rounded, "PRINT", () => _handlePrint(context), true),
-          const SizedBox(width: 12),
-          _buildBtn(Icons.share_rounded, "SHARE", () => _handleShare(context), true),
-          const SizedBox(width: 12),
-          _buildBtn(Icons.add_rounded, "NEW SALE", () {
-            Navigator.pushAndRemoveUntil(
-              context,
-              CupertinoPageRoute(builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail)),
-                  (route) => false,
-            );
-          }, false),
-        ],
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: const BoxDecoration(
+          color: _bwBg,
+          border: Border(top: BorderSide(color: kGrey200, width: 1.5)),
+        ),
+        child: Row(
+          children: [
+            _buildBtn(Icons.print_rounded, "PRINT", () => _handlePrint(context), true),
+            const SizedBox(width: 12),
+            _buildBtn(Icons.share_rounded, "SHARE", () => _handleShare(context), true),
+            const SizedBox(width: 12),
+            _buildBtn(Icons.add_rounded, "NEW SALE", () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                CupertinoPageRoute(builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail)),
+                    (route) => false,
+              );
+            }, false),
+          ],
+        ),
       ),
     );
   }

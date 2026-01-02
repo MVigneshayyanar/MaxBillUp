@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Admin/Home.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
+import 'package:maxbillup/services/in_app_update_service.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -25,6 +26,9 @@ class _SplashPageState extends State<SplashPage>
   void initState() {
     super.initState();
     debugPrint('Splash screen started at: ${DateTime.now()}');
+
+    // Check for in-app updates (Android only)
+    InAppUpdateService.checkForUpdate();
 
     // Removed automatic permission requests - will be requested lazily when needed
     // _requestBluetoothPermissions(); // Only request when user tries to use Bluetooth printer

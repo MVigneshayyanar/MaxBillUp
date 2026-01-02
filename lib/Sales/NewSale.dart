@@ -524,6 +524,34 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
     _maxCartHeight = screenHeight - topPadding - 175;
 
+    // Listen to CartService for changes (e.g., when cart is cleared from Bill page)
+    final cartService = Provider.of<CartService>(context);
+
+    // Sync local cart state with CartService
+    if (cartService.cartItems.isEmpty && _sharedCartItems != null) {
+      // Cart was cleared externally (e.g., from Bill page)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _sharedCartItems = null;
+            _selectedCustomerPhone = null;
+            _selectedCustomerName = null;
+            _selectedCustomerGST = null;
+            _loadedSavedOrderId = null;
+          });
+        }
+      });
+    } else if (cartService.cartItems.isNotEmpty && (_sharedCartItems == null || _sharedCartItems!.length != cartService.cartItems.length)) {
+      // Cart was updated externally, sync it
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _sharedCartItems = List<CartItem>.from(cartService.cartItems);
+          });
+        }
+      });
+    }
+
     // Calculate dynamic cart height based on search focus
     // 120px in search mode: enough for header(40px) + 1 item(40px) + footer(40px)
     final double dynamicCartHeight = _isSearchFocused ? 120 : _cartHeight;

@@ -602,17 +602,19 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
-            child: SizedBox(
-              width: double.infinity, height: 56,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _savePermissions,
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: _isSaving
-                    ? const CircularProgressIndicator(color: kWhite)
-                    : const Text('SAVE PERMISSIONS', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
+              child: SizedBox(
+                width: double.infinity, height: 56,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _savePermissions,
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: kWhite)
+                      : const Text('SAVE PERMISSIONS', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                ),
               ),
             ),
           ),

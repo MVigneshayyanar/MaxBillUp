@@ -326,7 +326,7 @@ class _LoginPageState extends State<LoginPage> {
           style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
       const SizedBox(height: 12),
       Image.asset(
-        'assets/logo.png',
+        'assets/max_my_bill_sq.png',
         width: 220,
         height: 50,
         fit: BoxFit.contain,

@@ -469,7 +469,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       decoration: const BoxDecoration(
         color: kWhite,
         border: Border(top: BorderSide(color: kGrey200, width: 1.5)),

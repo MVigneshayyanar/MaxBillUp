@@ -15,6 +15,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
+import 'package:maxbillup/services/cart_service.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:maxbillup/Stocks/Products.dart';
 
@@ -289,6 +290,22 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
+    // Listen to CartService for changes (e.g., when cart is cleared from Bill page)
+    final cartService = Provider.of<CartService>(context);
+
+    // Sync local cart state with CartService
+    if (cartService.cartItems.isEmpty && _cart.isNotEmpty) {
+      // Cart was cleared externally (e.g., from Bill page)
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _cart.clear();
+            widget.onCartChanged?.call(_cart);
+          });
+        }
+      });
+    }
+
     return PopScope(
       canPop: !_searchFocusNode.hasFocus,
       onPopInvokedWithResult: (didPop, result) {
@@ -315,10 +332,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   ],
                 ),
               ),
-              CommonWidgets.buildActionButtons(
-                context: context,
-                isQuotationMode: widget.isQuotationMode,
-                onSaveOrder: () {
+              // Only show action buttons when cart has items
+              if (_cart.isNotEmpty)
+                CommonWidgets.buildActionButtons(
+                  context: context,
+                  isQuotationMode: widget.isQuotationMode,
+                  onSaveOrder: () {
                   CommonWidgets.showSaveOrderDialog(
                     context: context,
                     uid: widget.uid,
@@ -480,7 +499,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     cat,
                     style: TextStyle(
                       color: isSelected ? kWhite : kBlack54,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       fontSize: 12,
                     ),
                   ),
@@ -719,9 +738,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           child: Text(
                             name,
                             style: TextStyle(
-                             fontWeight: FontWeight.bold,
+                             fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              height: 1.2,
+                              height: 1,
                               color: isExpired ? kErrorColor : kBlack87,
                             ),
                             maxLines: 3,
@@ -737,7 +756,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       children: [
                         Text(
                           category.toUpperCase(),
-                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5),
+                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5),
                         ),
                         const SizedBox(height: 2),
                         Row(
@@ -752,7 +771,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                     "${price.toStringAsFixed(0)}",
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 16,
+                                      fontSize: 13,
                                       color: isExpired ? kErrorColor : kPrimaryColor,
                                     ),
                                   ),

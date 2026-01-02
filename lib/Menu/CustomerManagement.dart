@@ -393,22 +393,24 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   }
 
   Widget _buildBottomActionArea(double balance, double totalSales) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
-      child: Row(children: [
-        Expanded(child: ElevatedButton(
-          onPressed: () => _showAddCreditModal(context, balance, totalSales),
-          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-          child: const Text("ADD CREDIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        )),
-        const SizedBox(width: 12),
-        Expanded(child: OutlinedButton(
-          onPressed: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => _ReceiveCreditPage(customerId: widget.customerId, customerData: widget.customerData, currentBalance: balance))),
-          style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: const Text("RECEIVE PAYMENT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        )),
-      ]),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
+        child: Row(children: [
+          Expanded(child: ElevatedButton(
+            onPressed: () => _showAddCreditModal(context, balance, totalSales),
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+            child: const Text("ADD CREDIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          )),
+          const SizedBox(width: 12),
+          Expanded(child: OutlinedButton(
+            onPressed: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => _ReceiveCreditPage(customerId: widget.customerId, customerData: widget.customerData, currentBalance: balance))),
+            style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: const Text("RECEIVE PAYMENT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          )),
+        ]),
+      ),
     );
   }
 }
@@ -573,13 +575,15 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
 
   Widget _buildClosingBar() {
     final bal = _entries.isNotEmpty ? _entries.first.balance : 0.0;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-      decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
-      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-        Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
-      ]),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+        decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+          Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+        ]),
+      ),
     );
   }
 }

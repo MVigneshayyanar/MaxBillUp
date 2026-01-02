@@ -422,7 +422,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         color: kWhite,
         border: Border(top: BorderSide(color: kGrey200, width: 1)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: SafeArea(
         child: Row(
           children: [

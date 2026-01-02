@@ -408,29 +408,31 @@ class _ProductsPageState extends State<ProductsPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Text(data['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
-            const SizedBox(height: 20),
-            _buildActionTile(Icons.edit_note_rounded, 'Edit Product Details', kPrimaryColor, () {
-              Navigator.pop(context);
-              Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail, productId: productDoc.id, existingData: data)));
-            }),
-            _buildActionTile(Icons.inventory_2_rounded, 'Quick Stock Update', kOrange, () {
-              Navigator.pop(context);
-              _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
-            }),
-            _buildActionTile(Icons.delete_forever_rounded, 'Remove Product', kErrorColor, () {
-              Navigator.pop(context);
-              _showDeleteConfirmDialog(context, productDoc);
-            }),
-          ],
+      builder: (context) => SafeArea(
+        child: Container(
+          decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 20),
+              Text(data['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
+              const SizedBox(height: 20),
+              _buildActionTile(Icons.edit_note_rounded, 'Edit Product Details', kPrimaryColor, () {
+                Navigator.pop(context);
+                Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail, productId: productDoc.id, existingData: data)));
+              }),
+              _buildActionTile(Icons.inventory_2_rounded, 'Quick Stock Update', kOrange, () {
+                Navigator.pop(context);
+                _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
+              }),
+              _buildActionTile(Icons.delete_forever_rounded, 'Remove Product', kErrorColor, () {
+                Navigator.pop(context);
+                _showDeleteConfirmDialog(context, productDoc);
+              }),
+            ],
+          ),
         ),
       ),
     );

@@ -616,23 +616,43 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       padding: const EdgeInsets.only(bottom: 16),
       child: AbsorbPointer(
         absorbing: !_editing,
-        child: GooglePlaceAutoCompleteTextField(
-          textEditingController: _locCtrl, focusNode: _locationFocusNode,
-          googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
-          inputDecoration: InputDecoration(
-            labelText: "Location", prefixIcon: const Icon(Icons.location_on_rounded, color: kPrimaryColor, size: 18),
-            filled: true, fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-            disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-            floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+        child: TextField(
+          controller: _locCtrl,
+          focusNode: _locationFocusNode,
+          decoration: InputDecoration(
+            labelText: "Location",
+            prefixIcon: const Icon(
+              Icons.location_on_rounded,
+              color: kPrimaryColor,
+              size: 18,
+            ),
+            filled: true,
+            fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kGrey200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: kPrimaryColor,
+                width: 1.5,
+              ),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kGrey200),
+            ),
+            floatingLabelStyle: const TextStyle(
+              color: kPrimaryColor,
+              fontWeight: FontWeight.w800,
+            ),
           ),
-          debounceTime: 600, countries: const ["in"], isLatLngRequired: false,
-          itemClick: (p) { _locCtrl.text = p.description ?? ''; FocusScope.of(context).unfocus(); },
         ),
       ),
     );
   }
+
 
   Widget _buildCurrencyField() {
     final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
@@ -773,34 +793,328 @@ class ReceiptCustomizationPage extends StatefulWidget {
 }
 
 class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
-  bool _showLogo = true, _showEmail = false, _showPhone = true, _showGST = true, _canUseLogo = false, _saving = false; int _selectedTemplateIndex = 0;
-  @override void initState() { super.initState(); _loadSettings(); _checkLogoPermission(); }
-  Future<void> _loadSettings() async { final prefs = await SharedPreferences.getInstance(); setState(() { _showLogo = prefs.getBool('receipt_show_logo') ?? true; _showEmail = prefs.getBool('receipt_show_email') ?? false; _showPhone = prefs.getBool('receipt_show_phone') ?? true; _showGST = prefs.getBool('receipt_show_gst') ?? true; _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0; }); }
-  Future<void> _saveSettings() async { setState(() => _saving = true); final prefs = await SharedPreferences.getInstance(); await prefs.setBool('receipt_show_logo', _showLogo); await prefs.setBool('receipt_show_email', _showEmail); await prefs.setBool('receipt_show_phone', _showPhone); await prefs.setBool('receipt_show_gst', _showGST); await prefs.setInt('invoice_template', _selectedTemplateIndex); setState(() => _saving = false); widget.onBack(); }
-  Future<void> _checkLogoPermission() async { final can = await PlanPermissionHelper.canUseLogoOnBill(); if (mounted) setState(() => _canUseLogo = can); }
+  bool _saving = false;
+  bool _canUseLogo = false;
+  int _selectedTemplateIndex = 0;
 
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Invoice Style", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [
-    _buildSectionLabel("TEMPLATE STYLE"),
-    _buildTemplateGrid(),
-    const SizedBox(height: 24),
-    _buildSectionLabel("VISIBILITY TOGGLES"),
-    _SettingsGroup(children: [
-      _SwitchTile("Show Business Logo", _showLogo, (v) { if(!_canUseLogo) { PlanPermissionHelper.showUpgradeDialog(context, 'Logo'); return; } setState(() => _showLogo = v); }, subtitle: _canUseLogo ? null : "Requires Premium Plan"),
-      _SwitchTile("Show Contact Email", _showEmail, (v) => setState(() => _showEmail = v)),
-      _SwitchTile("Show Contact Phone", _showPhone, (v) => setState(() => _showPhone = v)),
-      _SwitchTile("Show Tax Number (GST)", _showGST, (v) => setState(() => _showGST = v), showDivider: false)
-    ]),
-    const SizedBox(height: 32),
-    _PrimaryButton(text: _saving ? "SAVING..." : "APPLY CHANGES", onTap: _saveSettings)
-  ]));
+  // Expandable sections
+  bool _headerExpanded = true;
+  bool _itemTableExpanded = false;
+  bool _invoiceFooterExpanded = false;
+  bool _quotationFooterExpanded = false;
+
+  // Header Info Settings
+  final _receiptHeaderCtrl = TextEditingController(text: 'INVOICE');
+  bool _showLogo = true;
+  bool _showEmail = false;
+  bool _showPhone = true;
+  bool _showGST = false;
+
+  // Item Table Settings
+  bool _showCustomerDetails = true;
+  bool _showCustomerCreditDetails = false;
+  bool _showMeasuringUnit = true;
+  bool _showMRP = false;
+  bool _showPaymentMode = true;
+  bool _showTotalItems = true;
+  bool _showTotalQty = false;
+  bool _showSaveAmountMessage = true;
+  bool _showCustomNote = false;
+  bool _showDeliveryAddress = false;
+
+  // Invoice Footer Settings
+  final _footerDescriptionCtrl = TextEditingController(text: 'Thank you for your business!');
+  String? _footerImageUrl;
+  File? _selectedFooterImage;
+
+  // Quotation Footer Settings
+  final _quotationDescriptionCtrl = TextEditingController(text: 'Thank You');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+    _checkLogoPermission();
+  }
+
+  @override
+  void dispose() {
+    _receiptHeaderCtrl.dispose();
+    _footerDescriptionCtrl.dispose();
+    _quotationDescriptionCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Template
+      _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0;
+
+      // Header Info
+      _receiptHeaderCtrl.text = prefs.getString('receipt_header') ?? 'INVOICE';
+      _showLogo = prefs.getBool('receipt_show_logo') ?? true;
+      _showEmail = prefs.getBool('receipt_show_email') ?? false;
+      _showPhone = prefs.getBool('receipt_show_phone') ?? true;
+      _showGST = prefs.getBool('receipt_show_gst') ?? false;
+
+      // Item Table
+      _showCustomerDetails = prefs.getBool('receipt_show_customer_details') ?? true;
+      _showCustomerCreditDetails = prefs.getBool('receipt_show_customer_credit') ?? false;
+      _showMeasuringUnit = prefs.getBool('receipt_show_measuring_unit') ?? true;
+      _showMRP = prefs.getBool('receipt_show_mrp') ?? false;
+      _showPaymentMode = prefs.getBool('receipt_show_payment_mode') ?? true;
+      _showTotalItems = prefs.getBool('receipt_show_total_items') ?? true;
+      _showTotalQty = prefs.getBool('receipt_show_total_qty') ?? false;
+      _showSaveAmountMessage = prefs.getBool('receipt_show_save_amount') ?? true;
+      _showCustomNote = prefs.getBool('receipt_show_custom_note') ?? false;
+      _showDeliveryAddress = prefs.getBool('receipt_show_delivery_address') ?? false;
+
+      // Invoice Footer
+      _footerDescriptionCtrl.text = prefs.getString('receipt_footer_description') ?? 'Thank you for your business!';
+      _footerImageUrl = prefs.getString('receipt_footer_image');
+
+      // Quotation Footer
+      _quotationDescriptionCtrl.text = prefs.getString('quotation_footer_description') ?? 'Thank You';
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    setState(() => _saving = true);
+    final prefs = await SharedPreferences.getInstance();
+
+    // Template
+    await prefs.setInt('invoice_template', _selectedTemplateIndex);
+
+    // Header Info
+    await prefs.setString('receipt_header', _receiptHeaderCtrl.text);
+    await prefs.setBool('receipt_show_logo', _showLogo);
+    await prefs.setBool('receipt_show_email', _showEmail);
+    await prefs.setBool('receipt_show_phone', _showPhone);
+    await prefs.setBool('receipt_show_gst', _showGST);
+
+    // Item Table
+    await prefs.setBool('receipt_show_customer_details', _showCustomerDetails);
+    await prefs.setBool('receipt_show_customer_credit', _showCustomerCreditDetails);
+    await prefs.setBool('receipt_show_measuring_unit', _showMeasuringUnit);
+    await prefs.setBool('receipt_show_mrp', _showMRP);
+    await prefs.setBool('receipt_show_payment_mode', _showPaymentMode);
+    await prefs.setBool('receipt_show_total_items', _showTotalItems);
+    await prefs.setBool('receipt_show_total_qty', _showTotalQty);
+    await prefs.setBool('receipt_show_save_amount', _showSaveAmountMessage);
+    await prefs.setBool('receipt_show_custom_note', _showCustomNote);
+    await prefs.setBool('receipt_show_delivery_address', _showDeliveryAddress);
+
+    // Invoice Footer
+    await prefs.setString('receipt_footer_description', _footerDescriptionCtrl.text);
+    if (_footerImageUrl != null) {
+      await prefs.setString('receipt_footer_image', _footerImageUrl!);
+    }
+
+    // Quotation Footer
+    await prefs.setString('quotation_footer_description', _quotationDescriptionCtrl.text);
+
+    // Also save to Firestore for sync across devices
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId != null) {
+        await FirebaseFirestore.instance.collection('store').doc(storeId).update({
+          'invoiceSettings': {
+            'template': _selectedTemplateIndex,
+            'header': _receiptHeaderCtrl.text,
+            'showLogo': _showLogo,
+            'showEmail': _showEmail,
+            'showPhone': _showPhone,
+            'showGST': _showGST,
+            'showCustomerDetails': _showCustomerDetails,
+            'showCustomerCredit': _showCustomerCreditDetails,
+            'showMeasuringUnit': _showMeasuringUnit,
+            'showMRP': _showMRP,
+            'showPaymentMode': _showPaymentMode,
+            'showTotalItems': _showTotalItems,
+            'showTotalQty': _showTotalQty,
+            'showSaveAmount': _showSaveAmountMessage,
+            'showCustomNote': _showCustomNote,
+            'showDeliveryAddress': _showDeliveryAddress,
+            'footerDescription': _footerDescriptionCtrl.text,
+            'footerImageUrl': _footerImageUrl,
+            'quotationFooter': _quotationDescriptionCtrl.text,
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error saving to Firestore: $e');
+    }
+
+    setState(() => _saving = false);
+    widget.onBack();
+  }
+
+  Future<void> _checkLogoPermission() async {
+    final can = await PlanPermissionHelper.canUseLogoOnBill();
+    if (mounted) setState(() => _canUseLogo = can);
+  }
+
+  Future<void> _pickFooterImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (pickedFile != null) {
+      setState(() => _selectedFooterImage = File(pickedFile.path));
+      // Upload to Firebase Storage
+      try {
+        final storeId = await FirestoreService().getCurrentStoreId();
+        if (storeId != null) {
+          final storageRef = FirebaseStorage.instance.ref().child('invoice_footers').child('$storeId.jpg');
+          final uploadTask = await storageRef.putFile(_selectedFooterImage!);
+          final downloadUrl = await uploadTask.ref.getDownloadURL();
+          setState(() => _footerImageUrl = downloadUrl);
+        }
+      } catch (e) {
+        debugPrint('Error uploading footer image: $e');
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        title: const Text("Thermal Printer", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: kPrimaryColor,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Template Style Section
+                _buildSectionLabel("TEMPLATE STYLE"),
+                _buildTemplateGrid(),
+                const SizedBox(height: 20),
+
+                // Header Info Section
+                _buildExpandableSection(
+                  title: "Header Info",
+                  isExpanded: _headerExpanded,
+                  onTap: () => setState(() => _headerExpanded = !_headerExpanded),
+                  children: [
+                    _buildTextField(_receiptHeaderCtrl, "Receipt Header"),
+                    const SizedBox(height: 16),
+                    _buildToggleRow("Company Logo", _showLogo, (v) {
+                      if (!_canUseLogo) {
+                        PlanPermissionHelper.showUpgradeDialog(context, 'Logo');
+                        return;
+                      }
+                      setState(() => _showLogo = v);
+                    }),
+                    _buildToggleRow("Email", _showEmail, (v) => setState(() => _showEmail = v)),
+                    _buildToggleRow("Phone Number", _showPhone, (v) => setState(() => _showPhone = v)),
+                    _buildToggleRow("GST Number", _showGST, (v) => setState(() => _showGST = v)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Item Table Section
+                _buildExpandableSection(
+                  title: "Item Table",
+                  isExpanded: _itemTableExpanded,
+                  onTap: () => setState(() => _itemTableExpanded = !_itemTableExpanded),
+                  children: [
+                    _buildToggleRow("Customer Details", _showCustomerDetails, (v) => setState(() => _showCustomerDetails = v)),
+                    _buildToggleRow("Customer credit details", _showCustomerCreditDetails, (v) => setState(() => _showCustomerCreditDetails = v)),
+                    _buildToggleRow("Measuring Unit", _showMeasuringUnit, (v) => setState(() => _showMeasuringUnit = v)),
+                    _buildToggleRow("MRP", _showMRP, (v) => setState(() => _showMRP = v)),
+                    _buildToggleRow("Payment Mode", _showPaymentMode, (v) => setState(() => _showPaymentMode = v)),
+                    _buildToggleRow("Total items", _showTotalItems, (v) => setState(() => _showTotalItems = v)),
+                    _buildToggleRow("Total Qty", _showTotalQty, (v) => setState(() => _showTotalQty = v)),
+                    _buildToggleRow("Customer save amount message", _showSaveAmountMessage, (v) => setState(() => _showSaveAmountMessage = v)),
+                    _buildToggleRow("Custom Note", _showCustomNote, (v) => setState(() => _showCustomNote = v)),
+                    _buildToggleRow("Delivery Address", _showDeliveryAddress, (v) => setState(() => _showDeliveryAddress = v)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Invoice Footer Section
+                _buildExpandableSection(
+                  title: "Invoice footer",
+                  isExpanded: _invoiceFooterExpanded,
+                  onTap: () => setState(() => _invoiceFooterExpanded = !_invoiceFooterExpanded),
+                  children: [
+                    const Text("Footer Description :", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+                    const SizedBox(height: 8),
+                    _buildMultilineTextField(_footerDescriptionCtrl, "bill description"),
+                    const SizedBox(height: 16),
+                    const Text("Footer Image :", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+                    const SizedBox(height: 8),
+                    _buildImagePicker(),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Quotation Footer Section
+                _buildExpandableSection(
+                  title: "Quotation footer setup",
+                  isExpanded: _quotationFooterExpanded,
+                  onTap: () => setState(() => _quotationFooterExpanded = !_quotationFooterExpanded),
+                  children: [
+                    const Text("Quotation Description", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack54)),
+                    const SizedBox(height: 8),
+                    _buildMultilineTextField(_quotationDescriptionCtrl, "Thank You"),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+          // Update Button
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kWhite,
+                border: Border(top: BorderSide(color: kGrey200)),
+              ),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _saveSettings,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _saving ? kGrey400 : kPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    _saving ? "Saving..." : "Update",
+                    style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String text) => Padding(
+    padding: const EdgeInsets.only(bottom: 12, left: 4),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+  );
 
   Widget _buildTemplateGrid() {
     return Column(children: [
-      _templateTile(0, "Classic Professional", "Standard business layout", Icons.article_rounded, kBlack87),
-      const SizedBox(height: 12),
-      _templateTile(1, "Modern Dynamic", "Clean with blue accents", Icons.receipt_long_rounded, kPrimaryColor),
-      const SizedBox(height: 12),
-      _templateTile(2, "Compact Receipt", "Optimized for minimal space", Icons.description_rounded, Colors.blueGrey),
+      _templateTile(0, "Classic Professional", "Black & White professional layout", Icons.article_rounded, kBlack87),
+      const SizedBox(height: 10),
+      _templateTile(1, "Modern Blue", "Clean modern design with blue accents", Icons.receipt_long_rounded, const Color(0xFF2F7CF6)),
+      const SizedBox(height: 10),
+      _templateTile(2, "Minimal Gray", "Minimalist clean design with gray tones", Icons.description_rounded, const Color(0xFF37474F)),
+      const SizedBox(height: 10),
+      _templateTile(3, "Colorful Creative", "Vibrant purple & orange accents", Icons.palette_rounded, const Color(0xFF6A1B9A)),
     ]);
   }
 
@@ -810,14 +1124,185 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       onTap: () => setState(() => _selectedTemplateIndex = idx),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: sel ? kPrimaryColor : kGrey200, width: sel ? 2 : 1)),
-        child: Row(children: [Icon(icon, color: sel ? kPrimaryColor : kBlack54, size: 24), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: sel ? kPrimaryColor : kBlack87)), Text(desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500))])), if (sel) const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 20)]),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? color : kGrey200, width: sel ? 2 : 1),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: sel ? color.withValues(alpha: 0.1) : kGreyBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: sel ? color : kBlack54, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: sel ? color : kBlack87)),
+                  const SizedBox(height: 2),
+                  Text(desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            if (sel)
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                child: const Icon(Icons.check, color: kWhite, size: 14),
+              ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)));
+  Widget _buildExpandableSection({
+    required String title,
+    required bool isExpanded,
+    required VoidCallback onTap,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
+                  Icon(
+                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                    color: kPrimaryColor,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded) ...[
+            const Divider(height: 1, color: kGrey200),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w500),
+        filled: true,
+        fillColor: kWhite,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kGrey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMultilineTextField(TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      maxLines: 4,
+      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: kGrey400, fontWeight: FontWeight.w400),
+        filled: true,
+        fillColor: kWhite,
+        contentPadding: const EdgeInsets.all(16),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kGrey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleRow(String title, bool value, Function(bool) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: kBlack87)),
+          ),
+          CupertinoSwitch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: kGoogleGreen,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return Center(
+      child: GestureDetector(
+        onTap: _pickFooterImage,
+        child: Container(
+          width: 120,
+          height: 100,
+          decoration: BoxDecoration(
+            color: kGreyBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kGrey200, width: 1.5),
+          ),
+          child: _footerImageUrl != null || _selectedFooterImage != null
+              ? ClipRRect(
+                  borderRadius: BorderRadius.circular(11),
+                  child: _selectedFooterImage != null
+                      ? Image.file(_selectedFooterImage!, fit: BoxFit.cover)
+                      : Image.network(_footerImageUrl!, fit: BoxFit.cover),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_photo_alternate_outlined, size: 32, color: kGrey400),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+        ),
+      ),
+    );
+  }
 }
 
 class LanguagePage extends StatelessWidget {

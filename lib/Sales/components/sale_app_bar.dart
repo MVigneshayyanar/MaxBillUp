@@ -101,10 +101,10 @@ class SaleAppBar extends StatelessWidget {
                   Row(
                     children: [
                       if (!hideSavedTab) ...[
-                        _buildTab(context.tr('saved').toUpperCase(), 0),
+                        _buildTab(context.tr('saved'), 0),
                       ],
-                      _buildTab(context.tr('View All').toUpperCase(), 1),
-                      _buildTab(context.tr('Quick Bill').toUpperCase(), 2),
+                      _buildTab(context.tr('View All'), 1),
+                      _buildTab(context.tr('Quick Bill'), 2),
                     ],
                   ),
                 ],
@@ -134,8 +134,8 @@ class SaleAppBar extends StatelessWidget {
                 text,
                 style: TextStyle(
                   color: isSelected ? kWhite : kBlack54,
-                  fontSize: 11,
-                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
                   letterSpacing: 0.5,
                 ),
               ),

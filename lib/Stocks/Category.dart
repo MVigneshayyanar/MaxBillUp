@@ -701,7 +701,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             elevation: 0,
             centerTitle: true,
             iconTheme: const IconThemeData(color: kWhite),
-            leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+            leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
           ),
           floatingActionButton: showAddButton
               ? FloatingActionButton.extended(

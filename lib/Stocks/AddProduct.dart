@@ -705,18 +705,20 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildBottomSaveButton() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _saveProduct,
-          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: _isLoading
-              ? const CircularProgressIndicator(color: kWhite)
-              : Text(context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+        decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _saveProduct,
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: _isLoading
+                ? const CircularProgressIndicator(color: kWhite)
+                : Text(context.tr(widget.productId != null ? 'update' : 'add').toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          ),
         ),
       ),
     );

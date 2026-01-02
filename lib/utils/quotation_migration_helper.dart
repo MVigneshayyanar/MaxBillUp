@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Utility to migrate old quotations that have status='settled' or 'billed'
 /// but are missing the billed=true field

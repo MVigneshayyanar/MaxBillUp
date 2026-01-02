@@ -267,15 +267,17 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
   }
 
   Widget _buildBottomAction() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-      decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
-      child: SizedBox(
-        width: double.infinity, height: 56,
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _handleInvite,
-          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-          child: const Text("SEND INVITATION", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+        decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))),
+        child: SizedBox(
+          width: double.infinity, height: 56,
+          child: ElevatedButton(
+            onPressed: _isLoading ? null : _handleInvite,
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            child: const Text("SEND INVITATION", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          ),
         ),
       ),
     );

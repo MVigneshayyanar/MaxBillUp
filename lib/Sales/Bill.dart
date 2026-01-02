@@ -3,19 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 
 // --- PROJECT IMPORTS ---
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:maxbillup/models/sale.dart';
-import 'package:maxbillup/services/sale_sync_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 
@@ -67,6 +64,7 @@ class _BillPageState extends State<BillPage> {
   double _totalCreditNotesAmount = 0.0;
   String? _existingInvoiceNumber;
   String? _unsettledSaleId;
+  final TextEditingController _notesController = TextEditingController();
 
   // Fast-Fetch Variables
   String _businessName = 'Business';
@@ -91,11 +89,8 @@ class _BillPageState extends State<BillPage> {
     _initFastFetch();
   }
 
-  /// FAST FETCH: Load from cache instantly and listen for updates
   void _initFastFetch() {
     final fs = FirestoreService();
-
-    // 1. Immediate Cache Retrieval
     fs.getCurrentStoreDoc().then((doc) {
       if (doc != null && doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>;
@@ -106,17 +101,11 @@ class _BillPageState extends State<BillPage> {
         });
       }
     });
-
-    // 2. Staff Cache Fetch
-    FirebaseFirestore.instance.collection('users').doc(_uid).get(
-        const GetOptions(source: Source.cache)
-    ).then((doc) {
+    FirebaseFirestore.instance.collection('users').doc(_uid).get(const GetOptions(source: Source.cache)).then((doc) {
       if (doc.exists && mounted) {
         setState(() => _staffName = doc.data()?['name'] ?? 'Staff');
       }
     });
-
-    // 3. Reactive Sync Listener
     _storeSub = fs.storeDataStream.listen((data) {
       if (mounted) {
         setState(() {
@@ -131,6 +120,7 @@ class _BillPageState extends State<BillPage> {
   @override
   void dispose() {
     _storeSub?.cancel();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -145,31 +135,18 @@ class _BillPageState extends State<BillPage> {
     });
   }
 
-  double get _subtotal {
-    return widget.cartItems.fold(0.0, (sum, item) {
-      if (item.taxType == 'Price includes Tax') {
-        return sum + (item.basePrice * item.quantity);
-      } else {
-        return sum + item.total;
-      }
-    });
-  }
-
-  double get _totalTax => widget.cartItems.fold(0.0, (sum, item) => sum + item.taxAmount);
-  double get _totalWithTax => widget.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
-
-  double get _finalAmount {
-    final amountAfterDiscount = _totalWithTax - _discountAmount;
-    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
-    return (amountAfterDiscount - creditToApply).clamp(0.0, double.infinity);
-  }
-
-  double get _actualCreditUsed {
-    final amountAfterDiscount = _totalWithTax - _discountAmount;
-    return _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
-  }
-
   void _proceedToPayment(String paymentMode) {
+    // Get current cart items from CartService
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    // Calculate final values
+    final totalWithTax = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+    final amountAfterDiscount = totalWithTax - _discountAmount;
+    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+    final finalAmount = (amountAfterDiscount - creditToApply).clamp(0.0, double.infinity);
+    final actualCreditUsed = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+
     Navigator.push(
       context,
       CupertinoPageRoute(
@@ -177,8 +154,8 @@ class _BillPageState extends State<BillPage> {
             ? SplitPaymentPage(
           uid: _uid,
           userEmail: widget.userEmail,
-          cartItems: widget.cartItems,
-          totalAmount: _finalAmount,
+          cartItems: cartItems,
+          totalAmount: finalAmount,
           customerPhone: _selectedCustomerPhone,
           customerName: _selectedCustomerName,
           customerGST: _selectedCustomerGST,
@@ -193,12 +170,13 @@ class _BillPageState extends State<BillPage> {
           businessLocation: _businessLocation,
           businessPhone: _businessPhone,
           staffName: _staffName,
+          actualCreditUsed: actualCreditUsed,
         )
             : PaymentPage(
           uid: _uid,
           userEmail: widget.userEmail,
-          cartItems: widget.cartItems,
-          totalAmount: _finalAmount,
+          cartItems: cartItems,
+          totalAmount: finalAmount,
           paymentMode: paymentMode,
           customerPhone: _selectedCustomerPhone,
           customerName: _selectedCustomerName,
@@ -214,6 +192,7 @@ class _BillPageState extends State<BillPage> {
           businessLocation: _businessLocation,
           businessPhone: _businessPhone,
           staffName: _staffName,
+          actualCreditUsed: actualCreditUsed,
         ),
       ),
     );
@@ -240,7 +219,14 @@ class _BillPageState extends State<BillPage> {
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+                    onPressed: () {
+                      // Clear the cart using CartService
+                      final cartService = Provider.of<CartService>(context, listen: false);
+                      cartService.clearCart();
+
+                      Navigator.pop(context); // Close dialog
+                      Navigator.pop(context); // Go back to previous screen
+                    },
                     child: const Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
                   ),
                 ),
@@ -252,6 +238,231 @@ class _BillPageState extends State<BillPage> {
     ));
   }
 
+  void _showEditCartItemDialog(int idx) async {
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    if (idx < 0 || idx >= cartItems.length) return;
+
+    final item = cartItems[idx];
+    final nameController = TextEditingController(text: item.name);
+    final priceController = TextEditingController(text: item.price.toString());
+    final qtyController = TextEditingController(text: item.quantity.toString());
+
+    await showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.grey),
+                  onPressed: () => Navigator.of(context).pop(),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDialogLabel('Product Name'),
+                  _buildDialogInput(nameController, 'Enter product name', setDialogState),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDialogLabel('Price'),
+                            _buildDialogInput(priceController, '0.00', setDialogState, isNumber: true),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildDialogLabel('Quantity'),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: kGreyBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: kGrey200),
+                              ),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    onPressed: () {
+                                      int current = int.tryParse(qtyController.text) ?? 1;
+                                      if (current > 1) {
+                                        setDialogState(() => qtyController.text = (current - 1).toString());
+                                      } else {
+                                        Navigator.of(context).pop();
+                                        _removeCartItem(idx);
+                                      }
+                                    },
+                                    icon: Icon(
+                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline : Icons.remove,
+                                      color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: qtyController,
+                                      keyboardType: TextInputType.number,
+                                      textAlign: TextAlign.center,
+                                      onChanged: (v) => setDialogState(() {}),
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      int current = int.tryParse(qtyController.text) ?? 0;
+                                      setDialogState(() => qtyController.text = (current + 1).toString());
+                                    },
+                                    icon: const Icon(Icons.add, color: kPrimaryColor, size: 20),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+            actions: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _removeCartItem(idx);
+                    },
+                    icon: const Icon(Icons.delete_outline, color: kErrorColor, size: 18),
+                    label: const Text('Remove', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      final newName = nameController.text.trim();
+                      final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
+                      final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+
+                      if (newQty <= 0) {
+                        Navigator.of(context).pop();
+                        _removeCartItem(idx);
+                      } else {
+                        _updateCartItem(idx, newName, newPrice, newQty);
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                    child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ],
+          );
+        });
+      },
+    );
+  }
+
+  Widget _buildDialogLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack54)),
+    );
+  }
+
+  Widget _buildDialogInput(TextEditingController controller, String hint, StateSetter setDialogState, {bool isNumber = false}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+        onChanged: (v) => setDialogState(() {}),
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  void _updateCartItem(int idx, String newName, double newPrice, int newQty) {
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    if (idx < 0 || idx >= cartItems.length) return;
+
+    final item = cartItems[idx];
+    final updatedItem = CartItem(
+      productId: item.productId,
+      name: newName,
+      price: newPrice,
+      quantity: newQty,
+      taxName: item.taxName,
+      taxPercentage: item.taxPercentage,
+      taxType: item.taxType,
+    );
+
+    // Update in CartService - Provider will notify listeneautomatically
+    final updatedItems = List<CartItem>.from(cartItems);
+    updatedItems[idx] = updatedItem;
+    cartService.updateCart(updatedItems);
+  }
+
+  void _removeCartItem(int idx) {
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    if (idx < 0 || idx >= cartItems.length) return;
+
+    // Update in CartService - Provider will notify listeneautomatically
+    final updatedItems = List<CartItem>.from(cartItems);
+    updatedItems.removeAt(idx);
+    cartService.updateCart(updatedItems);
+
+    // If cart is empty, go back to NewSale
+    if (updatedItems.isEmpty) {
+      Navigator.pop(context);
+    }
+  }
+
   void _showCustomerDialog() {
     showDialog(context: context, builder: (context) => _CustomerSelectionDialog(uid: _uid, onCustomerSelected: (phone, name, gst) {
       setState(() { _selectedCustomerPhone = phone; _selectedCustomerName = name; _selectedCustomerGST = gst; });
@@ -259,7 +470,11 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _showDiscountDialog() {
-    final double billTotal = _totalWithTax;
+    // Get current cart items from CartService
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+    final double billTotal = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
     final TextEditingController cashController = TextEditingController(text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(2) : '');
     final double initialPerc = billTotal > 0 ? (_discountAmount / billTotal) * 100 : 0.0;
     final TextEditingController percController = TextEditingController(text: initialPerc > 0 ? initialPerc.toStringAsFixed(1) : '');
@@ -375,7 +590,7 @@ class _BillPageState extends State<BillPage> {
                                 child: CheckboxListTile(
                                   activeColor: kPrimaryColor,
                                   title: Text(data['creditNoteNumber'] ?? 'CN-N/A', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                                  subtitle: Text('Valued at Rs ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+                                  subtitle: Text('Valued at ${(data['amount'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
                                   value: isSelected,
                                   onChanged: (val) {
                                     setDialogState(() {
@@ -428,6 +643,10 @@ class _BillPageState extends State<BillPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get cart items from CartService for real-time updates
+    final cartService = Provider.of<CartService>(context);
+    final cartItems = cartService.cartItems;
+
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
@@ -435,33 +654,24 @@ class _BillPageState extends State<BillPage> {
         elevation: 0,
         centerTitle: true,
         title: Text(context.tr('Bill Summary').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
         actions: [IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: kWhite, size: 22), onPressed: _clearOrder)],
       ),
       body: Column(
         children: [
           _buildCustomerSection(),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildTableHeader(),
-          ),
           Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: kWhite,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: kGrey200),
-              ),
-              child: ListView.builder(
-                padding: EdgeInsets.zero,
-                itemCount: widget.cartItems.length,
-                itemBuilder: (ctx, i) => _buildItemRow(widget.cartItems[i], isLast: i == widget.cartItems.length - 1),
-              ),
+            child: ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: cartItems.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+              itemBuilder: (ctx, i) => _buildItemRow(cartItems[i], i),
             ),
           ),
-          _buildBottomPanel(),
+          SafeArea(
+            top: false,
+            child: _buildBottomPanel(cartItems),
+          ),
         ],
       ),
     );
@@ -472,13 +682,13 @@ class _BillPageState extends State<BillPage> {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Reduced height
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: _showCustomerDialog,
         borderRadius: BorderRadius.circular(16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10), // Reduced internal padding
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
             color: hasCustomer ? kPrimaryColor.withOpacity(0.08) : kWhite,
             borderRadius: BorderRadius.circular(16),
@@ -487,7 +697,7 @@ class _BillPageState extends State<BillPage> {
           child: Row(
             children: [
               Container(
-                width: 38, height: 38, // Compact circle
+                width: 38, height: 38,
                 decoration: BoxDecoration(color: hasCustomer ? kPrimaryColor : kOrange.withOpacity(0.15), shape: BoxShape.circle),
                 child: Icon(hasCustomer ? Icons.person_rounded : Icons.person_add_rounded, color: hasCustomer ? kWhite : kOrange, size: 20),
               ),
@@ -496,7 +706,7 @@ class _BillPageState extends State<BillPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(hasCustomer ? _selectedCustomerName! : 'Assign Customer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: hasCustomer ? kBlack87 : kOrange)),
+                    Text(hasCustomer ? _selectedCustomerName! : 'Assign Customer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: hasCustomer ? kBlack87 : kOrange)),
                     if (hasCustomer) Text(_selectedCustomerPhone ?? '', style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -520,51 +730,75 @@ class _BillPageState extends State<BillPage> {
     );
   }
 
-  Widget _buildTableHeader() {
+  Widget _buildItemRow(CartItem item, int idx) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: kGreyBg,
+        color: kWhite,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
-      ),
-      child: const Row(
-        children: [
-          Expanded(flex: 7, child: Text('PRODUCT', softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-          Expanded(flex: 3, child: Text('QTY', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-          Expanded(flex: 4, child: Text('RATE', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-          Expanded(flex: 3, child: Text('TAX %', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-          Expanded(flex: 5, child: Text('TAX AMT', textAlign: TextAlign.center, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-          Expanded(flex: 6, child: Text('TOTAL', textAlign: TextAlign.right, softWrap: false, overflow: TextOverflow.visible, style: TextStyle(fontSize: 8.5, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildItemRow(CartItem item, {bool isLast = false}) {
-    final double taxVal = item.taxAmount;
-    final int taxPerc = (item.taxPercentage ?? 0).toInt();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      decoration: BoxDecoration(
-        border: isLast ? null : const Border(bottom: BorderSide(color: kGrey100)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Expanded(flex: 7, child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 3, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700))),
-          Expanded(flex: 4, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700))),
-          Expanded(flex: 3, child: Text(taxPerc > 0 ? '$taxPerc%' : '0', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700))),
-          Expanded(flex: 5, child: Text(taxVal > 0 ? taxVal.toStringAsFixed(0) : '0', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700))),
-          Expanded(flex: 6, child: Text((item.totalWithTax).toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
+            child: Text('${item.quantity}x', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis),
+                Row(
+                  children: [
+                    Text('@ ${item.price.toStringAsFixed(0)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
+                    if (item.taxAmount > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '+${item.taxAmount.toStringAsFixed(2)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
+                        style: const TextStyle(
+                          color: kBlack54,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text('${item.totalWithTax.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => _showEditCartItemDialog(idx),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.edit, color: kPrimaryColor, size: 18),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomPanel() {
+  Widget _buildBottomPanel(List<CartItem> cartItems) {
+    // Calculate values from current cart items
+    final totalWithTax = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+    final amountAfterDiscount = totalWithTax - _discountAmount;
+    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+    final finalAmount = (amountAfterDiscount - creditToApply).clamp(0.0, double.infinity);
+    final actualCreditUsed = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+    final bool hasCustomer = _selectedCustomerPhone != null;
+
     return Container(
       decoration: const BoxDecoration(
         color: kWhite,
@@ -577,23 +811,57 @@ class _BillPageState extends State<BillPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                _buildSummaryRow('Subtotal (Gross)', _subtotal.toStringAsFixed(2)),
-                if (_totalTax > 0) _buildSummaryRow('Total Net Tax', _totalTax.toStringAsFixed(2)),
-                _buildSummaryRow('Applied Discount', '- ${_discountAmount.toStringAsFixed(2)}', color: kGoogleGreen, isClickable: true, onTap: _showDiscountDialog),
-                if (_selectedCreditNotes.isNotEmpty)
-                  _buildSummaryRow('Credit Deduction', '- ${_actualCreditUsed.toStringAsFixed(2)}', color: kOrange, isClickable: true, onTap: _showCreditNotesDialog),
+                // Notes Input Field
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: kGreyBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kGrey200),
+                  ),
+                  child: TextField(
+                    controller: _notesController,
+                    maxLines: 2,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: 'Add notes / description...',
+                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
+                      prefixIcon: const Icon(Icons.note_alt_outlined, color: kBlack54, size: 20),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
 
-                const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider(height: 1, color: kGrey100)),
+                // Applied Discount Row
+                _buildSummaryRow('Total', '${totalWithTax.toStringAsFixed(2)}'),
+                _buildSummaryRow('Discount', '- ${_discountAmount.toStringAsFixed(2)}', color: kGoogleGreen, isClickable: true, onTap: _showDiscountDialog),
 
+                // Apply Credit Note Row (only if customer is selected)
+                if (hasCustomer)
+                  _buildSummaryRow(
+                    'Credit',
+                    '- ${actualCreditUsed.toStringAsFixed(2)}',
+                    color: kOrange,
+                    isClickable: true,
+                    onTap: _showCreditNotesDialog,
+                  ),
+
+                const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(height: 1, color: kGrey100)),
+
+                // Total Net Payable
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Net Payable', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kBlack54)),
-                    Text('Rs ${_finalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    const Text('Total Net', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+                    Text('${finalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                   ],
                 ),
                 const SizedBox(height: 12),
 
+                // Payment Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -615,7 +883,7 @@ class _BillPageState extends State<BillPage> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -623,12 +891,13 @@ class _BillPageState extends State<BillPage> {
               Text(label, style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)),
               if (isClickable) Padding(padding: const EdgeInsets.only(left: 6), child: Icon(Icons.edit_note_rounded, size: 16, color: color ?? kPrimaryColor)),
             ]),
-            Text('Rs $value', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color ?? kBlack87)),
+            Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color ?? kBlack87)),
           ],
         ),
       ),
     );
   }
+
 
   Widget _buildPayIcon(IconData icon, String label, VoidCallback onTap) {
     return Column(
@@ -643,7 +912,7 @@ class _BillPageState extends State<BillPage> {
             child: Icon(icon, color: kPrimaryColor, size: 24),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
       ],
     );
@@ -863,7 +1132,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                             leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), child: Text(data['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900))),
                             title: Text(data['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                             subtitle: Text(data['phone'], style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
-                            trailing: Text('Rs ${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
+                            trailing: Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
                           );
                         },
                       );
@@ -897,8 +1166,9 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 class PaymentPage extends StatefulWidget {
   final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
+  final double actualCreditUsed;
 
-  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName});
+  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<PaymentPage> createState() => _PaymentPageState();
 }
 
@@ -940,7 +1210,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
-        'subtotal': widget.totalAmount + widget.discountAmount, 'discount': widget.discountAmount, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
+        'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
@@ -948,7 +1218,7 @@ class _PaymentPageState extends State<PaymentPage> {
       if (widget.unsettledSaleId != null) await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
       else { await FirestoreService().addDocument('sales', baseSaleData); await _updateProductStock(); }
       if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes);
+      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed);
       if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
         await FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
       }
@@ -959,32 +1229,60 @@ class _PaymentPageState extends State<PaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived, customerName: widget.customerName, customerPhone: widget.customerPhone)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived, customerName: widget.customerName, customerPhone: widget.customerPhone)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async { final customerRef = await FirestoreService().getDocumentReference('customers', phone); await FirebaseFirestore.instance.runTransaction((transaction) async { final customerDoc = await transaction.get(customerRef); if (customerDoc.exists) { final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0; transaction.update(customerRef, {'balance': currentBalance + amount, 'lastUpdated': FieldValue.serverTimestamp()}); } }); }
   Future<void> _updateProductStock() async { final localStockService = context.read<LocalStockService>(); for (var cartItem in widget.cartItems) { if (cartItem.productId.startsWith('qs_')) continue; final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId); await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))}); await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity); } }
-  Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes) async { for (var creditNote in selectedCreditNotes) { await FirestoreService().updateDocument('creditNotes', creditNote['id'], {'status': 'Used', 'usedInInvoice': invoiceNumber, 'usedAt': FieldValue.serverTimestamp()}); } }
+
+  /// Restores partial usage: deducts amount required from credit note(s).
+  Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes, double amountToDeduct) async {
+    double remainingToDeduct = amountToDeduct;
+    for (var creditNote in selectedCreditNotes) {
+      if (remainingToDeduct <= 0) break;
+      final double noteAmount = (creditNote['amount'] as double);
+
+      if (noteAmount <= remainingToDeduct) {
+        // Fully used
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
+          'status': 'Used',
+          'usedInInvoice': invoiceNumber,
+          'usedAt': FieldValue.serverTimestamp(),
+          'amount': 0.0
+        });
+        remainingToDeduct -= noteAmount;
+      } else {
+        // Partially used: Keep remaining balance
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
+          'amount': noteAmount - remainingToDeduct,
+          'lastPartialUseAt': FieldValue.serverTimestamp(),
+          'lastPartialInvoice': invoiceNumber
+        });
+        remainingToDeduct = 0;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     bool canPay = widget.paymentMode == 'Credit' || _cashReceived >= widget.totalAmount - 0.01;
-    return Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 20), onPressed: () => Navigator.pop(context))), body: Column(children: [Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))), child: Column(children: [Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)), Text('Rs ${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)), const SizedBox(height: 24), Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: kGrey200, width: 2)), child: Column(children: [const Text('RECEIVED AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)), const SizedBox(height: 8), Text(_displayController.text, style: TextStyle(fontSize: 48, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kPrimaryColor, letterSpacing: -1))])), const SizedBox(height: 16), if (widget.paymentMode != 'Credit') Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('CHANGE: ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)), Text('Rs ${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _change >= 0 ? kGoogleGreen : kGoogleRed))])])), const Spacer(), Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 32), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))), child: Column(children: [_buildKeyPad(), const SizedBox(height: 24), SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: canPay ? _completeSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0), child: const Text('COMPLETE SALE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite, letterSpacing: 1))))]))]));
+    return Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context))), body: Column(children: [Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))), child: Column(children: [Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)), Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)), const SizedBox(height: 24), Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: kGrey200, width: 2)), child: Column(children: [const Text('RECEIVED AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)), const SizedBox(height: 8), Text(_displayController.text, style: TextStyle(fontSize: 48, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kPrimaryColor, letterSpacing: -1))])), const SizedBox(height: 16), if (widget.paymentMode != 'Credit') Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('CHANGE: ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)), Text('${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _change >= 0 ? kGoogleGreen : kGoogleRed))])])), const Spacer(), SafeArea(top: false, child: Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 12), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))), child: Column(children: [_buildKeyPad(), const SizedBox(height: 24), SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: canPay ? _completeSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0), child: const Text('COMPLETE SALE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite, letterSpacing: 1))))])))]));
   }
   Widget _buildKeyPad() { final List<String> keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back']; return GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 1.8), itemCount: keys.length, itemBuilder: (ctx, i) => _buildKey(keys[i])); }
   Widget _buildKey(String key) { return Material(color: kGreyBg, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => _onKeyTap(key), borderRadius: BorderRadius.circular(14), child: Center(child: key == 'back' ? const Icon(Icons.backspace_rounded, color: kBlack87, size: 22) : Text(key, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87))))); }
 }
 
 // ==========================================
-// 4. SPLIT PAYMENT PAGE (RESTORED LOGIC)
+// 4. SPLIT PAYMENT PAGE
 // ==========================================
 class SplitPaymentPage extends StatefulWidget {
   final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
+  final double actualCreditUsed;
 
-  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName});
+  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<SplitPaymentPage> createState() => _SplitPaymentPageState();
 }
 
@@ -1022,7 +1320,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total}).toList(),
-        'subtotal': widget.totalAmount + widget.discountAmount, 'discount': widget.discountAmount, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
+        'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': 'Split', 'cashReceived': _totalPaid - _creditAmount, 'cashReceived_split': _cashAmount, 'onlineReceived_split': _onlineAmount, 'creditIssued_split': _creditAmount, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
@@ -1036,7 +1334,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       }
 
       if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes);
+      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed);
       if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
         await FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
       }
@@ -1047,14 +1345,37 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount, customerName: widget.customerName, customerPhone: widget.customerPhone)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount, customerName: widget.customerName, customerPhone: widget.customerPhone)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async { final customerRef = await FirestoreService().getDocumentReference('customers', phone); await FirebaseFirestore.instance.runTransaction((transaction) async { final customerDoc = await transaction.get(customerRef); if (customerDoc.exists) { final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0; transaction.update(customerRef, {'balance': currentBalance + amount, 'lastUpdated': FieldValue.serverTimestamp()}); } }); }
   Future<void> _updateProductStock() async { final localStockService = context.read<LocalStockService>(); for (var cartItem in widget.cartItems) { if (cartItem.productId.startsWith('qs_')) continue; final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId); await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))}); await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity); } }
-  Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes) async { for (var creditNote in selectedCreditNotes) { await FirestoreService().updateDocument('creditNotes', creditNote['id'], {'status': 'Used', 'usedInInvoice': invoiceNumber, 'usedAt': FieldValue.serverTimestamp()}); } }
+
+  Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes, double amountToDeduct) async {
+    double remainingToDeduct = amountToDeduct;
+    for (var creditNote in selectedCreditNotes) {
+      if (remainingToDeduct <= 0) break;
+      final double noteAmount = (creditNote['amount'] as double);
+      if (noteAmount <= remainingToDeduct) {
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
+          'status': 'Used',
+          'usedInInvoice': invoiceNumber,
+          'usedAt': FieldValue.serverTimestamp(),
+          'amount': 0.0
+        });
+        remainingToDeduct -= noteAmount;
+      } else {
+        await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
+          'amount': noteAmount - remainingToDeduct,
+          'lastPartialUseAt': FieldValue.serverTimestamp(),
+          'lastPartialInvoice': invoiceNumber
+        });
+        remainingToDeduct = 0;
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1068,11 +1389,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           children: [
             Container(
               width: double.infinity, padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(20)),
+              decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))]),
               child: Column(children: [
                 const Text('TOTAL BILL AMOUNT', style: TextStyle(color: kWhite, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1)),
                 const SizedBox(height: 8),
-                Text('Rs ${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w600)),
+                Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w600)),
               ]),
             ),
             const SizedBox(height: 24),
@@ -1087,15 +1408,17 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 const Text('Remaining Due', style: TextStyle(fontWeight: FontWeight.w600)),
-                Text('Rs ${_dueAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kGoogleRed)),
+                Text('${_dueAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kGoogleRed)),
               ]),
             ),
           ],
         ),
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20),
-        child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('SETTLE BILL', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)))),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('SETTLE BILL', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)))),
+        ),
       ),
     );
   }
@@ -1113,7 +1436,3 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     );
   }
 }
-
-// ==========================================
-// 5. CUSTOMER SELECTION DIALOG (INTERNAL)
-// ==========================================

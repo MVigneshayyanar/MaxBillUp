@@ -66,6 +66,7 @@ dependencies:
   firebase_core: ^3.14.0
   firebase_storage: ^12.4.7
   image_cropper: ^11.0.0
+  in_app_update: ^4.2.5
 
 dev_dependencies:
   flutter_test:
@@ -118,16 +119,7 @@ flutter:
 
   # Application assets
   assets:
-    - assets/logo.png
     - assets/google.png
-    - assets/app_logo.jpg
-    - assets/cm.png
-    - assets/sm.png
-    - assets/e.png
-    - assets/cd.png
-    - assets/cn.png
-    - assets/bh.png
-    - assets/q.png
     - assets/Max_my_bill.png
     - assets/Splash_Screen.png
     - assets/max_my_bill_sq.png

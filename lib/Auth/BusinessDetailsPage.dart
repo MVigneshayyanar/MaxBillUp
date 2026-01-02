@@ -271,7 +271,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 children: [
                   _buildLocationField(),
                   _buildModernField(
-                    "TRN / GST Number",
+                    "TRN / Number",
                     _gstinCtrl,
                     Icons.receipt_long_rounded,
                     hint: "e.g. 100XXXXXXXXXXXX",
@@ -355,31 +355,44 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildLocationField() {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: GooglePlaceAutoCompleteTextField(
-        textEditingController: _businessLocationCtrl,
+      child: TextField(
+        controller: _businessLocationCtrl,
         focusNode: _businessLocationFocusNode,
-        googleAPIKey: "AIzaSyDXD9dhKhD6C8uB4ua9Nl04beav6qbtb3c",
-        inputDecoration: InputDecoration(
+        decoration: InputDecoration(
           labelText: "Business Address",
           hintText: "Enter full business address",
-          hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
-          prefixIcon: const Icon(Icons.location_on_rounded, color: kPrimaryColor, size: 18),
+          hintStyle: const TextStyle(
+            color: kBlack54,
+            fontSize: 13,
+            fontWeight: FontWeight.normal,
+          ),
+          prefixIcon: const Icon(
+            Icons.location_on_rounded,
+            color: kPrimaryColor,
+            size: 18,
+          ),
           filled: true,
           fillColor: kWhite,
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
-          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kGrey200),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
+              color: kPrimaryColor,
+              width: 2.0,
+            ),
+          ),
+          floatingLabelStyle: const TextStyle(
+            color: kPrimaryColor,
+            fontWeight: FontWeight.w900,
+          ),
         ),
-        debounceTime: 600,
-        countries: const ["in", "ae"],
-        isLatLngRequired: false,
-        itemClick: (p) {
-          _businessLocationCtrl.text = p.description ?? '';
-          FocusScope.of(context).unfocus();
-        },
       ),
     );
   }
+
 
   Widget _buildCurrencyField({bool isMandatory = false}) {
     final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
@@ -463,27 +476,29 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   Widget _buildBottomActionArea() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-      decoration: const BoxDecoration(
-        color: kWhite,
-        border: Border(top: BorderSide(color: kGrey200)),
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: ElevatedButton(
-          onPressed: _loading ? null : _saveBusinessDetails,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          child: _loading
-              ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kWhite))
-              : Text(
-            "COMPLETE REGISTRATION",
-            style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        decoration: const BoxDecoration(
+          color: kWhite,
+          border: Border(top: BorderSide(color: kGrey200)),
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _loading ? null : _saveBusinessDetails,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: _loading
+                ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kWhite))
+                : Text(
+              "COMPLETE REGISTRATION",
+              style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+            ),
           ),
         ),
       ),
