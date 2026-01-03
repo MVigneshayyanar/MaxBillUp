@@ -279,7 +279,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            "Rs ${price.toStringAsFixed(2)}",
+                            "${price.toStringAsFixed(2)}",
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kPrimaryColor),
                           ),
                           Text(

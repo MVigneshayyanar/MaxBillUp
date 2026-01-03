@@ -230,7 +230,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                       children: [
                         const Text('ESTIMATED TOTAL', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         const SizedBox(height: 2),
-                        Text('Rs ${total.toStringAsFixed(2)}',
+                        Text('${total.toStringAsFixed(2)}',
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),

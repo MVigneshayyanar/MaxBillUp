@@ -497,7 +497,7 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 24),
                 _buildPopupTextField(
                     controller: cashController,
-                    label: 'Discount in Rs',
+                    label: 'Discount in Amount',
                     hint: '0.00',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) {

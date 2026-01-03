@@ -379,7 +379,7 @@ class CommonWidgets {
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Text('Rs ${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
+                                      Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
                                       const Text('BALANCE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54)),
                                     ],
                                   ),

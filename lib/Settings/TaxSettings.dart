@@ -242,7 +242,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                             child: Row(children: [
                               Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: const Icon(Icons.shopping_bag_outlined, color: kBlack54, size: 20)),
                               const SizedBox(width: 14),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), Text('Price: Rs ${p['price'] ?? 0}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600))])),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), Text('Price:${p['price'] ?? 0}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600))])),
                             ]),
                           );
                         },

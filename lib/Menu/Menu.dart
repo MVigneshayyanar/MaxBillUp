@@ -2073,7 +2073,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       child: Text(data['customerName'] ?? 'Guest',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
                     ),
-                    Text("Rs ${amount.toStringAsFixed(2)}",
+                    Text("${amount.toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                   ],
                 ),
@@ -2193,7 +2193,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('TOTAL CREDIT VALUE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
-                      Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
                     const SizedBox(height: 24),
                     const Text('RETURNED ITEMS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
@@ -2221,7 +2221,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
 
   Widget _buildDetailRow(IconData icon, String label, String value) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(icon, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 
-  Widget _buildItemTile(Map<String, dynamic> i) => Container(padding: const EdgeInsets.symmetric(vertical: 8), decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(i['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87)), Text("${i['quantity']} × Rs ${(i['price'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(color: kBlack54, fontSize: 11))])), Text("Rs ${((i['price'] ?? 0) * (i['quantity'] ?? 1)).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))]));
+  Widget _buildItemTile(Map<String, dynamic> i) => Container(padding: const EdgeInsets.symmetric(vertical: 8), decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(i['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87)), Text("${i['quantity']} ×${(i['price'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(color: kBlack54, fontSize: 11))])), Text("${((i['price'] ?? 0) * (i['quantity'] ?? 1)).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))]));
 }
 
 class LedgerEntry {
@@ -2326,7 +2326,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-          Text("Rs ${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+          Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
         ]),
       ),
     );
@@ -2356,7 +2356,7 @@ class CustomerBillsPage extends StatelessWidget {
                 child: ListTile(
                   title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
                   subtitle: Text(DateFormat('dd-MM-yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                  trailing: Text("Rs ${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
+                  trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
                 ),
               );
             },
@@ -2393,7 +2393,7 @@ class CustomerCreditsPage extends StatelessWidget {
                   leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
                   title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
                   subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text("Rs ${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
+                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
                 ),
               );
             },
@@ -2448,7 +2448,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
             controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
-            decoration: InputDecoration(prefixText: "Rs ", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
+            decoration: InputDecoration(prefixText: "", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
           ),
           const Spacer(),
           SafeArea(
@@ -2466,8 +2466,9 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
               child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
             )),
           ),
-        ]),
+        ],
       ),
+      )
     );
   }
 }
@@ -2936,7 +2937,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
               const SizedBox(height: 4),
-              Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+              Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
             ],
           ),
           Container(
@@ -2997,7 +2998,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('BALANCE DUE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('Rs ${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("SETTLE", kGoogleGreen),
@@ -3063,7 +3064,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('PENDING AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("RECORD", kGoogleGreen),
@@ -3109,7 +3110,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('DUE AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
-                    Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -3162,7 +3163,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('TOTAL DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                      Text('Rs ${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text('${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                     ],
                   ),
                 ),

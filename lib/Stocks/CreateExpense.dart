@@ -193,7 +193,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                                 Text(vendor['phone'] ?? ''),
                                 if (hasStats)
                                   Text(
-                                    '$purchaseCount bills • ₹${totalPurchases.toStringAsFixed(0)} total',
+                                    '$purchaseCount bills • ${totalPurchases.toStringAsFixed(0)} total',
                                     style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                                   ),
                               ],
@@ -678,7 +678,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         ],
                       ),
                       Text(
-                        '₹${_creditAmount.toStringAsFixed(2)}',
+                        '${_creditAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 18,
                          fontWeight: FontWeight.bold,

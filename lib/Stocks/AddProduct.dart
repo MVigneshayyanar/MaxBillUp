@@ -788,6 +788,19 @@ class _AddProductPageState extends State<AddProductPage> {
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
+
+    // Get tax name and percentage from the selected tax
+    String? taxName;
+    double? taxPercentage;
+    if (_selectedTaxId != null && _fetchedTaxes.isNotEmpty) {
+      final selectedTax = _fetchedTaxes.firstWhere(
+        (t) => t['id'] == _selectedTaxId,
+        orElse: () => {},
+      );
+      taxName = selectedTax['name'];
+      taxPercentage = selectedTax['percentage'];
+    }
+
     final pData = {
       'itemName': _itemNameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
@@ -804,6 +817,8 @@ class _AddProductPageState extends State<AddProductPage> {
       'stockUnit': _selectedStockUnit ?? 'Piece',
       'taxId': _selectedTaxId,
       'taxType': _selectedTaxType,
+      'taxName': taxName ?? 'GST',
+      'taxPercentage': taxPercentage ?? 0.0,
       'location': _locationController.text.trim(),
       'expiryDate': _selectedExpiryDate?.toIso8601String(),
       'isFavorite': _isFavorite,

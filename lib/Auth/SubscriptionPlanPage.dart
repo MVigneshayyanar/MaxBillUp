@@ -309,7 +309,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    monthlyPrice == 0 ? "Free" : "₹$monthlyPrice",
+                    monthlyPrice == 0 ? "Free" : "$monthlyPrice",
                     style: TextStyle(
                       color: isSelected ? kWhite.withOpacity(0.8) : kBlack54,
                       fontWeight: FontWeight.w700,
@@ -484,7 +484,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 children: [
                   const Text("TOTAL PAYABLE", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                   const SizedBox(height: 2),
-                  Text("₹$price", style: const TextStyle(color: kPrimaryColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                  Text("$price", style: const TextStyle(color: kPrimaryColor, fontSize: 24, fontWeight: FontWeight.w900)),
                 ],
               ),
             ),

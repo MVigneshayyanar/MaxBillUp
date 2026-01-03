@@ -212,7 +212,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                       child: Text(data['supplierName'] ?? 'Unknown Supplier',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
-                    Text("Rs ${amount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                    Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                   ],
                 ),
                 const Divider(height: 24, color: kGrey100),
@@ -414,7 +414,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                               Text('Credit Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                             ],
                           ),
-                          Text('₹${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
+                          Text('${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                         ],
                       ),
                     ),
@@ -549,14 +549,14 @@ class StockPurchaseDetailsPage extends StatelessWidget {
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('TOTAL PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
-                      Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text('${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
 
                     if (purchaseData['taxAmount'] != null) ...[
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         const Text('Includes Tax (EST)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
-                        Text('Rs ${purchaseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
+                        Text('${purchaseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
                       ]),
                     ],
                   ],

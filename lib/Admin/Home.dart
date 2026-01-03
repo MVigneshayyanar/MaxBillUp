@@ -447,7 +447,7 @@ class StoreDetailPage extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Text('PREVIEW REVENUE', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
                   const SizedBox(height: 4),
-                  const Text('Rs 0.00', style: TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
+                  const Text('0.00', style: TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
                 ],
               ),
             ),

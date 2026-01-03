@@ -37,7 +37,6 @@ const Color _headerBg = Color(0xFFF5F5F5);
 // Template Colors - Modern (Blue)
 const Color _modernPrimary = Color(0xFF2F7CF6);
 const Color _modernBg = Colors.white;
-const Color _modernAccent = Color(0xFF1565C0);
 const Color _modernHeaderBg = Color(0xFFE3F2FD);
 
 // Template Colors - Minimal (Gray)
@@ -114,25 +113,25 @@ class _InvoicePageState extends State<InvoicePage> {
   String? businessGSTIN;
   String? businessEmail;
   String? businessLogoUrl;
+  String? businessLicenseNumber;
 
   // Header Info Settings
   String _receiptHeader = 'INVOICE';
   bool _showLogo = true;
-  bool _showEmail = false;
+  bool _showEmail = true;
   bool _showPhone = true;
-  bool _showGST = false;
+  bool _showGST = true;
+  bool _showLicenseNumber = false;
+  bool _showLocation = true;
 
   // Item Table Settings
   bool _showCustomerDetails = true;
-  bool _showCustomerCreditDetails = false;
   bool _showMeasuringUnit = true;
   bool _showMRP = false;
   bool _showPaymentMode = true;
   bool _showTotalItems = true;
   bool _showTotalQty = false;
   bool _showSaveAmountMessage = true;
-  bool _showCustomNote = false;
-  bool _showDeliveryAddress = false;
 
   // Invoice Footer Settings
   String _footerDescription = 'Thank you for your business!';
@@ -170,10 +169,13 @@ class _InvoicePageState extends State<InvoicePage> {
           businessLogoUrl = storeData['logoUrl'];
           businessName = storeData['businessName'] ?? businessName;
           businessPhone = storeData['businessPhone'] ?? businessPhone;
-          businessLocation = storeData['businessAddress'] ?? businessLocation;
+          businessLocation = storeData['businessLocation'] ?? businessLocation;
           businessGSTIN = storeData['gstin'];
-          businessEmail = storeData['email'];
+          // Email can be stored as 'email' or 'ownerEmail'
+          businessEmail = storeData['email'] ?? storeData['ownerEmail'];
+          businessLicenseNumber = storeData['licenseNumber'];
         });
+        debugPrint('Invoice: Store data updated via stream - logo=$businessLogoUrl, email=$businessEmail, gstin=$businessGSTIN');
       }
     });
   }
@@ -203,21 +205,20 @@ class _InvoicePageState extends State<InvoicePage> {
         // Header Info
         _receiptHeader = prefs.getString('receipt_header') ?? 'INVOICE';
         _showLogo = prefs.getBool('receipt_show_logo') ?? true;
-        _showEmail = prefs.getBool('receipt_show_email') ?? false;
+        _showEmail = prefs.getBool('receipt_show_email') ?? true;
         _showPhone = prefs.getBool('receipt_show_phone') ?? true;
-        _showGST = prefs.getBool('receipt_show_gst') ?? false;
+        _showGST = prefs.getBool('receipt_show_gst') ?? true;
+        _showLicenseNumber = prefs.getBool('receipt_show_license') ?? false;
+        _showLocation = prefs.getBool('receipt_show_location') ?? true;
 
         // Item Table
         _showCustomerDetails = prefs.getBool('receipt_show_customer_details') ?? true;
-        _showCustomerCreditDetails = prefs.getBool('receipt_show_customer_credit') ?? false;
         _showMeasuringUnit = prefs.getBool('receipt_show_measuring_unit') ?? true;
         _showMRP = prefs.getBool('receipt_show_mrp') ?? false;
         _showPaymentMode = prefs.getBool('receipt_show_payment_mode') ?? true;
         _showTotalItems = prefs.getBool('receipt_show_total_items') ?? true;
         _showTotalQty = prefs.getBool('receipt_show_total_qty') ?? false;
         _showSaveAmountMessage = prefs.getBool('receipt_show_save_amount') ?? true;
-        _showCustomNote = prefs.getBool('receipt_show_custom_note') ?? false;
-        _showDeliveryAddress = prefs.getBool('receipt_show_delivery_address') ?? false;
 
         // Invoice Footer
         _footerDescription = prefs.getString('receipt_footer_description') ?? 'Thank you for your business!';
@@ -233,35 +234,32 @@ class _InvoicePageState extends State<InvoicePage> {
 
   Future<void> _loadStoreData() async {
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
-      if (userDoc.exists) {
-        _storeId = userDoc.data()?['storeId'];
-        if (_storeId != null) {
-          final storeDoc = await FirebaseFirestore.instance.collection('store').doc(_storeId).get();
-          if (storeDoc.exists) {
-            final storeData = storeDoc.data()!;
-            setState(() {
-              businessName = storeData['businessName'] ?? widget.businessName;
-              businessPhone = storeData['businessPhone'] ?? widget.businessPhone;
-              businessLocation = storeData['businessAddress'] ?? widget.businessLocation;
-              businessGSTIN = storeData['gstin'] ?? widget.businessGSTIN;
-              businessEmail = storeData['email'];
-              businessLogoUrl = storeData['logoUrl'];
-              _isLoading = false;
-            });
-            return;
-          }
-        }
+      // Use the same method as Profile.dart - FirestoreService().getCurrentStoreDoc()
+      final store = await FirestoreService().getCurrentStoreDoc();
+      if (store != null && store.exists) {
+        final data = store.data() as Map<String, dynamic>;
+        _storeId = store.id;
+        setState(() {
+          businessName = data['businessName'] ?? widget.businessName;
+          businessPhone = data['businessPhone'] ?? widget.businessPhone;
+          businessLocation = data['businessLocation'] ?? widget.businessLocation;
+          businessGSTIN = data['gstin'] ?? widget.businessGSTIN;
+          // Email can be stored as 'email' or 'ownerEmail'
+          businessEmail = data['email'] ?? data['ownerEmail'];
+          businessLogoUrl = data['logoUrl'];
+          businessLicenseNumber = data['licenseNumber'];
+          _isLoading = false;
+        });
+        debugPrint('Invoice: Store data loaded - name=$businessName, logo=$businessLogoUrl, email=$businessEmail, gstin=$businessGSTIN, license=$businessLicenseNumber, location=$businessLocation');
+        return;
       }
       setState(() { _isLoading = false; });
     } catch (e) {
+      debugPrint('Error loading store data: $e');
       setState(() { _isLoading = false; });
     }
   }
 
-  String _formatDateTime(DateTime dt) {
-    return DateFormat('dd-MM-yyyy, h:mm a').format(dt);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -347,6 +345,16 @@ class _InvoicePageState extends State<InvoicePage> {
   }
 
   void _showInvoiceSettings() {
+    // Local state for expandable sections
+    bool headerExpanded = true;
+    bool itemTableExpanded = false;
+    bool footerExpanded = false;
+
+    // Text controllers for editable fields
+    final headerCtrl = TextEditingController(text: _receiptHeader);
+    final footerCtrl = TextEditingController(text: _footerDescription);
+    final quotationFooterCtrl = TextEditingController(text: _quotationFooterDescription);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -354,7 +362,7 @@ class _InvoicePageState extends State<InvoicePage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            height: MediaQuery.of(context).size.height * 0.8,
+            height: MediaQuery.of(context).size.height * 0.9,
             decoration: const BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -369,11 +377,11 @@ class _InvoicePageState extends State<InvoicePage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+                      const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 22),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
-                          'INVOICE THEMES',
+                          'RECEIPT CUSTOMIZATION',
                           style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                         ),
                       ),
@@ -386,36 +394,128 @@ class _InvoicePageState extends State<InvoicePage> {
                 ),
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     children: [
-                      _buildSectionLabel("Layout Templates"),
+                      // Template Selection Section
+                      _buildSectionLabel("TEMPLATE STYLE"),
                       ..._buildTemplateOptions(setModalState),
+                      const SizedBox(height: 20),
+
+                      // Header Info Section (Expandable)
+                      _buildExpandableSection(
+                        title: "Header Info",
+                        isExpanded: headerExpanded,
+                        onTap: () => setModalState(() => headerExpanded = !headerExpanded),
+                        setModalState: setModalState,
+                        children: [
+                          _buildTextFieldInModal(headerCtrl, "Receipt Header", (v) {
+                            setState(() => _receiptHeader = v);
+                          }),
+                          const SizedBox(height: 12),
+                          _buildSettingTile('Company Logo', _showLogo, (v) {
+                            setState(() => _showLogo = v);
+                            setModalState(() => _showLogo = v);
+                          }),
+                          _buildSettingTile('Location', _showLocation, (v) {
+                            setState(() => _showLocation = v);
+                            setModalState(() => _showLocation = v);
+                          }),
+                          _buildSettingTile('Email', _showEmail, (v) {
+                            setState(() => _showEmail = v);
+                            setModalState(() => _showEmail = v);
+                          }),
+                          _buildSettingTile('Phone Number', _showPhone, (v) {
+                            setState(() => _showPhone = v);
+                            setModalState(() => _showPhone = v);
+                          }),
+                          _buildSettingTile('GST Number', _showGST, (v) {
+                            setState(() => _showGST = v);
+                            setModalState(() => _showGST = v);
+                          }),
+                          _buildSettingTile('License Number', _showLicenseNumber, (v) {
+                            setState(() => _showLicenseNumber = v);
+                            setModalState(() => _showLicenseNumber = v);
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Item Table Section (Expandable)
+                      _buildExpandableSection(
+                        title: "Item Table",
+                        isExpanded: itemTableExpanded,
+                        onTap: () => setModalState(() => itemTableExpanded = !itemTableExpanded),
+                        setModalState: setModalState,
+                        children: [
+                          _buildSettingTile('Customer Details', _showCustomerDetails, (v) {
+                            setState(() => _showCustomerDetails = v);
+                            setModalState(() => _showCustomerDetails = v);
+                          }),
+                          _buildSettingTile('Measuring Unit', _showMeasuringUnit, (v) {
+                            setState(() => _showMeasuringUnit = v);
+                            setModalState(() => _showMeasuringUnit = v);
+                          }),
+                          _buildSettingTile('MRP', _showMRP, (v) {
+                            setState(() => _showMRP = v);
+                            setModalState(() => _showMRP = v);
+                          }),
+                          _buildSettingTile('Payment Mode', _showPaymentMode, (v) {
+                            setState(() => _showPaymentMode = v);
+                            setModalState(() => _showPaymentMode = v);
+                          }),
+                          _buildSettingTile('Total Items', _showTotalItems, (v) {
+                            setState(() => _showTotalItems = v);
+                            setModalState(() => _showTotalItems = v);
+                          }),
+                          _buildSettingTile('Total Qty', _showTotalQty, (v) {
+                            setState(() => _showTotalQty = v);
+                            setModalState(() => _showTotalQty = v);
+                          }),
+                          _buildSettingTile('Customer Save Amount', _showSaveAmountMessage, (v) {
+                            setState(() => _showSaveAmountMessage = v);
+                            setModalState(() => _showSaveAmountMessage = v);
+                          }),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Footer Section (Expandable)
+                      _buildExpandableSection(
+                        title: "Invoice Footer",
+                        isExpanded: footerExpanded,
+                        onTap: () => setModalState(() => footerExpanded = !footerExpanded),
+                        setModalState: setModalState,
+                        children: [
+                          const Text("Footer Description:", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
+                          const SizedBox(height: 8),
+                          _buildMultilineTextFieldInModal(footerCtrl, "Thank you for your business!", (v) {
+                            setState(() => _footerDescription = v);
+                          }),
+                          const SizedBox(height: 16),
+                          const Text("Quotation Footer:", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
+                          const SizedBox(height: 8),
+                          _buildMultilineTextFieldInModal(quotationFooterCtrl, "Thank You", (v) {
+                            setState(() => _quotationFooterDescription = v);
+                          }),
+                        ],
+                      ),
                       const SizedBox(height: 24),
-                      _buildSectionLabel("Data Visibility"),
-                      _buildSettingTile('Show Business Logo', _showLogo, (v) {
-                        setState(() => _showLogo = v);
-                        setModalState(() => _showLogo = v);
-                      }),
-                      _buildSettingTile('Show Email', _showEmail, (v) {
-                        setState(() => _showEmail = v);
-                        setModalState(() => _showEmail = v);
-                      }),
-                      _buildSettingTile('Show Phone', _showPhone, (v) {
-                        setState(() => _showPhone = v);
-                        setModalState(() => _showPhone = v);
-                      }),
-                      _buildSettingTile('Show Tax Number', _showGST, (v) {
-                        setState(() => _showGST = v);
-                        setModalState(() => _showGST = v);
-                      }),
-                      const SizedBox(height: 24),
+
+                      // Save Button
                       SizedBox(
                         width: double.infinity,
                         height: 54,
                         child: ElevatedButton(
                           onPressed: () async {
+                            // Update text values from controllers
+                            _receiptHeader = headerCtrl.text;
+                            _footerDescription = footerCtrl.text;
+                            _quotationFooterDescription = quotationFooterCtrl.text;
                             await _saveInvoiceSettings();
-                            if (mounted) Navigator.pop(context);
+                            if (mounted) {
+                              Navigator.pop(context);
+                              setState(() {}); // Refresh the invoice view
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _getTemplateColors(_selectedTemplate)['primary'],
@@ -425,6 +525,7 @@ class _InvoicePageState extends State<InvoicePage> {
                           child: const Text('SAVE PREFERENCES', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
@@ -432,6 +533,103 @@ class _InvoicePageState extends State<InvoicePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildExpandableSection({
+    required String title,
+    required bool isExpanded,
+    required VoidCallback onTap,
+    required StateSetter setModalState,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: onTap,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
+                  Icon(
+                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    color: _getTemplateColors(_selectedTemplate)['primary'],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isExpanded) ...[
+            const Divider(height: 1, color: kGrey200),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: children,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextFieldInModal(TextEditingController controller, String label, Function(String) onChanged) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w500),
+        filled: true,
+        fillColor: kGreyBg,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: kGrey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: _getTemplateColors(_selectedTemplate)['primary']!, width: 1.5),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMultilineTextFieldInModal(TextEditingController controller, String hint, Function(String) onChanged) {
+    return TextField(
+      controller: controller,
+      onChanged: onChanged,
+      maxLines: 3,
+      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: kGrey400, fontWeight: FontWeight.w400),
+        filled: true,
+        fillColor: kGreyBg,
+        contentPadding: const EdgeInsets.all(14),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: kGrey200),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: _getTemplateColors(_selectedTemplate)['primary']!, width: 1.5),
+        ),
       ),
     );
   }
@@ -508,15 +706,69 @@ class _InvoicePageState extends State<InvoicePage> {
   Future<void> _saveInvoiceSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Template
       await prefs.setInt('invoice_template', _selectedTemplate.index);
+
+      // Header Info
+      await prefs.setString('receipt_header', _receiptHeader);
       await prefs.setBool('receipt_show_logo', _showLogo);
       await prefs.setBool('receipt_show_email', _showEmail);
       await prefs.setBool('receipt_show_phone', _showPhone);
       await prefs.setBool('receipt_show_gst', _showGST);
+      await prefs.setBool('receipt_show_license', _showLicenseNumber);
+      await prefs.setBool('receipt_show_location', _showLocation);
+
+      // Item Table Settings
+      await prefs.setBool('receipt_show_customer_details', _showCustomerDetails);
+      await prefs.setBool('receipt_show_measuring_unit', _showMeasuringUnit);
+      await prefs.setBool('receipt_show_mrp', _showMRP);
+      await prefs.setBool('receipt_show_payment_mode', _showPaymentMode);
+      await prefs.setBool('receipt_show_total_items', _showTotalItems);
+      await prefs.setBool('receipt_show_total_qty', _showTotalQty);
+      await prefs.setBool('receipt_show_save_amount', _showSaveAmountMessage);
+
+      // Footer Settings
+      await prefs.setString('receipt_footer_description', _footerDescription);
+      await prefs.setString('quotation_footer_description', _quotationFooterDescription);
+      if (_footerImageUrl != null) {
+        await prefs.setString('receipt_footer_image', _footerImageUrl!);
+      }
+
+      // Also save to Firestore for sync across devices
+      try {
+        final storeId = await FirestoreService().getCurrentStoreId();
+        if (storeId != null) {
+          await FirebaseFirestore.instance.collection('store').doc(storeId).update({
+            'invoiceSettings': {
+              'template': _selectedTemplate.index,
+              'header': _receiptHeader,
+              'showLogo': _showLogo,
+              'showEmail': _showEmail,
+              'showPhone': _showPhone,
+              'showGST': _showGST,
+              'showLicense': _showLicenseNumber,
+              'showLocation': _showLocation,
+              'showCustomerDetails': _showCustomerDetails,
+              'showMeasuringUnit': _showMeasuringUnit,
+              'showMRP': _showMRP,
+              'showPaymentMode': _showPaymentMode,
+              'showTotalItems': _showTotalItems,
+              'showTotalQty': _showTotalQty,
+              'showSaveAmount': _showSaveAmountMessage,
+              'footerDescription': _footerDescription,
+              'footerImageUrl': _footerImageUrl,
+              'quotationFooter': _quotationFooterDescription,
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Error saving to Firestore: $e');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invoice style updated'), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating),
+          const SnackBar(content: Text('Receipt settings updated'), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating),
         );
       }
     } catch (e) {
@@ -556,35 +808,110 @@ class _InvoicePageState extends State<InvoicePage> {
             ),
             child: Column(
               children: [
-                if (_showLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty)
+                // Logo - show placeholder if toggle ON but no logo
+                if (_showLogo)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
-                    child: Image.network(
-                      businessLogoUrl!,
-                      height: 64,
-                      width: 64,
-                      fit: BoxFit.contain,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        height: 64,
-                        width: 64,
-                        decoration: BoxDecoration(
-                          color: colors['headerBg'],
+                    child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
+                      ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            businessLogoUrl!,
+                            height: 64,
+                            width: 64,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                height: 64,
+                                width: 64,
+                                decoration: BoxDecoration(
+                                  color: colors['headerBg'],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                              );
+                            },
+                            errorBuilder: (context, error, stackTrace) => Container(
+                              height: 64,
+                              width: 64,
+                              decoration: BoxDecoration(
+                                color: colors['headerBg'],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(Icons.store_rounded, size: 32, color: colors['textSub']),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          height: 64,
+                          width: 64,
+                          decoration: BoxDecoration(
+                            color: colors['headerBg'],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: kGrey200),
+                          ),
+                          child: Icon(Icons.add_photo_alternate_outlined, size: 28, color: colors['textSub']),
                         ),
-                        child: Icon(Icons.store_rounded, size: 32, color: colors['textSub']),
-                      ),
-                    ),
                   ),
+                // Business Name
                 Text(
                   businessName.toUpperCase(),
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: colors['primary'], letterSpacing: 1.5),
                 ),
                 const SizedBox(height: 8),
-                Text(businessLocation, textAlign: TextAlign.center, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w500)),
-                if (_showPhone) Text("Tel: $businessPhone", textAlign: TextAlign.center, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w500)),
-                if (_showEmail && businessEmail != null) Text("Email: $businessEmail", textAlign: TextAlign.center, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w500)),
-                if (_showGST && businessGSTIN != null) Text("TAX ID: $businessGSTIN", textAlign: TextAlign.center, style: TextStyle(color: colors['primary'], fontSize: 11, fontWeight: FontWeight.w900)),
+                // Location
+                if (_showLocation && businessLocation.isNotEmpty)
+                  Text(businessLocation, textAlign: TextAlign.center, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w500)),
+                // Phone
+                if (_showPhone && businessPhone.isNotEmpty)
+                  Text("Tel: $businessPhone", textAlign: TextAlign.center, style: TextStyle(color: colors['textSub'], fontSize: 11, fontWeight: FontWeight.w500)),
+                // Email - show if toggle ON (with or without data)
+                if (_showEmail)
+                  Text(
+                    businessEmail != null && businessEmail!.isNotEmpty
+                      ? "Email: $businessEmail"
+                      : "Email: Not set",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: businessEmail != null && businessEmail!.isNotEmpty ? colors['textSub'] : kGrey400,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      fontStyle: businessEmail != null && businessEmail!.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                    ),
+                  ),
+                // GST/Tax Number - show if toggle ON (with or without data)
+                if (_showGST)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      businessGSTIN != null && businessGSTIN!.isNotEmpty
+                        ? "TAX NO : $businessGSTIN"
+                        : "TAX NO : Not set",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: businessGSTIN != null && businessGSTIN!.isNotEmpty ? colors['primary'] : kGrey400,
+                        fontSize: 11,
+                        fontWeight: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontWeight.w900 : FontWeight.w500,
+                        fontStyle: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                // License Number - show if toggle ON (with or without data)
+                if (_showLicenseNumber)
+                  Text(
+                    businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty
+                      ? "License: $businessLicenseNumber"
+                      : "License: Not set",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? colors['textSub'] : kGrey400,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      fontStyle: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -635,55 +962,6 @@ class _InvoicePageState extends State<InvoicePage> {
                     padding: const EdgeInsets.only(top: 4),
                     child: Text("GSTIN: ${widget.customerGSTIN}", style: TextStyle(color: colors['textSub'], fontSize: 10, fontWeight: FontWeight.w600)),
                   ),
-                // Customer Credit Details - controlled by _showCustomerCreditDetails
-                if (_showCustomerCreditDetails)
-                  FutureBuilder<double>(
-                    future: _getCustomerCredit(widget.customerPhone),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData && snapshot.data! != 0) {
-                        final credit = snapshot.data!;
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: credit > 0 ? kGoogleGreen.withValues(alpha: 0.1) : kErrorColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              credit > 0 ? "Credit Balance: Rs ${credit.toStringAsFixed(2)}" : "Due: Rs ${(-credit).toStringAsFixed(2)}",
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: credit > 0 ? kGoogleGreen : kErrorColor),
-                            ),
-                          ),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-              ],
-            ),
-          ),
-        // Delivery Address - controlled by _showDeliveryAddress
-        if (_showDeliveryAddress && widget.customerName != null)
-          Container(
-            margin: const EdgeInsets.only(left: 16, right: 16, top: 8),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colors['headerBg'],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: kGrey200),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.location_on_outlined, size: 16, color: colors['textSub']),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    "Delivery: ${widget.deliveryAddress ?? businessLocation}",
-                    style: TextStyle(fontSize: 10, color: colors['textSub'], fontWeight: FontWeight.w500),
-                  ),
-                ),
               ],
             ),
           ),
@@ -691,30 +969,6 @@ class _InvoicePageState extends State<InvoicePage> {
         _buildTableHeader(colors),
         _buildItemsList(colors),
         _buildSummary(colors),
-        // Custom Note section - controlled by _showCustomNote
-        if (_showCustomNote && widget.customNote != null && widget.customNote!.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colors['headerBg'],
-              borderRadius: BorderRadius.circular(8),
-              border: Border(left: BorderSide(color: colors['primary']!, width: 3)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(Icons.note_alt_outlined, size: 16, color: colors['primary']),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    widget.customNote!,
-                    style: TextStyle(fontSize: 11, color: colors['text'], fontWeight: FontWeight.w500, fontStyle: FontStyle.italic),
-                  ),
-                ),
-              ],
-            ),
-          ),
         // Footer with customizable description
         Container(
           width: double.infinity,
@@ -748,25 +1002,6 @@ class _InvoicePageState extends State<InvoicePage> {
     );
   }
 
-  // Get customer credit balance
-  Future<double> _getCustomerCredit(String? phone) async {
-    if (phone == null || phone.isEmpty || _storeId == null) return 0.0;
-    try {
-      final customerDoc = await FirebaseFirestore.instance
-          .collection('store')
-          .doc(_storeId)
-          .collection('customers')
-          .where('phone', isEqualTo: phone)
-          .limit(1)
-          .get();
-      if (customerDoc.docs.isNotEmpty) {
-        return (customerDoc.docs.first.data()['creditBalance'] ?? 0.0).toDouble();
-      }
-    } catch (e) {
-      debugPrint('Error fetching customer credit: $e');
-    }
-    return 0.0;
-  }
 
   // Template 2: Modern Business Layout
   Widget _buildModernLayout(Map<String, Color> colors) {
@@ -796,24 +1031,41 @@ class _InvoicePageState extends State<InvoicePage> {
                         children: [
                           Text(businessName, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
                           const SizedBox(height: 4),
-                          Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                          if (_showPhone) Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                          if (_showEmail && businessEmail != null) Text("Email: $businessEmail", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                          if (_showGST && businessGSTIN != null) Text("GSTIN: $businessGSTIN", style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900)),
+                          if (_showLocation && businessLocation.isNotEmpty)
+                            Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          if (_showPhone && businessPhone.isNotEmpty)
+                            Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                          if (_showEmail)
+                            Text(
+                              businessEmail != null && businessEmail!.isNotEmpty ? "Email: $businessEmail" : "Email: Not set",
+                              style: TextStyle(color: businessEmail != null && businessEmail!.isNotEmpty ? Colors.white70 : Colors.white38, fontSize: 11, fontStyle: businessEmail != null && businessEmail!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
+                          if (_showGST)
+                            Text(
+                              businessGSTIN != null && businessGSTIN!.isNotEmpty ? "GSTIN: $businessGSTIN" : "GSTIN: Not set",
+                              style: TextStyle(color: businessGSTIN != null && businessGSTIN!.isNotEmpty ? Colors.white : Colors.white38, fontSize: 11, fontWeight: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontWeight.w900 : FontWeight.w500, fontStyle: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
+                          if (_showLicenseNumber)
+                            Text(
+                              businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? "License: $businessLicenseNumber" : "License: Not set",
+                              style: TextStyle(color: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? Colors.white70 : Colors.white38, fontSize: 11, fontStyle: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
                         ],
                       ),
                     ),
-                    if (_showLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty)
+                    if (_showLogo)
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                        child: Image.network(
-                          businessLogoUrl!,
-                          height: 48,
-                          width: 48,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, size: 32, color: colors['primary']),
-                        ),
+                        child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
+                          ? Image.network(
+                              businessLogoUrl!,
+                              height: 48,
+                              width: 48,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, size: 32, color: colors['primary']),
+                            )
+                          : Icon(Icons.add_photo_alternate_outlined, size: 32, color: colors['primary']),
                       ),
                   ],
                 ),
@@ -900,10 +1152,25 @@ class _InvoicePageState extends State<InvoicePage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(businessName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: colors['text'])),
-                    Text(businessLocation, style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
-                    if (_showPhone) Text("T: $businessPhone", style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
-                    if (_showEmail && businessEmail != null) Text("E: $businessEmail", style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
-                    if (_showGST && businessGSTIN != null) Text("TX: $businessGSTIN", style: TextStyle(fontSize: 9, color: colors['text'], fontWeight: FontWeight.w900)),
+                    if (_showLocation && businessLocation.isNotEmpty)
+                      Text(businessLocation, style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
+                    if (_showPhone && businessPhone.isNotEmpty)
+                      Text("T: $businessPhone", style: TextStyle(fontSize: 9, color: colors['textSub'], fontWeight: FontWeight.w500)),
+                    if (_showEmail)
+                      Text(
+                        businessEmail != null && businessEmail!.isNotEmpty ? "E: $businessEmail" : "E: Not set",
+                        style: TextStyle(fontSize: 9, color: businessEmail != null && businessEmail!.isNotEmpty ? colors['textSub'] : kGrey400, fontWeight: FontWeight.w500, fontStyle: businessEmail != null && businessEmail!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                      ),
+                    if (_showGST)
+                      Text(
+                        businessGSTIN != null && businessGSTIN!.isNotEmpty ? "GSTIN: $businessGSTIN" : "GSTIN: Not set",
+                        style: TextStyle(fontSize: 9, color: businessGSTIN != null && businessGSTIN!.isNotEmpty ? colors['text'] : kGrey400, fontWeight: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontWeight.w900 : FontWeight.w500, fontStyle: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                      ),
+                    if (_showLicenseNumber)
+                      Text(
+                        businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? "License: $businessLicenseNumber" : "License: Not set",
+                        style: TextStyle(fontSize: 9, color: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? colors['textSub'] : kGrey400, fontWeight: FontWeight.w500, fontStyle: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                      ),
                   ],
                 ),
                 Column(
@@ -985,10 +1252,25 @@ class _InvoicePageState extends State<InvoicePage> {
                           const Text("FROM", style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                           const SizedBox(height: 4),
                           Text(businessName, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
-                          Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                          if (_showPhone) Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                          if (_showEmail && businessEmail != null) Text("Email: $businessEmail", style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                          if (_showGST && businessGSTIN != null) Text("GSTIN: $businessGSTIN", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                          if (_showLocation && businessLocation.isNotEmpty)
+                            Text(businessLocation, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          if (_showPhone && businessPhone.isNotEmpty)
+                            Text("Tel: $businessPhone", style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                          if (_showEmail)
+                            Text(
+                              businessEmail != null && businessEmail!.isNotEmpty ? "Email: $businessEmail" : "Email: Not set",
+                              style: TextStyle(color: businessEmail != null && businessEmail!.isNotEmpty ? Colors.white70 : Colors.white38, fontSize: 10, fontStyle: businessEmail != null && businessEmail!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
+                          if (_showGST)
+                            Text(
+                              businessGSTIN != null && businessGSTIN!.isNotEmpty ? "GSTIN: $businessGSTIN" : "GSTIN: Not set",
+                              style: TextStyle(color: businessGSTIN != null && businessGSTIN!.isNotEmpty ? Colors.white : Colors.white38, fontSize: 10, fontWeight: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontWeight.w800 : FontWeight.w500, fontStyle: businessGSTIN != null && businessGSTIN!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
+                          if (_showLicenseNumber)
+                            Text(
+                              businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? "License: $businessLicenseNumber" : "License: Not set",
+                              style: TextStyle(color: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? Colors.white70 : Colors.white38, fontSize: 10, fontStyle: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? FontStyle.normal : FontStyle.italic),
+                            ),
                         ],
                       ),
                     ),
@@ -1111,13 +1393,18 @@ class _InvoicePageState extends State<InvoicePage> {
     double totalMRP = 0;
     for (final item in widget.items) {
       totalQty += (item['quantity'] ?? 1) as int;
-      if (_showMRP && item['mrp'] != null) {
-        totalMRP += (item['mrp'] as double) * (item['quantity'] as int);
+      // Calculate MRP total for savings calculation (regardless of _showMRP toggle)
+      if (item['mrp'] != null) {
+        final mrp = (item['mrp'] is int) ? (item['mrp'] as int).toDouble() : (item['mrp'] as double);
+        final qty = (item['quantity'] ?? 1) as int;
+        totalMRP += mrp * qty;
       }
     }
 
-    // Calculate savings (MRP - actual total)
-    final savings = _showSaveAmountMessage && totalMRP > widget.total ? totalMRP - widget.total : 0.0;
+    // Calculate savings (MRP - actual total) - works when items have MRP values
+    final savings = _showSaveAmountMessage && totalMRP > 0 && totalMRP > widget.total
+        ? totalMRP - widget.total
+        : 0.0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1190,7 +1477,7 @@ class _InvoicePageState extends State<InvoicePage> {
                   const Icon(Icons.savings_rounded, color: kGoogleGreen, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    "You saved Rs ${savings.toStringAsFixed(0)} on this order!",
+                    "You saved${savings.toStringAsFixed(0)} on this order!",
                     style: const TextStyle(fontSize: 12, color: kGoogleGreen, fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -1284,7 +1571,6 @@ class _InvoicePageState extends State<InvoicePage> {
         if (Platform.isAndroid) {
           try {
             await FlutterBluePlus.turnOn();
-            // Wait a moment for OS to process dialog and update state
             await Future.delayed(const Duration(seconds: 1));
             adapterState = await FlutterBluePlus.adapterState.first;
           } catch (e) {
@@ -1326,7 +1612,7 @@ class _InvoicePageState extends State<InvoicePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   CircularProgressIndicator(color: kPrimaryColor),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Text('PRINTING...', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                 ],
               ),
@@ -1337,6 +1623,13 @@ class _InvoicePageState extends State<InvoicePage> {
 
       final prefs = await SharedPreferences.getInstance();
       final selectedPrinterId = prefs.getString('selected_printer_id');
+
+      // Get printer width setting (default to 58mm / 32 chars)
+      // 58mm = 32 characters, 80mm = 48 characters
+      final printerWidth = prefs.getString('printer_width') ?? '58mm';
+      final int lineWidth = printerWidth == '80mm' ? 48 : 32;
+      final String dividerLine = '=' * lineWidth;
+      final String thinDivider = '-' * lineWidth;
 
       if (selectedPrinterId == null) {
         Navigator.pop(context);
@@ -1363,108 +1656,231 @@ class _InvoicePageState extends State<InvoicePage> {
       // Init Printer
       bytes.addAll([esc, 0x40]);
 
-      // Template-Aware Header Alignment
-      if (_selectedTemplate == InvoiceTemplate.classic) {
-        bytes.addAll([esc, 0x61, 0x01, esc, 0x21, 0x30]); // Center Bold
-      } else {
-        bytes.addAll([esc, 0x61, 0x00, esc, 0x21, 0x30]); // Left Bold
-      }
+      // ========== HEADER SECTION ==========
+      bytes.addAll([esc, 0x61, 0x01]); // Center align
 
-      bytes.addAll(utf8.encode(businessName.toUpperCase()));
+      // Business Name (Bold, Large)
+      bytes.addAll([esc, 0x21, 0x30]); // Double height + width + bold
+      bytes.addAll(utf8.encode(_truncateText(businessName.toUpperCase(), lineWidth ~/ 2)));
       bytes.add(lf);
-
       bytes.addAll([esc, 0x21, 0x00]); // Reset to normal
-      bytes.addAll(utf8.encode(businessLocation));
-      bytes.add(lf);
 
-      if (_showPhone) {
-        bytes.addAll(utf8.encode('PH: $businessPhone'));
+      // Location
+      if (_showLocation && businessLocation.isNotEmpty) {
+        bytes.addAll(utf8.encode(_truncateText(businessLocation, lineWidth)));
         bytes.add(lf);
       }
 
-      if (_showGST && businessGSTIN != null) {
-        bytes.addAll(utf8.encode('GSTIN: $businessGSTIN'));
+      // Phone
+      if (_showPhone && businessPhone.isNotEmpty) {
+        bytes.addAll(utf8.encode('Tel: $businessPhone'));
         bytes.add(lf);
       }
 
-      bytes.addAll(utf8.encode('--------------------------------'));
+      // Email
+      if (_showEmail && businessEmail != null && businessEmail!.isNotEmpty) {
+        bytes.addAll(utf8.encode(_truncateText('Email: $businessEmail', lineWidth)));
+        bytes.add(lf);
+      }
+
+      // GST Number
+      if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty) {
+        bytes.addAll([esc, 0x21, 0x08]); // Bold
+        bytes.addAll(utf8.encode('TAX NO: $businessGSTIN'));
+        bytes.add(lf);
+        bytes.addAll([esc, 0x21, 0x00]); // Reset
+      }
+
+      // License Number
+      if (_showLicenseNumber && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty) {
+        bytes.addAll(utf8.encode('License: $businessLicenseNumber'));
+        bytes.add(lf);
+      }
+
+      bytes.add(lf);
+      bytes.addAll(utf8.encode(dividerLine));
       bytes.add(lf);
 
+      // ========== INVOICE DETAILS ==========
       bytes.addAll([esc, 0x61, 0x00]); // Left align
-      bytes.addAll(utf8.encode('${widget.isQuotation ? "QTN" : "INV"}: #${widget.invoiceNumber}'));
-      bytes.add(lf);
-      bytes.addAll(utf8.encode('DATE: ${DateFormat('dd-MM-yyyy HH:mm').format(widget.dateTime)}'));
-      bytes.add(lf);
 
-      if (widget.customerName != null) {
-        bytes.addAll(utf8.encode('CUST: ${widget.customerName}'));
+      // Invoice Number and Date on same line for 80mm, separate for 58mm
+      if (lineWidth >= 48) {
+        String invLine = '${widget.isQuotation ? "QTN" : "INV"} #${widget.invoiceNumber}';
+        String datePart = DateFormat('dd-MM-yyyy').format(widget.dateTime);
+        bytes.addAll(utf8.encode(invLine.padRight(lineWidth - datePart.length) + datePart));
+        bytes.add(lf);
+      } else {
+        bytes.addAll(utf8.encode('${widget.isQuotation ? "QTN" : "INV"}: #${widget.invoiceNumber}'));
+        bytes.add(lf);
+        bytes.addAll(utf8.encode('Date: ${DateFormat('dd-MM-yyyy').format(widget.dateTime)}'));
         bytes.add(lf);
       }
 
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-
-      // TABLE HEADERS (Structured for paper)
-      bytes.addAll(utf8.encode('PRODUCT      QTY RATE TAX TOTAL'));
-      bytes.add(lf);
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-
-      // ITEMS LOOP (Structured Column Output)
-      for (var item in widget.items) {
-        final name = item['name'] ?? 'Item';
-        final qty = (item['quantity'] ?? 1).toString();
-        final rate = (item['price'] ?? 0).toStringAsFixed(0);
-        final tax = ((item['taxPercentage'] ?? 0)).toStringAsFixed(0);
-        final total = (item['total'] ?? 0).toStringAsFixed(0);
-
-        bytes.addAll(utf8.encode('$name'));
+      // Customer Details
+      if (_showCustomerDetails && widget.customerName != null) {
+        bytes.addAll(utf8.encode(thinDivider));
         bytes.add(lf);
-
-        String colQty = qty.padRight(4);
-        String colRate = rate.padRight(5);
-        String colTax = '${tax}%'.padRight(5);
-        String colTotal = total.padLeft(6);
-
-        String dataRow = '            $colQty $colRate $colTax $colTotal';
-        bytes.addAll(utf8.encode(dataRow));
+        bytes.addAll(utf8.encode('Bill To: ${_truncateText(widget.customerName!, lineWidth - 9)}'));
         bytes.add(lf);
-      }
-
-      bytes.addAll(utf8.encode('--------------------------------'));
-      bytes.add(lf);
-
-      // SUMMARY
-      bytes.addAll([esc, 0x61, 0x00]);
-      bytes.addAll(utf8.encode('SUBTOTAL: Rs ${widget.subtotal.toStringAsFixed(2)}'));
-      bytes.add(lf);
-
-      if (widget.discount > 0) {
-        bytes.addAll(utf8.encode('DISCOUNT: -Rs ${widget.discount.toStringAsFixed(2)}'));
-        bytes.add(lf);
-      }
-
-      if (widget.taxes != null) {
-        for (var tax in widget.taxes!) {
-          bytes.addAll(utf8.encode('${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}'));
+        if (widget.customerPhone != null) {
+          bytes.addAll(utf8.encode('Ph: ${widget.customerPhone}'));
           bytes.add(lf);
         }
       }
 
-      bytes.addAll(utf8.encode('--------------------------------'));
+      bytes.addAll(utf8.encode(dividerLine));
       bytes.add(lf);
 
-      // TOTAL IN BOLD
-      bytes.addAll([esc, 0x61, 0x02, esc, 0x21, 0x30]);
-      bytes.addAll(utf8.encode('TOTAL: Rs ${widget.total.toStringAsFixed(2)}'));
+      // ========== ITEMS TABLE ==========
+      // Dynamic column widths based on printer width
+      int nameWidth, qtyWidth, rateWidth, taxWidth, totalWidth;
+
+      if (lineWidth >= 48) {
+        // 80mm printer - more space
+        nameWidth = 16;
+        qtyWidth = 4;
+        rateWidth = 8;
+        taxWidth = 6;
+        totalWidth = 10;
+      } else {
+        // 58mm printer - compact
+        nameWidth = 10;
+        qtyWidth = 3;
+        rateWidth = 6;
+        taxWidth = 4;
+        totalWidth = 7;
+      }
+
+      // Build header based on what's shown
+      String header = 'ITEM'.padRight(nameWidth);
+      header += 'QTY'.padRight(qtyWidth);
+      header += 'RATE'.padRight(rateWidth);
+      header += 'TAX'.padRight(taxWidth);
+      header += 'TOTAL'.padLeft(totalWidth);
+
+      bytes.addAll([esc, 0x21, 0x08]); // Bold
+      bytes.addAll(utf8.encode(_truncateText(header, lineWidth)));
+      bytes.add(lf);
+      bytes.addAll([esc, 0x21, 0x00]); // Reset
+      bytes.addAll(utf8.encode(thinDivider));
       bytes.add(lf);
 
-      bytes.addAll([esc, 0x21, 0x00]); // Normal
+      // Calculate totals
+      int totalItems = widget.items.length;
+      double totalQty = 0;
+      double totalMRP = 0;
+
+      // Items - Single line per item
+      for (var item in widget.items) {
+        final name = (item['name'] ?? 'Item').toString();
+        final qty = (item['quantity'] ?? 1).toDouble();
+        final mrp = (item['mrp'] ?? item['price'] ?? 0).toDouble();
+        final rate = (item['price'] ?? 0).toDouble();
+        final taxPercent = (item['taxPercentage'] ?? 0).toDouble();
+        final total = (item['total'] ?? (rate * qty)).toDouble();
+
+        totalQty += qty;
+        totalMRP += mrp * qty;
+
+        // Build single item line
+        String itemLine = '';
+        itemLine += _truncateText(name, nameWidth - 1).padRight(nameWidth);
+        itemLine += qty.toInt().toString().padRight(qtyWidth);
+        itemLine += _formatPrice(rate, rateWidth - 1).padRight(rateWidth);
+        itemLine += '${taxPercent.toInt()}%'.padRight(taxWidth);
+        itemLine += _formatPrice(total, totalWidth).padLeft(totalWidth);
+
+        bytes.addAll(utf8.encode(itemLine));
+        bytes.add(lf);
+      }
+
+      bytes.addAll(utf8.encode(thinDivider));
+      bytes.add(lf);
+
+      // ========== SUMMARY SECTION ==========
+      int labelWidth = lineWidth >= 48 ? 28 : 18;
+      int valueWidth = lineWidth - labelWidth;
+
+      // Total Items
+      if (_showTotalItems) {
+        bytes.addAll(utf8.encode('Total Items:'.padRight(labelWidth) + totalItems.toString().padLeft(valueWidth)));
+        bytes.add(lf);
+      }
+
+      // Total Qty
+      if (_showTotalQty) {
+        bytes.addAll(utf8.encode('Total Qty:'.padRight(labelWidth) + totalQty.toInt().toString().padLeft(valueWidth)));
+        bytes.add(lf);
+      }
+
+      // Subtotal
+      bytes.addAll(utf8.encode('Subtotal:'.padRight(labelWidth) + widget.subtotal.toStringAsFixed(2).padLeft(valueWidth)));
+      bytes.add(lf);
+
+      // Taxes
+      if (widget.taxes != null) {
+        for (var tax in widget.taxes!) {
+          final taxName = (tax['name'] ?? 'Tax').toString();
+          final taxAmount = (tax['amount'] ?? 0.0).toDouble();
+          bytes.addAll(utf8.encode('$taxName:'.padRight(labelWidth) + taxAmount.toStringAsFixed(2).padLeft(valueWidth)));
+          bytes.add(lf);
+        }
+      }
+
+      // Discount
+      if (widget.discount > 0) {
+        bytes.addAll(utf8.encode('Discount:'.padRight(labelWidth) + '-${widget.discount.toStringAsFixed(2)}'.padLeft(valueWidth)));
+        bytes.add(lf);
+      }
+
+      bytes.addAll(utf8.encode(dividerLine));
+      bytes.add(lf);
+
+      // NET PAYABLE (Bold)
+      bytes.addAll([esc, 0x21, 0x10]); // Double height + bold
+      String totalLine = 'TOTAL:'.padRight(labelWidth) + 'Rs ${widget.total.toStringAsFixed(2)}'.padLeft(valueWidth);
+      bytes.addAll(utf8.encode(totalLine));
+      bytes.add(lf);
+      bytes.addAll([esc, 0x21, 0x00]); // Reset
+
+      // Payment Mode
+      if (_showPaymentMode) {
+        bytes.addAll(utf8.encode('Paid:'.padRight(labelWidth) + widget.paymentMode.toUpperCase().padLeft(valueWidth)));
+        bytes.add(lf);
+      }
+
+      bytes.addAll(utf8.encode(dividerLine));
+      bytes.add(lf);
+
+      // ========== FOOTER ==========
       bytes.addAll([esc, 0x61, 0x01]); // Center
-      bytes.addAll(utf8.encode('PAID: ${widget.paymentMode.toUpperCase()}'));
+
+      // Customer Savings Message
+      if (_showSaveAmountMessage && totalMRP > widget.total) {
+        double savings = totalMRP - widget.total;
+        bytes.addAll(utf8.encode('You saved Rs ${savings.toStringAsFixed(2)}!'));
+        bytes.add(lf);
+      }
+
+      // Footer Description
       bytes.add(lf);
+      if (!widget.isQuotation && _footerDescription.isNotEmpty) {
+        bytes.addAll([esc, 0x21, 0x08]); // Bold
+        bytes.addAll(utf8.encode(_truncateText(_footerDescription.toUpperCase(), lineWidth)));
+        bytes.addAll([esc, 0x21, 0x00]); // Reset
+        bytes.add(lf);
+      }
+
+      // Quotation Footer
+      if (widget.isQuotation && _quotationFooterDescription.isNotEmpty) {
+        bytes.addAll([esc, 0x21, 0x08]); // Bold
+        bytes.addAll(utf8.encode(_truncateText(_quotationFooterDescription.toUpperCase(), lineWidth)));
+        bytes.addAll([esc, 0x21, 0x00]); // Reset
+        bytes.add(lf);
+      }
+
       bytes.add(lf);
-      bytes.addAll(utf8.encode('THANK YOU!'));
       bytes.add(lf);
       bytes.add(lf);
       bytes.addAll([gs, 0x56, 0x00]); // Cut
@@ -1488,8 +1904,26 @@ class _InvoicePageState extends State<InvoicePage> {
       CommonWidgets.showSnackBar(context, 'Receipt printed successfully', bgColor: kGoogleGreen);
     } catch (e) {
       Navigator.pop(context);
-      CommonWidgets.showSnackBar(context, 'Printing failed', bgColor: kErrorColor);
+      CommonWidgets.showSnackBar(context, 'Printing failed: $e', bgColor: kErrorColor);
     }
+  }
+
+  // Helper: Truncate text to fit width
+  String _truncateText(String text, int maxWidth) {
+    if (text.length <= maxWidth) return text;
+    return '${text.substring(0, maxWidth - 1)}.';
+  }
+
+  // Helper: Format price to fit width
+  String _formatPrice(double price, int maxWidth) {
+    String priceStr = price.toStringAsFixed(0);
+    if (priceStr.length > maxWidth) {
+      // Use K notation for large numbers
+      if (price >= 1000) {
+        priceStr = '${(price / 1000).toStringAsFixed(1)}K';
+      }
+    }
+    return priceStr.length > maxWidth ? priceStr.substring(0, maxWidth) : priceStr;
   }
 
   Future<void> _handleShare(BuildContext context) async {
@@ -1559,9 +1993,9 @@ class _InvoicePageState extends State<InvoicePage> {
                 pw.Text("Subtotal Gross: ${widget.subtotal.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10)),
                 if (widget.discount > 0) pw.Text("Applied Discount: -${widget.discount.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10)),
                 if (widget.taxes != null)
-                  ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10))),
+                  ...widget.taxes!.map((tax) => pw.Text("${tax['name']}:${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10))),
                 pw.Divider(color: PdfColors.black, thickness: 1),
-                pw.Text("NET TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                pw.Text("NET TOTAL:${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
               ],
             ),
           ),
@@ -1626,9 +2060,9 @@ class _InvoicePageState extends State<InvoicePage> {
                     children: [
                       pw.Text("Gross Subtotal: ${widget.subtotal.toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10)),
                       if (widget.taxes != null)
-                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10))),
+                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}:${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 10))),
                       pw.Divider(color: PdfColors.blue),
-                      pw.Text("NET TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue)),
+                      pw.Text("NET TOTAL:${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.blue)),
                     ],
                   ),
                 ),
@@ -1695,7 +2129,7 @@ class _InvoicePageState extends State<InvoicePage> {
                       if (widget.taxes != null)
                         ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}", style: const pw.TextStyle(fontSize: 9))),
                       pw.Divider(),
-                      pw.Text("TOTAL: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                      pw.Text("TOTAL:${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
                     ],
                   ),
                 ),
@@ -1774,9 +2208,9 @@ class _InvoicePageState extends State<InvoicePage> {
                       pw.Text("Subtotal: ${widget.subtotal.toStringAsFixed(2)}"),
                       if (widget.discount > 0) pw.Text("Discount: -${widget.discount.toStringAsFixed(2)}"),
                       if (widget.taxes != null)
-                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}: Rs ${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
+                        ...widget.taxes!.map((tax) => pw.Text("${tax['name']}:${(tax['amount'] ?? 0.0).toStringAsFixed(2)}")),
                       pw.Divider(color: PdfColors.purple),
-                      pw.Text("TOTAL DUE: Rs ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.purple)),
+                      pw.Text("TOTAL DUE:${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.purple)),
                     ],
                   ),
                 ),

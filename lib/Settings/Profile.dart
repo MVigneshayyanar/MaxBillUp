@@ -445,12 +445,19 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           _locCtrl.text = data['businessLocation'] ?? '';
           _ownerCtrl.text = data['ownerName'] ?? '';
           _logoUrl = data['logoUrl'];
+          // Load email from store, fallback to user email
+          if (data['email'] != null && data['email'].toString().isNotEmpty) {
+            _emailCtrl.text = data['email'];
+          }
           _fetching = false;
         });
       }
       if (user.exists) {
         final uData = user.data() as Map<String, dynamic>;
-        setState(() => _emailCtrl.text = uData['email'] ?? '');
+        // Only set email from user if not already set from store
+        if (_emailCtrl.text.isEmpty) {
+          setState(() => _emailCtrl.text = uData['email'] ?? '');
+        }
       }
     } catch (e) { debugPrint(e.toString()); }
   }
@@ -515,6 +522,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         await FirebaseFirestore.instance.collection('store').doc(storeId).set({
           'businessName': _nameCtrl.text.trim(),
           'businessPhone': _phoneCtrl.text.trim(),
+          'email': _emailCtrl.text.trim(),
           'gstin': _gstCtrl.text.trim(),
           'licenseNumber': _licenseCtrl.text.trim(),
           'currency': _selectedCurrency,
@@ -701,12 +709,16 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   bool _isScanning = false, _enableAutoPrint = true;
   List<BluetoothDevice> _bondedDevices = [];
   BluetoothDevice? _selectedDevice;
+  String _printerWidth = '58mm';
 
   @override void initState() { super.initState(); _loadSettings(); }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() => _enableAutoPrint = prefs.getBool('enable_auto_print') ?? true);
+    setState(() {
+      _enableAutoPrint = prefs.getBool('enable_auto_print') ?? true;
+      _printerWidth = prefs.getString('printer_width') ?? '58mm';
+    });
     final savedId = prefs.getString('selected_printer_id');
     if (savedId != null) {
       final devices = await FlutterBluePlus.bondedDevices;
@@ -732,6 +744,12 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     if (mounted) setState(() => _selectedDevice = device);
   }
 
+  Future<void> _setPrinterWidth(String width) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('printer_width', width);
+    if (mounted) setState(() => _printerWidth = width);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -741,6 +759,68 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
         padding: const EdgeInsets.all(16),
         children: [
           if (_selectedDevice != null) Container(padding: const EdgeInsets.all(16), margin: const EdgeInsets.only(bottom: 24), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGoogleGreen.withOpacity(0.3))), child: Row(children: [const Icon(Icons.print_rounded, color: kGoogleGreen, size: 28), const SizedBox(width: 16), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("ACTIVE PRINTER", style: TextStyle(fontSize: 9, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)), Text(_selectedDevice!.platformName, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87))])), IconButton(onPressed: () => setState(() => _selectedDevice = null), icon: const Icon(Icons.delete_sweep_rounded, color: kErrorColor))])),
+
+          // Printer Width Setting
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("PAPER WIDTH", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _setPrinterWidth('58mm'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _printerWidth == '58mm' ? kPrimaryColor : kGreyBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _printerWidth == '58mm' ? kPrimaryColor : kGrey300),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_long_rounded, color: _printerWidth == '58mm' ? kWhite : kBlack54, size: 24),
+                              const SizedBox(height: 6),
+                              Text("58mm", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: _printerWidth == '58mm' ? kWhite : kBlack87)),
+                              Text("2 inch", style: TextStyle(fontSize: 10, color: _printerWidth == '58mm' ? kWhite.withOpacity(0.8) : kBlack54)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _setPrinterWidth('80mm'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: _printerWidth == '80mm' ? kPrimaryColor : kGreyBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _printerWidth == '80mm' ? kPrimaryColor : kGrey300),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_rounded, color: _printerWidth == '80mm' ? kWhite : kBlack54, size: 24),
+                              const SizedBox(height: 6),
+                              Text("80mm", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: _printerWidth == '80mm' ? kWhite : kBlack87)),
+                              Text("3 inch", style: TextStyle(fontSize: 10, color: _printerWidth == '80mm' ? kWhite.withOpacity(0.8) : kBlack54)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
           Text("PAIRED DEVICES", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
           const SizedBox(height: 12),
           _buildDeviceList(),
@@ -806,21 +886,20 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   // Header Info Settings
   final _receiptHeaderCtrl = TextEditingController(text: 'INVOICE');
   bool _showLogo = true;
-  bool _showEmail = false;
+  bool _showLocation = true;
+  bool _showEmail = true;
   bool _showPhone = true;
-  bool _showGST = false;
+  bool _showGST = true;
+  bool _showLicenseNumber = false;
 
   // Item Table Settings
   bool _showCustomerDetails = true;
-  bool _showCustomerCreditDetails = false;
   bool _showMeasuringUnit = true;
   bool _showMRP = false;
   bool _showPaymentMode = true;
   bool _showTotalItems = true;
   bool _showTotalQty = false;
   bool _showSaveAmountMessage = true;
-  bool _showCustomNote = false;
-  bool _showDeliveryAddress = false;
 
   // Invoice Footer Settings
   final _footerDescriptionCtrl = TextEditingController(text: 'Thank you for your business!');
@@ -854,21 +933,20 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       // Header Info
       _receiptHeaderCtrl.text = prefs.getString('receipt_header') ?? 'INVOICE';
       _showLogo = prefs.getBool('receipt_show_logo') ?? true;
-      _showEmail = prefs.getBool('receipt_show_email') ?? false;
+      _showLocation = prefs.getBool('receipt_show_location') ?? true;
+      _showEmail = prefs.getBool('receipt_show_email') ?? true;
       _showPhone = prefs.getBool('receipt_show_phone') ?? true;
-      _showGST = prefs.getBool('receipt_show_gst') ?? false;
+      _showGST = prefs.getBool('receipt_show_gst') ?? true;
+      _showLicenseNumber = prefs.getBool('receipt_show_license') ?? false;
 
       // Item Table
       _showCustomerDetails = prefs.getBool('receipt_show_customer_details') ?? true;
-      _showCustomerCreditDetails = prefs.getBool('receipt_show_customer_credit') ?? false;
       _showMeasuringUnit = prefs.getBool('receipt_show_measuring_unit') ?? true;
       _showMRP = prefs.getBool('receipt_show_mrp') ?? false;
       _showPaymentMode = prefs.getBool('receipt_show_payment_mode') ?? true;
       _showTotalItems = prefs.getBool('receipt_show_total_items') ?? true;
       _showTotalQty = prefs.getBool('receipt_show_total_qty') ?? false;
       _showSaveAmountMessage = prefs.getBool('receipt_show_save_amount') ?? true;
-      _showCustomNote = prefs.getBool('receipt_show_custom_note') ?? false;
-      _showDeliveryAddress = prefs.getBool('receipt_show_delivery_address') ?? false;
 
       // Invoice Footer
       _footerDescriptionCtrl.text = prefs.getString('receipt_footer_description') ?? 'Thank you for your business!';
@@ -889,21 +967,20 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     // Header Info
     await prefs.setString('receipt_header', _receiptHeaderCtrl.text);
     await prefs.setBool('receipt_show_logo', _showLogo);
+    await prefs.setBool('receipt_show_location', _showLocation);
     await prefs.setBool('receipt_show_email', _showEmail);
     await prefs.setBool('receipt_show_phone', _showPhone);
     await prefs.setBool('receipt_show_gst', _showGST);
+    await prefs.setBool('receipt_show_license', _showLicenseNumber);
 
     // Item Table
     await prefs.setBool('receipt_show_customer_details', _showCustomerDetails);
-    await prefs.setBool('receipt_show_customer_credit', _showCustomerCreditDetails);
     await prefs.setBool('receipt_show_measuring_unit', _showMeasuringUnit);
     await prefs.setBool('receipt_show_mrp', _showMRP);
     await prefs.setBool('receipt_show_payment_mode', _showPaymentMode);
     await prefs.setBool('receipt_show_total_items', _showTotalItems);
     await prefs.setBool('receipt_show_total_qty', _showTotalQty);
     await prefs.setBool('receipt_show_save_amount', _showSaveAmountMessage);
-    await prefs.setBool('receipt_show_custom_note', _showCustomNote);
-    await prefs.setBool('receipt_show_delivery_address', _showDeliveryAddress);
 
     // Invoice Footer
     await prefs.setString('receipt_footer_description', _footerDescriptionCtrl.text);
@@ -923,19 +1000,18 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             'template': _selectedTemplateIndex,
             'header': _receiptHeaderCtrl.text,
             'showLogo': _showLogo,
+            'showLocation': _showLocation,
             'showEmail': _showEmail,
             'showPhone': _showPhone,
             'showGST': _showGST,
+            'showLicense': _showLicenseNumber,
             'showCustomerDetails': _showCustomerDetails,
-            'showCustomerCredit': _showCustomerCreditDetails,
             'showMeasuringUnit': _showMeasuringUnit,
             'showMRP': _showMRP,
             'showPaymentMode': _showPaymentMode,
             'showTotalItems': _showTotalItems,
             'showTotalQty': _showTotalQty,
             'showSaveAmount': _showSaveAmountMessage,
-            'showCustomNote': _showCustomNote,
-            'showDeliveryAddress': _showDeliveryAddress,
             'footerDescription': _footerDescriptionCtrl.text,
             'footerImageUrl': _footerImageUrl,
             'quotationFooter': _quotationDescriptionCtrl.text,
@@ -1011,9 +1087,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
                       }
                       setState(() => _showLogo = v);
                     }),
+                    _buildToggleRow("Location", _showLocation, (v) => setState(() => _showLocation = v)),
                     _buildToggleRow("Email", _showEmail, (v) => setState(() => _showEmail = v)),
                     _buildToggleRow("Phone Number", _showPhone, (v) => setState(() => _showPhone = v)),
                     _buildToggleRow("GST Number", _showGST, (v) => setState(() => _showGST = v)),
+                    _buildToggleRow("License Number", _showLicenseNumber, (v) => setState(() => _showLicenseNumber = v)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1025,15 +1103,12 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
                   onTap: () => setState(() => _itemTableExpanded = !_itemTableExpanded),
                   children: [
                     _buildToggleRow("Customer Details", _showCustomerDetails, (v) => setState(() => _showCustomerDetails = v)),
-                    _buildToggleRow("Customer credit details", _showCustomerCreditDetails, (v) => setState(() => _showCustomerCreditDetails = v)),
                     _buildToggleRow("Measuring Unit", _showMeasuringUnit, (v) => setState(() => _showMeasuringUnit = v)),
                     _buildToggleRow("MRP", _showMRP, (v) => setState(() => _showMRP = v)),
                     _buildToggleRow("Payment Mode", _showPaymentMode, (v) => setState(() => _showPaymentMode = v)),
-                    _buildToggleRow("Total items", _showTotalItems, (v) => setState(() => _showTotalItems = v)),
+                    _buildToggleRow("Total Items", _showTotalItems, (v) => setState(() => _showTotalItems = v)),
                     _buildToggleRow("Total Qty", _showTotalQty, (v) => setState(() => _showTotalQty = v)),
-                    _buildToggleRow("Customer save amount message", _showSaveAmountMessage, (v) => setState(() => _showSaveAmountMessage = v)),
-                    _buildToggleRow("Custom Note", _showCustomNote, (v) => setState(() => _showCustomNote = v)),
-                    _buildToggleRow("Delivery Address", _showDeliveryAddress, (v) => setState(() => _showDeliveryAddress = v)),
+                    _buildToggleRow("Customer Save Amount", _showSaveAmountMessage, (v) => setState(() => _showSaveAmountMessage = v)),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -263,7 +263,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ],
                       ),
                     ),
-                    Text("Rs ${amount.toStringAsFixed(2)}",
+                    Text("${amount.toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kErrorColor)),
                   ],
                 ),
@@ -622,14 +622,14 @@ class ExpenseDetailsPage extends StatelessWidget {
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('TOTAL EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
-                      Text('Rs ${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
+                      Text('${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ]),
 
                     if (expenseData['taxAmount'] != null && expenseData['taxAmount'] != 0.0) ...[
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         const Text('Tax Amount Included', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
-                        Text('Rs ${expenseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
+                        Text('${expenseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
                       ]),
                     ],
                   ],

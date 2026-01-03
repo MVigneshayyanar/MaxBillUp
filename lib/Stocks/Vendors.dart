@@ -166,7 +166,7 @@ class _VendorsPageState extends State<VendorsPage> {
                 _buildStat('VENDORS', _vendors.length.toString(), Icons.people_outline_rounded),
                 _buildStat(
                   'TOTAL SPENT',
-                  '₹${_vendors.fold(0.0, (sum, v) => sum + (v['totalPurchases'] as double)).toStringAsFixed(0)}',
+                  '${_vendors.fold(0.0, (sum, v) => sum + (v['totalPurchases'] as double)).toStringAsFixed(0)}',
                   Icons.payments_rounded,
                 ),
                 _buildStat(
@@ -323,7 +323,7 @@ class _VendorsPageState extends State<VendorsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '₹${totalPurchases.toStringAsFixed(0)}',
+                        '${totalPurchases.toStringAsFixed(0)}',
                         style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                       ),
                     ),
