@@ -112,24 +112,24 @@ class _SaleAllPageState extends State<SaleAllPage> {
   @override
   void didUpdateWidget(SaleAllPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialCartItems != oldWidget.initialCartItems) {
-      if (widget.initialCartItems != null) {
-        setState(() {
-          _cart.clear();
-          _cart.addAll(widget.initialCartItems!);
-        });
-      }
+
+    // Only clear cart if parent explicitly set initialCartItems to null (cart was cleared externally)
+    // We do NOT sync from parent to child on normal updates - child is the source of truth for adding items
+    if (widget.initialCartItems == null && oldWidget.initialCartItems != null) {
+      // Parent explicitly cleared the cart (e.g., from clear button in nq.dart)
+      _cart.clear();
     }
+
+    // Sync customer info
     if (widget.customerPhone != oldWidget.customerPhone ||
         widget.customerName != oldWidget.customerName ||
         widget.customerGST != oldWidget.customerGST) {
-      setState(() {
-        _selectedCustomerPhone = widget.customerPhone;
-        _selectedCustomerName = widget.customerName;
-        _selectedCustomerGST = widget.customerGST;
-      });
+      _selectedCustomerPhone = widget.customerPhone;
+      _selectedCustomerName = widget.customerName;
+      _selectedCustomerGST = widget.customerGST;
     }
   }
+
 
   Future<void> _initializeProductsStream() async {
     final stream = await FirestoreService().getCollectionStream('Products');
@@ -291,19 +291,23 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final w = MediaQuery.of(context).size.width;
 
     // Listen to CartService for changes (e.g., when cart is cleared from Bill page)
-    final cartService = Provider.of<CartService>(context);
+    // Only sync with CartService when NOT in quotation mode
+    // Quotation mode has its own separate cart managed by nq.dart
+    if (!widget.isQuotationMode) {
+      final cartService = Provider.of<CartService>(context);
 
-    // Sync local cart state with CartService
-    if (cartService.cartItems.isEmpty && _cart.isNotEmpty) {
-      // Cart was cleared externally (e.g., from Bill page)
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _cart.clear();
-            widget.onCartChanged?.call(_cart);
-          });
-        }
-      });
+      // Sync local cart state with CartService
+      if (cartService.cartItems.isEmpty && _cart.isNotEmpty) {
+        // Cart was cleared externally (e.g., from Bill page)
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _cart.clear();
+              widget.onCartChanged?.call(_cart);
+            });
+          }
+        });
+      }
     }
 
     return PopScope(

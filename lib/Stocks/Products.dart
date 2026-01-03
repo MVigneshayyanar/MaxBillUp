@@ -35,6 +35,10 @@ class _ProductsPageState extends State<ProductsPage> {
   bool _isLoading = true;
   Stream<QuerySnapshot>? _productsStream;
 
+  // Multi-select state
+  bool _isMultiSelectMode = false;
+  Set<String> _selectedProductIds = {};
+
   @override
   void initState() {
     super.initState();
@@ -119,6 +123,44 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   Widget _buildHeaderSection() {
+    if (_isMultiSelectMode) {
+      return Container(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        decoration: const BoxDecoration(
+          color: kWhite,
+          border: Border(bottom: BorderSide(color: kGrey200)),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: kBlack87),
+              onPressed: () => setState(() {
+                _isMultiSelectMode = false;
+                _selectedProductIds.clear();
+              }),
+            ),
+            Text(
+              '${_selectedProductIds.length} selected',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87),
+            ),
+            const Spacer(),
+            if (_selectedProductIds.isNotEmpty)
+              ElevatedButton.icon(
+                onPressed: _showBulkDeleteConfirmDialog,
+                icon: const Icon(Icons.delete_rounded, size: 18, color: kWhite),
+                label: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kErrorColor,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: const BoxDecoration(
@@ -152,6 +194,10 @@ class _ProductsPageState extends State<ProductsPage> {
           _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
           const SizedBox(width: 8),
           _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
+          if (isAdmin || _hasPermission('addProduct')) ...[
+            const SizedBox(width: 8),
+            _buildHeaderActionBtn(Icons.checklist_rounded, () => setState(() => _isMultiSelectMode = true)),
+          ],
         ],
       ),
     );
@@ -212,32 +258,64 @@ class _ProductsPageState extends State<ProductsPage> {
 
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
+    final isSelected = _selectedProductIds.contains(id);
 
     return Container(
       decoration: BoxDecoration(
-        color: kWhite,
+        color: isSelected ? kPrimaryColor.withOpacity(0.05) : kWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kGrey200),
+        border: Border.all(color: isSelected ? kPrimaryColor : kGrey200, width: isSelected ? 1.5 : 1),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: (isAdmin || _hasPermission('addProduct')) ? () => _showProductActionMenu(context, doc) : null,
+          onTap: _isMultiSelectMode
+              ? () => setState(() {
+                    if (isSelected) {
+                      _selectedProductIds.remove(id);
+                    } else {
+                      _selectedProductIds.add(id);
+                    }
+                  })
+              : (isAdmin || _hasPermission('addProduct'))
+                  ? () => _showProductActionMenu(context, doc)
+                  : null,
+          onLongPress: (isAdmin || _hasPermission('addProduct')) && !_isMultiSelectMode
+              ? () => setState(() {
+                    _isMultiSelectMode = true;
+                    _selectedProductIds.add(id);
+                  })
+              : null,
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Product Icon
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(10),
+                // Checkbox or Product Icon
+                if (_isMultiSelectMode)
+                  Container(
+                    width: 24,
+                    height: 24,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? kPrimaryColor : Colors.transparent,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: isSelected ? kPrimaryColor : kGrey300, width: 2),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check_rounded, color: kWhite, size: 16)
+                        : null,
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: kPrimaryColor.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: kPrimaryColor, size: 20),
                   ),
-                  child: const Icon(Icons.inventory_2_rounded, color: kPrimaryColor, size: 20),
-                ),
-                const SizedBox(width: 14),
+                if (!_isMultiSelectMode) const SizedBox(width: 14),
                 // Info Column
                 Expanded(
                   child: Column(
@@ -292,8 +370,16 @@ class _ProductsPageState extends State<ProductsPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (isAdmin || _hasPermission('addProduct'))
-                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                if (!_isMultiSelectMode && (isAdmin || _hasPermission('addProduct')))
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Delete button
+
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                    ],
+                  ),
               ],
             ),
           ),
@@ -530,6 +616,69 @@ class _ProductsPageState extends State<ProductsPage> {
               Navigator.pop(context);
             },
             child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showBulkDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Multiple Products?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Text('Are you sure you want to delete ${_selectedProductIds.length} products? This action is permanent and cannot be undone.', style: const TextStyle(color: kBlack54, fontSize: 14)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            onPressed: () async {
+              Navigator.pop(context);
+              // Show loading
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+              );
+
+              try {
+                // Delete all selected products
+                for (final productId in _selectedProductIds) {
+                  await FirestoreService().deleteDocument('Products', productId);
+                }
+
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  setState(() {
+                    _isMultiSelectMode = false;
+                    _selectedProductIds.clear();
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${_selectedProductIds.length} products deleted successfully'),
+                      backgroundColor: kGoogleGreen,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  Navigator.pop(context); // Close loading
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting products: $e'),
+                      backgroundColor: kErrorColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('DELETE ALL', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           )
         ],
       ),

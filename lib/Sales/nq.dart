@@ -75,15 +75,13 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   void _updateCartItems(List<CartItem> items, {String? triggerId}) {
     List<CartItem> updatedItems = List<CartItem>.from(items);
 
-    if (items.isNotEmpty) {
-      final firstItemId = items[0].productId;
-      _triggerHighlight(firstItemId, updatedItems);
+    if (updatedItems.isNotEmpty) {
+      // Find the newly added/modified item to highlight
+      String highlightId = triggerId ?? updatedItems[0].productId;
+      _triggerHighlight(highlightId, updatedItems);
     } else {
       setState(() {
-        _sharedCartItems = updatedItems.isNotEmpty ? updatedItems : null;
-        if (updatedItems.isEmpty) {
-          _cartVersion++;
-        }
+        _sharedCartItems = null;
       });
     }
   }
@@ -375,7 +373,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     ? SavedOrdersPage(uid: widget.uid, userEmail: widget.userEmail)
                     : _selectedTabIndex == 1
                     ? SaleAllPage(
-                  key: ValueKey('sale_all_$_cartVersion'),
+                  key: const ValueKey('sale_all_quotation'),
                   uid: widget.uid,
                   userEmail: widget.userEmail,
                   onCartChanged: _updateCartItems,
@@ -388,7 +386,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   onCustomerChanged: _setSelectedCustomer,
                 )
                     : QuickSalePage(
-                  key: ValueKey('quick_sale_$_cartVersion'),
+                  key: const ValueKey('quick_sale_quotation'),
                   uid: widget.uid,
                   userEmail: widget.userEmail,
                   initialCartItems: _sharedCartItems,

@@ -4326,7 +4326,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
       appBar: AppBar(
         title: Text(context.tr('sale_return').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
       body: Column(
         children: [
@@ -4695,7 +4695,7 @@ class _EditBillPageState extends State<EditBillPage> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kWhite, size: 18),
+          icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
       ),

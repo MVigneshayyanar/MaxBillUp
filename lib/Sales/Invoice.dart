@@ -222,9 +222,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   Future<void> _startCelebration() async {
     // Vibration feedback - short burst pattern
     await HapticFeedback.mediumImpact();
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
     await HapticFeedback.lightImpact();
-    await Future.delayed(const Duration(milliseconds: 100));
+    await Future.delayed(const Duration(milliseconds: 300));
     await HapticFeedback.mediumImpact();
 
     // Play success sound using system sound
@@ -375,7 +375,51 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 );
               },
             ),
-          // Success checkmark animation
+          // Success checkmark animation in center
+          if (_showCelebration)
+            AnimatedBuilder(
+              animation: _celebrationController,
+              builder: (context, child) {
+                // Scale animation: grow from 0 to 1 in first 30% of animation
+                final scaleProgress = (_celebrationController.value / 0.3).clamp(0.0, 1.0);
+                final scale = Curves.elasticOut.transform(scaleProgress);
+
+                // Fade out in last 20% of animation
+                final fadeProgress = ((_celebrationController.value - 0.8) / 0.2).clamp(0.0, 1.0);
+                final opacity = 1.0 - fadeProgress;
+
+                return IgnorePointer(
+                  child: Center(
+                    child: Opacity(
+                      opacity: opacity,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: kGoogleGreen,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: kGoogleGreen.withOpacity(0.4),
+                                blurRadius: 30,
+                                spreadRadius: 10,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 70,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
 
         ],
       ),

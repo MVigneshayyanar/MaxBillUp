@@ -196,7 +196,7 @@ class _AddProductPageState extends State<AddProductPage> {
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
             style: const TextStyle(fontWeight: FontWeight.w700, color: kWhite, fontSize: 18)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -573,22 +573,102 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildUnitDropdown() {
-    return StreamBuilder<List<String>>(
-      stream: _unitsStream,
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _getUnitsWithMetadata(),
       builder: (context, snapshot) {
-        final availableUnits = ['Piece', 'Kg', 'Liter', 'Box', ...(snapshot.data ?? [])].cast<String>();
+        // Default units that cannot be deleted
+        final defaultUnits = ['Piece', 'Kg', 'Liter', 'Box', 'Nos', 'Meter', 'Feet', 'Gram', 'ML'];
+        final customUnits = snapshot.data ?? [];
+        final allUnits = [...defaultUnits, ...customUnits.map((u) => u['name'] as String)];
+
         return _wrapDropdown(
           "Measurement Unit",
           DropdownButton<String>(
-            value: availableUnits.contains(_selectedStockUnit) ? _selectedStockUnit : availableUnits.first,
+            value: allUnits.contains(_selectedStockUnit) ? _selectedStockUnit : allUnits.first,
             isExpanded: true,
             isDense: true,
-            items: availableUnits.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+            items: allUnits.map((unit) {
+              final isCustom = customUnits.any((u) => u['name'] == unit);
+              return DropdownMenuItem(
+                value: unit,
+                child: Row(
+                  children: [
+                    Expanded(child: Text(unit)),
+                    if (isCustom)
+                      GestureDetector(
+                        onTap: () => _showDeleteUnitDialog(unit),
+                        child: const Padding(
+                          padding: EdgeInsets.only(left: 8),
+                          child: Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 18),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            }).toList(),
             onChanged: (v) => setState(() => _selectedStockUnit = v),
           ),
           onAdd: _showAddUnitDialog,
         );
       },
+    );
+  }
+
+  Stream<List<Map<String, dynamic>>> _getUnitsWithMetadata() async* {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) {
+      yield [];
+      return;
+    }
+    yield* FirebaseFirestore.instance
+        .collection('store')
+        .doc(storeId)
+        .collection('units')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {'name': doc.id, 'id': doc.id}).toList());
+  }
+
+  void _showDeleteUnitDialog(String unitName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Delete Unit?", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        content: Text('Are you sure you want to delete "$unitName"? Products using this unit will not be affected.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL")),
+          ElevatedButton(
+            onPressed: () async {
+              final storeId = await FirestoreService().getCurrentStoreId();
+              if (storeId != null) {
+                await FirebaseFirestore.instance
+                    .collection('store')
+                    .doc(storeId)
+                    .collection('units')
+                    .doc(unitName)
+                    .delete();
+              }
+              if (mounted) {
+                // Reset to default if deleted unit was selected
+                if (_selectedStockUnit == unitName) {
+                  setState(() => _selectedStockUnit = 'Piece');
+                }
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Unit "$unitName" deleted'),
+                    backgroundColor: kGoogleGreen,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor),
+            child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+          )
+        ],
+      ),
     );
   }
 
