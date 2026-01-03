@@ -59,7 +59,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           pw.Text("QUOTATION", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(0xFF2F7CF6))),
           pw.SizedBox(height: 10),
           pw.Text("From: $businessName"),
-          pw.Text("Client: ${widget.customerName ?? 'Walk-in'}"),
+          pw.Text("Client: ${widget.customerName ?? 'Guest'}"),
           pw.Divider(),
           pw.Text("Total Payable: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
         ]);

@@ -583,28 +583,31 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       final item = _sharedCartItems![idx];
                       final bool isHighlighted = item.productId == _highlightedProductId;
 
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 400),
-                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
-                        decoration: BoxDecoration(
-                          color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              flex: 4,
-                              child: Row(
-                                children: [
-                                  Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                  const SizedBox(width: 4),
-                                  GestureDetector(onTap: () => _showEditCartItemDialog(idx), child: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 20)),
-                                ],
+                      return GestureDetector(
+                        onTap: () => _showEditCartItemDialog(idx),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
+                          decoration: BoxDecoration(
+                            color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Row(
+                                  children: [
+                                    Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.edit, color: kPrimaryColor, size: 20),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87))),
-                            Expanded(flex: 2, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600))),
-                            Expanded(flex: 2, child: Text(item.total.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14))),
-                          ],
+                              Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87))),
+                              Expanded(flex: 2, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600))),
+                              Expanded(flex: 2, child: Text(item.total.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14))),
+                            ],
+                          ),
                         ),
                       );
                     },

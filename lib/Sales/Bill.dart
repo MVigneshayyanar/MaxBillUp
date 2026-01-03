@@ -161,6 +161,7 @@ class _BillPageState extends State<BillPage> {
           customerGST: _selectedCustomerGST,
           discountAmount: _discountAmount,
           creditNote: _creditNote,
+          customNote: _notesController.text.trim(),
           savedOrderId: widget.savedOrderId,
           selectedCreditNotes: _selectedCreditNotes,
           quotationId: widget.quotationId,
@@ -183,6 +184,7 @@ class _BillPageState extends State<BillPage> {
           customerGST: _selectedCustomerGST,
           discountAmount: _discountAmount,
           creditNote: _creditNote,
+          customNote: _notesController.text.trim(),
           savedOrderId: widget.savedOrderId,
           selectedCreditNotes: _selectedCreditNotes,
           quotationId: widget.quotationId,
@@ -248,6 +250,64 @@ class _BillPageState extends State<BillPage> {
     final nameController = TextEditingController(text: item.name);
     final priceController = TextEditingController(text: item.price.toString());
     final qtyController = TextEditingController(text: item.quantity.toString());
+
+    // Debug: Log item tax info
+    debugPrint('🔍 Edit Dialog - Item Tax Info:');
+    debugPrint('   taxName: ${item.taxName}');
+    debugPrint('   taxPercentage: ${item.taxPercentage}');
+    debugPrint('   taxType: ${item.taxType}');
+
+    // Fetch available taxes
+    List<Map<String, dynamic>> availableTaxes = [];
+    try {
+      final taxesSnapshot = await FirestoreService().getStoreCollection('taxes').then((col) => col.get());
+      availableTaxes = taxesSnapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? 'Tax',
+          'percentage': (data['percentage'] ?? 0).toDouble(),
+        };
+      }).toList();
+      debugPrint('📋 Available taxes: ${availableTaxes.length}');
+      for (var tax in availableTaxes) {
+        debugPrint('   - ${tax['name']} (${tax['percentage']}%) [ID: ${tax['id']}]');
+      }
+    } catch (e) {
+      debugPrint('❌ Error fetching taxes: $e');
+    }
+
+    // Current tax selection - find matching tax by name and percentage
+    String? selectedTaxId;
+    if (item.taxName != null && item.taxPercentage != null) {
+      debugPrint('🔎 Searching for tax: ${item.taxName} with ${item.taxPercentage}%');
+      try {
+        final matchingTax = availableTaxes.firstWhere(
+          (tax) {
+            final nameMatch = tax['name'] == item.taxName;
+            // Handle both integer and double percentages
+            final taxPercentage = (tax['percentage'] as num).toDouble();
+            final itemPercentage = item.taxPercentage!.toDouble();
+            final percentageMatch = (taxPercentage - itemPercentage).abs() < 0.01; // Allow small floating point differences
+            debugPrint('   Checking: ${tax['name']} (${tax['percentage']}%) - nameMatch: $nameMatch, percentageMatch: $percentageMatch');
+            return nameMatch && percentageMatch;
+          },
+        );
+        selectedTaxId = matchingTax['id'] as String?;
+        debugPrint('✅ Found matching tax: ${matchingTax['name']} [ID: $selectedTaxId]');
+      } catch (e) {
+        // No matching tax found, will show as "No Tax"
+        debugPrint('❌ No matching tax found for ${item.taxName} ${item.taxPercentage}%');
+        debugPrint('   Error: $e');
+        selectedTaxId = null;
+      }
+    } else {
+      debugPrint('ℹ️ Item has no tax (taxName or taxPercentage is null)');
+    }
+
+    // Tax type
+    String selectedTaxType = item.taxType ?? 'Price is without Tax';
+    final taxTypes = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
 
     await showDialog(
       context: context,
@@ -350,6 +410,140 @@ class _BillPageState extends State<BillPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  // Tax Options - Show different UI based on whether tax is present
+                  if (selectedTaxId != null) ...[
+                    // Product has tax - Show option to deselect
+                    _buildDialogLabel('Tax Applied'),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: kGreyBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGrey200),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  availableTaxes.firstWhere(
+                                    (tax) => tax['id'] == selectedTaxId,
+                                    orElse: () => {'name': 'Tax', 'percentage': 0},
+                                  )['name'] ?? 'Tax',
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${availableTaxes.firstWhere(
+                                    (tax) => tax['id'] == selectedTaxId,
+                                    orElse: () => {'name': 'Tax', 'percentage': 0},
+                                  )['percentage']}%',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              setDialogState(() => selectedTaxId = null);
+                            },
+                            icon: const Icon(Icons.close, size: 16, color: kErrorColor),
+                            label: const Text('Remove Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kErrorColor)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDialogLabel('Tax Type'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: kGreyBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGrey200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: selectedTaxType,
+                          isExpanded: true,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87),
+                          items: taxTypes.map((type) {
+                            return DropdownMenuItem<String>(
+                              value: type,
+                              child: Text(type),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setDialogState(() => selectedTaxType = value);
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    // Product has no tax - Show option to add tax
+                    _buildDialogLabel('Tax'),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: kGreyBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kGrey200),
+                      ),
+                      child: Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'No tax applied',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack54),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              // Show tax selection dialog
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  title: const Text('Select Tax', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: availableTaxes.map((tax) {
+                                      return ListTile(
+                                        contentPadding: EdgeInsets.zero,
+                                        title: Text(tax['name'], style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        subtitle: Text('${tax['percentage']}%', style: const TextStyle(fontSize: 12)),
+                                        onTap: () {
+                                          setDialogState(() {
+                                            selectedTaxId = tax['id'];
+                                            selectedTaxType = 'Price is without Tax'; // Default tax type
+                                          });
+                                          Navigator.pop(ctx);
+                                        },
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add_circle_outline, size: 16, color: kPrimaryColor),
+                            label: const Text('Add Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kPrimaryColor)),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
                 ],
               ),
             ),
@@ -375,7 +569,22 @@ class _BillPageState extends State<BillPage> {
                         Navigator.of(context).pop();
                         _removeCartItem(idx);
                       } else {
-                        _updateCartItem(idx, newName, newPrice, newQty);
+                        // Get tax details
+                        String? taxName;
+                        double? taxPercentage;
+                        String? taxType;
+
+                        if (selectedTaxId != null) {
+                          final selectedTax = availableTaxes.firstWhere(
+                            (tax) => tax['id'] == selectedTaxId,
+                            orElse: () => {},
+                          );
+                          taxName = selectedTax['name'];
+                          taxPercentage = selectedTax['percentage'];
+                          taxType = selectedTaxType;
+                        }
+
+                        _updateCartItemWithTax(idx, newName, newPrice, newQty, taxName, taxPercentage, taxType);
                         Navigator.of(context).pop();
                       }
                     },
@@ -441,6 +650,29 @@ class _BillPageState extends State<BillPage> {
     );
 
     // Update in CartService - Provider will notify listeneautomatically
+    final updatedItems = List<CartItem>.from(cartItems);
+    updatedItems[idx] = updatedItem;
+    cartService.updateCart(updatedItems);
+  }
+
+  void _updateCartItemWithTax(int idx, String newName, double newPrice, int newQty, String? taxName, double? taxPercentage, String? taxType) {
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    if (idx < 0 || idx >= cartItems.length) return;
+
+    final item = cartItems[idx];
+    final updatedItem = CartItem(
+      productId: item.productId,
+      name: newName,
+      price: newPrice,
+      quantity: newQty,
+      taxName: taxName,
+      taxPercentage: taxPercentage,
+      taxType: taxType,
+    );
+
+    // Update in CartService - Provider will notify listeners automatically
     final updatedItems = List<CartItem>.from(cartItems);
     updatedItems[idx] = updatedItem;
     cartService.updateCart(updatedItems);
@@ -1164,11 +1396,11 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 // 3. PAYMENT PAGE
 // ==========================================
 class PaymentPage extends StatefulWidget {
-  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
+  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
 
-  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<PaymentPage> createState() => _PaymentPageState();
 }
 
@@ -1211,7 +1443,7 @@ class _PaymentPageState extends State<PaymentPage> {
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
-        'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
       if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber);
@@ -1229,7 +1461,7 @@ class _PaymentPageState extends State<PaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived, customerName: widget.customerName, customerPhone: widget.customerPhone)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived, customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
@@ -1278,11 +1510,11 @@ class _PaymentPageState extends State<PaymentPage> {
 // 4. SPLIT PAYMENT PAGE
 // ==========================================
 class SplitPaymentPage extends StatefulWidget {
-  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
+  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
 
-  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<SplitPaymentPage> createState() => _SplitPaymentPageState();
 }
 
@@ -1321,7 +1553,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
-        'paymentMode': 'Split', 'cashReceived': _totalPaid - _creditAmount, 'cashReceived_split': _cashAmount, 'onlineReceived_split': _onlineAmount, 'creditIssued_split': _creditAmount, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'paymentMode': 'Split', 'cashReceived': _totalPaid - _creditAmount, 'cashReceived_split': _cashAmount, 'onlineReceived_split': _onlineAmount, 'creditIssued_split': _creditAmount, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
       if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber);
@@ -1345,7 +1577,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount, customerName: widget.customerName, customerPhone: widget.customerPhone)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount, customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }

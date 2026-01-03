@@ -814,7 +814,7 @@ class DayBookPage extends StatelessWidget {
                                 return ListTile(
                                   contentPadding: EdgeInsets.zero,
                                   leading: CircleAvatar(backgroundColor: kBackgroundColor, child: Icon(Icons.receipt_long, size: 18, color: kTextSecondary)),
-                                  title: Text(docData['customerName'] ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                                  title: Text(docData['customerName'] ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                                   subtitle: Text("#${docData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontSize: 12, color: kTextSecondary)),
                                   trailing: Text("${saleTotal.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15)),
                                 );
@@ -1024,7 +1024,7 @@ class FullSalesHistoryPage extends StatelessWidget {
                         decoration: BoxDecoration(color: kSurfaceColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: kBorderColor)),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          title: Text(d['customerName'] ?? 'Walk-in', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          title: Text(d['customerName'] ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                           subtitle: Text(dateStr, style: const TextStyle(fontSize: 12, color: kTextSecondary)),
                           trailing: Text("${d['total']}", style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryColor, fontSize: 15)),
                         ),

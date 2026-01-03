@@ -381,7 +381,9 @@ class BusinessDetailsPage extends StatefulWidget {
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _gstCtrl = TextEditingController(), _licenseCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
+  final _taxTypeCtrl = TextEditingController(), _taxNumberCtrl = TextEditingController();
+  final _licenseTypeCtrl = TextEditingController(), _licenseNumberCtrl = TextEditingController();
   final _locationFocusNode = FocusNode();
   bool _editing = false, _loading = false, _fetching = true, _uploadingImage = false;
   String? _logoUrl;
@@ -410,8 +412,33 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final data = widget.initialStoreData!;
       _nameCtrl.text = data['businessName'] ?? '';
       _phoneCtrl.text = data['businessPhone'] ?? '';
-      _gstCtrl.text = data['gstin'] ?? '';
-      _licenseCtrl.text = data['licenseNumber'] ?? '';
+
+      // Split taxType into type and number (format: "Type Number")
+      final taxType = data['taxType'] ?? data['gstin'] ?? '';
+      if (taxType.isNotEmpty) {
+        final taxParts = taxType.toString().split(' ');
+        if (taxParts.length > 1) {
+          _taxTypeCtrl.text = taxParts[0];
+          _taxNumberCtrl.text = taxParts.sublist(1).join(' ');
+        } else {
+          _taxTypeCtrl.text = '';
+          _taxNumberCtrl.text = taxType;
+        }
+      }
+
+      // Split licenseNumber into type and number (format: "Type Number")
+      final licenseNumber = data['licenseNumber'] ?? '';
+      if (licenseNumber.isNotEmpty) {
+        final licenseParts = licenseNumber.toString().split(' ');
+        if (licenseParts.length > 1) {
+          _licenseTypeCtrl.text = licenseParts[0];
+          _licenseNumberCtrl.text = licenseParts.sublist(1).join(' ');
+        } else {
+          _licenseTypeCtrl.text = '';
+          _licenseNumberCtrl.text = licenseNumber;
+        }
+      }
+
       _selectedCurrency = data['currency'] ?? 'INR';
       _locCtrl.text = data['businessLocation'] ?? '';
       _ownerCtrl.text = data['ownerName'] ?? '';
@@ -424,11 +451,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     }
 
     _loadData();
-    _gstCtrl.addListener(() => setState(() {}));
   }
 
   @override
-  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _gstCtrl.dispose(); _licenseCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
+  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
 
   Future<void> _loadData() async {
     try {
@@ -439,8 +465,33 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         setState(() {
           _nameCtrl.text = data['businessName'] ?? '';
           _phoneCtrl.text = data['businessPhone'] ?? '';
-          _gstCtrl.text = data['gstin'] ?? '';
-          _licenseCtrl.text = data['licenseNumber'] ?? '';
+
+          // Split taxType into type and number (format: "Type Number")
+          final taxType = data['taxType'] ?? data['gstin'] ?? '';
+          if (taxType.isNotEmpty) {
+            final taxParts = taxType.toString().split(' ');
+            if (taxParts.length > 1) {
+              _taxTypeCtrl.text = taxParts[0];
+              _taxNumberCtrl.text = taxParts.sublist(1).join(' ');
+            } else {
+              _taxTypeCtrl.text = '';
+              _taxNumberCtrl.text = taxType;
+            }
+          }
+
+          // Split licenseNumber into type and number (format: "Type Number")
+          final licenseNumber = data['licenseNumber'] ?? '';
+          if (licenseNumber.isNotEmpty) {
+            final licenseParts = licenseNumber.toString().split(' ');
+            if (licenseParts.length > 1) {
+              _licenseTypeCtrl.text = licenseParts[0];
+              _licenseNumberCtrl.text = licenseParts.sublist(1).join(' ');
+            } else {
+              _licenseTypeCtrl.text = '';
+              _licenseNumberCtrl.text = licenseNumber;
+            }
+          }
+
           _selectedCurrency = data['currency'] ?? 'INR';
           _locCtrl.text = data['businessLocation'] ?? '';
           _ownerCtrl.text = data['ownerName'] ?? '';
@@ -519,12 +570,18 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     try {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId != null) {
+        // Combine tax type and number into single field
+        final taxType = '${_taxTypeCtrl.text.trim()} ${_taxNumberCtrl.text.trim()}'.trim();
+        // Combine license type and number into single field
+        final licenseNumber = '${_licenseTypeCtrl.text.trim()} ${_licenseNumberCtrl.text.trim()}'.trim();
+
         await FirebaseFirestore.instance.collection('store').doc(storeId).set({
           'businessName': _nameCtrl.text.trim(),
           'businessPhone': _phoneCtrl.text.trim(),
           'email': _emailCtrl.text.trim(),
-          'gstin': _gstCtrl.text.trim(),
-          'licenseNumber': _licenseCtrl.text.trim(),
+          'taxType': taxType,
+          'gstin': taxType,
+          'licenseNumber': licenseNumber,
           'currency': _selectedCurrency,
           'businessLocation': _locCtrl.text.trim(),
           'ownerName': _ownerCtrl.text.trim(),
@@ -580,8 +637,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 _buildSectionLabel("IDENTITY & TAX"),
                 _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, enabled: _editing, isMandatory: true),
                 _buildLocationField(),
-                _buildModernField("Tax/GST Number", _gstCtrl, Icons.receipt_long_rounded, enabled: _editing),
-                _buildModernField("License Number", _licenseCtrl, Icons.badge_rounded, enabled: _editing),
+                _buildDualFieldRow("Tax Type", _taxTypeCtrl, "Tax Number", _taxNumberCtrl, Icons.receipt_long_rounded),
+                _buildDualFieldRow("License Type", _licenseTypeCtrl, "License Number", _licenseNumberCtrl, Icons.badge_rounded),
                 _buildCurrencyField(),
                 const SizedBox(height: 24),
                 _buildSectionLabel("CONTACT & OWNERSHIP"),
@@ -600,6 +657,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0))));
 
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false}) {
+    final hasValue = ctrl.text.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
@@ -609,9 +667,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           labelText: label,
           prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kGrey400, size: 18),
           filled: true, fillColor: enabled ? kWhite : kGreyBg.withOpacity(0.5),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
           floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
         ),
         validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
@@ -619,7 +677,58 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     );
   }
 
+  Widget _buildDualFieldRow(String label1, TextEditingController ctrl1, String label2, TextEditingController ctrl2, IconData icon) {
+    final hasValue1 = ctrl1.text.isNotEmpty;
+    final hasValue2 = ctrl2.text.isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          // Type field (smaller, with icon)
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: ctrl1,
+              enabled: _editing,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+              decoration: InputDecoration(
+                labelText: label1,
+                prefixIcon: Icon(icon, color: _editing ? kPrimaryColor : kGrey400, size: 18),
+                filled: true,
+                fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue1 ? kPrimaryColor : kGrey200, width: hasValue1 ? 1.5 : 1)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+                disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue1 ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
+                floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Number field (larger, no icon)
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              controller: ctrl2,
+              enabled: _editing,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+              decoration: InputDecoration(
+                labelText: label2,
+                filled: true,
+                fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue2 ? kPrimaryColor : kGrey200, width: hasValue2 ? 1.5 : 1)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+                disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue2 ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
+                floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildLocationField() {
+    final hasValue = _locCtrl.text.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: AbsorbPointer(
@@ -638,7 +747,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kGrey200),
+              borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -649,7 +758,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kGrey200),
+              borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200),
             ),
             floatingLabelStyle: const TextStyle(
               color: kPrimaryColor,
@@ -664,13 +773,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   Widget _buildCurrencyField() {
     final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
+    final hasValue = _selectedCurrency.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
         onTap: _editing ? _showCurrencyPicker : null,
         child: Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: _editing ? kWhite : kGreyBg.withOpacity(0.5), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+          decoration: BoxDecoration(color: _editing ? kWhite : kGreyBg.withOpacity(0.5), borderRadius: BorderRadius.circular(12), border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
           child: Row(
             children: [
               const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 18),

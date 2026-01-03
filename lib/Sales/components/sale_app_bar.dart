@@ -71,7 +71,7 @@ class SaleAppBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: kGreyBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: kGrey200, width: 1),
+                border: Border.all(color: kPrimaryColor, width: 1),
               ),
               child: Stack(
                 children: [

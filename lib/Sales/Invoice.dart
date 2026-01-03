@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
@@ -11,11 +12,12 @@ import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:path_provider/path_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 
@@ -103,9 +105,14 @@ class InvoicePage extends StatefulWidget {
   State<InvoicePage> createState() => _InvoicePageState();
 }
 
-class _InvoicePageState extends State<InvoicePage> {
+class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin {
   bool _isLoading = true;
   String? _storeId;
+
+  // Celebration animation
+  late AnimationController _celebrationController;
+  bool _showCelebration = true;
+  final List<_Confetti> _confettiParticles = [];
 
   late String businessName;
   late String businessLocation;
@@ -157,9 +164,20 @@ class _InvoicePageState extends State<InvoicePage> {
     _loadReceiptSettings();
     _loadTemplatePreference();
 
+    // Initialize celebration animation
+    _celebrationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3000),
+    );
+
+    // Generate confetti particles
+    _generateConfetti();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         context.read<CartService>().clearCart();
+        // Start celebration effects
+        _startCelebration();
       }
     });
 
@@ -183,7 +201,43 @@ class _InvoicePageState extends State<InvoicePage> {
   @override
   void dispose() {
     _storeDataSubscription?.cancel();
+    _celebrationController.dispose();
     super.dispose();
+  }
+
+  void _generateConfetti() {
+    final random = Random();
+    for (int i = 0; i < 50; i++) {
+      _confettiParticles.add(_Confetti(
+        x: random.nextDouble(),
+        y: random.nextDouble() * -1, // Start above screen
+        color: [kPrimaryColor, kOrange, kGoogleGreen, Colors.purple, Colors.pink, Colors.amber][random.nextInt(6)],
+        size: random.nextDouble() * 8 + 4,
+        speed: random.nextDouble() * 0.5 + 0.3,
+        rotation: random.nextDouble() * 360,
+      ));
+    }
+  }
+
+  Future<void> _startCelebration() async {
+    // Vibration feedback - short burst pattern
+    await HapticFeedback.mediumImpact();
+    await Future.delayed(const Duration(milliseconds: 100));
+    await HapticFeedback.lightImpact();
+    await Future.delayed(const Duration(milliseconds: 100));
+    await HapticFeedback.mediumImpact();
+
+    // Play success sound using system sound
+    await SystemSound.play(SystemSoundType.click);
+
+    // Start confetti animation
+    _celebrationController.forward();
+
+    // Hide celebration after animation completes
+    await Future.delayed(const Duration(milliseconds: 3000));
+    if (mounted) {
+      setState(() => _showCelebration = false);
+    }
   }
 
   Future<void> _loadTemplatePreference() async {
@@ -297,11 +351,33 @@ class _InvoicePageState extends State<InvoicePage> {
           )
         ],
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: templateColors['primary']))
-          : SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-        child: _buildInvoiceByTemplate(_selectedTemplate, templateColors),
+      body: Stack(
+        children: [
+          _isLoading
+              ? Center(child: CircularProgressIndicator(color: templateColors['primary']))
+              : SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+            child: _buildInvoiceByTemplate(_selectedTemplate, templateColors),
+          ),
+          // Celebration confetti overlay
+          if (_showCelebration)
+            AnimatedBuilder(
+              animation: _celebrationController,
+              builder: (context, child) {
+                return IgnorePointer(
+                  child: CustomPaint(
+                    size: MediaQuery.of(context).size,
+                    painter: _ConfettiPainter(
+                      particles: _confettiParticles,
+                      progress: _celebrationController.value,
+                    ),
+                  ),
+                );
+              },
+            ),
+          // Success checkmark animation
+
+        ],
       ),
       bottomNavigationBar: _buildBottomActionBar(),
     );
@@ -2272,3 +2348,62 @@ class _InvoicePageState extends State<InvoicePage> {
   pw.Widget _pdfHeaderCell(String label, {pw.TextAlign align = pw.TextAlign.center}) => pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(label, textAlign: align, style: pw.TextStyle(fontSize: 7.5, fontWeight: pw.FontWeight.bold, color: PdfColors.grey800)));
   pw.Widget _pdfDataCell(String label, {pw.TextAlign align = pw.TextAlign.center, bool isBold = false, PdfColor? color}) => pw.Padding(padding: const pw.EdgeInsets.all(5), child: pw.Text(label, textAlign: align, style: pw.TextStyle(fontSize: 8, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color ?? PdfColors.black)));
 }
+
+// Confetti particle class for celebration animation
+class _Confetti {
+  double x;
+  double y;
+  final Color color;
+  final double size;
+  final double speed;
+  double rotation;
+
+  _Confetti({
+    required this.x,
+    required this.y,
+    required this.color,
+    required this.size,
+    required this.speed,
+    required this.rotation,
+  });
+}
+
+// Custom painter for confetti animation
+class _ConfettiPainter extends CustomPainter {
+  final List<_Confetti> particles;
+  final double progress;
+
+  _ConfettiPainter({required this.particles, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var particle in particles) {
+      // Update particle position based on progress
+      final y = particle.y + (progress * particle.speed * 3);
+      final x = particle.x + (sin(progress * 10 + particle.rotation) * 0.05);
+
+      // Only draw if particle is visible
+      if (y > 0 && y < 1.2) {
+        final paint = Paint()
+          ..color = particle.color.withOpacity(1.0 - progress * 0.7)
+          ..style = PaintingStyle.fill;
+
+        canvas.save();
+        canvas.translate(x * size.width, y * size.height);
+        canvas.rotate(particle.rotation + progress * 5);
+
+        // Draw rectangle confetti
+        canvas.drawRect(
+          Rect.fromCenter(center: Offset.zero, width: particle.size, height: particle.size * 0.6),
+          paint,
+        );
+
+        canvas.restore();
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) => true;
+}
+
