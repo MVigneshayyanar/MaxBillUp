@@ -20,6 +20,7 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
@@ -176,7 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: context.tr('receipt_customization'),
             icon: Icons.receipt_long_rounded,
             color: const Color(0xFFFF9800),
-            onTap: () => _navigateTo('ReceiptSettings'),
+            onTap: () => _navigateTo('ReceiptCustomization'),
             subtitle: "Invoice templates & format",
           ),
           _buildModernTile(
@@ -207,11 +208,18 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 40),
         ],
       ),
-      bottomNavigationBar: CommonBottomNav(
-        uid: widget.uid,
-        userEmail: widget.userEmail,
-        currentIndex: 4,
-        screenWidth: screenWidth,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Subscription info bar
+          // Main bottom navigation
+          CommonBottomNav(
+            uid: widget.uid,
+            userEmail: widget.userEmail,
+            currentIndex: 4,
+            screenWidth: screenWidth,
+          ),
+        ],
       ),
     );
   }
@@ -221,12 +229,24 @@ class _SettingsPageState extends State<SettingsPage> {
     final email = _userData?['email'] ?? widget.userEmail ?? '';
     final logoUrl = _storeData?['logoUrl'] ?? '';
 
-    final planProvider = Provider.of<PlanProvider>(context);
-    return FutureBuilder<String>(
-      future: planProvider.getCurrentPlan(),
-      builder: (context, snapshot) {
-        final plan = snapshot.data ?? 'Free';
+    // Use Consumer to automatically rebuild when plan changes
+    return Consumer<PlanProvider>(
+      builder: (context, planProvider, child) {
+        // Use cached plan for instant access - updates automatically when subscription changes
+        final plan = planProvider.cachedPlan;
         final isPremium = plan.toLowerCase() != 'free' && plan.toLowerCase() != 'starter';
+        final expiryDate = planProvider.cachedExpiryDate;
+        final isExpiringSoon = planProvider.isExpiringSoon;
+        final daysUntilExpiry = planProvider.daysUntilExpiry;
+
+        // Format expiry date
+        String? expiryText;
+        if (isPremium && expiryDate != null) {
+          final day = expiryDate.day.toString().padLeft(2, '0');
+          final month = _getMonthName(expiryDate.month);
+          final year = expiryDate.year;
+          expiryText = '$day $month $year';
+        }
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -278,28 +298,55 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 4),
                     Text(email, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 10),
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.2)),
+                    // Plan badge - clickable to go to subscription page
+                    GestureDetector(
+                      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.2)),
+                                ),
+                                child: Text(plan.toUpperCase(), style: TextStyle(fontSize: 9, color: isPremium ? kGoogleGreen : kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                              ),
+                              if (!isPremium) ...[
+                                const SizedBox(width: 12),
+                                const Text('UPGRADE NOW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5)),
+                              ]
+                            ],
                           ),
-                          child: Text(plan.toUpperCase(), style: TextStyle(fontSize: 9, color: isPremium ? kGoogleGreen : kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                        ),
-                        if (!isPremium) ...[
-                          const SizedBox(width: 12),
-                          InkWell(
-                            onTap: () async {
-                              await Navigator.push(context, CupertinoPageRoute(builder: (context) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan)));
-                              if (mounted) setState(() {});
-                            },
-                            child: const Text('UPGRADE NOW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5)),
-                          ),
-                        ]
-                      ],
+                          // Expiry date - show if premium plan
+                          if (isPremium && expiryText != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                Icon(Icons.event_rounded, size: 12, color: isExpiringSoon ? kErrorColor : kBlack54),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isExpiringSoon
+                                    ? 'Expires in $daysUntilExpiry day${daysUntilExpiry == 1 ? '' : 's'} ($expiryText)'
+                                    : 'Valid till $expiryText',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: isExpiringSoon ? kErrorColor : kBlack54,
+                                    fontWeight: isExpiringSoon ? FontWeight.w700 : FontWeight.w500,
+                                  ),
+                                ),
+                                if (isExpiringSoon) ...[
+                                  const SizedBox(width: 6),
+                                  const Text('RENEW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -310,6 +357,12 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
+
+  String _getMonthName(int month) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[month - 1];
+  }
+
 
   Widget _buildModernTile({required String title, required IconData icon, required Color color, required VoidCallback onTap, String? subtitle}) {
     return Container(
@@ -386,6 +439,20 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _licenseTypeCtrl = TextEditingController(), _licenseNumberCtrl = TextEditingController();
   final _locationFocusNode = FocusNode();
   bool _editing = false, _loading = false, _fetching = true, _uploadingImage = false;
+
+  // Individual field edit states
+  Map<String, bool> _fieldEditStates = {
+    'businessName': false,
+    'location': false,
+    'taxType': false,
+    'taxNumber': false,
+    'licenseType': false,
+    'licenseNumber': false,
+    'currency': false,
+    'ownerName': false,
+    'phoneNumber': false,
+  };
+
   String? _logoUrl;
   File? _selectedImage;
   String _selectedCurrency = 'INR';
@@ -455,6 +522,82 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   @override
   void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
+
+  Future<void> _saveField(String fieldKey) async {
+    // Validate the specific field if needed
+    if (fieldKey == 'businessName' && _nameCtrl.text.trim().isEmpty) {
+      CommonWidgets.showSnackBar(context, 'Business Name is required', bgColor: const Color(0xFFFF5252));
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      final firestoreService = FirestoreService();
+      final storeCollection = await firestoreService.getStoreCollection('settings');
+
+      Map<String, dynamic> updateData = {};
+
+      switch (fieldKey) {
+        case 'businessName':
+          updateData['businessName'] = _nameCtrl.text.trim();
+          break;
+        case 'location':
+          updateData['businessLocation'] = _locCtrl.text.trim();
+          break;
+        case 'taxType':
+        case 'taxNumber':
+          // Save both tax fields together
+          final taxType = _taxTypeCtrl.text.trim();
+          final taxNumber = _taxNumberCtrl.text.trim();
+          final combined = taxType.isNotEmpty && taxNumber.isNotEmpty
+              ? '$taxType $taxNumber'
+              : taxNumber.isNotEmpty ? taxNumber : '';
+          updateData['taxType'] = combined;
+          updateData['gstin'] = combined;
+          break;
+        case 'licenseType':
+        case 'licenseNumber':
+          // Save both license fields together
+          final licenseType = _licenseTypeCtrl.text.trim();
+          final licenseNumber = _licenseNumberCtrl.text.trim();
+          final combined = licenseType.isNotEmpty && licenseNumber.isNotEmpty
+              ? '$licenseType $licenseNumber'
+              : licenseNumber.isNotEmpty ? licenseNumber : '';
+          updateData['licenseNumber'] = combined;
+          break;
+        case 'currency':
+          updateData['currency'] = _selectedCurrency;
+          break;
+        case 'ownerName':
+          updateData['ownerName'] = _ownerCtrl.text.trim();
+          break;
+        case 'phoneNumber':
+          updateData['businessPhone'] = _phoneCtrl.text.trim();
+          break;
+      }
+
+      if (updateData.isNotEmpty) {
+        await storeCollection.doc('profile').set(updateData, SetOptions(merge: true));
+
+        // Update local state
+        setState(() {
+          _fieldEditStates[fieldKey] = false;
+          // If saving tax or license fields, disable both related fields
+          if (fieldKey == 'taxType') _fieldEditStates['taxNumber'] = false;
+          if (fieldKey == 'taxNumber') _fieldEditStates['taxType'] = false;
+          if (fieldKey == 'licenseType') _fieldEditStates['licenseNumber'] = false;
+          if (fieldKey == 'licenseNumber') _fieldEditStates['licenseType'] = false;
+        });
+
+        CommonWidgets.showSnackBar(context, 'Updated successfully', bgColor: const Color(0xFF4CAF50));
+      }
+    } catch (e) {
+      CommonWidgets.showSnackBar(context, 'Error: ${e.toString()}', bgColor: const Color(0xFFFF5252));
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
 
   Future<void> _loadData() async {
     try {
@@ -598,20 +741,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
-      onPopInvoked: (bool didPop) { if (!didPop) { if (_editing) setState(() => _editing = false); else widget.onBack(); } },
+      onPopInvoked: (bool didPop) { if (!didPop) { widget.onBack(); } },
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
           title: const Text("Business Profile", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => _editing ? setState(() => _editing = false) : widget.onBack()),
-          actions: [
-            if (!_fetching)
-              _loading
-                  ? const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
-                  : IconButton(icon: Icon(_editing ? Icons.check_circle_rounded : Icons.edit_note_rounded, color: kWhite, size: 28), onPressed: () => _editing ? _save() : setState(() => _editing = true))
-          ],
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => widget.onBack()),
         ),
         body: _fetching ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -631,20 +768,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                           : const Icon(Icons.add_business_rounded, size: 40, color: kGrey400),
                     ),
                   ),
-                  if (_editing) Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _uploadingImage ? null : _pickImage, child: Container(width: 34, height: 34, decoration: BoxDecoration(color: kPrimaryColor, shape: BoxShape.circle, border: Border.all(color: kWhite, width: 2)), child: _uploadingImage ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)))),
+                  Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _uploadingImage ? null : _pickImage, child: Container(width: 34, height: 34, decoration: BoxDecoration(color: kPrimaryColor, shape: BoxShape.circle, border: Border.all(color: kWhite, width: 2)), child: _uploadingImage ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)))),
                 ])),
                 const SizedBox(height: 24),
                 _buildSectionLabel("IDENTITY & TAX"),
-                _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, enabled: _editing, isMandatory: true),
+                _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, isMandatory: true, fieldKey: 'businessName'),
                 _buildLocationField(),
-                _buildDualFieldRow("Tax Type", _taxTypeCtrl, "Tax Number", _taxNumberCtrl, Icons.receipt_long_rounded),
-                _buildDualFieldRow("License Type", _licenseTypeCtrl, "License Number", _licenseNumberCtrl, Icons.badge_rounded),
+                _buildModernFieldWithHint("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "VAT, GST, Sales Tax", fieldKey: 'taxType'),
+                _buildModernFieldWithHint("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number", fieldKey: 'taxNumber'),
+                _buildModernFieldWithHint("License Type", _licenseTypeCtrl, Icons.badge_rounded, hint: "Business License, Trade License", fieldKey: 'licenseType'),
+                _buildModernFieldWithHint("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number", fieldKey: 'licenseNumber'),
                 _buildCurrencyField(),
                 const SizedBox(height: 24),
                 _buildSectionLabel("CONTACT & OWNERSHIP"),
-                _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded, enabled: _editing),
-                _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, enabled: _editing, type: TextInputType.phone),
-                _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false),
+                _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded, fieldKey: 'ownerName'),
+                _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, fieldKey: 'phoneNumber'),
+                _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false, showEditIcon: false),
                 const SizedBox(height: 40),
               ],
             ),
@@ -656,17 +795,100 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0))));
 
-  Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false}) {
+  Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? fieldKey, bool showEditIcon = true}) {
     final hasValue = ctrl.text.isNotEmpty;
+    final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
+    final canEdit = showEditIcon && fieldKey != null;
+
+    // If field has edit button, use readOnly to control editing
+    // If field has no edit button, use the enabled parameter
+    final isFieldEnabled = canEdit ? true : enabled;
+    final isReadOnly = canEdit ? !isEditing : !enabled;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextFormField(
-        controller: ctrl, enabled: enabled, keyboardType: type,
+        controller: ctrl,
+        enabled: isFieldEnabled,
+        readOnly: isReadOnly,
+        keyboardType: type,
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kGrey400, size: 18),
-          filled: true, fillColor: enabled ? kWhite : kGreyBg.withOpacity(0.5),
+          prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
+          suffixIcon: canEdit ? IconButton(
+            icon: Icon(
+              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
+              color: isEditing ? kGoogleGreen : kPrimaryColor,
+              size: 20,
+            ),
+            onPressed: () {
+              if (isEditing) {
+                // Save the field
+                _saveField(fieldKey!);
+              } else {
+                // Enable editing for this field
+                setState(() {
+                  _fieldEditStates[fieldKey!] = true;
+                });
+              }
+            },
+          ) : null,
+          filled: true,
+          fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
+          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+        ),
+        validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
+      ),
+    );
+  }
+
+  Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint, String? fieldKey, bool showEditIcon = true}) {
+    final hasValue = ctrl.text.isNotEmpty;
+    final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
+    final canEdit = showEditIcon && fieldKey != null;
+
+    // If field has edit button, use readOnly to control editing
+    // If field has no edit button, use the enabled parameter
+    final isFieldEnabled = canEdit ? true : enabled;
+    final isReadOnly = canEdit ? !isEditing : !enabled;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: TextFormField(
+        controller: ctrl,
+        enabled: isFieldEnabled,
+        readOnly: isReadOnly,
+        keyboardType: type,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+        decoration: InputDecoration(
+          labelText: label,
+          hintText: hint,
+          hintStyle: const TextStyle(fontSize: 12, color: kGrey400, fontWeight: FontWeight.w400),
+          prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
+          suffixIcon: canEdit ? IconButton(
+            icon: Icon(
+              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
+              color: isEditing ? kGoogleGreen : kPrimaryColor,
+              size: 20,
+            ),
+            onPressed: () {
+              if (isEditing) {
+                // Save the field
+                _saveField(fieldKey!);
+              } else {
+                // Enable editing for this field
+                setState(() {
+                  _fieldEditStates[fieldKey!] = true;
+                });
+              }
+            },
+          ) : null,
+          filled: true,
+          fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
           disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
@@ -729,41 +951,57 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   Widget _buildLocationField() {
     final hasValue = _locCtrl.text.isNotEmpty;
+    final isEditing = _fieldEditStates['location'] ?? false;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: AbsorbPointer(
-        absorbing: !_editing,
-        child: TextField(
-          controller: _locCtrl,
-          focusNode: _locationFocusNode,
-          decoration: InputDecoration(
-            labelText: "Location",
-            prefixIcon: const Icon(
-              Icons.location_on_rounded,
+      child: TextField(
+        controller: _locCtrl,
+        focusNode: _locationFocusNode,
+        readOnly: !isEditing,
+        decoration: InputDecoration(
+          labelText: "Location",
+          prefixIcon: Icon(
+            Icons.location_on_rounded,
+            color: isEditing ? kPrimaryColor : kGrey400,
+            size: 18,
+          ),
+          suffixIcon: IconButton(
+            icon: Icon(
+              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
+              color: isEditing ? kGoogleGreen : kPrimaryColor,
+              size: 20,
+            ),
+            onPressed: () {
+              if (isEditing) {
+                _saveField('location');
+              } else {
+                setState(() {
+                  _fieldEditStates['location'] = true;
+                });
+              }
+            },
+          ),
+          filled: true,
+          fillColor: isEditing ? kWhite : kGreyBg.withOpacity(0.5),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(
               color: kPrimaryColor,
-              size: 18,
+              width: 1.5,
             ),
-            filled: true,
-            fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(
-                color: kPrimaryColor,
-                width: 1.5,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200),
-            ),
-            floatingLabelStyle: const TextStyle(
-              color: kPrimaryColor,
-              fontWeight: FontWeight.w800,
-            ),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200),
+          ),
+          floatingLabelStyle: const TextStyle(
+            color: kPrimaryColor,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ),
@@ -774,19 +1012,48 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildCurrencyField() {
     final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
     final hasValue = _selectedCurrency.isNotEmpty;
+    final isEditing = _fieldEditStates['currency'] ?? false;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
-        onTap: _editing ? _showCurrencyPicker : null,
+        onTap: isEditing ? _showCurrencyPicker : null,
         child: Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: _editing ? kWhite : kGreyBg.withOpacity(0.5), borderRadius: BorderRadius.circular(12), border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
+          decoration: BoxDecoration(
+            color: isEditing ? kWhite : kGreyBg.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)
+          ),
           child: Row(
             children: [
-              const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 18),
+              Icon(Icons.currency_exchange_rounded, color: isEditing ? kPrimaryColor : kGrey400, size: 18),
               const SizedBox(width: 12),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Business Currency", style: TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w800)), Text("${sel['symbol']} ${sel['code']} - ${sel['name']}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87))])),
-              if (_editing) const Icon(Icons.expand_more_rounded, color: kGrey400),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Business Currency", style: TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w800)),
+                    Text("${sel['symbol']} ${sel['code']} - ${sel['name']}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87))
+                  ]
+                )
+              ),
+              IconButton(
+                icon: Icon(
+                  isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
+                  color: isEditing ? kGoogleGreen : kPrimaryColor,
+                  size: 20,
+                ),
+                onPressed: () {
+                  if (isEditing) {
+                    _saveField('currency');
+                  } else {
+                    setState(() {
+                      _fieldEditStates['currency'] = true;
+                    });
+                  }
+                },
+              ),
             ],
           ),
         ),
@@ -800,7 +1067,12 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Column(children: [
         const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
         const SizedBox(height: 16),
-        Expanded(child: ListView.separated(itemCount: _currencies.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(onTap: () { setState(() => _selectedCurrency = _currencies[i]['code']!); Navigator.pop(context); }, leading: Text(_currencies[i]['symbol']!, style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryColor)), title: Text(_currencies[i]['name']!, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: _selectedCurrency == _currencies[i]['code'] ? const Icon(Icons.check_circle, color: kPrimaryColor) : null))),
+        Expanded(child: ListView.separated(itemCount: _currencies.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(onTap: () {
+          setState(() => _selectedCurrency = _currencies[i]['code']!);
+          Navigator.pop(context);
+          // Auto-save when currency is selected
+          _saveField('currency');
+        }, leading: Text(_currencies[i]['symbol']!, style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryColor)), title: Text(_currencies[i]['name']!, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: _selectedCurrency == _currencies[i]['code'] ? const Icon(Icons.check_circle, color: kPrimaryColor) : null))),
       ]),
     ));
   }
@@ -972,98 +1244,207 @@ class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
 // SHARED UI HELPERS (ENTERPRISE FLAT)
 // ==========================================
 class ReceiptSettingsPage extends StatelessWidget {
-  final VoidCallback onBack; final Function(String) onNavigate; final String uid; final String? userEmail;
+  final VoidCallback onBack;
+  final Function(String) onNavigate;
+  final String uid;
+  final String? userEmail;
+
   const ReceiptSettingsPage({super.key, required this.onBack, required this.onNavigate, required this.uid, this.userEmail});
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Receipts", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SettingsTile(title: "Bluetooth Thermal Printer", subtitle: "Connect 58mm & 80mm printers", icon: Icons.print_rounded, onTap: () => onNavigate('PrinterSetup')), _SettingsTile(title: "Invoice Customization", subtitle: "PDF & Template layout settings", icon: Icons.palette_rounded, showDivider: false, onTap: () => onNavigate('ReceiptCustomization'))])]));
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: const Text("RECEIPT SETTINGS", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5)),
+          backgroundColor: kPrimaryColor,
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
+              onPressed: onBack
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Accent
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                decoration: const BoxDecoration(
+                  color: kPrimaryColor,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(32),
+                    bottomRight: Radius.circular(32),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Hub Configuration", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: kWhite)),
+                    const SizedBox(height: 8),
+                    Text("Manage your thermal hardware and aesthetic presentation in one place.",
+                        style: TextStyle(fontSize: 13, color: kWhite.withOpacity(0.8), height: 1.4, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildActionTile(
+                      title: "Design Engine",
+                      description: "Customize templates, branding, and visibility.",
+                      icon: Icons.auto_awesome_mosaic_rounded,
+                      color: Colors.indigo,
+                      onTap: () => onNavigate('ReceiptCustomization'),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildActionTile(
+                      title: "Printer Link",
+                      description: "Manage thermal hardware and Bluetooth link.",
+                      icon: Icons.print_rounded,
+                      color: Colors.blue,
+                      onTap: () => onNavigate('PrinterSetup'),
+                    ),
+
+                    const SizedBox(height: 40),
+                    _buildSectionHeader("OPERATIONAL STATUS"),
+                    const SizedBox(height: 16),
+                    _buildStatusItem("Thermal Engine", "Ready", true),
+                    _buildStatusItem("Cloud Synchronization", "Active", true),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        )
+    );
+  }
+
+  Widget _buildActionTile({required String title, required String description, required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: kGrey200),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 8))
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
+                  const SizedBox(height: 4),
+                  Text(description, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusItem(String label, String status, bool isActive) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack87)),
+          Row(
+            children: [
+              Container(
+                width: 6, height: 6,
+                decoration: BoxDecoration(color: isActive ? Colors.green : Colors.red, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status,
+                style: TextStyle(color: isActive ? Colors.green : Colors.red, fontSize: 11, fontWeight: FontWeight.w800),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 2.0));
+  }
 }
 
 class ReceiptCustomizationPage extends StatefulWidget {
-  final VoidCallback onBack; const ReceiptCustomizationPage({super.key, required this.onBack});
+  final VoidCallback onBack;
+  const ReceiptCustomizationPage({super.key, required this.onBack});
   @override State<ReceiptCustomizationPage> createState() => _ReceiptCustomizationPageState();
 }
 
 class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _saving = false;
-  bool _canUseLogo = false;
   int _selectedTemplateIndex = 0;
 
-  // Expandable sections
-  bool _headerExpanded = true;
-  bool _itemTableExpanded = false;
-  bool _invoiceFooterExpanded = false;
-  bool _quotationFooterExpanded = false;
-
-  // Header Info Settings
-  final _receiptHeaderCtrl = TextEditingController(text: 'INVOICE');
+  final _docTitleCtrl = TextEditingController(text: 'INVOICE');
   bool _showLogo = true;
   bool _showLocation = true;
   bool _showEmail = true;
   bool _showPhone = true;
-  bool _showGST = true;
-  bool _showLicenseNumber = false;
+  bool _showTaxId = true;
 
-  // Item Table Settings
-  bool _showCustomerDetails = true;
-  bool _showMeasuringUnit = true;
+  bool _showCustomer = true;
+  bool _showUnits = true;
   bool _showMRP = false;
-  bool _showPaymentMode = true;
-  bool _showTotalItems = true;
-  bool _showTotalQty = false;
-  bool _showSaveAmountMessage = true;
-
-  // Invoice Footer Settings
-  final _footerDescriptionCtrl = TextEditingController(text: 'Thank you for your business!');
-  String? _footerImageUrl;
-  File? _selectedFooterImage;
-
-  // Quotation Footer Settings
-  final _quotationDescriptionCtrl = TextEditingController(text: 'Thank You');
+  bool _showPayMode = true;
+  bool _showSavings = true;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _checkLogoPermission();
-  }
-
-  @override
-  void dispose() {
-    _receiptHeaderCtrl.dispose();
-    _footerDescriptionCtrl.dispose();
-    _quotationDescriptionCtrl.dispose();
-    super.dispose();
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // Template
       _selectedTemplateIndex = prefs.getInt('invoice_template') ?? 0;
-
-      // Header Info
-      _receiptHeaderCtrl.text = prefs.getString('receipt_header') ?? 'INVOICE';
+      _docTitleCtrl.text = prefs.getString('receipt_header') ?? 'INVOICE';
       _showLogo = prefs.getBool('receipt_show_logo') ?? true;
       _showLocation = prefs.getBool('receipt_show_location') ?? true;
       _showEmail = prefs.getBool('receipt_show_email') ?? true;
       _showPhone = prefs.getBool('receipt_show_phone') ?? true;
-      _showGST = prefs.getBool('receipt_show_gst') ?? true;
-      _showLicenseNumber = prefs.getBool('receipt_show_license') ?? false;
-
-      // Item Table
-      _showCustomerDetails = prefs.getBool('receipt_show_customer_details') ?? true;
-      _showMeasuringUnit = prefs.getBool('receipt_show_measuring_unit') ?? true;
+      _showTaxId = prefs.getBool('receipt_show_gst') ?? true;
+      _showCustomer = prefs.getBool('receipt_show_customer_details') ?? true;
+      _showUnits = prefs.getBool('receipt_show_measuring_unit') ?? true;
       _showMRP = prefs.getBool('receipt_show_mrp') ?? false;
-      _showPaymentMode = prefs.getBool('receipt_show_payment_mode') ?? true;
-      _showTotalItems = prefs.getBool('receipt_show_total_items') ?? true;
-      _showTotalQty = prefs.getBool('receipt_show_total_qty') ?? false;
-      _showSaveAmountMessage = prefs.getBool('receipt_show_save_amount') ?? true;
-
-      // Invoice Footer
-      _footerDescriptionCtrl.text = prefs.getString('receipt_footer_description') ?? 'Thank you for your business!';
-      _footerImageUrl = prefs.getString('receipt_footer_image');
-
-      // Quotation Footer
-      _quotationDescriptionCtrl.text = prefs.getString('quotation_footer_description') ?? 'Thank You';
+      _showPayMode = prefs.getBool('receipt_show_payment_mode') ?? true;
+      _showSavings = prefs.getBool('receipt_show_save_amount') ?? true;
     });
   }
 
@@ -1071,425 +1452,218 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     setState(() => _saving = true);
     final prefs = await SharedPreferences.getInstance();
 
-    // Template
     await prefs.setInt('invoice_template', _selectedTemplateIndex);
-
-    // Header Info
-    await prefs.setString('receipt_header', _receiptHeaderCtrl.text);
+    await prefs.setString('receipt_header', _docTitleCtrl.text);
     await prefs.setBool('receipt_show_logo', _showLogo);
     await prefs.setBool('receipt_show_location', _showLocation);
     await prefs.setBool('receipt_show_email', _showEmail);
     await prefs.setBool('receipt_show_phone', _showPhone);
-    await prefs.setBool('receipt_show_gst', _showGST);
-    await prefs.setBool('receipt_show_license', _showLicenseNumber);
-
-    // Item Table
-    await prefs.setBool('receipt_show_customer_details', _showCustomerDetails);
-    await prefs.setBool('receipt_show_measuring_unit', _showMeasuringUnit);
+    await prefs.setBool('receipt_show_gst', _showTaxId);
+    await prefs.setBool('receipt_show_customer_details', _showCustomer);
+    await prefs.setBool('receipt_show_measuring_unit', _showUnits);
     await prefs.setBool('receipt_show_mrp', _showMRP);
-    await prefs.setBool('receipt_show_payment_mode', _showPaymentMode);
-    await prefs.setBool('receipt_show_total_items', _showTotalItems);
-    await prefs.setBool('receipt_show_total_qty', _showTotalQty);
-    await prefs.setBool('receipt_show_save_amount', _showSaveAmountMessage);
+    await prefs.setBool('receipt_show_payment_mode', _showPayMode);
+    await prefs.setBool('receipt_show_save_amount', _showSavings);
 
-    // Invoice Footer
-    await prefs.setString('receipt_footer_description', _footerDescriptionCtrl.text);
-    if (_footerImageUrl != null) {
-      await prefs.setString('receipt_footer_image', _footerImageUrl!);
-    }
-
-    // Quotation Footer
-    await prefs.setString('quotation_footer_description', _quotationDescriptionCtrl.text);
-
-    // Also save to Firestore for sync across devices
-    try {
-      final storeId = await FirestoreService().getCurrentStoreId();
-      if (storeId != null) {
-        await FirebaseFirestore.instance.collection('store').doc(storeId).update({
-          'invoiceSettings': {
-            'template': _selectedTemplateIndex,
-            'header': _receiptHeaderCtrl.text,
-            'showLogo': _showLogo,
-            'showLocation': _showLocation,
-            'showEmail': _showEmail,
-            'showPhone': _showPhone,
-            'showGST': _showGST,
-            'showLicense': _showLicenseNumber,
-            'showCustomerDetails': _showCustomerDetails,
-            'showMeasuringUnit': _showMeasuringUnit,
-            'showMRP': _showMRP,
-            'showPaymentMode': _showPaymentMode,
-            'showTotalItems': _showTotalItems,
-            'showTotalQty': _showTotalQty,
-            'showSaveAmount': _showSaveAmountMessage,
-            'footerDescription': _footerDescriptionCtrl.text,
-            'footerImageUrl': _footerImageUrl,
-            'quotationFooter': _quotationDescriptionCtrl.text,
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint('Error saving to Firestore: $e');
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId != null) {
+      await FirebaseFirestore.instance.collection('store').doc(storeId).update({
+        'invoiceSettings.template': _selectedTemplateIndex,
+        'invoiceSettings.header': _docTitleCtrl.text,
+        'invoiceSettings.showLogo': _showLogo,
+        'invoiceSettings.showLocation': _showLocation,
+        'invoiceSettings.showEmail': _showEmail,
+        'invoiceSettings.showPhone': _showPhone,
+        'invoiceSettings.showGST': _showTaxId,
+        'invoiceSettings.showCustomerDetails': _showCustomer,
+        'invoiceSettings.showMeasuringUnit': _showUnits,
+        'invoiceSettings.showMRP': _showMRP,
+        'invoiceSettings.showPaymentMode': _showPayMode,
+        'invoiceSettings.showSaveAmount': _showSavings,
+      });
     }
 
     setState(() => _saving = false);
     widget.onBack();
   }
 
-  Future<void> _checkLogoPermission() async {
-    final can = await PlanPermissionHelper.canUseLogoOnBill();
-    if (mounted) setState(() => _canUseLogo = can);
-  }
-
-  Future<void> _pickFooterImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (pickedFile != null) {
-      setState(() => _selectedFooterImage = File(pickedFile.path));
-      // Upload to Firebase Storage
-      try {
-        final storeId = await FirestoreService().getCurrentStoreId();
-        if (storeId != null) {
-          final storageRef = FirebaseStorage.instance.ref().child('invoice_footers').child('$storeId.jpg');
-          final uploadTask = await storageRef.putFile(_selectedFooterImage!);
-          final downloadUrl = await uploadTask.ref.getDownloadURL();
-          setState(() => _footerImageUrl = downloadUrl);
-        }
-      } catch (e) {
-        debugPrint('Error uploading footer image: $e');
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final plan = context.watch<PlanProvider>();
+
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: const Text("Thermal Printer", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+        title: const Text("DESIGN ENGINE", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2.0)),
         backgroundColor: kPrimaryColor,
         centerTitle: true,
+        elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
               children: [
-                // Template Style Section
-                _buildSectionLabel("TEMPLATE STYLE"),
+                _buildSectionHeader("AESTHETIC PRESET"),
+                const SizedBox(height: 16),
                 _buildTemplateGrid(),
-                const SizedBox(height: 20),
+                const SizedBox(height: 40),
 
-                // Header Info Section
-                _buildExpandableSection(
-                  title: "Header Info",
-                  isExpanded: _headerExpanded,
-                  onTap: () => setState(() => _headerExpanded = !_headerExpanded),
-                  children: [
-                    _buildTextField(_receiptHeaderCtrl, "Receipt Header"),
-                    const SizedBox(height: 16),
-                    _buildToggleRow("Company Logo", _showLogo, (v) {
-                      if (!_canUseLogo) {
-                        PlanPermissionHelper.showUpgradeDialog(context, 'Logo');
-                        return;
-                      }
-                      setState(() => _showLogo = v);
-                    }),
-                    _buildToggleRow("Location", _showLocation, (v) => setState(() => _showLocation = v)),
-                    _buildToggleRow("Email", _showEmail, (v) => setState(() => _showEmail = v)),
-                    _buildToggleRow("Phone Number", _showPhone, (v) => setState(() => _showPhone = v)),
-                    _buildToggleRow("GST Number", _showGST, (v) => setState(() => _showGST = v)),
-                    _buildToggleRow("License Number", _showLicenseNumber, (v) => setState(() => _showLicenseNumber = v)),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                _buildSettingsSection("Identity & Branding", [
+                  _buildInputField(_docTitleCtrl, "Header Label"),
+                  _buildToggleItem("Include Business Logo", _showLogo, (v) {
+                    if (!plan.canUseLogoOnBill()) {
+                      PlanPermissionHelper.showUpgradeDialog(context, 'Logo');
+                      return;
+                    }
+                    setState(() => _showLogo = v);
+                  }),
+                  _buildToggleItem("Show Business Address", _showLocation, (v) => setState(() => _showLocation = v)),
+                  _buildToggleItem("Show Contact Email", _showEmail, (v) => setState(() => _showEmail = v)),
+                  _buildToggleItem("Show Phone Number", _showPhone, (v) => setState(() => _showPhone = v)),
+                  _buildToggleItem("Show Taxation (GST/VAT)", _showTaxId, (v) => setState(() => _showTaxId = v)),
+                ]),
 
-                // Item Table Section
-                _buildExpandableSection(
-                  title: "Item Table",
-                  isExpanded: _itemTableExpanded,
-                  onTap: () => setState(() => _itemTableExpanded = !_itemTableExpanded),
-                  children: [
-                    _buildToggleRow("Customer Details", _showCustomerDetails, (v) => setState(() => _showCustomerDetails = v)),
-                    _buildToggleRow("Measuring Unit", _showMeasuringUnit, (v) => setState(() => _showMeasuringUnit = v)),
-                    _buildToggleRow("MRP", _showMRP, (v) => setState(() => _showMRP = v)),
-                    _buildToggleRow("Payment Mode", _showPaymentMode, (v) => setState(() => _showPaymentMode = v)),
-                    _buildToggleRow("Total Items", _showTotalItems, (v) => setState(() => _showTotalItems = v)),
-                    _buildToggleRow("Total Qty", _showTotalQty, (v) => setState(() => _showTotalQty = v)),
-                    _buildToggleRow("Customer Save Amount", _showSaveAmountMessage, (v) => setState(() => _showSaveAmountMessage = v)),
-                  ],
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 32),
 
-                // Invoice Footer Section
-                _buildExpandableSection(
-                  title: "Invoice footer",
-                  isExpanded: _invoiceFooterExpanded,
-                  onTap: () => setState(() => _invoiceFooterExpanded = !_invoiceFooterExpanded),
-                  children: [
-                    const Text("Footer Description :", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
-                    const SizedBox(height: 8),
-                    _buildMultilineTextField(_footerDescriptionCtrl, "bill description"),
-                    const SizedBox(height: 16),
-                    const Text("Footer Image :", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
-                    const SizedBox(height: 8),
-                    _buildImagePicker(),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // Quotation Footer Section
-                _buildExpandableSection(
-                  title: "Quotation footer setup",
-                  isExpanded: _quotationFooterExpanded,
-                  onTap: () => setState(() => _quotationFooterExpanded = !_quotationFooterExpanded),
-                  children: [
-                    const Text("Quotation Description", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack54)),
-                    const SizedBox(height: 8),
-                    _buildMultilineTextField(_quotationDescriptionCtrl, "Thank You"),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                _buildSettingsSection("Visibility Controls", [
+                  _buildToggleItem("Customer Information", _showCustomer, (v) => setState(() => _showCustomer = v)),
+                  _buildToggleItem("Measuring Units", _showUnits, (v) => setState(() => _showUnits = v)),
+                  _buildToggleItem("Show MRP Column", _showMRP, (v) => setState(() => _showMRP = v)),
+                  _buildToggleItem("Show Payment Mode", _showPayMode, (v) => setState(() => _showPayMode = v)),
+                  _buildToggleItem("Display Savings Alert", _showSavings, (v) => setState(() => _showSavings = v)),
+                ]),
+                const SizedBox(height: 40),
               ],
             ),
           ),
-          // Update Button
-          SafeArea(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: kWhite,
-                border: Border(top: BorderSide(color: kGrey200)),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveSettings,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _saving ? kGrey400 : kPrimaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    _saving ? "Saving..." : "Update",
-                    style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _buildActionFooter(),
         ],
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 12, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
-  );
+  Widget _buildSectionHeader(String title) {
+    return Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 2.0));
+  }
 
   Widget _buildTemplateGrid() {
-    return Column(children: [
-      _templateTile(0, "Classic Professional", "Black & White professional layout", Icons.article_rounded, kBlack87),
-      const SizedBox(height: 10),
-      _templateTile(1, "Modern Blue", "Clean modern design with blue accents", Icons.receipt_long_rounded, const Color(0xFF2F7CF6)),
-      const SizedBox(height: 10),
-      _templateTile(2, "Minimal Gray", "Minimalist clean design with gray tones", Icons.description_rounded, const Color(0xFF37474F)),
-      const SizedBox(height: 10),
-      _templateTile(3, "Colorful Creative", "Vibrant purple & orange accents", Icons.palette_rounded, const Color(0xFF6A1B9A)),
-    ]);
-  }
+    final items = [
+      {'t': 'Professional', 'c': Colors.black87},
+      {'t': 'Modern Blue', 'c': kPrimaryColor},
+      {'t': 'Minimalist', 'c': Colors.blueGrey},
+      {'t': 'Vibrant', 'c': Colors.indigo},
+    ];
 
-  Widget _templateTile(int idx, String title, String desc, IconData icon, Color color) {
-    bool sel = _selectedTemplateIndex == idx;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedTemplateIndex = idx),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: kWhite,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? color : kGrey200, width: sel ? 2 : 1),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: sel ? color.withValues(alpha: 0.1) : kGreyBg,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: sel ? color : kBlack54, size: 22),
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: List.generate(items.length, (i) {
+        bool sel = _selectedTemplateIndex == i;
+        Color col = items[i]['c'] as Color;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedTemplateIndex = i),
+          child: Container(
+            width: (MediaQuery.of(context).size.width - 60) / 2,
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+            decoration: BoxDecoration(
+              color: sel ? col : kWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: sel ? col : kGrey200, width: 1.5),
+              boxShadow: sel ? [BoxShadow(color: col.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] : [],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: sel ? color : kBlack87)),
-                  const SizedBox(height: 2),
-                  Text(desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ),
-            if (sel)
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                child: const Icon(Icons.check, color: kWhite, size: 14),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildExpandableSection({
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onTap,
-    required List<Widget> children,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kGrey200),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    color: kPrimaryColor,
-                  ),
-                ],
-              ),
+            child: Column(
+              children: [
+                Icon(Icons.description_outlined, color: sel ? kWhite : kGrey400, size: 28),
+                const SizedBox(height: 8),
+                Text(items[i]['t'] as String,
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: sel ? kWhite : kBlack87)),
+              ],
             ),
           ),
-          if (isExpanded) ...[
-            const Divider(height: 1, color: kGrey200),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: children,
-              ),
-            ),
-          ],
-        ],
-      ),
+        );
+      }),
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w500),
-        filled: true,
-        fillColor: kWhite,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kGrey200),
+  Widget _buildSettingsSection(String title, List<Widget> children) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kBlack87)),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+        Container(
+          decoration: BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: kGrey200),
+          ),
+          child: Column(children: children),
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildMultilineTextField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      maxLines: 4,
-      style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: kGrey400, fontWeight: FontWeight.w400),
-        filled: true,
-        fillColor: kWhite,
-        contentPadding: const EdgeInsets.all(16),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kGrey200),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToggleRow(String title, bool value, Function(bool) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  Widget _buildToggleItem(String label, bool val, Function(bool) fn) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: kBlack87)),
-          ),
-          CupertinoSwitch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: kGoogleGreen,
-          ),
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87)),
+          CupertinoSwitch(value: val, onChanged: fn, activeColor: kPrimaryColor),
         ],
       ),
     );
   }
 
-  Widget _buildImagePicker() {
-    return Center(
-      child: GestureDetector(
-        onTap: _pickFooterImage,
-        child: Container(
-          width: 120,
-          height: 100,
-          decoration: BoxDecoration(
-            color: kGreyBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGrey200, width: 1.5),
+  Widget _buildInputField(TextEditingController ctrl, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+      child: TextField(
+        controller: ctrl,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack87),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionFooter() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      decoration: BoxDecoration(
+        color: kWhite,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: _saving ? null : _saveSettings,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kPrimaryColor,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: _footerImageUrl != null || _selectedFooterImage != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(11),
-                  child: _selectedFooterImage != null
-                      ? Image.file(_selectedFooterImage!, fit: BoxFit.cover)
-                      : Image.network(_footerImageUrl!, fit: BoxFit.cover),
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate_outlined, size: 32, color: kGrey400),
-                    const SizedBox(height: 4),
-                  ],
-                ),
+          child: Text(
+            _saving ? "SYNCING..." : "SAVE CONFIGURATION",
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13),
+          ),
         ),
       ),
     );
   }
 }
-
 class LanguagePage extends StatelessWidget {
   final VoidCallback onBack;
   const LanguagePage({super.key, required this.onBack});
@@ -1545,10 +1719,7 @@ class _SwitchTile extends StatelessWidget {
   const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.subtitle, this.enabled = true});
   @override Widget build(BuildContext context) => Column(children: [Padding(padding: const EdgeInsets.all(16), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)), if (subtitle != null) Text(subtitle!, style: const TextStyle(fontSize: 11, color: kOrange, fontWeight: FontWeight.w800))])), CupertinoSwitch(value: value, onChanged: enabled ? onChanged : null, activeColor: kPrimaryColor)])), if (showDivider) const Divider(height: 1, indent: 16, color: kGrey100)]);
 }
-class _PrimaryButton extends StatelessWidget {
-  final String text; final VoidCallback onTap; const _PrimaryButton({required this.text, required this.onTap});
-  @override Widget build(BuildContext context) => SizedBox(width: double.infinity, child: ElevatedButton(onPressed: onTap, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 18), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: Text(text, style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 1.0))));
-}
+
 
 class ThemePage extends StatelessWidget { final VoidCallback onBack; const ThemePage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Theme", onBack); }
 class HelpPage extends StatelessWidget { final VoidCallback onBack; final Function(String) onNavigate; const HelpPage({super.key, required this.onBack, required this.onNavigate}); @override Widget build(BuildContext context) => _SimplePage("Help & Support", onBack); }

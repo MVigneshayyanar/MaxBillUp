@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:provider/provider.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/Colors.dart';
 
 class SubscriptionPlanPage extends StatefulWidget {
@@ -134,6 +136,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     final storeDoc = await FirestoreService().getCurrentStoreDoc();
     if (storeDoc == null) return;
 
+    // Update Firestore with new subscription
     await FirestoreService().storeCollection.doc(storeDoc.id).update({
       'plan': _selectedPlan,
       'subscriptionStartDate': now.toIso8601String(),
@@ -143,16 +146,25 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'updatedAt': FieldValue.serverTimestamp(),
     });
 
+    // IMPORTANT: Force refresh the PlanProvider to reflect changes instantly
     if (mounted) {
+      // Get the PlanProvider and force immediate refresh
+      final planProvider = Provider.of<PlanProvider>(context, listen: false);
+
+      // This will immediately update the cached plan and notify ALL listeners
+      await planProvider.forceRefresh();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("🎉 ${context.tr('plan_upgraded_successfully')}"),
+          content: Text("🎉 ${context.tr('Plan Upgrade Successful')}"),
           backgroundColor: kGoogleGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
-      Navigator.of(context).pop();
+
+      // Return true to indicate subscription changed - parent screens can refresh if needed
+      Navigator.of(context).pop(true);
     }
   }
 

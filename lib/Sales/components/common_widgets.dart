@@ -91,8 +91,8 @@ class CommonWidgets {
                     Container(width: 1, height: 16, color: kWhite.withValues(alpha: 0.3)),
                     const SizedBox(width: 10),
                     Text(
-                      context.tr('bill').toUpperCase(),
-                      style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                      context.tr('Bill'),
+                      style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                     ),
                   ],
                 ),

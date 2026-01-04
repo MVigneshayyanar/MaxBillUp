@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -124,12 +126,12 @@ class _SplashPageState extends State<SplashPage>
     final isTablet = diagonal > 1100 || screenWidth > 600;
 
     // Choose appropriate splash image
-    final splashImage = isTablet ? 'assets/tab_MAX_my_bill.png' : 'assets/Splash_Screen.png';
+    final splashImage = isTablet ? 'assets/tab_MAX_my_bill.svg' : 'assets/Splash_Screen.svg';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2F7CF6),
+      backgroundColor: kPrimaryColor,
       body: SizedBox.expand(
-        child: Image.asset(
+        child: SvgPicture.asset(
           splashImage,
           fit: BoxFit.contain,
         ),

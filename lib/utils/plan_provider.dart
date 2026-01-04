@@ -14,9 +14,87 @@ class PlanProvider extends ChangeNotifier {
   StreamSubscription<DocumentSnapshot>? _planSubscription;
   String? _storeId;
 
+  // Cache the current plan for instant access
+  String _cachedPlan = PLAN_FREE;
+  DateTime? _cachedExpiryDate;
+  bool _isInitialized = false;
+
+  /// Get cached plan instantly (no async wait)
+  String get cachedPlan => _cachedPlan;
+
+  /// Get cached expiry date instantly (no async wait)
+  DateTime? get cachedExpiryDate => _cachedExpiryDate;
+
+  /// Check if plan is expiring soon (within 3 days)
+  bool get isExpiringSoon {
+    if (_cachedExpiryDate == null) return false;
+    final daysUntilExpiry = _cachedExpiryDate!.difference(DateTime.now()).inDays;
+    return daysUntilExpiry >= 0 && daysUntilExpiry <= 3;
+  }
+
+  /// Get days until expiry (negative if expired)
+  int get daysUntilExpiry {
+    if (_cachedExpiryDate == null) return -1;
+    return _cachedExpiryDate!.difference(DateTime.now()).inDays;
+  }
+
+  /// Check if provider is initialized
+  bool get isInitialized => _isInitialized;
+
   /// Initialize the plan listener - call this once at app startup
   Future<void> initialize() async {
     await _startPlanListener();
+    // Fetch and cache the current plan and expiry date
+    await _fetchPlanAndExpiry();
+    _isInitialized = true;
+    notifyListeners();
+  }
+
+  /// Force refresh the plan from Firestore and notify all listeners
+  /// Call this after subscription purchase to instantly update the app
+  Future<void> forceRefresh() async {
+    debugPrint('🔄 PlanProvider: Force refreshing subscription status...');
+    await _fetchPlanAndExpiry();
+    debugPrint('✅ PlanProvider: New plan = $_cachedPlan, Expiry = $_cachedExpiryDate');
+    notifyListeners();
+  }
+
+  /// Fetch both plan and expiry date from Firestore
+  Future<void> _fetchPlanAndExpiry() async {
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc == null || !storeDoc.exists) {
+        _cachedPlan = PLAN_FREE;
+        _cachedExpiryDate = null;
+        return;
+      }
+
+      final data = storeDoc.data() as Map<String, dynamic>?;
+      if (data == null) {
+        _cachedPlan = PLAN_FREE;
+        _cachedExpiryDate = null;
+        return;
+      }
+
+      // Get expiry date
+      final expiryDateStr = data['subscriptionExpiryDate']?.toString();
+      if (expiryDateStr != null && expiryDateStr.isNotEmpty) {
+        try {
+          _cachedExpiryDate = DateTime.parse(expiryDateStr);
+        } catch (e) {
+          _cachedExpiryDate = null;
+        }
+      } else {
+        _cachedExpiryDate = null;
+      }
+
+      // Get plan
+      _cachedPlan = await getCurrentPlan();
+    } catch (e) {
+      debugPrint('Error fetching plan and expiry: $e');
+      _cachedPlan = PLAN_FREE;
+      _cachedExpiryDate = null;
+    }
   }
 
   /// Start listening to plan changes in real-time (no caching, direct Firestore stream)
@@ -34,13 +112,37 @@ class PlanProvider extends ChangeNotifier {
       await _planSubscription?.cancel();
 
       // Listen to store document changes in real-time
-      // This triggenotifyListeners() on every Firestore change
+      // This triggers notifyListeners() on every Firestore change
       _planSubscription = FirebaseFirestore.instance
           .collection('store')
           .doc(storeDoc.id)
           .snapshots()
-          .listen((snapshot) {
-        // Just notify - widgets will fetch fresh data
+          .listen((snapshot) async {
+        // Update cached plan and expiry date when Firestore changes
+        if (snapshot.exists) {
+          final data = snapshot.data() as Map<String, dynamic>?;
+          if (data != null) {
+            // Update plan
+            final newPlan = data['plan']?.toString() ?? PLAN_FREE;
+            if (newPlan != _cachedPlan) {
+              debugPrint('📱 PlanProvider: Real-time update - Plan changed to $newPlan');
+              _cachedPlan = newPlan.isEmpty ? PLAN_FREE : newPlan;
+            }
+
+            // Update expiry date
+            final expiryDateStr = data['subscriptionExpiryDate']?.toString();
+            if (expiryDateStr != null && expiryDateStr.isNotEmpty) {
+              try {
+                _cachedExpiryDate = DateTime.parse(expiryDateStr);
+              } catch (e) {
+                _cachedExpiryDate = null;
+              }
+            } else {
+              _cachedExpiryDate = null;
+            }
+          }
+        }
+        // Notify all widgets to rebuild
         notifyListeners();
       }, onError: (e) {
         debugPrint('Plan listener error: $e');
@@ -92,16 +194,15 @@ class PlanProvider extends ChangeNotifier {
     }
   }
 
-  /// Get current plan synchronously for UI (fetches fresh in background)
-  /// Returns 'Free' as default, then triggerebuild with fresh data
+  /// Get current plan synchronously for UI (returns cached value)
+  /// Returns cached plan instantly, auto-updated by Firestore listener
   String get currentPlan {
-    // Trigger async fetch and notify
-    _fetchAndNotify();
-    return PLAN_FREE; // Default return while fetching
+    return _cachedPlan;
   }
 
   void _fetchAndNotify() async {
-    // This triggewidgets to rebuild with fresh data
+    // Fetch fresh data and update cache
+    _cachedPlan = await getCurrentPlan();
     notifyListeners();
   }
 
@@ -186,20 +287,38 @@ class PlanProvider extends ChangeNotifier {
   }
 
   // ==========================================
-  // SYNC METHODS - Use FutureBuilder in widgets
-  // These just return defaults, use async versions
+  // SYNC METHODS - Use cached plan for instant updates
+  // These return results based on cached plan value
   // ==========================================
 
-  bool canAccessReports() => false; // Use canAccessReportsAsync()
+  bool canAccessReports() => _cachedPlan != PLAN_FREE;
   bool canAccessDaybook() => true; // Daybook is FREE
-  bool canAccessQuotation() => false; // Use canAccessQuotationAsync()
-  bool canAccessFullBillHistory() => false;
-  bool canEditBill() => false;
-  bool canAccessCustomerCredit() => false;
-  bool canUseLogoOnBill() => false;
-  bool canImportContacts() => false;
-  bool canUseBulkInventory() => false;
-  bool canAccessStaffManagement() => false;
+  bool canAccessQuotation() => _cachedPlan != PLAN_FREE;
+  bool canAccessFullBillHistory() => _cachedPlan != PLAN_FREE;
+  bool canEditBill() => _cachedPlan != PLAN_FREE;
+  bool canAccessCustomerCredit() => _cachedPlan != PLAN_FREE;
+  bool canUseLogoOnBill() => _cachedPlan != PLAN_FREE;
+  bool canImportContacts() => _cachedPlan != PLAN_FREE;
+  bool canUseBulkInventory() => _cachedPlan != PLAN_FREE;
+  bool canAccessStaffManagement() => _cachedPlan == PLAN_Growth || _cachedPlan == PLAN_MAX;
+
+  int getMaxStaffCount() {
+    switch (_cachedPlan) {
+      case PLAN_FREE:
+      case PLAN_Essential:
+        return 0;
+      case PLAN_Growth:
+        return 3;
+      case PLAN_MAX:
+        return 10;
+      default:
+        return 0;
+    }
+  }
+
+  int getBillHistoryDaysLimit() {
+    return _cachedPlan == PLAN_FREE ? 7 : 36500;
+  }
 
   @override
   void dispose() {

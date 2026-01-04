@@ -67,6 +67,7 @@ dependencies:
   firebase_storage: ^12.4.7
   image_cropper: ^11.0.0
   in_app_update: ^4.2.5
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -78,7 +79,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/Max_my_bill.png"
+  image_path: "assets/MAX_my_bill.svg"
   remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
@@ -120,7 +121,7 @@ flutter:
   # Application assets
   assets:
     - assets/google.png
-    - assets/Max_my_bill.png
-    - assets/Splash_Screen.png
-    - assets/max_my_bill_sq.png
-    - assets/tab_MAX_my_bill.png
+    - assets/Max_my_bill.svg
+    - assets/Splash_Screen.svg
+    - assets/max_my_bill_sq.svg
+    - assets/tab_MAX_my_bill.svg

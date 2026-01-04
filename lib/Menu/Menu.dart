@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
@@ -165,35 +166,39 @@ class _MenuPageState extends State<MenuPage> {
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
 
-        // Check if user has paid plan
-        return FutureBuilder<String>(
-          future: planProvider.getCurrentPlan(),
-          builder: (context, snapshot) {
-            final currentPlan = snapshot.data ?? 'Free';
+        // IMPORTANT: Don't show lock icons until provider is initialized
+        // This prevents the brief flash of lock icons when navigating to this page
+        final isProviderReady = planProvider.isInitialized;
 
-            // Determine plan rank: Starter=0, Essential=1, Growth=2, Pro=3
-            int planRank = 0;
-            if (currentPlan.toLowerCase().contains('essential')) {
-              planRank = 1;
-            } else if (currentPlan.toLowerCase().contains('growth')) {
-              planRank = 2;
-            } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
-              planRank = 3;
-            } else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) {
-              planRank = 0;
-            }
+        // Use cached plan for instant access - auto-updates when subscription changes
+        final currentPlan = planProvider.cachedPlan;
 
-            // Helper function to check if feature is available based on plan
-            bool isFeatureAvailable(String permission, {int requiredRank = 1}) {
-              // Check plan rank first
-              if (planRank < requiredRank) return false;
+        // Determine plan rank: Starter=0, Essential=1, Growth=2, Pro=3
+        // If provider not ready, assume max rank to avoid flash of locks
+        int planRank = isProviderReady ? 0 : 3;
+        if (isProviderReady) {
+          if (currentPlan.toLowerCase().contains('essential')) {
+            planRank = 1;
+          } else if (currentPlan.toLowerCase().contains('growth')) {
+            planRank = 2;
+          } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
+            planRank = 3;
+          } else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) {
+            planRank = 0;
+          }
+        }
 
-              // If admin and has required plan, allow access
-              if (isAdmin) return true;
+        // Helper function to check if feature is available based on plan
+        bool isFeatureAvailable(String permission, {int requiredRank = 1}) {
+          // Check plan rank first
+          if (planRank < requiredRank) return false;
 
-              // Check user permission
-              final userPerm = _permissions[permission] == true;
-              return userPerm;
+          // If admin and has required plan, allow access
+          if (isAdmin) return true;
+
+          // Check user permission
+          final userPerm = _permissions[permission] == true;
+          return userPerm;
             }
 
             // Conditional Rendering
@@ -253,8 +258,6 @@ class _MenuPageState extends State<MenuPage> {
           ),
           bottomNavigationBar: CommonBottomNav(uid: widget.uid, userEmail: widget.userEmail, currentIndex: 0, screenWidth: MediaQuery.of(context).size.width),
         );
-          },
-        ); // Close FutureBuilder
       },
     );
   }
@@ -269,7 +272,7 @@ class _MenuPageState extends State<MenuPage> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
-            child: Image.asset('assets/max_my_bill_sq.png', width: 68, height: 68, fit: BoxFit.contain),
+            child: SvgPicture.asset('assets/max_my_bill_sq.svg', width: 68, height: 68, fit: BoxFit.contain),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -333,26 +336,22 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   Widget _buildPlanBadge(PlanProvider planProvider) {
-    return FutureBuilder<String>(
-      future: planProvider.getCurrentPlan(),
-      builder: (context, snapshot) {
-        final plan = snapshot.data ?? 'Free';
-        final isPremium = !plan.toLowerCase().contains('free') && !plan.toLowerCase().contains('starter');
-        return GestureDetector(
-          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(8)),
-            child: Row(
-              children: [
-                const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
-                const SizedBox(width: 4),
-                Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
-              ],
-            ),
-          ),
-        );
-      },
+    // Use cached plan for instant access - auto-updates when subscription changes
+    final plan = planProvider.cachedPlan;
+    final isPremium = !plan.toLowerCase().contains('free') && !plan.toLowerCase().contains('starter');
+    return GestureDetector(
+      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(8)),
+        child: Row(
+          children: [
+            const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
+            const SizedBox(width: 4),
+            Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
+          ],
+        ),
+      ),
     );
   }
 

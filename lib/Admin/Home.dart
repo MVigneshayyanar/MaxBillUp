@@ -407,28 +407,42 @@ class KnowledgeTab extends StatelessWidget {
 // ==========================================
 // STORE DETAIL PAGE (REMASTERED)
 // ==========================================
-class StoreDetailPage extends StatelessWidget {
+class StoreDetailPage extends StatefulWidget {
   final String storeId;
   final Map<String, dynamic> storeData;
 
   const StoreDetailPage({super.key, required this.storeId, required this.storeData});
 
   @override
+  State<StoreDetailPage> createState() => _StoreDetailPageState();
+}
+
+class _StoreDetailPageState extends State<StoreDetailPage> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
+        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Enterprise Overview Section
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance.collection('store').doc(widget.storeId).snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          }
+
+          final storeData = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Enterprise Overview Section
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -456,11 +470,11 @@ class StoreDetailPage extends StatelessWidget {
             _buildSectionLabel('REAL-TIME ANALYTICS'),
             Row(
               children: [
-                Expanded(child: _buildEnterpriseStat(storeId, 'Products', 'Products', Icons.inventory_2_rounded, kPrimaryColor)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Products', 'Products', Icons.inventory_2_rounded, kPrimaryColor)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildEnterpriseStat(storeId, 'Sales', 'sales', Icons.receipt_long_rounded, kGoogleGreen)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Sales', 'sales', Icons.receipt_long_rounded, kGoogleGreen)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildEnterpriseStat(storeId, 'Customers', 'customers', Icons.people_alt_rounded, kOrange)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Customers', 'customers', Icons.people_alt_rounded, kOrange)),
               ],
             ),
             const SizedBox(height: 24),
@@ -474,21 +488,224 @@ class StoreDetailPage extends StatelessWidget {
                   _detailRow(Icons.alternate_email_rounded, 'System Email', storeData['ownerEmail']),
                   _detailRow(Icons.phone_iphone_rounded, 'Direct Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
                   _detailRow(Icons.location_on_rounded, 'Business Address', storeData['businessLocation']),
-                  _detailRow(Icons.description_rounded, 'TRN / GSTIN', storeData['gstIn'], isLast: true),
+                  _detailRow(Icons.description_rounded, 'TAX', storeData['gstin']),
+                  _detailRow(Icons.business_center_rounded, 'License', storeData['licenseNumber'], isLast: true),
+
+
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            _buildSectionLabel('SUBSCRIPTION DETAILS'),
+            Container(
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              child: Column(
+                children: [
+                  _editableDetailRow(
+                    context,
+                    icon: Icons.calendar_today_rounded,
+                    label: 'Subscription Start',
+                    value: _formatDate(storeData['subscriptionStartDate']),
+                    onEdit: () => _editDate(context, 'subscriptionStartDate', storeData['subscriptionStartDate']),
+                  ),
+                  _editableDetailRow(
+                    context,
+                    icon: Icons.event_rounded,
+                    label: 'Subscription Expiry',
+                    value: _formatDate(storeData['subscriptionExpiryDate']),
+                    onEdit: () => _editDate(context, 'subscriptionExpiryDate', storeData['subscriptionExpiryDate']),
+                  ),
+                  _editableDetailRow(
+                    context,
+                    icon: Icons.workspace_premium_rounded,
+                    label: 'Current Plan',
+                    value: storeData['plan'] ?? 'Free',
+                    onEdit: () => _showChangePlanDialog(context, storeData),
+                    isLast: true,
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 40),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _editableDetailRow(BuildContext context, {required IconData icon, required String label, required String value, required VoidCallback onEdit, bool isLast = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: kGrey100))),
+      child: ListTile(
+        dense: true,
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: kPrimaryColor, size: 18),
+        ),
+        title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        subtitle: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
+        trailing: IconButton(
+          icon: const Icon(Icons.edit_rounded, size: 18, color: kPrimaryColor),
+          onPressed: onEdit,
+          tooltip: 'Edit',
+        ),
+      ),
+    );
+  }
+
+  void _editDate(BuildContext context, String fieldName, dynamic currentDate) async {
+    DateTime initialDate = DateTime.now();
+
+    // Parse current date if available
+    if (currentDate != null) {
+      try {
+        if (currentDate is Timestamp) {
+          initialDate = currentDate.toDate();
+        } else if (currentDate is String) {
+          initialDate = DateTime.parse(currentDate);
+        }
+      } catch (e) {
+        debugPrint('Error parsing date: $e');
+      }
+    }
+
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: kPrimaryColor),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null && context.mounted) {
+      try {
+        await FirebaseFirestore.instance.collection('store').doc(widget.storeId).update({
+          fieldName: pickedDate.toIso8601String(),
+          'dateUpdatedAt': FieldValue.serverTimestamp(),
+        });
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${fieldName == 'subscriptionStartDate' ? 'Start' : 'Expiry'} date updated successfully!'),
+              backgroundColor: kGoogleGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        debugPrint('Error updating date: $e');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update date'), backgroundColor: kErrorColor),
+          );
+        }
+      }
+    }
+  }
+
+  void _showChangePlanDialog(BuildContext context, Map<String, dynamic> storeData) {
+    String currentPlan = storeData['plan'] ?? 'Free';
+    String selectedPlan = currentPlan;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: kWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('CHANGE PLAN', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Select new plan:', style: TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 12),
+              ...['Free', 'Essential', 'Growth', 'Pro'].map((plan) => RadioListTile<String>(
+                title: Text(plan, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                value: plan,
+                groupValue: selectedPlan,
+                activeColor: kPrimaryColor,
+                contentPadding: EdgeInsets.zero,
+                onChanged: (value) {
+                  setState(() => selectedPlan = value!);
+                },
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 12)),
+              onPressed: () => Navigator.pop(context),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                try {
+                  await FirebaseFirestore.instance.collection('store').doc(widget.storeId).update({
+                    'plan': selectedPlan,
+                    'planUpdatedAt': FieldValue.serverTimestamp(),
+                  });
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Plan updated to $selectedPlan successfully!'),
+                        backgroundColor: kGoogleGreen,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  debugPrint('Error updating plan: $e');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to update plan'), backgroundColor: kErrorColor),
+                    );
+                  }
+                }
+              },
+              child: const Text('UPDATE PLAN', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
+            ),
           ],
         ),
       ),
     );
   }
 
+
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 12),
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
+
+  String _formatDate(dynamic dateValue) {
+    if (dateValue == null) return 'Not Set';
+    try {
+      if (dateValue is Timestamp) {
+        return DateFormat('dd MMM yyyy').format(dateValue.toDate());
+      } else if (dateValue is String) {
+        final date = DateTime.parse(dateValue);
+        return DateFormat('dd MMM yyyy').format(date);
+      }
+    } catch (e) {
+      debugPrint('Error formatting date: $e');
+    }
+    return 'Invalid Date';
+  }
 
   Widget _buildHeaderTag(String label) {
     return Container(

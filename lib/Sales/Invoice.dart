@@ -221,11 +221,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
   Future<void> _startCelebration() async {
     // Vibration feedback - short burst pattern
-    await HapticFeedback.mediumImpact();
+    await HapticFeedback.heavyImpact();
     await Future.delayed(const Duration(milliseconds: 300));
-    await HapticFeedback.lightImpact();
+    await HapticFeedback.heavyImpact();
     await Future.delayed(const Duration(milliseconds: 300));
-    await HapticFeedback.mediumImpact();
+    await HapticFeedback.heavyImpact();
 
     // Play success sound using system sound
     await SystemSound.play(SystemSoundType.click);

@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-const Color kPrimaryColor = Color(0xFF2F7CF6);
+const Color kPrimaryColor = Color(0xFF4A5DF9);
 const Color kErrorColor = Color(0xFFFF3B30);
 const Color kGreyBg = Color(0xFFF4F7FA);
 const Color kWhite = Colors.white;

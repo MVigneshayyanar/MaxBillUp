@@ -48,6 +48,7 @@ void main() async {
 
   // Initialize PlanProvider for real-time plan updates
   final planProvider = PlanProvider();
+  // Note: planProvider.initialize() will be called after user login to start real-time listener
 
   // Initialize CartService for cart persistence across navigation
   final cartService = CartService();

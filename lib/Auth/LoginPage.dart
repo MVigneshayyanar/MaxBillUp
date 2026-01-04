@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -325,15 +326,11 @@ class _LoginPageState extends State<LoginPage> {
       Text(context.tr('welcome_to').toUpperCase(),
           style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
       const SizedBox(height: 12),
-      Image.asset(
-        'assets/max_my_bill_sq.png',
+      SvgPicture.asset(
+        'assets/max_my_bill_sq.svg',
         width: 300,
         height: 175,
         fit: BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return const Text("MAXBILLUP",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 1.5));
-        },
       ),
     ],
   );
