@@ -153,6 +153,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   // Stream subscription for store data changes
   StreamSubscription<Map<String, dynamic>>? _storeDataSubscription;
 
+  // Customer rating
+  bool _ratingDialogShown = false;
+
   @override
   void initState() {
     super.initState();
@@ -178,6 +181,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         context.read<CartService>().clearCart();
         // Start celebration effects
         _startCelebration();
+        // Check if we should show rating dialog for first-time customer
+        _checkAndShowRatingDialog();
       }
     });
 
@@ -203,6 +208,273 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     _storeDataSubscription?.cancel();
     _celebrationController.dispose();
     super.dispose();
+  }
+
+  /// Check if this is the customer's first purchase and show rating dialog
+  Future<void> _checkAndShowRatingDialog() async {
+    // Only show for customers with phone number (identified customers)
+    if (widget.customerPhone == null || widget.customerPhone!.isEmpty) {
+      debugPrint('❌ Rating dialog: No customer phone');
+      return;
+    }
+    if (_ratingDialogShown) {
+      debugPrint('❌ Rating dialog: Already shown');
+      return;
+    }
+
+    try {
+      // Add a delay to ensure purchaseCount has been updated
+      await Future.delayed(const Duration(milliseconds: 1000));
+
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final customerDoc = await customersCollection.doc(widget.customerPhone).get();
+
+      debugPrint('📊 Checking rating for customer: ${widget.customerPhone}');
+
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final purchaseCount = data?['purchaseCount'] ?? 0;
+        final hasRating = data?['rating'] != null;
+
+        debugPrint('   Purchase Count: $purchaseCount');
+        debugPrint('   Has Rating: $hasRating');
+
+        // Show rating dialog for first-time purchase (purchaseCount 0 or 1) and no existing rating
+        // Note: purchaseCount may be 0 if sale hasn't synced yet, or 1 if sync completed
+        if (purchaseCount <= 1 && !hasRating) {
+          debugPrint('✅ Showing rating dialog for first-time customer');
+          // Wait for celebration to finish before showing rating dialog
+          await Future.delayed(const Duration(milliseconds: 2500));
+          if (mounted && !_ratingDialogShown) {
+            _ratingDialogShown = true;
+            _showRatingDialog();
+          }
+        } else {
+          debugPrint('❌ Rating dialog: purchaseCount=$purchaseCount, hasRating=$hasRating');
+        }
+      } else {
+        debugPrint('❌ Rating dialog: Customer document does not exist - might be new customer');
+        // For brand new customers that don't have a document yet, show rating dialog
+        debugPrint('✅ Showing rating dialog for brand new customer');
+        await Future.delayed(const Duration(milliseconds: 2500));
+        if (mounted && !_ratingDialogShown) {
+          _ratingDialogShown = true;
+          _showRatingDialog();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error checking customer rating: $e');
+    }
+  }
+
+  /// Show the 5-star rating dialog
+  void _showRatingDialog() {
+    int selectedRating = 0;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Customer avatar
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      (widget.customerName ?? 'C')[0].toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: kPrimaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Title
+                const Text(
+                  'Rate this Customer',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: kBlack87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Customer name
+                Text(
+                  widget.customerName ?? 'Customer',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: kBlack54,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  widget.customerPhone ?? '',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: kBlack54,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 5-star rating
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedRating = index + 1;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 40,
+                          color: index < selectedRating ? kOrange : kGrey300,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+
+                // Rating text
+                Text(
+                  selectedRating == 0
+                      ? 'Tap to rate'
+                      : selectedRating == 1
+                      ? 'Poor'
+                      : selectedRating == 2
+                      ? 'Fair'
+                      : selectedRating == 3
+                      ? 'Good'
+                      : selectedRating == 4
+                      ? 'Very Good'
+                      : 'Excellent!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selectedRating > 0 ? kPrimaryColor : kBlack54,
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // Buttons
+                Row(
+                  children: [
+                    // Skip button
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          side: const BorderSide(color: kGrey300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'SKIP',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: kBlack54,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+
+                    // Submit button
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: selectedRating > 0
+                            ? () {
+                          _submitCustomerRating(selectedRating);
+                          Navigator.pop(context);
+                        }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          disabledBackgroundColor: kGrey200,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'SUBMIT',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// Submit customer rating to Firestore
+  Future<void> _submitCustomerRating(int rating) async {
+    if (widget.customerPhone == null || widget.customerPhone!.isEmpty) return;
+
+    try {
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      await customersCollection.doc(widget.customerPhone).set({
+        'rating': rating,
+        'ratedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Customer rated $rating star${rating > 1 ? 's' : ''}',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            backgroundColor: kGoogleGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error submitting customer rating: $e');
+    }
   }
 
   void _generateConfetti() {
@@ -933,46 +1205,46 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16),
                     child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            businessLogoUrl!,
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        businessLogoUrl!,
+                        height: 64,
+                        width: 64,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
                             height: 64,
                             width: 64,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Container(
-                                height: 64,
-                                width: 64,
-                                decoration: BoxDecoration(
-                                  color: colors['headerBg'],
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 64,
-                              width: 64,
-                              decoration: BoxDecoration(
-                                color: colors['headerBg'],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(Icons.store_rounded, size: 32, color: colors['textSub']),
+                            decoration: BoxDecoration(
+                              color: colors['headerBg'],
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ),
-                        )
-                      : Container(
+                            child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Container(
                           height: 64,
                           width: 64,
                           decoration: BoxDecoration(
                             color: colors['headerBg'],
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: kGrey200),
                           ),
-                          child: Icon(Icons.add_photo_alternate_outlined, size: 28, color: colors['textSub']),
+                          child: Icon(Icons.store_rounded, size: 32, color: colors['textSub']),
                         ),
+                      ),
+                    )
+                        : Container(
+                      height: 64,
+                      width: 64,
+                      decoration: BoxDecoration(
+                        color: colors['headerBg'],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: kGrey200),
+                      ),
+                      child: Icon(Icons.add_photo_alternate_outlined, size: 28, color: colors['textSub']),
+                    ),
                   ),
                 // Business Name
                 Text(
@@ -991,8 +1263,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 if (_showEmail)
                   Text(
                     businessEmail != null && businessEmail!.isNotEmpty
-                      ? "Email: $businessEmail"
-                      : "Email: Not set",
+                        ? "Email: $businessEmail"
+                        : "Email: Not set",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: businessEmail != null && businessEmail!.isNotEmpty ? colors['textSub'] : kGrey400,
@@ -1007,8 +1279,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
                       businessGSTIN != null && businessGSTIN!.isNotEmpty
-                        ? "TAX NO : $businessGSTIN"
-                        : "TAX NO : Not set",
+                          ? "TAX NO : $businessGSTIN"
+                          : "TAX NO : Not set",
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: businessGSTIN != null && businessGSTIN!.isNotEmpty ? colors['primary'] : kGrey400,
@@ -1022,8 +1294,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 if (_showLicenseNumber)
                   Text(
                     businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty
-                      ? "License: $businessLicenseNumber"
-                      : "License: Not set",
+                        ? "License: $businessLicenseNumber"
+                        : "License: Not set",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty ? colors['textSub'] : kGrey400,
@@ -1178,14 +1450,14 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
                         child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
-                          ? Image.network(
-                              businessLogoUrl!,
-                              height: 48,
-                              width: 48,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, size: 32, color: colors['primary']),
-                            )
-                          : Icon(Icons.add_photo_alternate_outlined, size: 32, color: colors['primary']),
+                            ? Image.network(
+                          businessLogoUrl!,
+                          height: 48,
+                          width: 48,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) => Icon(Icons.store_rounded, size: 32, color: colors['primary']),
+                        )
+                            : Icon(Icons.add_photo_alternate_outlined, size: 32, color: colors['primary']),
                       ),
                   ],
                 ),

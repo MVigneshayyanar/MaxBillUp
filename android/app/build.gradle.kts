@@ -46,6 +46,18 @@ android {
             )
         }
     }
+
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
+    // Note: Font compression is handled automatically by Android build tools
+    // If you need to prevent compression of specific assets, add them to android/app/src/main/res/raw/
 }
 
 flutter {

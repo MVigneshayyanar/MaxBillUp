@@ -1,6 +1,5 @@
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/MAX_my_bill.svg"
+  image_path: "assets/MAX_my_bill.png"
   remove_alpha_ios: true
-

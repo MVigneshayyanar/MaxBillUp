@@ -208,6 +208,302 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
+  Widget _buildRatingSection(Map<String, dynamic> data) {
+    final rating = (data['rating'] ?? 0) as num;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, color: kOrange, size: 18),
+          const SizedBox(width: 8),
+          const Text(
+            'Customer Rating:',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: kBlack87,
+            ),
+          ),
+          const SizedBox(width: 12),
+          ...List.generate(5, (i) => Icon(
+            i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+            size: 18,
+            color: i < rating ? kOrange : kGrey300,
+          )),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => _showEditRatingDialog(data),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.edit_rounded, size: 14, color: kPrimaryColor),
+                  SizedBox(width: 4),
+                  Text(
+                    'Edit',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: kPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditRatingDialog(Map<String, dynamic> customerData) {
+    int selectedRating = (customerData['rating'] ?? 0) as int;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            title: const Text(
+              'Rate Customer',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: kBlack87,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Customer info
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kGreyBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: kPrimaryColor.withOpacity(0.1),
+                        radius: 20,
+                        child: Text(
+                          (customerData['name'] ?? 'C')[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customerData['name'] ?? 'Customer',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: kBlack87,
+                              ),
+                            ),
+                            Text(
+                              customerData['phone'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: kBlack54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 5-star rating
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedRating = index + 1;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 40,
+                          color: index < selectedRating ? kOrange : kGrey300,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+
+                // Rating text
+                Text(
+                  selectedRating == 0
+                      ? 'No rating'
+                      : selectedRating == 1
+                      ? 'Poor'
+                      : selectedRating == 2
+                      ? 'Fair'
+                      : selectedRating == 3
+                      ? 'Good'
+                      : selectedRating == 4
+                      ? 'Very Good'
+                      : 'Excellent!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selectedRating > 0 ? kPrimaryColor : kBlack54,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              // Remove rating button
+              if (customerData['rating'] != null && (customerData['rating'] as num) > 0)
+                TextButton(
+                  onPressed: () {
+                    _updateCustomerRating(0);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'REMOVE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: kErrorColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+
+              // Cancel button
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: kBlack54,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              // Save button
+              ElevatedButton(
+                onPressed: selectedRating > 0
+                    ? () {
+                  _updateCustomerRating(selectedRating);
+                  Navigator.pop(context);
+                }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  disabledBackgroundColor: kGrey200,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'SAVE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _updateCustomerRating(int rating) async {
+    try {
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+
+      if (rating > 0) {
+        await customersCollection.doc(widget.customerId).update({
+          'rating': rating,
+          'ratedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Customer rated $rating star${rating > 1 ? 's' : ''}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              backgroundColor: kGoogleGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else {
+        // Remove rating
+        await customersCollection.doc(widget.customerId).update({
+          'rating': FieldValue.delete(),
+          'ratedAt': FieldValue.delete(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rating removed', style: TextStyle(fontWeight: FontWeight.w600)),
+              backgroundColor: kOrange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating rating: $e'),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   // --- LOGIC ---
 
   Future<void> _processTransaction(double amount, double oldBalance, double oldTotalSales, String method) async {
@@ -316,6 +612,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                     ])
                                   ],
                                 ),
+                                const SizedBox(height: 16),
+                                // Customer Rating Display with Edit Option
+                                _buildRatingSection(data),
                                 const Divider(height: 32, color: kGrey100),
                                 _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
                                 const SizedBox(height: 10),

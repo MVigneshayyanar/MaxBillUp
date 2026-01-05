@@ -9,12 +9,15 @@ import 'package:provider/provider.dart';
 // --- PROJECT IMPORTS ---
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
+import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+
+import 'components/common_widgets.dart';
 
 // ==========================================
 // 1. BILL PAGE (Main State Widget)
@@ -283,7 +286,7 @@ class _BillPageState extends State<BillPage> {
       debugPrint('🔎 Searching for tax: ${item.taxName} with ${item.taxPercentage}%');
       try {
         final matchingTax = availableTaxes.firstWhere(
-          (tax) {
+              (tax) {
             final nameMatch = tax['name'] == item.taxName;
             // Handle both integer and double percentages
             final taxPercentage = (tax['percentage'] as num).toDouble();
@@ -430,7 +433,7 @@ class _BillPageState extends State<BillPage> {
                               children: [
                                 Text(
                                   availableTaxes.firstWhere(
-                                    (tax) => tax['id'] == selectedTaxId,
+                                        (tax) => tax['id'] == selectedTaxId,
                                     orElse: () => {'name': 'Tax', 'percentage': 0},
                                   )['name'] ?? 'Tax',
                                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
@@ -438,7 +441,7 @@ class _BillPageState extends State<BillPage> {
                                 const SizedBox(height: 2),
                                 Text(
                                   '${availableTaxes.firstWhere(
-                                    (tax) => tax['id'] == selectedTaxId,
+                                        (tax) => tax['id'] == selectedTaxId,
                                     orElse: () => {'name': 'Tax', 'percentage': 0},
                                   )['percentage']}%',
                                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54),
@@ -576,7 +579,7 @@ class _BillPageState extends State<BillPage> {
 
                         if (selectedTaxId != null) {
                           final selectedTax = availableTaxes.firstWhere(
-                            (tax) => tax['id'] == selectedTaxId,
+                                (tax) => tax['id'] == selectedTaxId,
                             orElse: () => {},
                           );
                           taxName = selectedTax['name'];
@@ -696,9 +699,17 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _showCustomerDialog() {
-    showDialog(context: context, builder: (context) => _CustomerSelectionDialog(uid: _uid, onCustomerSelected: (phone, name, gst) {
-      setState(() { _selectedCustomerPhone = phone; _selectedCustomerName = name; _selectedCustomerGST = gst; });
-    }));
+    CommonWidgets.showCustomerSelectionDialog(
+      context: context,
+      onCustomerSelected: (phone, name, gst) {
+        setState(() {
+          _selectedCustomerPhone = phone;
+          _selectedCustomerName = name;
+          _selectedCustomerGST = gst;
+        });
+      },
+      selectedCustomerPhone: _selectedCustomerPhone,
+    );
   }
 
   void _showDiscountDialog() {
@@ -1287,7 +1298,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                     if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
                     await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
                       'name': nameCtrl.text.trim(), 'phone': phoneCtrl.text.trim(), 'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                      'balance': 0.0, 'totalSales': 0.0, 'timestamp': FieldValue.serverTimestamp(), 'lastUpdated': FieldValue.serverTimestamp(),
+                      'balance': 0.0, 'totalSales': 0.0, 'purchaseCount': 0, 'timestamp': FieldValue.serverTimestamp(), 'lastUpdated': FieldValue.serverTimestamp(),
                     });
                     if (mounted) { Navigator.pop(context); widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim()); }
                   },

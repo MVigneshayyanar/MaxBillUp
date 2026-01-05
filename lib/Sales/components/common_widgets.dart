@@ -243,11 +243,14 @@ class CommonWidgets {
   }) async {
     try {
       final staffName = await _fetchStaffName(uid);
-      await FirestoreService().setDocument('customers', phone, {
+      // Use merge to preserve existing customer data (balance, rating, etc.)
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      await customersCollection.doc(phone).set({
         'name': name,
         'phone': phone,
+        'purchaseCount': 0,
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
 
       final items = cartItems.map((item) => {
         'productId': item.productId,
@@ -365,16 +368,35 @@ class CommonWidgets {
                                 final phone = data['phone'] ?? '';
                                 final isSelected = selectedCustomerPhone == phone;
                                 final balance = (data['balance'] ?? 0.0) as num;
+                                final rating = (data['rating'] ?? 0) as num;
 
                                 return ListTile(
                                   onTap: () { onCustomerSelected(phone, data['name'] ?? 'Unknown', data['gst']); Navigator.pop(ctx); },
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   leading: CircleAvatar(
                                     backgroundColor: isSelected ? kPrimaryColor : kGreyBg,
                                     child: Text((data['name'] ?? 'U')[0].toUpperCase(), style: TextStyle(color: isSelected ? kWhite : kPrimaryColor, fontWeight: FontWeight.w900)),
                                   ),
-                                  title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                  subtitle: Text(phone, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                      if (rating > 0) ...[
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: List.generate(5, (i) => Icon(
+                                            i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                            size: 16,
+                                            color: i < rating ? kOrange : kGrey300,
+                                          )),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  subtitle: Padding(
+                                    padding: EdgeInsets.only(top: rating > 0 ? 4 : 0),
+                                    child: Text(phone, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
+                                  ),
                                   trailing: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -450,7 +472,7 @@ class CommonWidgets {
 
               await FirestoreService().setDocument('customers', phone, {
                 'name': name, 'phone': phone, 'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                'balance': balance, 'totalSales': balance, 'lastUpdated': FieldValue.serverTimestamp(),
+                'balance': balance, 'totalSales': balance, 'purchaseCount': 0, 'lastUpdated': FieldValue.serverTimestamp(),
               });
 
               if (balance > 0) {

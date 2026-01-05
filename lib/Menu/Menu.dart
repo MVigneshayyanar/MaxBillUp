@@ -112,7 +112,7 @@ class _MenuPageState extends State<MenuPage> {
 
     // Immediate cache fetch
     FirebaseFirestore.instance.collection('store').doc(storeId).get(
-      const GetOptions(source: Source.cache)
+        const GetOptions(source: Source.cache)
     ).then((doc) {
       if (doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>?;
@@ -199,14 +199,14 @@ class _MenuPageState extends State<MenuPage> {
           // Check user permission
           final userPerm = _permissions[permission] == true;
           return userPerm;
-            }
+        }
 
-            // Conditional Rendering
-            if (_currentView != null) {
-              return _handleViewRouting(isAdmin, planProvider);
-            }
+        // Conditional Rendering
+        if (_currentView != null) {
+          return _handleViewRouting(isAdmin, planProvider);
+        }
 
-            return Scaffold(
+        return Scaffold(
           backgroundColor: kGreyBg,
           body: Column(
             children: [
@@ -218,14 +218,14 @@ class _MenuPageState extends State<MenuPage> {
                     _buildSectionLabel("Core Operations"),
                     if (_hasPermission('billHistory') || isAdmin)
                       _buildMenuTile(
-                        context.tr('billhistory'),
-                        Icons.receipt_long_rounded,
-                        kGoogleGreen,
-                        'BillHistory',
-                        subtitle: (currentPlan.toLowerCase() == 'free' || currentPlan.toLowerCase() == 'starter')
-                            ? "Last 7 days only"
-                            : "View and manage invoices",
-                        isLocked: false  // Available to all, but with 7-day limit for free/starter users
+                          context.tr('billhistory'),
+                          Icons.receipt_long_rounded,
+                          kGoogleGreen,
+                          'BillHistory',
+                          subtitle: (currentPlan.toLowerCase() == 'free' || currentPlan.toLowerCase() == 'starter')
+                              ? "Last 7 days only"
+                              : "View and manage invoices",
+                          isLocked: false  // Available to all, but with 7-day limit for free/starter users
                       ),
                     if (_hasPermission('customerManagement') || isAdmin)
                       _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances", isLocked: !isFeatureAvailable('customerManagement', requiredRank: 1)),
@@ -320,12 +320,12 @@ class _MenuPageState extends State<MenuPage> {
                 borderRadius: BorderRadius.circular(10),
                 child: _logoUrl != null && _logoUrl!.isNotEmpty
                     ? Image.network(
-                        _logoUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(Icons.store_rounded, size: 28, color: kWhite);
-                        },
-                      )
+                  _logoUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.store_rounded, size: 28, color: kWhite);
+                  },
+                )
                     : const Icon(Icons.store_rounded, size: 28, color: kWhite),
               ),
             ),
@@ -601,22 +601,22 @@ class GenericListPage extends StatelessWidget {
                 itemCount: snapshot.data!.docs.length,
                 itemBuilder: (context, index) {
                   final doc = snapshot.data!.docs[index];
-              final data = doc.data() as Map<String, dynamic>;
-              final subtitle = data.containsKey('total') ? 'Total:  ${data['total']}' : (data.containsKey('phone') ? data['phone'] : '');
-              return Card(
-                elevation: 2,
-                margin: const EdgeInsets.only(bottom: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                child: ListTile(
-                  title: Text(data['customerName'] ?? data['name'] ?? data['title'] ?? doc.id, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(subtitle.toString()),
-                  trailing: Text(data['timestamp'] != null ? _formatTime(data['timestamp']) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ),
+                  final data = doc.data() as Map<String, dynamic>;
+                  final subtitle = data.containsKey('total') ? 'Total:  ${data['total']}' : (data.containsKey('phone') ? data['phone'] : '');
+                  return Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    child: ListTile(
+                      title: Text(data['customerName'] ?? data['name'] ?? data['title'] ?? doc.id, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(subtitle.toString()),
+                      trailing: Text(data['timestamp'] != null ? _formatTime(data['timestamp']) : '', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ),
+                  );
+                },
               );
             },
           );
-        },
-      );
         },
       ),
     );
@@ -1728,53 +1728,53 @@ class SalesDetailPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 3, 
-            child: Text(
-              item['name'] ?? 'Item', 
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: kBlack87), 
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis
-            )
+              flex: 3,
+              child: Text(
+                  item['name'] ?? 'Item',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11, color: kBlack87),
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis
+              )
           ),
           Expanded(
-            flex: 1,
-            child: Text(
-              '${item['quantity']}',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
-            )
+              flex: 1,
+              child: Text(
+                  '${item['quantity']}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
+              )
           ),
           Expanded(
-            flex: 2, 
-            child: Text(
-              price.toStringAsFixed(2),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
-            )
+              flex: 2,
+              child: Text(
+                  price.toStringAsFixed(2),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w700)
+              )
           ),
           Expanded(
-            flex: 1,
-            child: Text(
-              taxPerc > 0 ? '$taxPerc%' : '0%',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10, color: kBlack87, fontWeight: FontWeight.w700)
-            )
+              flex: 1,
+              child: Text(
+                  taxPerc > 0 ? '$taxPerc%' : '0%',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10, color: kBlack87, fontWeight: FontWeight.w700)
+              )
           ),
           Expanded(
-            flex: 2, 
-            child: Text(
-              taxVal > 0.01 ? taxVal.toStringAsFixed(2) : '0',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 10,  color: kBlack87, fontWeight: FontWeight.w700)
-            )
+              flex: 2,
+              child: Text(
+                  taxVal > 0.01 ? taxVal.toStringAsFixed(2) : '0',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 10,  color: kBlack87, fontWeight: FontWeight.w700)
+              )
           ),
           Expanded(
-            flex: 2,
-            child: Text(
-              itemTotalWithTax.toStringAsFixed(2), 
-              textAlign: TextAlign.right, 
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800,  color: kPrimaryColor)
-            )
+              flex: 2,
+              child: Text(
+                  itemTotalWithTax.toStringAsFixed(2),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800,  color: kPrimaryColor)
+              )
           ),
         ],
       ),
@@ -2459,49 +2459,49 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(widget.customerData['name'] ?? 'Customer', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kOrange)),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
-              Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
-            ]),
+        backgroundColor: kGreyBg,
+        appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+        body: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(widget.customerData['name'] ?? 'Customer', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kOrange)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
+                Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
+              ]),
+            ),
+            const SizedBox(height: 32),
+            const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
+              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
+              decoration: InputDecoration(prefixText: "", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
+            ),
+            const Spacer(),
+            SafeArea(
+              top: false,
+              child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                onPressed: () async {
+                  if (_amt <= 0) return;
+                  final cCol = await FirestoreService().getStoreCollection('customers');
+                  final crCol = await FirestoreService().getStoreCollection('credits');
+                  await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
+                  await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
+                  if (mounted) Navigator.pop(context);
+                },
+                child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+              )),
+            ),
+          ],
           ),
-          const SizedBox(height: 32),
-          const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
-            style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
-            decoration: InputDecoration(prefixText: "", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
-          ),
-          const Spacer(),
-          SafeArea(
-            top: false,
-            child: SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: () async {
-                if (_amt <= 0) return;
-                final cCol = await FirestoreService().getStoreCollection('customers');
-                final crCol = await FirestoreService().getStoreCollection('credits');
-                await cCol.doc(widget.customerId).update({'balance': widget.currentBalance - _amt});
-                await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
-                if (mounted) Navigator.pop(context);
-              },
-              child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
-            )),
-          ),
-        ],
-      ),
-      )
+        )
     );
   }
 }
@@ -2988,6 +2988,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final customerName = (data['name'] ?? 'Guest').toString();
     final balance = (data['balance'] ?? 0.0).toDouble();
     final phone = (data['phone'] ?? 'N/A').toString();
+    final rating = (data['rating'] ?? 0) as num;
 
     return Container(
       decoration: BoxDecoration(
@@ -3016,7 +3017,20 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                              ),
+                              if (rating > 0) ...[
+                                ...List.generate(5, (i) => Icon(
+                                  i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                  size: 12,
+                                  color: i < rating ? kOrange : kGrey300,
+                                )),
+                              ],
+                            ],
+                          ),
                           Text(phone, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
                         ],
                       ),
@@ -3176,6 +3190,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   void _showCustomerSettlementDialog(String customerId, Map<String, dynamic> customerData, double currentBalance) {
     final TextEditingController amountController = TextEditingController(text: currentBalance.toStringAsFixed(2));
     String paymentMode = 'Cash';
+    final customerRating = (customerData['rating'] ?? 0) as num;
 
     showDialog(
       context: context,
@@ -3183,7 +3198,47 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: kWhite,
-          title: const Text('Customer Payment', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Customer Payment', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
+              const SizedBox(height: 8),
+              // Customer Rating Display with Edit Option
+              Row(
+                children: [
+                  ...List.generate(5, (i) => GestureDetector(
+                    onTap: () {
+                      // Show rating edit dialog
+                      _showEditRatingDialog(customerId, customerData, i + 1);
+                    },
+                    child: Icon(
+                      i < customerRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                      size: 20,
+                      color: i < customerRating ? kOrange : kGrey300,
+                    ),
+                  )),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => _showEditRatingDialog(customerId, customerData, customerRating.toInt()),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.edit_rounded, size: 12, color: kPrimaryColor),
+                          SizedBox(width: 4),
+                          Text('Edit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kPrimaryColor)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -3242,6 +3297,244 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         ),
       ),
     );
+  }
+
+  void _showEditRatingDialog(String customerId, Map<String, dynamic> customerData, int currentRating) {
+    int selectedRating = currentRating;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            title: const Text(
+              'Rate Customer',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: kBlack87,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Customer info
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kGreyBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: kPrimaryColor.withOpacity(0.1),
+                        radius: 20,
+                        child: Text(
+                          (customerData['name'] ?? 'C')[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: kPrimaryColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              customerData['name'] ?? 'Customer',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: kBlack87,
+                              ),
+                            ),
+                            Text(
+                              customerData['phone'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: kBlack54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                // 5-star rating
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    return GestureDetector(
+                      onTap: () {
+                        setDialogState(() {
+                          selectedRating = index + 1;
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Icon(
+                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 40,
+                          color: index < selectedRating ? kOrange : kGrey300,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
+
+                // Rating text
+                Text(
+                  selectedRating == 0
+                      ? 'No rating'
+                      : selectedRating == 1
+                      ? 'Poor'
+                      : selectedRating == 2
+                      ? 'Fair'
+                      : selectedRating == 3
+                      ? 'Good'
+                      : selectedRating == 4
+                      ? 'Very Good'
+                      : 'Excellent!',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: selectedRating > 0 ? kPrimaryColor : kBlack54,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              // Remove rating button
+              if (currentRating > 0)
+                TextButton(
+                  onPressed: () {
+                    _updateCustomerRating(customerId, 0);
+                    Navigator.pop(context);
+                  },
+                  child: const Text(
+                    'REMOVE',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      color: kErrorColor,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+
+              // Cancel button
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'CANCEL',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: kBlack54,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+
+              // Save button
+              ElevatedButton(
+                onPressed: selectedRating > 0
+                    ? () {
+                  _updateCustomerRating(customerId, selectedRating);
+                  Navigator.pop(context);
+                }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  disabledBackgroundColor: kGrey200,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'SAVE',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _updateCustomerRating(String customerId, int rating) async {
+    try {
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+
+      if (rating > 0) {
+        await customersCollection.doc(customerId).update({
+          'rating': rating,
+          'ratedAt': FieldValue.serverTimestamp(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Customer rated $rating star${rating > 1 ? 's' : ''}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              backgroundColor: kGoogleGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      } else {
+        // Remove rating
+        await customersCollection.doc(customerId).update({
+          'rating': FieldValue.delete(),
+          'ratedAt': FieldValue.delete(),
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Rating removed', style: TextStyle(fontWeight: FontWeight.w600)),
+              backgroundColor: kOrange,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating rating: $e'),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildPayOption(StateSetter setDialogState, String current, String val, IconData icon, Color color, Function(String) onSel) {
@@ -5122,7 +5415,7 @@ class _EditBillPageState extends State<EditBillPage> {
     if (item['taxName'] != null && item['taxPercentage'] != null) {
       try {
         final matchingTax = availableTaxes.firstWhere(
-          (tax) {
+              (tax) {
             final nameMatch = tax['name'] == item['taxName'];
             final taxPercentage = (tax['percentage'] as num).toDouble();
             final itemPercentage = (item['taxPercentage'] as num).toDouble();
@@ -5252,7 +5545,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                 children: [
                                   Text(
                                     availableTaxes.firstWhere(
-                                      (tax) => tax['id'] == selectedTaxId,
+                                          (tax) => tax['id'] == selectedTaxId,
                                       orElse: () => {'name': 'Tax', 'percentage': 0},
                                     )['name'] ?? 'Tax',
                                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
@@ -5260,7 +5553,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '${availableTaxes.firstWhere(
-                                      (tax) => tax['id'] == selectedTaxId,
+                                          (tax) => tax['id'] == selectedTaxId,
                                       orElse: () => {'name': 'Tax', 'percentage': 0},
                                     )['percentage']}%',
                                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54),
@@ -5400,7 +5693,7 @@ class _EditBillPageState extends State<EditBillPage> {
 
                               if (selectedTaxId != null) {
                                 final selectedTax = availableTaxes.firstWhere(
-                                  (tax) => tax['id'] == selectedTaxId,
+                                      (tax) => tax['id'] == selectedTaxId,
                                   orElse: () => {},
                                 );
                                 taxName = selectedTax['name'];
