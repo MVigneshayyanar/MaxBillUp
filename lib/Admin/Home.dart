@@ -367,7 +367,7 @@ class KnowledgeTab extends StatelessWidget {
                 debugPrint('Error: $e');
               }
             },
-            child: Text(docId == null ? 'POST' : 'SAVE', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
+            child: Text(docId == null ? 'Post' : 'Save', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
           ),
         ],
       ),

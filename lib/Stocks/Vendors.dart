@@ -504,7 +504,7 @@ class _VendorsPageState extends State<VendorsPage> {
                 if (mounted) { Navigator.pop(context); _loadVendors(); }
               } catch (e) { debugPrint(e.toString()); }
             },
-            child: const Text('SAVE CHANGES', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+            child: const Text('Save changes', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
           ),
         ],
       ),
@@ -530,7 +530,7 @@ class _VendorsPageState extends State<VendorsPage> {
               } catch (e) { debugPrint(e.toString()); }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text("DELETE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
+            child: const Text("Delete", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
           ),
         ],
       ),

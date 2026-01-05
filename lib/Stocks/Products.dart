@@ -148,7 +148,7 @@ class _ProductsPageState extends State<ProductsPage> {
               ElevatedButton.icon(
                 onPressed: _showBulkDeleteConfirmDialog,
                 icon: const Icon(Icons.delete_rounded, size: 18, color: kWhite),
-                label: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
+                label: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kErrorColor,
                   elevation: 0,
@@ -588,7 +588,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 await FirestoreService().updateDocument('Products', id, {'currentStock': val});
                 Navigator.pop(context);
               },
-              child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+              child: const Text('Save', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
             )
           ],
         ),
@@ -615,7 +615,7 @@ class _ProductsPageState extends State<ProductsPage> {
               await FirestoreService().deleteDocument('Products', productDoc.id);
               Navigator.pop(context);
             },
-            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            child: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           )
         ],
       ),
@@ -678,7 +678,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 }
               }
             },
-            child: const Text('DELETE ALL', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            child: const Text('Delete all', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
           )
         ],
       ),

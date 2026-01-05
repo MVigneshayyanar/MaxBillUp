@@ -914,7 +914,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text('SAVE PREFERENCES', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                          child: const Text('Save preferences', style: TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ),
                       ),
                       const SizedBox(height: 20),

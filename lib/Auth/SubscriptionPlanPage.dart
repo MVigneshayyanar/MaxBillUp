@@ -350,7 +350,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         children: [
           _durationToggleItem("1 MONTH", 1),
           _durationToggleItem("6 MONTHS", 6),
-          _durationToggleItem("ANNUAL", 12, badge: "SAVE 20%"),
+          _durationToggleItem("Annual", 12, badge: "Save 20%"),
         ],
       ),
     );

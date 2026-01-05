@@ -627,7 +627,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                             Row(children: [
                               _buildStatBox("Total Sales", totalSales, kGoogleGreen),
                               const SizedBox(width: 12),
-                              _buildStatBox("Real Balance", balance, kErrorColor),
+                              _buildStatBox("Credit due", balance, kErrorColor),
                             ])
                           ],
                         ),
@@ -769,7 +769,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
+              const Text("Credit due", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
               Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
             ]),
           ),
@@ -793,7 +793,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
               await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
               if (mounted) Navigator.pop(context);
             },
-            child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+            child: const Text("Save payment", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
           )),
         ]),
       ),

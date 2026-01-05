@@ -272,7 +272,7 @@ class _MenuPageState extends State<MenuPage> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
-            child: SvgPicture.asset('assets/max_my_bill_sq.svg', width: 68, height: 68, fit: BoxFit.contain),
+            child: Image.asset('assets/MAX_my_bill_mic.png', width: 68, height: 68, fit: BoxFit.contain),
           ),
           const SizedBox(width: 18),
           Expanded(
@@ -286,7 +286,7 @@ class _MenuPageState extends State<MenuPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                      child: Text(_role.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      child: Text(_role[0].toUpperCase() + _role.substring(1).toLowerCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ),
                     const SizedBox(width: 8),
                     _buildPlanBadge(planProvider),
@@ -348,7 +348,7 @@ class _MenuPageState extends State<MenuPage> {
           children: [
             const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
             const SizedBox(width: 4),
-            Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
+            Text(plan[0].toUpperCase() + plan.substring(1).toLowerCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -357,7 +357,7 @@ class _MenuPageState extends State<MenuPage> {
 
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 12, left: 4),
-    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
   Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle, bool isLocked = false}) {
@@ -526,10 +526,10 @@ class VideoTutorialPage extends StatelessWidget {
               width: double.infinity, height: 56,
               child: ElevatedButton.icon(
                 icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: const Text('WATCH ON YOUTUBE', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                label: const Text('Watch on YouTube', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
                 style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 onPressed: () async {
-                  final url = Uri.parse('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+                  final url = Uri.parse('https://www.youtube.com');
                   if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
                 },
               ),
@@ -944,21 +944,21 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: kBlack54.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-        child: const Text("CANCELLED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+        child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
       );
     }
     if (edited) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.2))),
-        child: const Text("EDITED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
+        child: const Text("Edited", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
       );
     }
     if (returned) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.withOpacity(0.2))),
-        child: const Text("RETURNED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
+        child: const Text("Returned", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
       );
     }
     // Logic: Unsettled (Open) is Green, Settled (Closed) is Red
@@ -969,7 +969,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             color: statusColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: statusColor.withOpacity(0.2))),
-        child: Text(settled ? "SETTLED" : "UNSETTLED",
+        child: Text(settled ? "Settled" : "Unsettled",
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor)));
   }
 
@@ -1582,7 +1582,7 @@ class SalesDetailPage extends StatelessWidget {
                                 children: [
                                   Row(
                                     children: [
-                                      const Text('BILLING OVERVIEW', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                      const Text('Billing overview', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                                       const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1628,7 +1628,7 @@ class SalesDetailPage extends StatelessWidget {
                                               children: [
                                                 Icon(Icons.note_alt_outlined, size: 14, color: kOrange),
                                                 SizedBox(width: 6),
-                                                Text('NOTES', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                                                Text('Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
                                               ],
                                             ),
                                             const SizedBox(height: 6),
@@ -1644,14 +1644,14 @@ class SalesDetailPage extends StatelessWidget {
                                   const Padding(padding: EdgeInsets.symmetric(vertical: 0), child: Divider(color: kGreyBg, thickness: 1)),
 
                                   // Table-formatted Item List
-                                  const Text('ITEMS LIST', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                  const Text('Items list', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                                   const SizedBox(height: 8),
                                   _buildTableHeader(),
                                   ...items.map((item) => _buildItemTableRow(item)).toList(),
 
                                   const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(color: kGreyBg, thickness: 1)),
 
-                                  const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                  const Text('Valuation summary', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                                   const SizedBox(height: 8),
                                   _buildPriceRow('Subtotal (Net)', subtotalWithoutTax),
                                   if ((data['discount'] ?? 0.0) > 0)
@@ -1700,12 +1700,12 @@ class SalesDetailPage extends StatelessWidget {
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
       child: const Row(
         children: [
-          Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
-          Expanded(flex: 1, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
-          Expanded(flex: 2, child: Text('RATE', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
-          Expanded(flex: 1, child: Text('TAX %', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
-          Expanded(flex: 2, child: Text('TAX AMT', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
-          Expanded(flex: 2, child: Text('TOTAL', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 3, child: Text('Product', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 1, child: Text('Qty', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('Rate', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 1, child: Text('Tax %', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('Tax amt', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
+          Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54))),
         ],
       ),
     );
@@ -1920,7 +1920,7 @@ class SalesDetailPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kBlack54.withOpacity(0.2)),
         ),
-        child: const Text("CANCELLED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+        child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
       );
     }
     if (returned) {
@@ -1931,7 +1931,7 @@ class SalesDetailPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.orange.withOpacity(0.2)),
         ),
-        child: const Text("RETURNED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
+        child: const Text("Returned", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
       );
     }
     if (edited) {
@@ -1942,7 +1942,7 @@ class SalesDetailPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.blue.withOpacity(0.2)),
         ),
-        child: const Text("EDITED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
+        child: const Text("Edited", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
       );
     }
     // Default: settled/unsettled status
@@ -1955,7 +1955,7 @@ class SalesDetailPage extends StatelessWidget {
         border: Border.all(color: statusColor.withOpacity(0.2)),
       ),
       child: Text(
-        settled ? "SETTLED" : "UNSETTLED",
+        settled ? "Settled" : "Unsettled",
         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
       ),
     );
@@ -2187,7 +2187,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("FOR INVOICE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                          const Text("For invoice", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                           Text(data['invoiceNumber'] ?? 'Manual Entry', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87))
                         ],
                       ),
@@ -2211,7 +2211,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
             color: c.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: c.withOpacity(0.2))),
-        child: Text(available ? "AVAILABLE" : "USED",
+        child: Text(available ? "Available" : "Used",
             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: c)));
   }
 
@@ -2286,7 +2286,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('NOTE INFORMATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const Text('Note information', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     _buildDetailRow(Icons.receipt_long_rounded, 'Reference ID', creditNoteData['creditNoteNumber'] ?? 'N/A'),
                     _buildDetailRow(Icons.history_rounded, 'Against Invoice', creditNoteData['invoiceNumber'] ?? 'Manual'),
@@ -2294,11 +2294,11 @@ class _CreditNoteDetailPage extends StatelessWidget {
                     _buildDetailRow(Icons.info_outline_rounded, 'Reason', creditNoteData['reason'] ?? 'Not Specified'),
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      const Text('TOTAL CREDIT VALUE', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
+                      const Text('Total credit value', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
                       Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
                     const SizedBox(height: 24),
-                    const Text('RETURNED ITEMS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const Text('Returned items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     ...items.map((i) => _buildItemTile(i)).toList(),
                   ],
@@ -2317,7 +2317,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(color: c.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
-      child: Text(available ? "AVAILABLE" : "USED", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: c)),
+      child: Text(available ? "Available" : "Used", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: c)),
     );
   }
 
@@ -2391,11 +2391,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           color: kPrimaryColor.withOpacity(0.05),
           child: const Row(children: [
-            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("Date", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
             Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
-            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
+            Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("Balance", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
         Expanded(child: ListView.separated(
@@ -2539,7 +2539,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text("Real Balance", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
+                const Text("Credit due", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
                 Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
               ]),
             ),
@@ -2565,7 +2565,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
                   await crCol.add({'customerId': widget.customerId, 'customerName': widget.customerData['name'], 'amount': _amt, 'type': 'payment_received', 'method': 'Cash', 'timestamp': FieldValue.serverTimestamp()});
                   if (mounted) Navigator.pop(context);
                 },
-                child: const Text("SAVE PAYMENT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
+                child: const Text("Save payment", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w900)),
               )),
             ),
           ],
@@ -2680,7 +2680,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          const Text("REFUND AMOUNT", style: TextStyle(color: Colors.white70,fontWeight: FontWeight.bold, fontSize: 11)),
+          const Text("Refund amount", style: TextStyle(color: Colors.white70,fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 4),
           Text("${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
         ],
@@ -2707,7 +2707,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kErrorRed))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kErrorRed))),
             ElevatedButton(
               onPressed: () async {
                 final navigator = Navigator.of(context);
@@ -2764,7 +2764,7 @@ class CreditNoteDetailPage extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: kSuccessGreen, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: const Text('CONFIRM'),
+              child: const Text('Confirm'),
             ),
           ],
         ),
@@ -2925,8 +2925,8 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             labelStyle: TextStyle(fontWeight: FontWeight.w800, color: kWhite, fontSize: 12, letterSpacing: 0.5),
             unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70, fontSize: 12),
             tabs: [
-              Tab(text: "SALES CREDIT"),
-              Tab(text: "PURCHASE CREDIT"),
+              Tab(text: "Sales credit"),
+              Tab(text: "Purchase credit"),
             ],
           ),
         ),
@@ -2971,7 +2971,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               itemCount: filtered.length + 1,
               separatorBuilder: (c, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index == 0) return _buildTotalSummary(totalSalesCredit, kGoogleGreen, "TOTAL RECEIVABLE");
+                if (index == 0) return _buildTotalSummary(totalSalesCredit, kGoogleGreen, "Total receivable");
                 return _buildSalesCard(filtered[index - 1]);
               },
             );
@@ -3013,7 +3013,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               itemCount: filtered.length + 1,
               separatorBuilder: (c, i) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                if (index == 0) return _buildTotalSummary(totalPurchaseCredit, kErrorColor, "TOTAL PAYABLE");
+                if (index == 0) return _buildTotalSummary(totalPurchaseCredit, kErrorColor, "Total payable");
                 return _buildPurchaseCard(filtered[index - 1]);
               },
             );
@@ -3113,11 +3113,11 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('BALANCE DUE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        const Text('Balance due', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         Text('${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
-                    _statusBadge("SETTLE", kGoogleGreen),
+                    _statusBadge("Settle", kGoogleGreen),
                   ],
                 ),
               ],
@@ -3179,7 +3179,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('PENDING AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        const Text('Pending amount', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
@@ -3225,7 +3225,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('DUE AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
+                    const Text('Due amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
                     Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
@@ -3239,7 +3239,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -3319,7 +3319,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('TOTAL DUE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
+                      const Text('Total due', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
                       Text('${currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                     ],
                   ),
@@ -3336,7 +3336,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))),
             ElevatedButton(
               onPressed: () async {
                 final amount = double.tryParse(amountController.text);
@@ -3345,7 +3345,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 _performAsyncAction(() => _settleCustomerCredit(customerId, customerData, amount, paymentMode, currentBalance), "Payment recorded successfully");
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: const Text('SETTLE', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
+              child: const Text('Settle', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -3492,7 +3492,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     Navigator.pop(context);
                   },
                   child: const Text(
-                    'REMOVE',
+                    'Remove',
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       color: kErrorColor,
@@ -3505,7 +3505,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text(
-                  'CANCEL',
+                  'Cancel',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: kBlack54,
@@ -3532,7 +3532,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   ),
                 ),
                 child: const Text(
-                  'SAVE',
+                  'Save',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -3725,7 +3725,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                     ],
                   ),
                   const Divider(height: 32),
-                  _buildLabelValue("SUPPLIER", data['supplierName'] ?? 'Unknown'),
+                  _buildLabelValue("Supplier", data['supplierName'] ?? 'Unknown'),
                   const SizedBox(height: 16),
                   _buildLabelValue("BUSINESS CONTACT", data['supplierPhone'] ?? '--'),
                 ],
@@ -3753,7 +3753,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
 
             const SizedBox(height: 32),
             if (remaining > 0)
-              _buildLargeButton(context, label: "RECORD PAYMENT", icon: Icons.receipt_long_rounded, color: kPrimaryColor, onPressed: () {}),
+              _buildLargeButton(context, label: "Record payment", icon: Icons.receipt_long_rounded, color: kPrimaryColor, onPressed: () {}),
           ],
         ),
       ),
@@ -3818,7 +3818,7 @@ Widget _buildStatusPill(String status, {bool isInverse = false}) {
       borderRadius: BorderRadius.circular(8),
       border: isInverse ? Border.all(color: kWhite.withOpacity(0.4)) : Border.all(color: c.withOpacity(0.2)),
     ),
-    child: Text(status.toUpperCase(), style: TextStyle(color: isInverse ? kWhite : c,fontWeight: FontWeight.bold, fontSize: 10)),
+    child: Text(status[0].toUpperCase() + status.substring(1).toLowerCase(), style: TextStyle(color: isInverse ? kWhite : c,fontWeight: FontWeight.bold, fontSize: 10)),
   );
 }
 
@@ -3846,7 +3846,7 @@ Widget _buildDetailTotalRow(num amount, int itemCount) {
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16))),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11,fontWeight: FontWeight.bold, color: kMediumBlue)),
+      Text("Total return ($itemCount)", style: const TextStyle(fontSize: 11,fontWeight: FontWeight.bold, color: kMediumBlue)),
       Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22,fontWeight: FontWeight.bold, color: kPrimaryColor)),
     ]),
   );
@@ -4218,8 +4218,8 @@ class _CustomersPageState extends State<CustomersPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryColor),
-                    _buildManagerStatItem("CREDIT DUE", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
+                    _buildManagerStatItem("Total sales", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryColor),
+                    _buildManagerStatItem("Credit due", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
                   ],
                 ),
               ],
@@ -4614,7 +4614,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(context.tr('sale_return').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
+        title: Text(context.tr('sale_return'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
@@ -4669,14 +4669,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                               ]
                             ]),
                           ])),
-                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)), child: Text("AVAILABLE: $maxQty", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 10))),
+                          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)), child: Text("Available: $maxQty", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 10))),
                         ],
                       ),
                       const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text("QUANTITY TO RETURN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack54)),
+                          const Text("Quantity to return", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack54)),
                           Row(
                             children: [
                               _qtyBtn(Icons.remove_rounded, currentReturnQty > 0 ? () => setState(() {
@@ -4724,14 +4724,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('TOTAL REFUND', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
+                const Text('Total refund', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
                 Text('Rs ${totalReturnWithTax.toStringAsFixed(2)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor)),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(child: _modeBtn('CreditNote', 'CREDIT NOTE')),
+                Expanded(child: _modeBtn('CreditNote', 'Credit note')),
                 const SizedBox(width: 12),
                 Expanded(child: _modeBtn('Cash', 'CASH REFUND')),
               ],
@@ -4742,7 +4742,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
               child: ElevatedButton(
                 onPressed: returnQuantities.isEmpty ? null : _processSaleReturn,
                 style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                child: const Text('PROCESS RETURN', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
+                child: const Text('Process return', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
               ),
             ),
           ],
@@ -4979,7 +4979,7 @@ class _EditBillPageState extends State<EditBillPage> {
       backgroundColor: kGreyBg,
       appBar: AppBar(
         title: Text(
-          context.tr('edit_bill').toUpperCase(),
+          context.tr('edit_bill'),
           style: const TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontSize: 15, letterSpacing: 1.0),
         ),
         backgroundColor: kHeaderColor,
@@ -5006,14 +5006,14 @@ class _EditBillPageState extends State<EditBillPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("REFERENCE INVOICE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                    const Text("Reference invoice", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
                     Text("Invoice-${widget.invoiceData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kHeaderColor)),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    const Text("DATE ISSUED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                    const Text("Date issued", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
                     Text(DateFormat('dd-MM-yyyy').format(time), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87)),
                   ],
                 ),
@@ -5027,7 +5027,7 @@ class _EditBillPageState extends State<EditBillPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionLabel('ASSIGNED CUSTOMER'),
+                  _buildSectionLabel('Assigned customer'),
                   _buildCustomerCard(),
                   const SizedBox(height: 20),
 
@@ -5305,7 +5305,7 @@ class _EditBillPageState extends State<EditBillPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('TOTAL NET PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
+                const Text('Total net payable', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
                 Text('${finalTotal.toStringAsFixed(2)}',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kHeaderColor)),
               ],
@@ -5325,7 +5325,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: kWhite)
-                    : const Text('CONFIRM UPDATES', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
+                    : const Text('Confirm updates', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
               ),
             ),
           ],
@@ -5372,7 +5372,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 border: Border.all(color: isSelected ? kHeaderColor : kGrey200, width: 1.5),
               ),
               child: Center(
-                child: Text(mode.toUpperCase(), style: TextStyle(
+                child: Text(mode[0].toUpperCase() + mode.substring(1).toLowerCase(), style: TextStyle(
                     color: isSelected ? kWhite : kBlack54,
                     fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5
                 )),
@@ -5668,7 +5668,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               setState(() => _items.removeAt(idx));
                             },
                             icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                            label: const Text('REMOVE'),
+                            label: const Text('Remove'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: kErrorColor,
                               side: const BorderSide(color: kErrorColor),
@@ -5724,7 +5724,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               Navigator.pop(context);
                             },
                             style: ElevatedButton.styleFrom(backgroundColor: kHeaderColor, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                            child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
+                            child: const Text('Save', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
                           ),
                         ),
                       ],
@@ -5742,7 +5742,7 @@ class _EditBillPageState extends State<EditBillPage> {
   Widget _buildDialogLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, left: 4),
-      child: Text(text.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack54, letterSpacing: 0.5)),
+      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack54, letterSpacing: 0.5)),
     );
   }
 
@@ -5770,7 +5770,7 @@ class _EditBillPageState extends State<EditBillPage> {
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('APPLY DISCOUNT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        title: const Text('Apply discount', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: Container(
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
           child: TextField(
@@ -5786,14 +5786,14 @@ class _EditBillPageState extends State<EditBillPage> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kHeaderColor),
               onPressed: () {
                 setState(() => _discountController.text = controller.text);
                 Navigator.pop(context);
               },
-              child: const Text('APPLY', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))
+              child: const Text('Apply', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))
           ),
         ],
       ),
@@ -5833,7 +5833,7 @@ class _EditBillPageState extends State<EditBillPage> {
             builder: (context, setDialogState) => AlertDialog(
               backgroundColor: kWhite,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Text('SELECT CREDIT NOTES', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+              title: const Text('Select credit notes', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
               content: SizedBox(
                 width: double.maxFinite,
                 child: ListView.builder(
@@ -5860,7 +5860,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
                 ElevatedButton(
                     style: ElevatedButton.styleFrom(backgroundColor: kHeaderColor),
                     onPressed: () {
@@ -5870,7 +5870,7 @@ class _EditBillPageState extends State<EditBillPage> {
                       });
                       Navigator.pop(ctx);
                     },
-                    child: const Text('APPLY', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))
+                    child: const Text('Apply', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold))
                 ),
               ],
             ),
@@ -5929,7 +5929,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   Container(margin: const EdgeInsets.symmetric(vertical: 12), width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
-                    child: Text('ADD PRODUCT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    child: Text('Add product', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   ),
                   // Search Bar inside Item Popup
                   Padding(

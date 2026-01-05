@@ -653,7 +653,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
           )
               : Text(
-            widget.isEditMode ? 'UPDATE CUSTOMER' : 'SAVE CUSTOMER',
+            widget.isEditMode ? 'Update customer' : 'Save customer',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 15,

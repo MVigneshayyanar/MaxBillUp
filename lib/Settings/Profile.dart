@@ -1875,7 +1875,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: Text(
-            _saving ? "SYNCING..." : "SAVE CONFIGURATION",
+            _saving ? "Syncing..." : "Save configuration",
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13),
           ),
         ),

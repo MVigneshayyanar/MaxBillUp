@@ -147,7 +147,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('NEW TAX CATEGORY', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        title: const Text('New tax category', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -163,7 +163,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.trim().isNotEmpty) {
@@ -176,7 +176,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('CREATE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text('Create', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -330,7 +330,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     child: ElevatedButton(
                       onPressed: _addNewTax,
                       style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      child: const Text('ADD RATE', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite)),
+                      child: const Text('Add rate', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite)),
                     ),
                   ),
                 ],
@@ -400,7 +400,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         content: Text('Remove "$name"? This will affect products mapped to this category.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: kWhite))),
+          ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kWhite))),
         ],
       ),
     );
@@ -418,7 +418,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('DEFAULT STRATEGY', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1)),
+              const Text('Default strategy', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1)),
               const SizedBox(height: 12),
               _buildDialogDropdown(null, _defaultTaxType, _taxTypes, (v) => setState(() => _defaultTaxType = v!)),
               const SizedBox(height: 16),
@@ -427,7 +427,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                 child: ElevatedButton(
                   onPressed: _saveDefaultTaxType,
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text('SAVE PREFERENCES', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                  child: const Text('Save preferences', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
                 ),
               ),
             ],

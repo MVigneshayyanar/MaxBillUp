@@ -449,7 +449,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
   }
 
   Future<void> _delete() async {
-    final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), title: const Text('Delete Category?'), content: const Text('This will remove this category from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: kWhite)))]));
+    final confirm = await showDialog<bool>(context: context, builder: (ctx) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), title: const Text('Delete Category?'), content: const Text('This will remove this category from the system.'), actions: [TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: kErrorColor), onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: kWhite)))]));
     if (confirm == true) {
       setState(() => _isLoading = true);
       await FirestoreService().deleteDocument('expenseCategories', widget.docId);
@@ -478,8 +478,8 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
         ],
       ),
       actions: [
-        TextButton(onPressed: _delete, child: const Text("DELETE", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
-        ElevatedButton(onPressed: _update, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
+        TextButton(onPressed: _delete, child: const Text("Delete", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: _update, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("Save", style: TextStyle(color: kWhite))),
       ],
     );
   }
@@ -508,7 +508,7 @@ class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDial
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: kWhite,
-      title: const Text('Edit Expense Title', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+      title: const Text('Edit expense title', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
       content: Container(
         decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kPrimaryColor, width: 1.5)),
         child: TextField(
@@ -518,8 +518,8 @@ class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDial
         ),
       ),
       actions: [
-        TextButton(onPressed: () async { await FirestoreService().deleteDocument('expenseNames', widget.docId); widget.onChanged(); if(mounted) Navigator.pop(context); }, child: const Text("DELETE", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
-        ElevatedButton(onPressed: () async { await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': _controller.text.trim()}); widget.onChanged(); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("SAVE", style: TextStyle(color: kWhite))),
+        TextButton(onPressed: () async { await FirestoreService().deleteDocument('expenseNames', widget.docId); widget.onChanged(); if(mounted) Navigator.pop(context); }, child: const Text("Delete", style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold))),
+        ElevatedButton(onPressed: () async { await FirestoreService().updateDocument('expenseNames', widget.docId, {'name': _controller.text.trim()}); widget.onChanged(); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("Save", style: TextStyle(color: kWhite))),
       ],
     );
   }

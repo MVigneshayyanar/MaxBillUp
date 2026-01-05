@@ -613,7 +613,7 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   child: _isSaving
                       ? const CircularProgressIndicator(color: kWhite)
-                      : const Text('SAVE PERMISSIONS', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      : const Text('Save permissions', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                 ),
               ),
             ),

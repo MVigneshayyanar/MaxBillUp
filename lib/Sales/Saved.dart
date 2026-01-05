@@ -184,7 +184,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('SAVED DRAFT',
+                    const Text('Saved draft',
                         style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 10, letterSpacing: 0.5)),
                     Text(date, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ],
