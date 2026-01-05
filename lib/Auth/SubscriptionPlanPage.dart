@@ -78,7 +78,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'included': [
         'Full Bill History',
         'Full Reports & GST',
-        'Customer Credit Details',
+        'Customer Return / Refund Details',
         'Quotations & Proforma',
         'Bulk SMS Support',
         'Contact Imports'

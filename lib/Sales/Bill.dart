@@ -1210,7 +1210,7 @@ class _BillPageState extends State<BillPage> {
                 // 4. Credit Notes (only if customer is selected)
                 if (hasCustomer)
                   _buildSummaryRow(
-                    'Credit Applied',
+                    'Return Credit',
                     '- ${actualCreditUsed.toStringAsFixed(2)}',
                     color: kOrange,
                     isClickable: true,
