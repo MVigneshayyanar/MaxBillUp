@@ -62,6 +62,8 @@ class _BillPageState extends State<BillPage> {
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
   double _discountAmount = 0.0;
+  double _customerDefaultDiscount = 0.0; // Customer's default discount percentage
+  double _additionalDiscount = 0.0; // Additional discount on top of customer default
   String _creditNote = '';
   List<Map<String, dynamic>> _selectedCreditNotes = [];
   double _totalCreditNotesAmount = 0.0;
@@ -85,11 +87,32 @@ class _BillPageState extends State<BillPage> {
       _selectedCustomerPhone = widget.customerPhone;
       _selectedCustomerName = widget.customerName;
       _selectedCustomerGST = widget.customerGST;
+      // Fetch customer's default discount when customer is passed from saleall.dart
+      _fetchCustomerDefaultDiscount(widget.customerPhone!);
     }
     _existingInvoiceNumber = widget.existingInvoiceNumber;
     _unsettledSaleId = widget.unsettledSaleId;
 
     _initFastFetch();
+  }
+
+  Future<void> _fetchCustomerDefaultDiscount(String customerPhone) async {
+    try {
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final customerDoc = await customersCollection.doc(customerPhone).get();
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final defaultDiscount = (data?['defaultDiscount'] ?? 0.0).toDouble();
+        if (mounted) {
+          setState(() {
+            _customerDefaultDiscount = defaultDiscount;
+            _recalculateDiscount();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching customer discount: $e');
+    }
   }
 
   void _initFastFetch() {
@@ -135,7 +158,17 @@ class _BillPageState extends State<BillPage> {
       _selectedCreditNotes = [];
       _totalCreditNotesAmount = 0.0;
       _creditNote = '';
+      _customerDefaultDiscount = 0.0;
+      _recalculateDiscount();
     });
+  }
+
+  void _recalculateDiscount() {
+    // Total discount = customer default discount amount + additional discount
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final totalWithTax = cartService.cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+    final customerDiscountAmount = (totalWithTax * _customerDefaultDiscount / 100);
+    _discountAmount = customerDiscountAmount + _additionalDiscount;
   }
 
   void _proceedToPayment(String paymentMode) {
@@ -143,12 +176,17 @@ class _BillPageState extends State<BillPage> {
     final cartService = Provider.of<CartService>(context, listen: false);
     final cartItems = cartService.cartItems;
 
-    // Calculate final values
+    // Calculate final values - step by step
     final totalWithTax = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
-    final amountAfterDiscount = totalWithTax - _discountAmount;
-    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
-    final finalAmount = (amountAfterDiscount - creditToApply).clamp(0.0, double.infinity);
-    final actualCreditUsed = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+    final customerDiscountAmount = (totalWithTax * _customerDefaultDiscount / 100);
+    final amountAfterCustomerDiscount = totalWithTax - customerDiscountAmount;
+    final amountAfterAllDiscounts = amountAfterCustomerDiscount - _additionalDiscount;
+    final creditToApply = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
+    final finalAmount = (amountAfterAllDiscounts - creditToApply).clamp(0.0, double.infinity);
+    final actualCreditUsed = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
+
+    // Total discount for payment page = customer discount + additional discount
+    final totalDiscountAmount = customerDiscountAmount + _additionalDiscount;
 
     Navigator.push(
       context,
@@ -162,7 +200,7 @@ class _BillPageState extends State<BillPage> {
           customerPhone: _selectedCustomerPhone,
           customerName: _selectedCustomerName,
           customerGST: _selectedCustomerGST,
-          discountAmount: _discountAmount,
+          discountAmount: totalDiscountAmount,
           creditNote: _creditNote,
           customNote: _notesController.text.trim(),
           savedOrderId: widget.savedOrderId,
@@ -185,7 +223,7 @@ class _BillPageState extends State<BillPage> {
           customerPhone: _selectedCustomerPhone,
           customerName: _selectedCustomerName,
           customerGST: _selectedCustomerGST,
-          discountAmount: _discountAmount,
+          discountAmount: totalDiscountAmount,
           creditNote: _creditNote,
           customNote: _notesController.text.trim(),
           savedOrderId: widget.savedOrderId,
@@ -701,12 +739,36 @@ class _BillPageState extends State<BillPage> {
   void _showCustomerDialog() {
     CommonWidgets.showCustomerSelectionDialog(
       context: context,
-      onCustomerSelected: (phone, name, gst) {
-        setState(() {
-          _selectedCustomerPhone = phone;
-          _selectedCustomerName = name;
-          _selectedCustomerGST = gst;
-        });
+      onCustomerSelected: (phone, name, gst) async {
+        // Fetch customer data to get default discount
+        try {
+          final customersCollection = await FirestoreService().getStoreCollection('customers');
+          final customerDoc = await customersCollection.doc(phone).get();
+          double defaultDiscount = 0.0;
+          if (customerDoc.exists) {
+            final data = customerDoc.data() as Map<String, dynamic>?;
+            defaultDiscount = (data?['defaultDiscount'] ?? 0.0).toDouble();
+          }
+
+          if (mounted) {
+            setState(() {
+              _selectedCustomerPhone = phone;
+              _selectedCustomerName = name;
+              _selectedCustomerGST = gst;
+              _customerDefaultDiscount = defaultDiscount;
+              _recalculateDiscount();
+            });
+          }
+        } catch (e) {
+          // Fallback if fetch fails
+          if (mounted) {
+            setState(() {
+              _selectedCustomerPhone = phone;
+              _selectedCustomerName = name;
+              _selectedCustomerGST = gst;
+            });
+          }
+        }
       },
       selectedCustomerPhone: _selectedCustomerPhone,
     );
@@ -717,9 +779,11 @@ class _BillPageState extends State<BillPage> {
     final cartService = Provider.of<CartService>(context, listen: false);
     final cartItems = cartService.cartItems;
     final double billTotal = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
+    final double customerDiscountAmount = (billTotal * _customerDefaultDiscount / 100);
+    final double amountAfterCustomerDiscount = billTotal - customerDiscountAmount;
 
-    final TextEditingController cashController = TextEditingController(text: _discountAmount > 0 ? _discountAmount.toStringAsFixed(2) : '');
-    final double initialPerc = billTotal > 0 ? (_discountAmount / billTotal) * 100 : 0.0;
+    final TextEditingController cashController = TextEditingController(text: _additionalDiscount > 0 ? _additionalDiscount.toStringAsFixed(2) : '');
+    final double initialPerc = amountAfterCustomerDiscount > 0 ? (_additionalDiscount / amountAfterCustomerDiscount) * 100 : 0.0;
     final TextEditingController percController = TextEditingController(text: initialPerc > 0 ? initialPerc.toStringAsFixed(1) : '');
 
     showDialog(
@@ -737,16 +801,42 @@ class _BillPageState extends State<BillPage> {
                   const Text('APPLY DISCOUNT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
                   GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, size: 24, color: kBlack54)),
                 ]),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Show customer default discount if available
+                if (_customerDefaultDiscount > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kGoogleGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_rounded, color: kGoogleGreen, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Customer Default: ${_customerDefaultDiscount.toStringAsFixed(1)}% (₹${customerDiscountAmount.toStringAsFixed(2)})',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kGoogleGreen),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('ADDITIONAL DISCOUNT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                  const SizedBox(height: 12),
+                ],
                 _buildPopupTextField(
                     controller: cashController,
-                    label: 'Discount in Amount',
+                    label: _customerDefaultDiscount > 0 ? 'Additional Discount (Amount)' : 'Discount in Amount',
                     hint: '0.00',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) {
                       final val = double.tryParse(v) ?? 0.0;
-                      if (billTotal > 0) {
-                        percController.text = ((val / billTotal) * 100).toStringAsFixed(1);
+                      if (amountAfterCustomerDiscount > 0) {
+                        percController.text = ((val / amountAfterCustomerDiscount) * 100).toStringAsFixed(1);
                       }
                     }
                 ),
@@ -755,12 +845,12 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 12),
                 _buildPopupTextField(
                     controller: percController,
-                    label: 'Discount in %',
+                    label: _customerDefaultDiscount > 0 ? 'Additional Discount (%)' : 'Discount in %',
                     hint: '0%',
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) {
                       final val = double.tryParse(v) ?? 0.0;
-                      cashController.text = (billTotal * (val / 100)).toStringAsFixed(2);
+                      cashController.text = (amountAfterCustomerDiscount * (val / 100)).toStringAsFixed(2);
                     }
                 ),
                 const SizedBox(height: 24),
@@ -769,7 +859,8 @@ class _BillPageState extends State<BillPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _discountAmount = double.tryParse(cashController.text) ?? 0.0;
+                        _additionalDiscount = double.tryParse(cashController.text) ?? 0.0;
+                        _recalculateDiscount();
                       });
                       Navigator.pop(context);
                     },
@@ -1036,10 +1127,24 @@ class _BillPageState extends State<BillPage> {
   Widget _buildBottomPanel(List<CartItem> cartItems) {
     // Calculate values from current cart items
     final totalWithTax = cartItems.fold(0.0, (sum, item) => sum + item.totalWithTax);
-    final amountAfterDiscount = totalWithTax - _discountAmount;
-    final creditToApply = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
-    final finalAmount = (amountAfterDiscount - creditToApply).clamp(0.0, double.infinity);
-    final actualCreditUsed = _totalCreditNotesAmount > amountAfterDiscount ? amountAfterDiscount : _totalCreditNotesAmount;
+
+    // Step-by-step calculation
+    // 1. Subtotal
+    final subtotal = totalWithTax;
+
+    // 2. Customer Discount Amount (applied on subtotal)
+    final customerDiscountAmount = (subtotal * _customerDefaultDiscount / 100);
+    final amountAfterCustomerDiscount = subtotal - customerDiscountAmount;
+
+    // 3. Additional Discount Amount (applied on amount after customer discount)
+    final additionalDiscountAmount = _additionalDiscount;
+    final amountAfterAllDiscounts = amountAfterCustomerDiscount - additionalDiscountAmount;
+
+    // 4. Credit Applied
+    final creditToApply = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
+    final finalAmount = (amountAfterAllDiscounts - creditToApply).clamp(0.0, double.infinity);
+    final actualCreditUsed = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
+
     final bool hasCustomer = _selectedCustomerPhone != null;
 
     return Container(
@@ -1078,14 +1183,34 @@ class _BillPageState extends State<BillPage> {
                   ),
                 ),
 
-                // Applied Discount Row
-                _buildSummaryRow('Total', '${totalWithTax.toStringAsFixed(2)}'),
-                _buildSummaryRow('Discount', '- ${_discountAmount.toStringAsFixed(2)}', color: kGoogleGreen, isClickable: true, onTap: _showDiscountDialog),
+                // Bill Summary Breakdown
+                // 1. Subtotal (Total with Tax)
+                _buildSummaryRow('Subtotal', '${subtotal.toStringAsFixed(2)}'),
 
-                // Apply Credit Note Row (only if customer is selected)
+                // 2. Customer Discount (if available)
+                if (_customerDefaultDiscount > 0) ...[
+                  _buildSummaryRow(
+                    'Customer Discount (${_customerDefaultDiscount.toStringAsFixed(1)}%)',
+                    '- ${customerDiscountAmount.toStringAsFixed(2)}',
+                    color: kGoogleGreen,
+                  ),
+                  const SizedBox(height: 2),
+                ],
+
+                // 3. Additional Discount (clickable to edit)
+                _buildSummaryRow(
+                  _customerDefaultDiscount > 0 ? 'Additional Discount' : 'Discount',
+                  '- ${additionalDiscountAmount.toStringAsFixed(2)}',
+                  color: kGoogleGreen,
+                  isClickable: true,
+                  onTap: _showDiscountDialog,
+                ),
+                const SizedBox(height: 2),
+
+                // 4. Credit Notes (only if customer is selected)
                 if (hasCustomer)
                   _buildSummaryRow(
-                    'Credit',
+                    'Credit Applied',
                     '- ${actualCreditUsed.toStringAsFixed(2)}',
                     color: kOrange,
                     isClickable: true,

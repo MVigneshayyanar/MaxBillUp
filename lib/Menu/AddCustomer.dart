@@ -18,11 +18,17 @@ const Color _scaffoldBg = kWhite;
 class AddCustomerPage extends StatefulWidget {
   final String uid;
   final VoidCallback? onBack;
+  final Map<String, dynamic>? customerData; // For edit mode
+  final String? customerId; // For edit mode (phone number)
+  final bool isEditMode;
 
   const AddCustomerPage({
     super.key,
     required this.uid,
     this.onBack,
+    this.customerData,
+    this.customerId,
+    this.isEditMode = false,
   });
 
   @override
@@ -36,8 +42,31 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   final TextEditingController _gstinController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _lastDueController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
   DateTime? _selectedDOB;
+  int _selectedRating = 0;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill data if in edit mode
+    if (widget.isEditMode && widget.customerData != null) {
+      _nameController.text = widget.customerData!['name'] ?? '';
+      _phoneController.text = widget.customerData!['phone'] ?? widget.customerId ?? '';
+      _gstinController.text = widget.customerData!['gstin'] ?? widget.customerData!['gst'] ?? '';
+      _addressController.text = widget.customerData!['address'] ?? '';
+      _discountController.text = (widget.customerData!['defaultDiscount'] ?? 0).toString();
+      _selectedRating = (widget.customerData!['rating'] ?? 0) as int;
+
+      // Handle DOB
+      if (widget.customerData!['dob'] != null) {
+        if (widget.customerData!['dob'] is Timestamp) {
+          _selectedDOB = (widget.customerData!['dob'] as Timestamp).toDate();
+        }
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -46,6 +75,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     _gstinController.dispose();
     _addressController.dispose();
     _lastDueController.dispose();
+    _discountController.dispose();
     super.dispose();
   }
 
@@ -81,60 +111,90 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     try {
       final phone = _phoneController.text.trim();
       final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final defaultDiscount = double.tryParse(_discountController.text.trim()) ?? 0.0;
 
-      // Check if customer already exists
-      final existing = await customersCollection.doc(phone).get();
-      if (existing.exists) {
+      if (widget.isEditMode) {
+        // Update existing customer
+        await customersCollection.doc(widget.customerId ?? phone).update({
+          'name': _nameController.text.trim(),
+          'phone': phone,
+          'gstin': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
+          'gst': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
+          'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+          'defaultDiscount': defaultDiscount,
+          'rating': _selectedRating,
+          'dob': _selectedDOB != null ? Timestamp.fromDate(_selectedDOB!) : null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Already customer is there'),
-              backgroundColor: kOrange,
+              content: Text('Customer updated successfully'),
+              backgroundColor: _successColor,
               behavior: SnackBarBehavior.floating,
             ),
           );
+          Navigator.pop(context, true);
         }
-        setState(() => _isLoading = false);
-        return;
-      }
+      } else {
+        // Check if customer already exists
+        final existing = await customersCollection.doc(phone).get();
+        if (existing.exists) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Already customer is there'),
+                backgroundColor: kOrange,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+          setState(() => _isLoading = false);
+          return;
+        }
 
-      final lastDue = double.tryParse(_lastDueController.text.trim()) ?? 0.0;
+        final lastDue = double.tryParse(_lastDueController.text.trim()) ?? 0.0;
 
-      // Create customer document
-      await customersCollection.doc(phone).set({
-        'name': _nameController.text.trim(),
-        'phone': phone,
-        'gstin': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
-        'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-        'balance': lastDue,
-        'totalSales': lastDue,
-        'dob': _selectedDOB != null ? Timestamp.fromDate(_selectedDOB!) : null,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      if (lastDue > 0) {
-        final creditsCollection = await FirestoreService().getStoreCollection('credits');
-        await creditsCollection.add({
-          'customerId': phone,
-          'customerName': _nameController.text.trim(),
-          'amount': lastDue,
-          'type': 'add_credit',
-          'method': 'Manual',
-          'timestamp': FieldValue.serverTimestamp(),
-          'date': DateTime.now().toIso8601String(),
-          'note': 'Opening Balance - Last Due Added',
+        // Create customer document
+        await customersCollection.doc(phone).set({
+          'name': _nameController.text.trim(),
+          'phone': phone,
+          'gstin': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
+          'gst': _gstinController.text.trim().isEmpty ? null : _gstinController.text.trim(),
+          'address': _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
+          'balance': lastDue,
+          'totalSales': lastDue,
+          'defaultDiscount': defaultDiscount,
+          'rating': _selectedRating,
+          'dob': _selectedDOB != null ? Timestamp.fromDate(_selectedDOB!) : null,
+          'createdAt': FieldValue.serverTimestamp(),
         });
-      }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Customer added successfully'),
-            backgroundColor: _successColor,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context, true);
+        if (lastDue > 0) {
+          final creditsCollection = await FirestoreService().getStoreCollection('credits');
+          await creditsCollection.add({
+            'customerId': phone,
+            'customerName': _nameController.text.trim(),
+            'amount': lastDue,
+            'type': 'add_credit',
+            'method': 'Manual',
+            'timestamp': FieldValue.serverTimestamp(),
+            'date': DateTime.now().toIso8601String(),
+            'note': 'Opening Balance - Last Due Added',
+          });
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Customer added successfully'),
+              backgroundColor: _successColor,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pop(context, true);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -267,9 +327,9 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
-        title: const Text(
-          'Add Customer',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+        title: Text(
+          widget.isEditMode ? 'Edit Customer' : 'Add Customer',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
         ),
         backgroundColor: _primaryColor,
         leading: IconButton(
@@ -278,7 +338,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         ),
         centerTitle: true,
         elevation: 0,
-        actions: [
+        actions: widget.isEditMode ? [] : [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             elevation: 0,
@@ -370,6 +430,16 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
+                          controller: _discountController,
+                          label: 'Default Discount %',
+                          hint: '0',
+                          icon: Icons.percent_rounded,
+                          iconColor: kGoogleGreen,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                        if (!widget.isEditMode) ...[
+                        const SizedBox(height: 16),
+                        _buildModernTextField(
                           controller: _lastDueController,
                           label: 'Last Due',
                           hint: '0.00',
@@ -377,6 +447,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           iconColor: kOrange,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
+                        ],
                         const SizedBox(height: 16),
                         _buildSectionHeader('Date of Birth'),
                         const SizedBox(height: 8),
@@ -410,6 +481,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                             ),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        _buildSectionHeader('Customer Rating'),
+                        const SizedBox(height: 8),
+                        _buildStarRating(),
                       ],
                     ),
                   ),
@@ -420,6 +495,70 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             _buildBottomSaveButton(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStarRating() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _selectedRating > 0 ? kOrange : _cardBorder,
+          width: _selectedRating > 0 ? 1.5 : 1.0,
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, color: kOrange, size: 20),
+          const SizedBox(width: 12),
+          const Text(
+            'Rating:',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+          ),
+          const Spacer(),
+          ...List.generate(5, (index) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  // If tapping the same star, deselect it (set to 0)
+                  // Otherwise, set to the tapped star number
+                  if (_selectedRating == index + 1) {
+                    _selectedRating = 0;
+                  } else {
+                    _selectedRating = index + 1;
+                  }
+                });
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Icon(
+                  index < _selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 28,
+                  color: index < _selectedRating ? kOrange : kGrey300,
+                ),
+              ),
+            );
+          }),
+          // Add a clear button to remove rating
+          if (_selectedRating > 0) ...[
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedRating = 0;
+                });
+              },
+              child: const Icon(
+                Icons.clear_rounded,
+                size: 20,
+                color: kGrey400,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -513,9 +652,9 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             width: 24,
             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
           )
-              : const Text(
-            'SAVE CUSTOMER',
-            style: TextStyle(
+              : Text(
+            widget.isEditMode ? 'UPDATE CUSTOMER' : 'SAVE CUSTOMER',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w800,

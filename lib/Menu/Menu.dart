@@ -667,7 +667,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   SortOption _currentSort = SortOption.dateNewest;
 
   // Filter options
-  String _statusFilter = 'all'; // all, settled, unsettled, cancelled
+  String _statusFilter = 'all'; // all, settled, unsettled, cancelled, edited, returned
   String _paymentFilter = 'all';
   String _selectedDateFilter = 'All Time';
   DateTimeRange? _customDateRange;
@@ -733,10 +733,14 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       final paymentStatus = data['paymentStatus'];
       final isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
       final isCancelled = data['status'] == 'cancelled';
+      final isEdited = data['status'] == 'edited';
+      final isReturned = data['status'] == 'returned';
 
-      if (_statusFilter == 'settled' && (!isSettled || isCancelled)) return false;
-      if (_statusFilter == 'unsettled' && (isSettled || isCancelled)) return false;
+      if (_statusFilter == 'settled' && (!isSettled || isCancelled || isEdited || isReturned)) return false;
+      if (_statusFilter == 'unsettled' && (isSettled || isCancelled || isEdited || isReturned)) return false;
       if (_statusFilter == 'cancelled' && !isCancelled) return false;
+      if (_statusFilter == 'edited' && !isEdited) return false;
+      if (_statusFilter == 'returned' && !isReturned) return false;
 
       // Search
       if (_searchQuery.isNotEmpty) {
@@ -884,6 +888,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final paymentStatus = data['paymentStatus'];
     final bool isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
     final bool isCancelled = data['status'] == 'cancelled';
+    final bool isEdited = data['status'] == 'edited';
+    final bool isReturned = data['status'] == 'returned';
 
     return Container(
       decoration: BoxDecoration(
@@ -923,7 +929,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     const Text("Billed by", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(staffName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87))
                   ]),
-                  _badge(isSettled, isCancelled)
+                  _badge(isSettled, isCancelled, isEdited, isReturned)
                 ]),
               ],
             ),
@@ -933,12 +939,26 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     );
   }
 
-  Widget _badge(bool settled, bool cancelled) {
+  Widget _badge(bool settled, bool cancelled, bool edited, bool returned) {
     if (cancelled) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: kBlack54.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
         child: const Text("CANCELLED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+      );
+    }
+    if (edited) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.2))),
+        child: const Text("EDITED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
+      );
+    }
+    if (returned) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.withOpacity(0.2))),
+        child: const Text("RETURNED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
       );
     }
     // Logic: Unsettled (Open) is Green, Settled (Closed) is Red
@@ -954,7 +974,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   }
 
   void _handleOnTap(QueryDocumentSnapshot doc, Map<String, dynamic> data, bool isSettled, bool isCancelled, double total) {
-    if (!isSettled && !isCancelled) {
+    // Allow editing only if unsettled and not cancelled/edited/returned
+    final bool isEdited = data['status'] == 'edited';
+    final bool isReturned = data['status'] == 'returned';
+
+    if (!isSettled && !isCancelled && !isEdited && !isReturned) {
       final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
           .map((item) => CartItem(
         productId: item['productId'] ?? '',
@@ -1046,6 +1070,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
               _filterItem("Settled Only", 'settled'),
               _filterItem("Unsettled Only", 'unsettled'),
               _filterItem("Cancelled Only", 'cancelled'),
+              _filterItem("Edited Only", 'edited'),
+              _filterItem("Returned Only", 'returned'),
             ],
           ),
         ),
@@ -1498,6 +1524,8 @@ class SalesDetailPage extends StatelessWidget {
               final status = data['paymentStatus'];
               final bool settled = status != null ? status != 'unsettled' : (data.containsKey('paymentMode'));
               final bool isCancelled = data['status'] == 'cancelled';
+              final bool isEdited = data['status'] == 'edited';
+              final bool isReturned = data['status'] == 'returned';
 
               return Column(
                 children: [
@@ -1531,7 +1559,7 @@ class SalesDetailPage extends StatelessWidget {
                               ],
                             ),
                           ),
-                          _buildStatusTag(settled, isCancelled),
+                          _buildStatusTag(settled, isCancelled, isEdited, isReturned),
                         ],
                       ),
                     ),
@@ -1576,7 +1604,7 @@ class SalesDetailPage extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', 'INV-${data['invoiceNumber']}'),
+                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', 'Invoice-${data['invoiceNumber']}'),
                                   _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'Admin'),
                                   _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
                                   _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
@@ -1651,16 +1679,6 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusTag(bool settled, bool cancelled) {
-    String label = cancelled ? "CANCELLED" : (settled ? "SETTLED" : "UNSETTLED");
-    Color color = cancelled ? kBlack54 : (settled ? kErrorColor : kGoogleGreen);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-      child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: color)),
-    );
-  }
 
   Widget _buildDetailRow(IconData icon, String label, String value) {
     return Padding(
@@ -1888,6 +1906,57 @@ class SalesDetailPage extends StatelessWidget {
             Text(lbl, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 9)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusTag(bool settled, bool cancelled, bool edited, bool returned) {
+    // Priority order: cancelled > returned > edited > settled/unsettled
+    if (cancelled) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: kBlack54.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kBlack54.withOpacity(0.2)),
+        ),
+        child: const Text("CANCELLED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+      );
+    }
+    if (returned) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.orange.withOpacity(0.2)),
+        ),
+        child: const Text("RETURNED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
+      );
+    }
+    if (edited) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.blue.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.blue.withOpacity(0.2)),
+        ),
+        child: const Text("EDITED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
+      );
+    }
+    // Default: settled/unsettled status
+    final Color statusColor = settled ? kErrorColor : kGoogleGreen;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: statusColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withOpacity(0.2)),
+      ),
+      child: Text(
+        settled ? "SETTLED" : "UNSETTLED",
+        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
       ),
     );
   }
@@ -4562,7 +4631,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(widget.invoiceData['customerName'] ?? 'Walk-in Customer', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87)),
-                    Text("INV-${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd-MM-yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
+                    Text("Invoice-${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd-MM-yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ],
@@ -4760,6 +4829,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         'hasReturns': true,
         'returnAmount': (widget.invoiceData['returnAmount'] ?? 0.0) + totalReturnWithTax,
         'lastReturnAt': FieldValue.serverTimestamp(),
+        'status': 'returned', // Mark as returned
       });
 
       if (mounted) {
@@ -4937,7 +5007,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("REFERENCE INVOICE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
-                    Text("INV-${widget.invoiceData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kHeaderColor)),
+                    Text("Invoice-${widget.invoiceData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kHeaderColor)),
                   ],
                 ),
                 Column(
@@ -5619,6 +5689,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               String? taxName;
                               double? taxPercentage;
                               String? taxType;
+                              double taxAmount = 0.0;
 
                               if (selectedTaxId != null) {
                                 final selectedTax = availableTaxes.firstWhere(
@@ -5628,6 +5699,17 @@ class _EditBillPageState extends State<EditBillPage> {
                                 taxName = selectedTax['name'];
                                 taxPercentage = selectedTax['percentage'];
                                 taxType = selectedTaxType;
+
+                                // Recalculate tax amount based on new price and quantity
+                                if (taxPercentage != null && taxPercentage > 0) {
+                                  final itemTotal = newPrice * newQty;
+                                  if (taxType == 'Price includes Tax') {
+                                    final taxRate = taxPercentage / 100;
+                                    taxAmount = itemTotal - (itemTotal / (1 + taxRate));
+                                  } else if (taxType == 'Price is without Tax') {
+                                    taxAmount = itemTotal * (taxPercentage / 100);
+                                  }
+                                }
                               }
 
                               setState(() {
@@ -5637,6 +5719,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                 _items[idx]['taxName'] = taxName;
                                 _items[idx]['taxPercentage'] = taxPercentage ?? 0;
                                 _items[idx]['taxType'] = taxType;
+                                _items[idx]['taxAmount'] = taxAmount;
                               });
                               Navigator.pop(context);
                             },
@@ -5815,6 +5898,9 @@ class _EditBillPageState extends State<EditBillPage> {
           'price': (data['price'] ?? 0).toDouble(),
           'stock': (data['currentStock'] ?? 0).toDouble(),
           'code': data['productCode'] ?? '',
+          'taxPercentage': (data['taxPercentage'] ?? 0).toDouble(),
+          'taxName': data['taxName'],
+          'taxType': data['taxType'],
         };
       }).toList();
 
@@ -5878,10 +5964,23 @@ class _EditBillPageState extends State<EditBillPage> {
                       separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100),
                       itemBuilder: (context, index) {
                         final p = filteredProducts[index];
+                        // Calculate tax amount based on tax type
+                        final price = (p['price'] as double?) ?? 0.0;
+                        final taxPercentage = (p['taxPercentage'] as double?) ?? 0.0;
+                        final taxType = p['taxType'] as String?;
+                        double taxAmount = 0.0;
+                        if (taxPercentage > 0) {
+                          if (taxType == 'Price includes Tax') {
+                            final taxRate = taxPercentage / 100;
+                            taxAmount = price - (price / (1 + taxRate));
+                          } else if (taxType == 'Price is without Tax') {
+                            taxAmount = price * (taxPercentage / 100);
+                          }
+                        }
                         return ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 8),
                           title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          subtitle: Text('Rate: ${p['price']} • Stock: ${p['stock'].toInt()}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                          subtitle: Text('Rate: ${p['price']} • Stock: ${p['stock'].toInt()}${taxPercentage > 0 ? ' • Tax: ${taxPercentage.toStringAsFixed(0)}%' : ''}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
                           trailing: const Icon(Icons.add_circle_rounded, color: kHeaderColor, size: 28),
                           onTap: () {
                             setState(() {
@@ -5890,6 +5989,10 @@ class _EditBillPageState extends State<EditBillPage> {
                                 'name': p['name'],
                                 'price': p['price'],
                                 'quantity': 1,
+                                'taxPercentage': taxPercentage,
+                                'taxName': p['taxName'],
+                                'taxType': taxType,
+                                'taxAmount': taxAmount,
                               });
                             });
                             Navigator.pop(ctx);
@@ -5942,6 +6045,7 @@ class _EditBillPageState extends State<EditBillPage> {
         'creditNotesAmount': _creditNotesAmount,
         'updatedAt': FieldValue.serverTimestamp(),
         'editCount': currentEditCount + 1,
+        'status': 'edited', // Mark as edited
       });
 
       // Handle Partial Credit Note Logic

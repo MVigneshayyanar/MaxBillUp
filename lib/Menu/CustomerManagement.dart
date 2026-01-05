@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/Menu/AddCustomer.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -236,31 +237,6 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             size: 18,
             color: i < rating ? kOrange : kGrey300,
           )),
-          const Spacer(),
-          GestureDetector(
-            onTap: () => _showEditRatingDialog(data),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.edit_rounded, size: 14, color: kPrimaryColor),
-                  SizedBox(width: 4),
-                  Text(
-                    'Edit',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: kPrimaryColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -559,56 +535,52 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Use FutureBuilder to get store-scoped document reference, then StreamBuilder for real-time updates
+    // Use initial customerData to avoid white screen, then stream for updates
     return FutureBuilder<DocumentReference>(
       future: FirestoreService().getDocumentReference('customers', widget.customerId),
       builder: (context, docRefSnapshot) {
+        // Show initial data immediately while loading reference
         if (docRefSnapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: kGreyBg,
-            body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
-          );
+          return _buildCustomerUI(context, widget.customerData);
         }
 
         if (!docRefSnapshot.hasData) {
-          return const Scaffold(
-            backgroundColor: kGreyBg,
-            body: Center(child: Text("Unable to load customer")),
-          );
+          // Fallback to initial data if reference fails
+          return _buildCustomerUI(context, widget.customerData);
         }
 
         return StreamBuilder<DocumentSnapshot>(
           stream: docRefSnapshot.data!.snapshots(),
+          initialData: null,
           builder: (context, snapshot) {
-            // Show existing data while updating
-            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-              return const Scaffold(
-                backgroundColor: kGreyBg,
-                body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
-              );
+            // Use stream data if available, otherwise use initial customerData
+            Map<String, dynamic> data;
+            if (snapshot.hasData && snapshot.data!.exists) {
+              data = snapshot.data!.data() as Map<String, dynamic>;
+            } else {
+              data = widget.customerData;
             }
+            return _buildCustomerUI(context, data);
+          },
+        );
+      },
+    );
+  }
 
-            if (!snapshot.hasData || !snapshot.data!.exists) {
-              return const Scaffold(
-                backgroundColor: kGreyBg,
-                body: Center(child: Text("Customer not found")),
-              );
-            }
+  Widget _buildCustomerUI(BuildContext context, Map<String, dynamic> data) {
+    double balance = (data['balance'] ?? 0).toDouble();
+    double totalSales = (data['totalSales'] ?? 0).toDouble();
 
-            var data = snapshot.data!.data() as Map<String, dynamic>;
-            double balance = (data['balance'] ?? 0).toDouble();
-            double totalSales = (data['totalSales'] ?? 0).toDouble();
-
-        return Scaffold(
-          backgroundColor: kGreyBg,
-          appBar: AppBar(
-            title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-            backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
-            iconTheme: const IconThemeData(color: kWhite),
-          ),
-          body: Column(
-            children: [
-              Expanded(
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
+        iconTheme: const IconThemeData(color: kWhite),
+      ),
+      body: Column(
+        children: [
+          Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
@@ -632,19 +604,25 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kOrange))),
-                                Row(children: [
-                                  IconButton(icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26), onPressed: () => _showEditDialog(context, data['name'], data['gst'])),
-                                  IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 24), onPressed: () => _confirmDelete(context)),
-                                ])
+                                IconButton(
+                                  icon: const Icon(Icons.edit_rounded, color: kPrimaryColor, size: 24),
+                                  onPressed: () => _navigateToEditCustomer(context, data)
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
-                            // Customer Rating Display with Edit Option
+                            // Customer Rating Display
                             _buildRatingSection(data),
                             const Divider(height: 32, color: kGrey100),
                             _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? 'Not Provided'),
+                            _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? data['gstin'] ?? 'Not Provided'),
+                            const SizedBox(height: 10),
+                            _buildInfoRow(Icons.location_on_rounded, "Address", data['address'] ?? 'Not Provided'),
+                            const SizedBox(height: 10),
+                            _buildInfoRow(Icons.percent_rounded, "Default Discount", "${(data['defaultDiscount'] ?? 0).toString()}%"),
+                            const SizedBox(height: 10),
+                            _buildInfoRow(Icons.cake_rounded, "Date of Birth", _formatDOB(data['dob'])),
                             const SizedBox(height: 24),
                             Row(children: [
                               _buildStatBox("Total Sales", totalSales, kGoogleGreen),
@@ -660,6 +638,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                       _buildMenuItem(context, "Payment History", Icons.history_rounded),
                       const SizedBox(height: 10),
                       _buildMenuItem(context, "Ledger Account", Icons.account_balance_rounded),
+                      const SizedBox(height: 80), // Space for FAB
                     ],
                   ),
                 ),
@@ -668,10 +647,32 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             ],
           ),
         );
-          },
-        );
-      },
-    );
+  }
+
+  void _navigateToEditCustomer(BuildContext context, Map<String, dynamic> data) {
+    Navigator.push(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => AddCustomerPage(
+          uid: '',
+          isEditMode: true,
+          customerId: widget.customerId,
+          customerData: data,
+        ),
+      ),
+    ).then((result) {
+      if (result == true) {
+        setState(() {}); // Refresh
+      }
+    });
+  }
+
+  String _formatDOB(dynamic dob) {
+    if (dob == null) return 'Not Provided';
+    if (dob is Timestamp) {
+      return DateFormat('dd-MM-yyyy').format(dob.toDate());
+    }
+    return 'Not Provided';
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
