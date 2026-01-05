@@ -2146,7 +2146,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
       // Build header based on what's shown
       String header = 'ITEM'.padRight(nameWidth);
-      header += 'QTY'.padRight(qtyWidth);
+      header += 'QTY  '.padRight(qtyWidth);
       header += 'RATE'.padRight(rateWidth);
       header += 'TAX'.padRight(taxWidth);
       header += 'TOTAL'.padLeft(totalWidth);

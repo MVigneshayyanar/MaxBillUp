@@ -310,10 +310,10 @@ class _ProductsPageState extends State<ProductsPage> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: kPrimaryColor.withOpacity(0.05),
+                      color: kOrange.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.inventory_2_rounded, color: kPrimaryColor, size: 20),
+                    child: const Icon(Icons.inventory_2_rounded, color: kOrange, size: 20),
                   ),
                 if (!_isMultiSelectMode) const SizedBox(width: 14),
                 // Info Column

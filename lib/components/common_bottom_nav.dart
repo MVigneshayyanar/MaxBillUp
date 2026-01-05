@@ -4,7 +4,7 @@ import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Settings/Profile.dart' hide kPrimaryColor, kBlack54;
 import 'package:maxbillup/Stocks/Stock.dart' as stock;
 import 'package:maxbillup/Reports/Reports.dart' hide kPrimaryColor;
-import 'package:maxbillup/Menu/Menu.dart' hide kWhite;
+import 'package:maxbillup/Menu/Menu.dart' hide kWhite, kPrimaryColor;
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 

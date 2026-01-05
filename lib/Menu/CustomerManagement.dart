@@ -559,89 +559,115 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Use FutureBuilder to get store-scoped document reference, then StreamBuilder for real-time updates
     return FutureBuilder<DocumentReference>(
       future: FirestoreService().getDocumentReference('customers', widget.customerId),
       builder: (context, docRefSnapshot) {
-        if (!docRefSnapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+        if (docRefSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: kGreyBg,
+            body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+          );
+        }
+
+        if (!docRefSnapshot.hasData) {
+          return const Scaffold(
+            backgroundColor: kGreyBg,
+            body: Center(child: Text("Unable to load customer")),
+          );
+        }
+
         return StreamBuilder<DocumentSnapshot>(
           stream: docRefSnapshot.data!.snapshots(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-            if (!snapshot.data!.exists) return const Scaffold(body: Center(child: Text("Customer not found")));
+            // Show existing data while updating
+            if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+              return const Scaffold(
+                backgroundColor: kGreyBg,
+                body: Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+              );
+            }
+
+            if (!snapshot.hasData || !snapshot.data!.exists) {
+              return const Scaffold(
+                backgroundColor: kGreyBg,
+                body: Center(child: Text("Customer not found")),
+              );
+            }
 
             var data = snapshot.data!.data() as Map<String, dynamic>;
             double balance = (data['balance'] ?? 0).toDouble();
             double totalSales = (data['totalSales'] ?? 0).toDouble();
 
-            return Scaffold(
-              backgroundColor: kGreyBg,
-              appBar: AppBar(
-                title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-                backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
-                iconTheme: const IconThemeData(color: kWhite),
-              ),
-              body: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 8), // Reduced gap
-                          Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16),
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+        return Scaffold(
+          backgroundColor: kGreyBg,
+          appBar: AppBar(
+            title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+            backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
+            iconTheme: const IconThemeData(color: kWhite),
+          ),
+          body: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 8), // Reduced gap
+                      Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    CircleAvatar(
-                                      backgroundColor: kOrange.withOpacity(0.1),
-                                      radius: 24,
-                                      child: const Icon(Icons.person, color: kOrange, size: 24),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kOrange))),
-                                    Row(children: [
-                                      IconButton(icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26), onPressed: () => _showEditDialog(context, data['name'], data['gst'])),
-                                      IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 24), onPressed: () => _confirmDelete(context)),
-                                    ])
-                                  ],
+                                CircleAvatar(
+                                  backgroundColor: kOrange.withOpacity(0.1),
+                                  radius: 24,
+                                  child: const Icon(Icons.person, color: kOrange, size: 24),
                                 ),
-                                const SizedBox(height: 16),
-                                // Customer Rating Display with Edit Option
-                                _buildRatingSection(data),
-                                const Divider(height: 32, color: kGrey100),
-                                _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
-                                const SizedBox(height: 10),
-                                _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? 'Not Provided'),
-                                const SizedBox(height: 24),
+                                const SizedBox(width: 12),
+                                Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kOrange))),
                                 Row(children: [
-                                  _buildStatBox("Total Sales", totalSales, kGoogleGreen),
-                                  const SizedBox(width: 12),
-                                  _buildStatBox("Real Balance", balance, kErrorColor),
+                                  IconButton(icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26), onPressed: () => _showEditDialog(context, data['name'], data['gst'])),
+                                  IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 24), onPressed: () => _confirmDelete(context)),
                                 ])
                               ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          _buildMenuItem(context, "View Bills", Icons.receipt_long_rounded),
-                          const SizedBox(height: 10),
-                          _buildMenuItem(context, "Payment History", Icons.history_rounded),
-                          const SizedBox(height: 10),
-                          _buildMenuItem(context, "Ledger Account", Icons.account_balance_rounded),
-                        ],
+                            const SizedBox(height: 16),
+                            // Customer Rating Display with Edit Option
+                            _buildRatingSection(data),
+                            const Divider(height: 32, color: kGrey100),
+                            _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
+                            const SizedBox(height: 10),
+                            _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? 'Not Provided'),
+                            const SizedBox(height: 24),
+                            Row(children: [
+                              _buildStatBox("Total Sales", totalSales, kGoogleGreen),
+                              const SizedBox(width: 12),
+                              _buildStatBox("Real Balance", balance, kErrorColor),
+                            ])
+                          ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 16),
+                      _buildMenuItem(context, "View Bills", Icons.receipt_long_rounded),
+                      const SizedBox(height: 10),
+                      _buildMenuItem(context, "Payment History", Icons.history_rounded),
+                      const SizedBox(height: 10),
+                      _buildMenuItem(context, "Ledger Account", Icons.account_balance_rounded),
+                    ],
                   ),
-                  _buildBottomActionArea(balance, totalSales),
-                ],
+                ),
               ),
-            );
+              _buildBottomActionArea(balance, totalSales),
+            ],
+          ),
+        );
           },
         );
       },

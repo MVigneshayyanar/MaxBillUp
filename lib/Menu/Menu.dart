@@ -920,7 +920,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 const Divider(height: 20, color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text("Billed by", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    const Text("Billed by", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(staffName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87))
                   ]),
                   _badge(isSettled, isCancelled)
@@ -1898,7 +1898,7 @@ class SalesDetailPage extends StatelessWidget {
 
 
 // --- Global Theme Constants (Pure White BG, Standard Blue AppBar) ---
-const Color kPrimaryBlue = Color(0xFF2F7CF6);
+const Color kPrimaryColor = Color(0xFF4A5DF9);
 const Color kDeepNavy = Color(0xFF1E293B);
 const Color kMediumBlue = Color(0xFF475569);
 const Color kWhite = Colors.white;
@@ -2532,7 +2532,7 @@ class CreditNoteDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Detail Overview',
             style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -2553,7 +2553,7 @@ class CreditNoteDetailPage extends StatelessWidget {
             _buildSectionCard(
               child: Column(
                 children: [
-                  _buildIconRow(Icons.receipt_long, "Invoice ID", "#${creditNoteData['invoiceNumber']}", kPrimaryBlue),
+                  _buildIconRow(Icons.receipt_long, "Invoice ID", "#${creditNoteData['invoiceNumber']}", kPrimaryColor),
                   const Divider(height: 32),
                   _buildIconRow(Icons.person, "Customer", creditNoteData['customerName'] ?? 'Guest', kSuccessGreen),
                   const Divider(height: 32),
@@ -2597,9 +2597,9 @@ class CreditNoteDetailPage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: kPrimaryBlue,
+        color: kPrimaryColor,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: kPrimaryBlue.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: kPrimaryColor.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
@@ -2634,7 +2634,7 @@ class CreditNoteDetailPage extends StatelessWidget {
               const SizedBox(height: 24),
               _buildDialogOption(onSelect: () => setState(() => mode = "Cash"), mode: "Cash", current: mode, icon: Icons.payments, color: kSuccessGreen),
               const SizedBox(height: 12),
-              _buildDialogOption(onSelect: () => setState(() => mode = "Online"), mode: "Online", current: mode, icon: Icons.account_balance, color: kPrimaryBlue),
+              _buildDialogOption(onSelect: () => setState(() => mode = "Online"), mode: "Online", current: mode, icon: Icons.account_balance, color: kPrimaryColor),
             ],
           ),
           actions: [
@@ -3633,7 +3633,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
       appBar: AppBar(
         title: const Text('Purchase Overview',
             style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -3651,7 +3651,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+                      Text(data['creditNoteNumber'] ?? 'N/A', style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryColor)),
                       _buildStatusPill(data['status'] ?? 'Available'),
                     ],
                   ),
@@ -3684,7 +3684,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
 
             const SizedBox(height: 32),
             if (remaining > 0)
-              _buildLargeButton(context, label: "RECORD PAYMENT", icon: Icons.receipt_long_rounded, color: kPrimaryBlue, onPressed: () {}),
+              _buildLargeButton(context, label: "RECORD PAYMENT", icon: Icons.receipt_long_rounded, color: kPrimaryColor, onPressed: () {}),
           ],
         ),
       ),
@@ -3778,7 +3778,7 @@ Widget _buildDetailTotalRow(num amount, int itemCount) {
     decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16))),
     child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
       Text("TOTAL RETURN ($itemCount)", style: const TextStyle(fontSize: 11,fontWeight: FontWeight.bold, color: kMediumBlue)),
-      Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22,fontWeight: FontWeight.bold, color: kPrimaryBlue)),
+      Text("${amount.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22,fontWeight: FontWeight.bold, color: kPrimaryColor)),
     ]),
   );
 }
@@ -3893,62 +3893,6 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
-  void _showAddCustomer() {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-    final gstController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: kWhite,
-        title: Text(context.tr('addnewcustomer'),
-            style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 18)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildCustomerDialogField(nameController, context.tr('customername'), Icons.person_outline),
-            const SizedBox(height: 12),
-            _buildCustomerDialogField(phoneController, context.tr('customerphone'), Icons.phone_android_outlined, type: TextInputType.phone),
-            const SizedBox(height: 12),
-            _buildCustomerDialogField(gstController, context.tr('gstin'), Icons.assignment_outlined),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("CANCEL", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryBlue,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(context.tr('add'), style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold)),
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final phone = phoneController.text.trim();
-              final gst = gstController.text.trim();
-              if (name.isEmpty || phone.isEmpty) return;
-
-              await FirestoreService().setDocument('customers', phone, {
-                'name': name,
-                'phone': phone,
-                'gst': gst.isEmpty ? null : gst,
-                'balance': 0.0,
-                'totalSales': 0.0,
-                'lastUpdated': FieldValue.serverTimestamp(),
-                'timestamp': FieldValue.serverTimestamp(),
-              });
-              if (mounted) Navigator.pop(context);
-            },
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showSortMenu() {
     showModalBottomSheet(
@@ -3985,13 +3929,13 @@ class _CustomersPageState extends State<CustomersPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: isSelected ? kPrimaryBlue.withOpacity(0.1) : kGreyBg,
+          color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: isSelected ? kPrimaryBlue : kBlack54, size: 22),
+        child: Icon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 22),
       ),
-      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? kPrimaryBlue : kBlack87)),
-      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryBlue, size: 20) : null,
+      title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? kPrimaryColor : kBlack87)),
+      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 20) : null,
     );
   }
 
@@ -4002,7 +3946,7 @@ class _CustomersPageState extends State<CustomersPage> {
       appBar: AppBar(
         title: Text(context.tr('customer_management'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -4033,7 +3977,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       controller: _searchController,
                       style: const TextStyle(color: kBlack87, fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search, color: kPrimaryBlue, size: 20),
+                        prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
                         hintText: context.tr('search'),
                         hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
                         border: InputBorder.none,
@@ -4051,11 +3995,11 @@ class _CustomersPageState extends State<CustomersPage> {
                     height: 46,
                     width: 46,
                     decoration: BoxDecoration(
-                      color: kPrimaryBlue.withOpacity(0.08),
+                      color: kPrimaryColor.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: kGrey200),
                     ),
-                    child: const Icon(Icons.sort_rounded, color: kPrimaryBlue, size: 22),
+                    child: const Icon(Icons.sort_rounded, color: kPrimaryColor, size: 22),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -4079,7 +4023,7 @@ class _CustomersPageState extends State<CustomersPage> {
                     height: 46,
                     width: 46,
                     decoration: BoxDecoration(
-                      color: kPrimaryBlue,
+                      color: kPrimaryColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.person_add_alt_1_rounded, color: kWhite, size: 22),
@@ -4161,9 +4105,15 @@ class _CustomersPageState extends State<CustomersPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            // Use push with MaterialPageRoute instead of CupertinoPageRoute for better performance
             Navigator.push(
               context,
-              CupertinoPageRoute(builder: (context) => CustomerDetailsPage(customerId: docId, customerData: data)),
+              MaterialPageRoute(
+                builder: (context) => CustomerDetailsPage(
+                  customerId: docId,
+                  customerData: data,
+                ),
+              ),
             );
           },
           borderRadius: BorderRadius.circular(12),
@@ -4175,10 +4125,10 @@ class _CustomersPageState extends State<CustomersPage> {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: kPrimaryBlue.withOpacity(0.08),
+                      backgroundColor: kPrimaryColor.withOpacity(0.08),
                       radius: 20,
                       child: Text((data['name'] ?? 'U')[0].toUpperCase(),
-                          style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900, fontSize: 16)),
+                          style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -4199,7 +4149,7 @@ class _CustomersPageState extends State<CustomersPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryBlue),
+                    _buildManagerStatItem("TOTAL SALES", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryColor),
                     _buildManagerStatItem("CREDIT DUE", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
                   ],
                 ),
@@ -4211,27 +4161,6 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
-    return Container(
-      decoration: BoxDecoration(
-          color: kPrimaryColor.withOpacity(0.04),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kGrey200)
-      ),
-      child: TextField(
-        controller: ctrl,
-        keyboardType: type,
-        style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87, fontSize: 14),
-        decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: kPrimaryBlue, size: 18),
-          hintText: label,
-          hintStyle: const TextStyle(color: kBlack54, fontSize: 13),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
-    );
-  }
 
   Widget _buildManagerStatItem(String label, String value, Color color, {CrossAxisAlignment align = CrossAxisAlignment.start}) {
     return Column(
@@ -4275,7 +4204,7 @@ class StaffManagementList extends StatelessWidget {
       appBar: AppBar(
         title: Text(context.tr('staffmanagement'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: onBack),
@@ -4293,7 +4222,7 @@ class StaffManagementList extends StatelessWidget {
                   icon: const Icon(Icons.add_circle_outline, size: 20, color: kWhite),
                   label: const Text("ADD NEW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kWhite)),
                   style: TextButton.styleFrom(
-                      backgroundColor: kPrimaryBlue,
+                      backgroundColor: kPrimaryColor,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                   ),
@@ -4306,11 +4235,11 @@ class StaffManagementList extends StatelessWidget {
             child: FutureBuilder<String?>(
               future: FirestoreService().getCurrentStoreId(),
               builder: (context, storeIdSnapshot) {
-                if (!storeIdSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                if (!storeIdSnapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                 return StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance.collection('users').where('storeId', isEqualTo: storeIdSnapshot.data).snapshots(),
                   builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryBlue));
+                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                     if (snapshot.data!.docs.isEmpty) return _buildManagerNoDataState("No staff memberegistered");
 
                     return ListView.builder(
@@ -4330,9 +4259,9 @@ class StaffManagementList extends StatelessWidget {
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             leading: CircleAvatar(
-                              backgroundColor: kPrimaryBlue.withOpacity(0.1),
+                              backgroundColor: kPrimaryColor.withOpacity(0.1),
                               child: Text((data['name'] ?? 'S')[0].toUpperCase(),
-                                  style: const TextStyle(color: kPrimaryBlue, fontWeight: FontWeight.w900)),
+                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900)),
                             ),
                             title: Text(data['name'] ?? 'Unknown',
                                 style: const TextStyle(fontWeight: FontWeight.w900, color: kDeepNavy, fontSize: 15)),
@@ -4381,7 +4310,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
       appBar: AppBar(
         title: Text(context.tr('addnewstaff'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
-        backgroundColor: kPrimaryBlue,
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: widget.onBack),
@@ -4413,7 +4342,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                     value: _selectedRole,
                     isExpanded: true,
                     dropdownColor: kWhite,
-                    icon: const Icon(Icons.expand_more, color: kPrimaryBlue),
+                    icon: const Icon(Icons.expand_more, color: kPrimaryColor),
                     items: ["Administrator", "Cashier", "Sales"].map((r) => DropdownMenuItem(
                         value: r,
                         child: Text(r, style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy))
@@ -4441,7 +4370,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                     widget.onBack();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryBlue,
+                    backgroundColor: kPrimaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
@@ -4468,7 +4397,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
         obscureText: isObscure,
         style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: kPrimaryBlue, size: 22),
+          prefixIcon: Icon(icon, color: kPrimaryColor, size: 22),
           hintText: hint,
           hintStyle: const TextStyle(color: kMediumBlue, fontWeight: FontWeight.w500),
           border: InputBorder.none,
@@ -4494,7 +4423,7 @@ Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconD
       keyboardType: type,
       style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: kPrimaryBlue, size: 20),
+        prefixIcon: Icon(icon, color: kPrimaryColor, size: 20),
         hintText: label,
         hintStyle: const TextStyle(color: kMediumBlue, fontSize: 13),
         border: InputBorder.none,

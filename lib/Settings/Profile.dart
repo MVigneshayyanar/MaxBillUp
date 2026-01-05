@@ -458,18 +458,155 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   String _selectedCurrency = 'INR';
 
   final List<Map<String, String>> _currencies = [
-    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
+    // Popular currencies first
     {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
     {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
     {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-    {'code': 'MYR', 'symbol': 'RM', 'name': 'Malaysian Ringgit'},
-    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
-    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
-    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
+    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
     {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
     {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
+
+    // Asia-Pacific
+    {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
+    {'code': 'AFN', 'symbol': '؋', 'name': 'Afghan Afghani'},
+    {'code': 'AMD', 'symbol': '֏', 'name': 'Armenian Dram'},
     {'code': 'AUD', 'symbol': 'A\$', 'name': 'Australian Dollar'},
+    {'code': 'AZN', 'symbol': '₼', 'name': 'Azerbaijani Manat'},
+    {'code': 'BDT', 'symbol': '৳', 'name': 'Bangladeshi Taka'},
+    {'code': 'BHD', 'symbol': '.د.ب', 'name': 'Bahraini Dinar'},
+    {'code': 'BND', 'symbol': 'B\$', 'name': 'Brunei Dollar'},
+    {'code': 'BTN', 'symbol': 'Nu.', 'name': 'Bhutanese Ngultrum'},
+    {'code': 'FJD', 'symbol': 'FJ\$', 'name': 'Fijian Dollar'},
+    {'code': 'GEL', 'symbol': '₾', 'name': 'Georgian Lari'},
+    {'code': 'HKD', 'symbol': 'HK\$', 'name': 'Hong Kong Dollar'},
+    {'code': 'IDR', 'symbol': 'Rp', 'name': 'Indonesian Rupiah'},
+    {'code': 'ILS', 'symbol': '₪', 'name': 'Israeli New Shekel'},
+    {'code': 'IQD', 'symbol': 'ع.د', 'name': 'Iraqi Dinar'},
+    {'code': 'IRR', 'symbol': '﷼', 'name': 'Iranian Rial'},
+    {'code': 'JOD', 'symbol': 'د.ا', 'name': 'Jordanian Dinar'},
+    {'code': 'KHR', 'symbol': '៛', 'name': 'Cambodian Riel'},
+    {'code': 'KRW', 'symbol': '₩', 'name': 'South Korean Won'},
+    {'code': 'KWD', 'symbol': 'د.ك', 'name': 'Kuwaiti Dinar'},
+    {'code': 'KZT', 'symbol': '₸', 'name': 'Kazakhstani Tenge'},
+    {'code': 'LAK', 'symbol': '₭', 'name': 'Lao Kip'},
+    {'code': 'LBP', 'symbol': 'ل.ل', 'name': 'Lebanese Pound'},
+    {'code': 'LKR', 'symbol': 'Rs', 'name': 'Sri Lankan Rupee'},
+    {'code': 'MMK', 'symbol': 'K', 'name': 'Myanmar Kyat'},
+    {'code': 'MNT', 'symbol': '₮', 'name': 'Mongolian Tugrik'},
+    {'code': 'MOP', 'symbol': 'MOP\$', 'name': 'Macanese Pataca'},
+    {'code': 'MVR', 'symbol': 'Rf', 'name': 'Maldivian Rufiyaa'},
+    {'code': 'MYR', 'symbol': 'RM', 'name': 'Malaysian Ringgit'},
+    {'code': 'NPR', 'symbol': 'Rs', 'name': 'Nepalese Rupee'},
+    {'code': 'NZD', 'symbol': 'NZ\$', 'name': 'New Zealand Dollar'},
+    {'code': 'OMR', 'symbol': 'ر.ع.', 'name': 'Omani Rial'},
+    {'code': 'PHP', 'symbol': '₱', 'name': 'Philippine Peso'},
+    {'code': 'PKR', 'symbol': 'Rs', 'name': 'Pakistani Rupee'},
+    {'code': 'QAR', 'symbol': 'ر.ق', 'name': 'Qatari Riyal'},
+    {'code': 'SAR', 'symbol': '﷼', 'name': 'Saudi Riyal'},
+    {'code': 'SGD', 'symbol': 'S\$', 'name': 'Singapore Dollar'},
+    {'code': 'SYP', 'symbol': '£S', 'name': 'Syrian Pound'},
+    {'code': 'THB', 'symbol': '฿', 'name': 'Thai Baht'},
+    {'code': 'TJS', 'symbol': 'ЅМ', 'name': 'Tajikistani Somoni'},
+    {'code': 'TMT', 'symbol': 'm', 'name': 'Turkmenistani Manat'},
+    {'code': 'TRY', 'symbol': '₺', 'name': 'Turkish Lira'},
+    {'code': 'TWD', 'symbol': 'NT\$', 'name': 'New Taiwan Dollar'},
+    {'code': 'UZS', 'symbol': 'so\'m', 'name': 'Uzbekistani Som'},
+    {'code': 'VND', 'symbol': '₫', 'name': 'Vietnamese Dong'},
+    {'code': 'YER', 'symbol': '﷼', 'name': 'Yemeni Rial'},
+
+    // Americas
+    {'code': 'ARS', 'symbol': '\$', 'name': 'Argentine Peso'},
+    {'code': 'AWG', 'symbol': 'ƒ', 'name': 'Aruban Florin'},
+    {'code': 'BBD', 'symbol': 'Bds\$', 'name': 'Barbadian Dollar'},
+    {'code': 'BMD', 'symbol': 'BD\$', 'name': 'Bermudian Dollar'},
+    {'code': 'BOB', 'symbol': 'Bs.', 'name': 'Bolivian Boliviano'},
+    {'code': 'BRL', 'symbol': 'R\$', 'name': 'Brazilian Real'},
+    {'code': 'BSD', 'symbol': 'B\$', 'name': 'Bahamian Dollar'},
+    {'code': 'BZD', 'symbol': 'BZ\$', 'name': 'Belize Dollar'},
     {'code': 'CAD', 'symbol': 'C\$', 'name': 'Canadian Dollar'},
+    {'code': 'CLP', 'symbol': '\$', 'name': 'Chilean Peso'},
+    {'code': 'COP', 'symbol': '\$', 'name': 'Colombian Peso'},
+    {'code': 'CRC', 'symbol': '₡', 'name': 'Costa Rican Colón'},
+    {'code': 'CUP', 'symbol': '\$', 'name': 'Cuban Peso'},
+    {'code': 'DOP', 'symbol': 'RD\$', 'name': 'Dominican Peso'},
+    {'code': 'GTQ', 'symbol': 'Q', 'name': 'Guatemalan Quetzal'},
+    {'code': 'GYD', 'symbol': 'G\$', 'name': 'Guyanese Dollar'},
+    {'code': 'HNL', 'symbol': 'L', 'name': 'Honduran Lempira'},
+    {'code': 'HTG', 'symbol': 'G', 'name': 'Haitian Gourde'},
+    {'code': 'JMD', 'symbol': 'J\$', 'name': 'Jamaican Dollar'},
+    {'code': 'KYD', 'symbol': 'CI\$', 'name': 'Cayman Islands Dollar'},
+    {'code': 'MXN', 'symbol': '\$', 'name': 'Mexican Peso'},
+    {'code': 'NIO', 'symbol': 'C\$', 'name': 'Nicaraguan Córdoba'},
+    {'code': 'PAB', 'symbol': 'B/.', 'name': 'Panamanian Balboa'},
+    {'code': 'PEN', 'symbol': 'S/.', 'name': 'Peruvian Sol'},
+    {'code': 'PYG', 'symbol': '₲', 'name': 'Paraguayan Guaraní'},
+    {'code': 'SRD', 'symbol': '\$', 'name': 'Surinamese Dollar'},
+    {'code': 'TTD', 'symbol': 'TT\$', 'name': 'Trinidad and Tobago Dollar'},
+    {'code': 'UYU', 'symbol': '\$U', 'name': 'Uruguayan Peso'},
+    {'code': 'VES', 'symbol': 'Bs.S', 'name': 'Venezuelan Bolívar'},
+    {'code': 'XCD', 'symbol': 'EC\$', 'name': 'East Caribbean Dollar'},
+
+    // Europe
+    {'code': 'ALL', 'symbol': 'L', 'name': 'Albanian Lek'},
+    {'code': 'BAM', 'symbol': 'KM', 'name': 'Bosnia and Herzegovina Mark'},
+    {'code': 'BGN', 'symbol': 'лв', 'name': 'Bulgarian Lev'},
+    {'code': 'BYN', 'symbol': 'Br', 'name': 'Belarusian Ruble'},
+    {'code': 'CHF', 'symbol': 'CHF', 'name': 'Swiss Franc'},
+    {'code': 'CZK', 'symbol': 'Kč', 'name': 'Czech Koruna'},
+    {'code': 'DKK', 'symbol': 'kr', 'name': 'Danish Krone'},
+    {'code': 'GIP', 'symbol': '£', 'name': 'Gibraltar Pound'},
+    {'code': 'HRK', 'symbol': 'kn', 'name': 'Croatian Kuna'},
+    {'code': 'HUF', 'symbol': 'Ft', 'name': 'Hungarian Forint'},
+    {'code': 'ISK', 'symbol': 'kr', 'name': 'Icelandic Króna'},
+    {'code': 'MDL', 'symbol': 'L', 'name': 'Moldovan Leu'},
+    {'code': 'MKD', 'symbol': 'ден', 'name': 'Macedonian Denar'},
+    {'code': 'NOK', 'symbol': 'kr', 'name': 'Norwegian Krone'},
+    {'code': 'PLN', 'symbol': 'zł', 'name': 'Polish Złoty'},
+    {'code': 'RON', 'symbol': 'lei', 'name': 'Romanian Leu'},
+    {'code': 'RSD', 'symbol': 'дин', 'name': 'Serbian Dinar'},
+    {'code': 'RUB', 'symbol': '₽', 'name': 'Russian Ruble'},
+    {'code': 'SEK', 'symbol': 'kr', 'name': 'Swedish Krona'},
+    {'code': 'UAH', 'symbol': '₴', 'name': 'Ukrainian Hryvnia'},
+
+    // Africa
+    {'code': 'AOA', 'symbol': 'Kz', 'name': 'Angolan Kwanza'},
+    {'code': 'BWP', 'symbol': 'P', 'name': 'Botswana Pula'},
+    {'code': 'CDF', 'symbol': 'FC', 'name': 'Congolese Franc'},
+    {'code': 'DJF', 'symbol': 'Fdj', 'name': 'Djiboutian Franc'},
+    {'code': 'DZD', 'symbol': 'د.ج', 'name': 'Algerian Dinar'},
+    {'code': 'EGP', 'symbol': '£', 'name': 'Egyptian Pound'},
+    {'code': 'ERN', 'symbol': 'Nfk', 'name': 'Eritrean Nakfa'},
+    {'code': 'ETB', 'symbol': 'Br', 'name': 'Ethiopian Birr'},
+    {'code': 'GHS', 'symbol': '₵', 'name': 'Ghanaian Cedi'},
+    {'code': 'GMD', 'symbol': 'D', 'name': 'Gambian Dalasi'},
+    {'code': 'GNF', 'symbol': 'FG', 'name': 'Guinean Franc'},
+    {'code': 'KES', 'symbol': 'KSh', 'name': 'Kenyan Shilling'},
+    {'code': 'LRD', 'symbol': 'L\$', 'name': 'Liberian Dollar'},
+    {'code': 'LSL', 'symbol': 'L', 'name': 'Lesotho Loti'},
+    {'code': 'LYD', 'symbol': 'ل.د', 'name': 'Libyan Dinar'},
+    {'code': 'MAD', 'symbol': 'د.م.', 'name': 'Moroccan Dirham'},
+    {'code': 'MGA', 'symbol': 'Ar', 'name': 'Malagasy Ariary'},
+    {'code': 'MRU', 'symbol': 'UM', 'name': 'Mauritanian Ouguiya'},
+    {'code': 'MUR', 'symbol': '₨', 'name': 'Mauritian Rupee'},
+    {'code': 'MWK', 'symbol': 'MK', 'name': 'Malawian Kwacha'},
+    {'code': 'MZN', 'symbol': 'MT', 'name': 'Mozambican Metical'},
+    {'code': 'NAD', 'symbol': 'N\$', 'name': 'Namibian Dollar'},
+    {'code': 'NGN', 'symbol': '₦', 'name': 'Nigerian Naira'},
+    {'code': 'RWF', 'symbol': 'FRw', 'name': 'Rwandan Franc'},
+    {'code': 'SCR', 'symbol': '₨', 'name': 'Seychellois Rupee'},
+    {'code': 'SDG', 'symbol': 'ج.س.', 'name': 'Sudanese Pound'},
+    {'code': 'SLL', 'symbol': 'Le', 'name': 'Sierra Leonean Leone'},
+    {'code': 'SOS', 'symbol': 'Sh', 'name': 'Somali Shilling'},
+    {'code': 'SSP', 'symbol': '£', 'name': 'South Sudanese Pound'},
+    {'code': 'SZL', 'symbol': 'L', 'name': 'Swazi Lilangeni'},
+    {'code': 'TND', 'symbol': 'د.ت', 'name': 'Tunisian Dinar'},
+    {'code': 'TZS', 'symbol': 'TSh', 'name': 'Tanzanian Shilling'},
+    {'code': 'UGX', 'symbol': 'USh', 'name': 'Ugandan Shilling'},
+    {'code': 'XAF', 'symbol': 'FCFA', 'name': 'Central African CFA Franc'},
+    {'code': 'XOF', 'symbol': 'CFA', 'name': 'West African CFA Franc'},
+    {'code': 'ZAR', 'symbol': 'R', 'name': 'South African Rand'},
+    {'code': 'ZMW', 'symbol': 'ZK', 'name': 'Zambian Kwacha'},
+    {'code': 'ZWL', 'symbol': 'Z\$', 'name': 'Zimbabwean Dollar'},
   ];
 
   @override
@@ -523,9 +660,36 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   @override
   void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
 
-  Future<void> _saveField(String fieldKey) async {
-    // Validate the specific field if needed
-    if (fieldKey == 'businessName' && _nameCtrl.text.trim().isEmpty) {
+
+  /// Handle FAB press - enables all fields or saves all edited fields
+  void _handleFabPress() {
+    final bool isAnyFieldEditing = _fieldEditStates.values.any((isEditing) => isEditing == true);
+
+    if (isAnyFieldEditing) {
+      // Save all edited fields
+      _saveAllFields();
+    } else {
+      // Enable edit mode for all fields
+      setState(() {
+        _fieldEditStates = {
+          'businessName': true,
+          'location': true,
+          'taxType': true,
+          'taxNumber': true,
+          'licenseType': true,
+          'licenseNumber': true,
+          'currency': true,
+          'ownerName': true,
+          'phoneNumber': true,
+        };
+      });
+    }
+  }
+
+  /// Save all fields that are currently being edited
+  Future<void> _saveAllFields() async {
+    // Validate business name
+    if (_nameCtrl.text.trim().isEmpty) {
       CommonWidgets.showSnackBar(context, 'Business Name is required', bgColor: const Color(0xFFFF5252));
       return;
     }
@@ -536,64 +700,53 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final firestoreService = FirestoreService();
       final storeCollection = await firestoreService.getStoreCollection('settings');
 
-      Map<String, dynamic> updateData = {};
+      // Combine tax type and number
+      final taxType = _taxTypeCtrl.text.trim();
+      final taxNumber = _taxNumberCtrl.text.trim();
+      final combinedTax = taxType.isNotEmpty && taxNumber.isNotEmpty
+          ? '$taxType $taxNumber'
+          : taxNumber.isNotEmpty ? taxNumber : '';
 
-      switch (fieldKey) {
-        case 'businessName':
-          updateData['businessName'] = _nameCtrl.text.trim();
-          break;
-        case 'location':
-          updateData['businessLocation'] = _locCtrl.text.trim();
-          break;
-        case 'taxType':
-        case 'taxNumber':
-          // Save both tax fields together
-          final taxType = _taxTypeCtrl.text.trim();
-          final taxNumber = _taxNumberCtrl.text.trim();
-          final combined = taxType.isNotEmpty && taxNumber.isNotEmpty
-              ? '$taxType $taxNumber'
-              : taxNumber.isNotEmpty ? taxNumber : '';
-          updateData['taxType'] = combined;
-          updateData['gstin'] = combined;
-          break;
-        case 'licenseType':
-        case 'licenseNumber':
-          // Save both license fields together
-          final licenseType = _licenseTypeCtrl.text.trim();
-          final licenseNumber = _licenseNumberCtrl.text.trim();
-          final combined = licenseType.isNotEmpty && licenseNumber.isNotEmpty
-              ? '$licenseType $licenseNumber'
-              : licenseNumber.isNotEmpty ? licenseNumber : '';
-          updateData['licenseNumber'] = combined;
-          break;
-        case 'currency':
-          updateData['currency'] = _selectedCurrency;
-          break;
-        case 'ownerName':
-          updateData['ownerName'] = _ownerCtrl.text.trim();
-          break;
-        case 'phoneNumber':
-          updateData['businessPhone'] = _phoneCtrl.text.trim();
-          break;
-      }
+      // Combine license type and number
+      final licenseType = _licenseTypeCtrl.text.trim();
+      final licenseNumber = _licenseNumberCtrl.text.trim();
+      final combinedLicense = licenseType.isNotEmpty && licenseNumber.isNotEmpty
+          ? '$licenseType $licenseNumber'
+          : licenseNumber.isNotEmpty ? licenseNumber : '';
 
-      if (updateData.isNotEmpty) {
-        await storeCollection.doc('profile').set(updateData, SetOptions(merge: true));
+      Map<String, dynamic> updateData = {
+        'businessName': _nameCtrl.text.trim(),
+        'businessLocation': _locCtrl.text.trim(),
+        'taxType': combinedTax,
+        'gstin': combinedTax,
+        'licenseNumber': combinedLicense,
+        'currency': _selectedCurrency,
+        'ownerName': _ownerCtrl.text.trim(),
+        'businessPhone': _phoneCtrl.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
 
-        // Update local state
-        setState(() {
-          _fieldEditStates[fieldKey] = false;
-          // If saving tax or license fields, disable both related fields
-          if (fieldKey == 'taxType') _fieldEditStates['taxNumber'] = false;
-          if (fieldKey == 'taxNumber') _fieldEditStates['taxType'] = false;
-          if (fieldKey == 'licenseType') _fieldEditStates['licenseNumber'] = false;
-          if (fieldKey == 'licenseNumber') _fieldEditStates['licenseType'] = false;
-        });
+      await storeCollection.doc('profile').set(updateData, SetOptions(merge: true));
+      await FirestoreService().notifyStoreDataChanged();
 
-        CommonWidgets.showSnackBar(context, 'Updated successfully', bgColor: const Color(0xFF4CAF50));
-      }
+      // Disable all edit states
+      setState(() {
+        _fieldEditStates = {
+          'businessName': false,
+          'location': false,
+          'taxType': false,
+          'taxNumber': false,
+          'licenseType': false,
+          'licenseNumber': false,
+          'currency': false,
+          'ownerName': false,
+          'phoneNumber': false,
+        };
+      });
+
+      CommonWidgets.showSnackBar(context, 'All changes saved successfully!', bgColor: const Color(0xFF4CAF50));
     } catch (e) {
-      CommonWidgets.showSnackBar(context, 'Error: ${e.toString()}', bgColor: const Color(0xFFFF5252));
+      CommonWidgets.showSnackBar(context, 'Error saving: ${e.toString()}', bgColor: const Color(0xFFFF5252));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -739,6 +892,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Check if any field is in edit mode
+    final bool isAnyFieldEditing = _fieldEditStates.values.any((isEditing) => isEditing == true);
+
     return PopScope(
       canPop: false,
       onPopInvoked: (bool didPop) { if (!didPop) { widget.onBack(); } },
@@ -784,11 +940,32 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded, fieldKey: 'ownerName'),
                 _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, fieldKey: 'phoneNumber'),
                 _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false, showEditIcon: false),
-                const SizedBox(height: 40),
+                const SizedBox(height: 80), // Extra padding for FAB
               ],
             ),
           ),
         ),
+        floatingActionButton: _loading
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: _handleFabPress,
+                backgroundColor: isAnyFieldEditing ? kGoogleGreen : kPrimaryColor,
+                elevation: 6,
+                icon: Icon(
+                  isAnyFieldEditing ? Icons.save_rounded : Icons.edit_rounded,
+                  color: kWhite,
+                  size: 22,
+                ),
+                label: Text(
+                  isAnyFieldEditing ? 'UPDATE' : 'EDIT',
+                  style: const TextStyle(
+                    color: kWhite,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
       ),
     );
   }
@@ -798,12 +975,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? fieldKey, bool showEditIcon = true}) {
     final hasValue = ctrl.text.isNotEmpty;
     final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
-    final canEdit = showEditIcon && fieldKey != null;
 
-    // If field has edit button, use readOnly to control editing
-    // If field has no edit button, use the enabled parameter
-    final isFieldEnabled = canEdit ? true : enabled;
-    final isReadOnly = canEdit ? !isEditing : !enabled;
+    // Use enabled parameter for fields that should never be editable (like email)
+    final isFieldEnabled = enabled;
+    final isReadOnly = !isEditing || !enabled;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -816,24 +991,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
-          suffixIcon: canEdit ? IconButton(
-            icon: Icon(
-              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
-              color: isEditing ? kGoogleGreen : kPrimaryColor,
-              size: 20,
-            ),
-            onPressed: () {
-              if (isEditing) {
-                // Save the field
-                _saveField(fieldKey!);
-              } else {
-                // Enable editing for this field
-                setState(() {
-                  _fieldEditStates[fieldKey!] = true;
-                });
-              }
-            },
-          ) : null,
           filled: true,
           fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
@@ -849,12 +1006,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint, String? fieldKey, bool showEditIcon = true}) {
     final hasValue = ctrl.text.isNotEmpty;
     final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
-    final canEdit = showEditIcon && fieldKey != null;
 
-    // If field has edit button, use readOnly to control editing
-    // If field has no edit button, use the enabled parameter
-    final isFieldEnabled = canEdit ? true : enabled;
-    final isReadOnly = canEdit ? !isEditing : !enabled;
+    // Use enabled parameter for fields that should never be editable
+    final isFieldEnabled = enabled;
+    final isReadOnly = !isEditing || !enabled;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -869,24 +1024,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           hintText: hint,
           hintStyle: const TextStyle(fontSize: 12, color: kGrey400, fontWeight: FontWeight.w400),
           prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
-          suffixIcon: canEdit ? IconButton(
-            icon: Icon(
-              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
-              color: isEditing ? kGoogleGreen : kPrimaryColor,
-              size: 20,
-            ),
-            onPressed: () {
-              if (isEditing) {
-                // Save the field
-                _saveField(fieldKey!);
-              } else {
-                // Enable editing for this field
-                setState(() {
-                  _fieldEditStates[fieldKey!] = true;
-                });
-              }
-            },
-          ) : null,
           filled: true,
           fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
@@ -966,22 +1103,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             color: isEditing ? kPrimaryColor : kGrey400,
             size: 18,
           ),
-          suffixIcon: IconButton(
-            icon: Icon(
-              isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
-              color: isEditing ? kGoogleGreen : kPrimaryColor,
-              size: 20,
-            ),
-            onPressed: () {
-              if (isEditing) {
-                _saveField('location');
-              } else {
-                setState(() {
-                  _fieldEditStates['location'] = true;
-                });
-              }
-            },
-          ),
           filled: true,
           fillColor: isEditing ? kWhite : kGreyBg.withOpacity(0.5),
           enabledBorder: OutlineInputBorder(
@@ -1038,22 +1159,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   ]
                 )
               ),
-              IconButton(
-                icon: Icon(
-                  isEditing ? Icons.check_circle_rounded : Icons.edit_rounded,
-                  color: isEditing ? kGoogleGreen : kPrimaryColor,
-                  size: 20,
-                ),
-                onPressed: () {
-                  if (isEditing) {
-                    _saveField('currency');
-                  } else {
-                    setState(() {
-                      _fieldEditStates['currency'] = true;
-                    });
-                  }
-                },
-              ),
             ],
           ),
         ),
@@ -1062,19 +1167,133 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   void _showCurrencyPicker() {
-    showModalBottomSheet(context: context, shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))), builder: (context) => Container(
-      height: 400, padding: const EdgeInsets.all(20),
-      child: Column(children: [
-        const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
-        const SizedBox(height: 16),
-        Expanded(child: ListView.separated(itemCount: _currencies.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(onTap: () {
-          setState(() => _selectedCurrency = _currencies[i]['code']!);
-          Navigator.pop(context);
-          // Auto-save when currency is selected
-          _saveField('currency');
-        }, leading: Text(_currencies[i]['symbol']!, style: const TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: kPrimaryColor)), title: Text(_currencies[i]['name']!, style: const TextStyle(fontWeight: FontWeight.w600)), trailing: _selectedCurrency == _currencies[i]['code'] ? const Icon(Icons.check_circle, color: kPrimaryColor) : null))),
-      ]),
-    ));
+    String searchQuery = ''; // Declare outside to persist across rebuilds
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filteredCurrencies = _currencies.where((currency) {
+              if (searchQuery.isEmpty) return true;
+              final query = searchQuery.toLowerCase();
+              return currency['code']!.toLowerCase().contains(query) ||
+                     currency['name']!.toLowerCase().contains(query) ||
+                     currency['symbol']!.toLowerCase().contains(query);
+            }).toList();
+
+            return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
+                const SizedBox(height: 16),
+                // Search Bar
+                TextField(
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    hintText: 'Search currency code, name or symbol...',
+                    hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
+                    prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                    filled: true,
+                    fillColor: kGreyBg,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  onChanged: (value) {
+                    setModalState(() {
+                      searchQuery = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Results count
+                if (searchQuery.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${filteredCurrencies.length} ${filteredCurrencies.length == 1 ? 'currency' : 'currencies'} found',
+                        style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                // Currency List
+                Expanded(
+                  child: filteredCurrencies.isEmpty
+                      ? const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off, size: 48, color: kGrey400),
+                              SizedBox(height: 12),
+                              Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          itemCount: filteredCurrencies.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (ctx, i) {
+                            final currency = filteredCurrencies[i];
+                            final isSelected = _selectedCurrency == currency['code'];
+                            return ListTile(
+                              onTap: () {
+                                setState(() => _selectedCurrency = currency['code']!);
+                                Navigator.pop(context);
+                              },
+                              leading: Container(
+                                width: 40,
+                                height: 40,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  currency['symbol']!,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: isSelected ? kPrimaryColor : kBlack87,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                currency['name']!,
+                                style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                  color: isSelected ? kPrimaryColor : kBlack87,
+                                ),
+                              ),
+                              subtitle: Text(
+                                currency['code']!,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isSelected ? kPrimaryColor : kBlack54,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle, color: kPrimaryColor, size: 24)
+                                  : null,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 

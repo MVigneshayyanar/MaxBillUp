@@ -380,13 +380,13 @@ class CommonWidgets {
                                   title: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                      Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
                                       if (rating > 0) ...[
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 2),
                                         Row(
                                           children: List.generate(5, (i) => Icon(
                                             i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                                            size: 16,
+                                            size: 12,
                                             color: i < rating ? kOrange : kGrey300,
                                           )),
                                         ),
@@ -394,7 +394,7 @@ class CommonWidgets {
                                     ],
                                   ),
                                   subtitle: Padding(
-                                    padding: EdgeInsets.only(top: rating > 0 ? 4 : 0),
+                                    padding: const EdgeInsets.only(top: 4),
                                     child: Text(phone, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                                   ),
                                   trailing: Column(
@@ -402,7 +402,7 @@ class CommonWidgets {
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
                                       Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
-                                      const Text('BALANCE', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54)),
+                                      const Text('Balance', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54)),
                                     ],
                                   ),
                                 );
@@ -435,55 +435,135 @@ class CommonWidgets {
   }
 
   static void _showAddCustomerDialog(BuildContext context, Function(String phone, String name, String? gst) onCustomerSelected) {
-    final nameCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
     final gstCtrl = TextEditingController();
     final balanceCtrl = TextEditingController(text: '0');
+    bool isLoading = false;
+    bool customerExists = false;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('NEW CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDialogField(controller: nameCtrl, label: 'Full Name', icon: Icons.person_rounded),
-              const SizedBox(height: 12),
-              _buildDialogField(controller: phoneCtrl, label: 'Phone Number', icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              _buildDialogField(controller: gstCtrl, label: 'GST Number (Optional)', icon: Icons.description_rounded),
-              const SizedBox(height: 12),
-              _buildDialogField(controller: balanceCtrl, label: 'Opening Due Amount', icon: Icons.account_balance_wallet_rounded, keyboardType: TextInputType.number),
-            ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: kWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('NEW CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDialogField(
+                  controller: phoneCtrl,
+                  label: 'Phone Number',
+                  icon: Icons.phone_android_rounded,
+                  keyboardType: TextInputType.phone,
+                  onChanged: (value) async {
+                    if (value.length >= 10) {
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final collection = await FirestoreService().getStoreCollection('customers');
+                        final doc = await collection.doc(value).get();
+                        if (doc.exists) {
+                          final data = doc.data() as Map<String, dynamic>?;
+                          nameCtrl.text = data?['name'] ?? '';
+                          gstCtrl.text = data?['gst'] ?? '';
+                          final balance = (data?['balance'] ?? 0.0) as num;
+                          balanceCtrl.text = balance.toString();
+                          setDialogState(() => customerExists = true);
+                        } else {
+                          setDialogState(() => customerExists = false);
+                        }
+                      } catch (e) {
+                        debugPrint(e.toString());
+                      }
+                      setDialogState(() => isLoading = false);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
+                  )
+                else ...[
+                  if (customerExists)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: kOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: kOrange.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.info_outline, color: kOrange, size: 18),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Customer exists! Fields auto-filled.',
+                              style: TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  _buildDialogField(controller: nameCtrl, label: 'Full Name', icon: Icons.person_rounded),
+                  const SizedBox(height: 12),
+                  _buildDialogField(controller: gstCtrl, label: 'GST Number (Optional)', icon: Icons.description_rounded),
+                  const SizedBox(height: 12),
+                  _buildDialogField(controller: balanceCtrl, label: 'Last Due Amount', icon: Icons.account_balance_wallet_rounded, keyboardType: TextInputType.number),
+                ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              onPressed: () async {
+                final phone = phoneCtrl.text.trim();
+                final name = nameCtrl.text.trim();
+                if (name.isEmpty || phone.isEmpty) return;
+                final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
+                final newBalance = balance;
+
+                await FirestoreService().setDocument('customers', phone, {
+                  'name': name,
+                  'phone': phone,
+                  'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                  'balance': newBalance,
+                  'totalSales': customerExists ? FieldValue.increment(0) : newBalance,
+                  'purchaseCount': customerExists ? FieldValue.increment(0) : 0,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+
+                // Only add credit entry if it's a new balance being added
+                if (!customerExists && balance > 0) {
+                  final credits = await FirestoreService().getStoreCollection('credits');
+                  await credits.add({
+                    'customerId': phone,
+                    'customerName': name,
+                    'amount': balance,
+                    'type': 'add_credit',
+                    'method': 'Manual',
+                    'timestamp': FieldValue.serverTimestamp(),
+                    'date': DateTime.now().toIso8601String(),
+                    'note': 'Opening Balance',
+                  });
+                }
+
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  onCustomerSelected(phone, name, gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim());
+                }
+              },
+              child: Text(customerExists ? 'UPDATE CUSTOMER' : 'ADD CUSTOMER', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () async {
-              final phone = phoneCtrl.text.trim();
-              final name = nameCtrl.text.trim();
-              if (name.isEmpty || phone.isEmpty) return;
-              final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
-
-              await FirestoreService().setDocument('customers', phone, {
-                'name': name, 'phone': phone, 'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                'balance': balance, 'totalSales': balance, 'purchaseCount': 0, 'lastUpdated': FieldValue.serverTimestamp(),
-              });
-
-              if (balance > 0) {
-                final credits = await FirestoreService().getStoreCollection('credits');
-                await credits.add({'customerId': phone, 'customerName': name, 'amount': balance, 'type': 'add_credit', 'method': 'Manual', 'timestamp': FieldValue.serverTimestamp(), 'date': DateTime.now().toIso8601String(), 'note': 'Opening Balance'});
-              }
-              if (ctx.mounted) { Navigator.pop(ctx); onCustomerSelected(phone, name, gstCtrl.text.trim()); }
-            },
-            child: const Text('ADD CUSTOMER', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
-          ),
-        ],
       ),
     );
   }
@@ -539,40 +619,150 @@ class CommonWidgets {
   }
 
   static void _showAddCustomerDialogWithPrefill(BuildContext context, Function(String phone, String name, String? gst) onCustomerSelected, {String? prefillName, String? prefillPhone}) {
-    final nameCtrl = TextEditingController(text: prefillName);
     final phoneCtrl = TextEditingController(text: prefillPhone);
+    final nameCtrl = TextEditingController(text: prefillName);
     final gstCtrl = TextEditingController();
     final balanceCtrl = TextEditingController(text: '0');
+    bool isLoading = false;
+    bool customerExists = false;
+
+    // Check if customer exists on initial load
+    if (prefillPhone != null && prefillPhone.length >= 10) {
+      Future.delayed(Duration.zero, () async {
+        try {
+          final collection = await FirestoreService().getStoreCollection('customers');
+          final doc = await collection.doc(prefillPhone).get();
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>?;
+            nameCtrl.text = data?['name'] ?? prefillName ?? '';
+            gstCtrl.text = data?['gst'] ?? '';
+            final balance = (data?['balance'] ?? 0.0) as num;
+            balanceCtrl.text = balance.toString();
+            customerExists = true;
+          }
+        } catch (e) {
+          debugPrint(e.toString());
+        }
+      });
+    }
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildDialogField(controller: nameCtrl, label: 'Name', icon: Icons.person_rounded),
-            const SizedBox(height: 12),
-            _buildDialogField(controller: phoneCtrl, label: 'Phone', icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone),
-            const SizedBox(height: 12),
-            _buildDialogField(controller: balanceCtrl, label: 'Last Due', icon: Icons.account_balance_wallet_rounded, keyboardType: TextInputType.number),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: kWhite,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildDialogField(
+                controller: phoneCtrl,
+                label: 'Phone Number',
+                icon: Icons.phone_android_rounded,
+                keyboardType: TextInputType.phone,
+                onChanged: (value) async {
+                  if (value.length >= 10) {
+                    setDialogState(() => isLoading = true);
+                    try {
+                      final collection = await FirestoreService().getStoreCollection('customers');
+                      final doc = await collection.doc(value).get();
+                      if (doc.exists) {
+                        final data = doc.data() as Map<String, dynamic>?;
+                        nameCtrl.text = data?['name'] ?? '';
+                        gstCtrl.text = data?['gst'] ?? '';
+                        final balance = (data?['balance'] ?? 0.0) as num;
+                        balanceCtrl.text = balance.toString();
+                        setDialogState(() => customerExists = true);
+                      } else {
+                        setDialogState(() => customerExists = false);
+                      }
+                    } catch (e) {
+                      debugPrint(e.toString());
+                    }
+                    setDialogState(() => isLoading = false);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              if (isLoading)
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
+                )
+              else ...[
+                if (customerExists)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: kOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kOrange.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: kOrange, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Customer exists! Fields auto-filled.',
+                            style: TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                _buildDialogField(controller: nameCtrl, label: 'Name', icon: Icons.person_rounded),
+                const SizedBox(height: 12),
+                _buildDialogField(controller: gstCtrl, label: 'GST (Optional)', icon: Icons.description_rounded),
+                const SizedBox(height: 12),
+                _buildDialogField(controller: balanceCtrl, label: 'Last Due', icon: Icons.account_balance_wallet_rounded, keyboardType: TextInputType.number),
+              ],
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              onPressed: () async {
+                if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
+                final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
+
+                await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
+                  'name': nameCtrl.text.trim(),
+                  'phone': phoneCtrl.text.trim(),
+                  'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
+                  'balance': balance,
+                  'totalSales': customerExists ? FieldValue.increment(0) : balance,
+                  'purchaseCount': customerExists ? FieldValue.increment(0) : 0,
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+
+                // Only add credit entry if it's a new balance being added
+                if (!customerExists && balance > 0) {
+                  final credits = await FirestoreService().getStoreCollection('credits');
+                  await credits.add({
+                    'customerId': phoneCtrl.text.trim(),
+                    'customerName': nameCtrl.text.trim(),
+                    'amount': balance,
+                    'type': 'add_credit',
+                    'method': 'Manual',
+                    'timestamp': FieldValue.serverTimestamp(),
+                    'date': DateTime.now().toIso8601String(),
+                    'note': 'Opening Balance',
+                  });
+                }
+
+                if (ctx.mounted) {
+                  Navigator.pop(ctx);
+                  onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim());
+                }
+              },
+              child: Text(customerExists ? 'UPDATE' : 'CONFIRM', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            onPressed: () async {
-              if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
-              final balance = double.tryParse(balanceCtrl.text) ?? 0.0;
-              await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {'name': nameCtrl.text.trim(), 'phone': phoneCtrl.text.trim(), 'gst': null, 'balance': balance, 'totalSales': balance, 'lastUpdated': FieldValue.serverTimestamp()});
-              if (ctx.mounted) { Navigator.pop(ctx); onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), null); }
-            },
-            child: const Text('CONFIRM', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
-          ),
-        ],
       ),
     );
   }

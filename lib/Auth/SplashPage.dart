@@ -125,13 +125,13 @@ class _SplashPageState extends State<SplashPage>
     // Typically tablets have diagonal > 1100 pixels
     final isTablet = diagonal > 1100 || screenWidth > 600;
 
-    // Choose appropriate splash image
-    final splashImage = isTablet ? 'assets/tab_MAX_my_bill.svg' : 'assets/Splash_Screen.svg';
+    // Choose appropriate splash image with correct file extension
+    final splashImage = isTablet ? 'assets/MAX_my_bill_tab.png' : 'assets/MAX_my_bill_mobile.png';
 
     return Scaffold(
-      backgroundColor: kPrimaryColor,
+      backgroundColor: Color(0xff4456E0),
       body: SizedBox.expand(
-        child: SvgPicture.asset(
+        child: Image.asset(
           splashImage,
           fit: BoxFit.contain,
         ),
