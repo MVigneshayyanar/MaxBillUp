@@ -1583,6 +1583,13 @@ class _PaymentPageState extends State<PaymentPage> {
       };
 
       if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber);
+
+      // Update customer totalSales for ALL payment types when customer is linked
+      if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
+        await _updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount);
+        await _addPaymentLogEntry(widget.customerPhone!, widget.customerName, widget.totalAmount, widget.paymentMode, invoiceNumber);
+      }
+
       if (widget.unsettledSaleId != null) await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
       else { await FirestoreService().addDocument('sales', baseSaleData); await _updateProductStock(); }
       if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
@@ -1602,7 +1609,90 @@ class _PaymentPageState extends State<PaymentPage> {
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
-  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async { final customerRef = await FirestoreService().getDocumentReference('customers', phone); await FirebaseFirestore.instance.runTransaction((transaction) async { final customerDoc = await transaction.get(customerRef); if (customerDoc.exists) { final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0; transaction.update(customerRef, {'balance': currentBalance + amount, 'lastUpdated': FieldValue.serverTimestamp()}); } }); }
+  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
+    final creditsCollection = await FirestoreService().getStoreCollection('credits');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final customerDoc = await transaction.get(customerRef);
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final currentBalance = (data?['balance'] as double?) ?? 0.0;
+        transaction.update(customerRef, {
+          'balance': currentBalance + amount,
+          'lastUpdated': FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    // Add credit entry for ledger and payment log tracking
+    await creditsCollection.add({
+      'customerId': phone,
+      'customerName': widget.customerName ?? 'Customer',
+      'amount': amount,
+      'type': 'credit_sale',
+      'method': 'Credit Sale',
+      'invoiceNumber': invoiceNumber,
+      'timestamp': FieldValue.serverTimestamp(),
+      'date': DateTime.now().toIso8601String(),
+      'note': 'Credit sale - Invoice #$invoiceNumber',
+    });
+  }
+
+  /// Updates customer totalSales for ALL payment types (Cash, Online, Credit, Split)
+  Future<void> _updateCustomerTotalSales(String phone, double amount) async {
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final customerDoc = await transaction.get(customerRef);
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final currentTotalSales = (data?['totalSales'] as double?) ?? 0.0;
+        transaction.update(customerRef, {
+          'totalSales': currentTotalSales + amount,
+          'lastUpdated': FieldValue.serverTimestamp()
+        });
+      }
+    });
+  }
+
+  Future<void> _addPaymentLogEntry(String phone, String? customerName, double amount, String paymentMode, String invoiceNumber) async {
+    // Skip if it's a Credit sale (already handled by _updateCustomerCredit)
+    if (paymentMode == 'Credit') return;
+
+    final creditsCollection = await FirestoreService().getStoreCollection('credits');
+
+    String type;
+    String method;
+    String note;
+
+    if (paymentMode == 'Cash') {
+      type = 'sale_payment';
+      method = 'Cash';
+      note = 'Cash payment - Invoice #$invoiceNumber';
+    } else if (paymentMode == 'Online') {
+      type = 'sale_payment';
+      method = 'Online';
+      note = 'Online payment - Invoice #$invoiceNumber';
+    } else {
+      type = 'sale_payment';
+      method = paymentMode;
+      note = '$paymentMode payment - Invoice #$invoiceNumber';
+    }
+
+    await creditsCollection.add({
+      'customerId': phone,
+      'customerName': customerName ?? 'Customer',
+      'amount': amount,
+      'type': type,
+      'method': method,
+      'invoiceNumber': invoiceNumber,
+      'timestamp': FieldValue.serverTimestamp(),
+      'date': DateTime.now().toIso8601String(),
+      'note': note,
+    });
+  }
+
   Future<void> _updateProductStock() async { final localStockService = context.read<LocalStockService>(); for (var cartItem in widget.cartItems) { if (cartItem.productId.startsWith('qs_')) continue; final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId); await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))}); await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity); } }
 
   /// Restores partial usage: deducts amount required from credit note(s).
@@ -1694,6 +1784,12 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
       if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber);
 
+      // Update customer totalSales and add payment log entry for split payment when customer is linked
+      if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
+        await _updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount);
+        await _addSplitPaymentLogEntry(widget.customerPhone!, widget.customerName, _cashAmount, _onlineAmount, _creditAmount, invoiceNumber);
+      }
+
       if (widget.unsettledSaleId != null) {
         await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
       } else {
@@ -1718,7 +1814,82 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
-  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async { final customerRef = await FirestoreService().getDocumentReference('customers', phone); await FirebaseFirestore.instance.runTransaction((transaction) async { final customerDoc = await transaction.get(customerRef); if (customerDoc.exists) { final currentBalance = (customerDoc.data() as Map<String, dynamic>?)?['balance'] as double? ?? 0.0; transaction.update(customerRef, {'balance': currentBalance + amount, 'lastUpdated': FieldValue.serverTimestamp()}); } }); }
+  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
+    final creditsCollection = await FirestoreService().getStoreCollection('credits');
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final customerDoc = await transaction.get(customerRef);
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final currentBalance = (data?['balance'] as double?) ?? 0.0;
+        transaction.update(customerRef, {
+          'balance': currentBalance + amount,
+          'lastUpdated': FieldValue.serverTimestamp()
+        });
+      }
+    });
+
+    // Add credit entry for ledger and payment log tracking
+    await creditsCollection.add({
+      'customerId': phone,
+      'customerName': widget.customerName ?? 'Customer',
+      'amount': amount,
+      'type': 'credit_sale',
+      'method': 'Split Payment Credit',
+      'invoiceNumber': invoiceNumber,
+      'timestamp': FieldValue.serverTimestamp(),
+      'date': DateTime.now().toIso8601String(),
+      'note': 'Split payment credit - Invoice #$invoiceNumber',
+    });
+  }
+
+  /// Updates customer totalSales for Split payments
+  Future<void> _updateCustomerTotalSales(String phone, double amount) async {
+    final customerRef = await FirestoreService().getDocumentReference('customers', phone);
+
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final customerDoc = await transaction.get(customerRef);
+      if (customerDoc.exists) {
+        final data = customerDoc.data() as Map<String, dynamic>?;
+        final currentTotalSales = (data?['totalSales'] as double?) ?? 0.0;
+        transaction.update(customerRef, {
+          'totalSales': currentTotalSales + amount,
+          'lastUpdated': FieldValue.serverTimestamp()
+        });
+      }
+    });
+  }
+
+  Future<void> _addSplitPaymentLogEntry(String phone, String? customerName, double cashAmount, double onlineAmount, double creditAmount, String invoiceNumber) async {
+    final creditsCollection = await FirestoreService().getStoreCollection('credits');
+    final totalPaid = cashAmount + onlineAmount;
+
+    // Only add entry for paid portion (Cash + Online), credit portion is handled separately
+    if (totalPaid > 0) {
+      String method = '';
+      if (cashAmount > 0 && onlineAmount > 0) {
+        method = 'Cash (₹${cashAmount.toStringAsFixed(0)}) + Online (₹${onlineAmount.toStringAsFixed(0)})';
+      } else if (cashAmount > 0) {
+        method = 'Cash';
+      } else {
+        method = 'Online';
+      }
+
+      await creditsCollection.add({
+        'customerId': phone,
+        'customerName': customerName ?? 'Customer',
+        'amount': totalPaid,
+        'type': 'sale_payment',
+        'method': method,
+        'invoiceNumber': invoiceNumber,
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Split payment - Invoice #$invoiceNumber',
+      });
+    }
+  }
+
   Future<void> _updateProductStock() async { final localStockService = context.read<LocalStockService>(); for (var cartItem in widget.cartItems) { if (cartItem.productId.startsWith('qs_')) continue; final productRef = await FirestoreService().getDocumentReference('Products', cartItem.productId); await productRef.update({'currentStock': FieldValue.increment(-(cartItem.quantity))}); await localStockService.updateLocalStock(cartItem.productId, -cartItem.quantity); } }
 
   Future<void> _markCreditNotesAsUsed(String invoiceNumber, List<Map<String, dynamic>> selectedCreditNotes, double amountToDeduct) async {

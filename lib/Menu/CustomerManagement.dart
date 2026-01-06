@@ -850,6 +850,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       } else if (type == 'add_credit') {
         entries.add(LedgerEntry(date: date, type: 'DR', desc: "Sales Credit Added (${method.isNotEmpty ? method : 'Manual'})", debit: amt, credit: 0));
       }
+      // Note: credit_sale and sale_payment entries are skipped here since they're already tracked via sales collection
     }
     entries.sort((a, b) => a.date.compareTo(b.date));
     double running = 0;
@@ -971,15 +972,41 @@ class CustomerCreditsPage extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
-              bool isPayment = data['type'] == 'payment_received';
+              final type = data['type'] ?? '';
+              bool isPaymentReceived = type == 'payment_received';
+              bool isCreditSale = type == 'credit_sale';
+              bool isSalePayment = type == 'sale_payment';
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+
+              String title;
+              Color color;
+              IconData icon;
+
+              if (isPaymentReceived) {
+                title = "Payment Received";
+                color = kGoogleGreen;
+                icon = Icons.arrow_downward;
+              } else if (isSalePayment) {
+                title = "Sale Payment";
+                color = kGoogleGreen;
+                icon = Icons.shopping_bag_rounded;
+              } else if (isCreditSale) {
+                title = "Credit Sale";
+                color = kOrange;
+                icon = Icons.receipt_long_rounded;
+              } else {
+                title = "Credit Added";
+                color = kErrorColor;
+                icon = Icons.arrow_upward;
+              }
+
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
-                  title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
+                  leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), radius: 18, child: Icon(icon, color: color, size: 16)),
+                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+                  subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
                 ),
               );
             },

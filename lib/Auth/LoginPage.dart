@@ -326,7 +326,7 @@ class _LoginPageState extends State<LoginPage> {
       Text(context.tr('welcome_to').toUpperCase(),
           style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
       const SizedBox(height: 12),
-      SvgPicture.asset(
+      Image.asset(
         'assets/MAX_my_bill_mic.png',
         width: 300,
         height: 175,

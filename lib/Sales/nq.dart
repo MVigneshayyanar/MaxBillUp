@@ -9,6 +9,7 @@ import 'package:maxbillup/Sales/saleall.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/firestore_service.dart';
 
 class NewQuotationPage extends StatefulWidget {
   final String uid;
@@ -121,11 +122,31 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     final priceController = TextEditingController(text: item.price.toString());
     final qtyController = TextEditingController(text: item.quantity.toString());
 
+    // Fetch product data to get stock information
+    bool stockEnabled = false;
+    double availableStock = 0.0;
+
+    if (item.productId.isNotEmpty && !item.productId.startsWith('qs_')) {
+      try {
+        final productDoc = await FirestoreService().getDocument('Products', item.productId);
+        if (productDoc.exists) {
+          final data = productDoc.data() as Map<String, dynamic>;
+          stockEnabled = data['stockEnabled'] ?? false;
+          availableStock = (data['currentStock'] ?? 0.0).toDouble();
+        }
+      } catch (e) {
+        debugPrint('Error fetching product stock: $e');
+      }
+    }
+
     await showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) {
         return StatefulBuilder(builder: (context, setDialogState) {
+          final currentQty = int.tryParse(qtyController.text) ?? 1;
+          final bool exceedsStock = stockEnabled && currentQty > availableStock;
+
           return Dialog(
             backgroundColor: kWhite,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -199,13 +220,56 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                   IconButton(
                                     onPressed: () {
                                       int current = int.tryParse(qtyController.text) ?? 0;
-                                      setDialogState(() => qtyController.text = (current + 1).toString());
+                                      int newQty = current + 1;
+
+                                      // Check stock limit
+                                      if (stockEnabled && newQty > availableStock) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Maximum stock available: ${availableStock.toInt()}'),
+                                            backgroundColor: kErrorColor,
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      setDialogState(() => qtyController.text = newQty.toString());
                                     },
                                     icon: const Icon(Icons.add_rounded, color: kPrimaryColor, size: 20),
                                   ),
                                 ],
                               ),
                             ),
+                            // Stock warning
+                            if (exceedsStock) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: kErrorColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: kErrorColor.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 16),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Only ${availableStock.toInt()} available in stock',
+                                        style: const TextStyle(
+                                          color: kErrorColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -224,10 +288,23 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
+                          onPressed: exceedsStock ? null : () {
                             final newName = nameController.text.trim();
                             final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
                             final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+
+                            // Final stock validation
+                            if (stockEnabled && newQty > availableStock) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Cannot save: Only ${availableStock.toInt()} available in stock'),
+                                  backgroundColor: kErrorColor,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              return;
+                            }
+
                             if (newQty > 0) {
                               final List<CartItem> nextItems = List<CartItem>.from(_sharedCartItems!);
                               nextItems[idx] = CartItem(productId: item.productId, name: newName, price: newPrice, quantity: newQty, taxName: item.taxName, taxPercentage: item.taxPercentage, taxType: item.taxType);
@@ -235,7 +312,12 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                             }
                             Navigator.pop(context);
                           },
-                          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: exceedsStock ? kGrey300 : kPrimaryColor,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0
+                          ),
                           child: Text(context.tr('save').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                         ),
                       ),

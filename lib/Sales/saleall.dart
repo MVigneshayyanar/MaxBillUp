@@ -113,11 +113,20 @@ class _SaleAllPageState extends State<SaleAllPage> {
   void didUpdateWidget(SaleAllPage oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Only clear cart if parent explicitly set initialCartItems to null (cart was cleared externally)
-    // We do NOT sync from parent to child on normal updates - child is the source of truth for adding items
-    if (widget.initialCartItems == null && oldWidget.initialCartItems != null) {
-      // Parent explicitly cleared the cart (e.g., from clear button in nq.dart)
-      _cart.clear();
+    // Sync cart from parent when initialCartItems change
+    // This handles edits made in NewSale.dart cart overlay
+    if (widget.initialCartItems != null &&
+        widget.initialCartItems != oldWidget.initialCartItems) {
+      // Cart was updated from parent - sync it
+      setState(() {
+        _cart.clear();
+        _cart.addAll(widget.initialCartItems!);
+      });
+    } else if (widget.initialCartItems == null && oldWidget.initialCartItems != null) {
+      // Parent explicitly cleared the cart (e.g., from clear button)
+      setState(() {
+        _cart.clear();
+      });
     }
 
     // Sync customer info

@@ -266,11 +266,31 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     final priceController = TextEditingController(text: item.price.toString());
     final qtyController = TextEditingController(text: item.quantity.toString());
 
+    // Fetch product data to get stock information
+    bool stockEnabled = false;
+    double availableStock = 0.0;
+
+    if (item.productId.isNotEmpty && !item.productId.startsWith('qs_')) {
+      try {
+        final productDoc = await FirestoreService().getDocument('Products', item.productId);
+        if (productDoc.exists) {
+          final data = productDoc.data() as Map<String, dynamic>;
+          stockEnabled = data['stockEnabled'] ?? false;
+          availableStock = (data['currentStock'] ?? 0.0).toDouble();
+        }
+      } catch (e) {
+        debugPrint('Error fetching product stock: $e');
+      }
+    }
+
     await showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) {
         return StatefulBuilder(builder: (context, setDialogState) {
+          final currentQty = int.tryParse(qtyController.text) ?? 1;
+          final bool exceedsStock = stockEnabled && currentQty > availableStock;
+
           return AlertDialog(
             backgroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -354,13 +374,56 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                   IconButton(
                                     onPressed: () {
                                       int current = int.tryParse(qtyController.text) ?? 0;
-                                      setDialogState(() => qtyController.text = (current + 1).toString());
+                                      int newQty = current + 1;
+
+                                      // Check stock limit
+                                      if (stockEnabled && newQty > availableStock) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Maximum stock available: ${availableStock.toInt()}'),
+                                            backgroundColor: kErrorColor,
+                                            behavior: SnackBarBehavior.floating,
+                                            duration: const Duration(seconds: 2),
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      setDialogState(() => qtyController.text = newQty.toString());
                                     },
                                     icon: const Icon(Icons.add, color: kPrimaryColor, size: 20),
                                   ),
                                 ],
                               ),
                             ),
+                            // Stock warning
+                            if (exceedsStock) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: kErrorColor.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: kErrorColor.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 16),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Only ${availableStock.toInt()} available in stock',
+                                        style: const TextStyle(
+                                          color: kErrorColor,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -383,10 +446,22 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                     label: const Text('Remove', style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold)),
                   ),
                   ElevatedButton(
-                    onPressed: () {
+                    onPressed: exceedsStock ? null : () {
                       final newName = nameController.text.trim();
                       final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
                       final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+
+                      // Final stock validation
+                      if (stockEnabled && newQty > availableStock) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Cannot save: Only ${availableStock.toInt()} available in stock'),
+                            backgroundColor: kErrorColor,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        return;
+                      }
 
                       if (newQty <= 0) {
                         Navigator.of(context).pop();
@@ -407,7 +482,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
+                      backgroundColor: exceedsStock ? kGrey300 : kPrimaryColor,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
