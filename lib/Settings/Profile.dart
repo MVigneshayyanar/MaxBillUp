@@ -45,10 +45,49 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _loading = true;
   StreamSubscription? _storeDataSub;
 
+  // Permission tracking
+  Map<String, dynamic> _permissions = {};
+  String _role = '';
+  bool _isAdmin = false;
+
   @override
   void initState() {
     super.initState();
     _initFastFetch();
+    _loadPermissions();
+  }
+
+  Future<void> _loadPermissions() async {
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(widget.uid).get();
+      if (userDoc.exists && mounted) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        setState(() {
+          _permissions = data['permissions'] as Map<String, dynamic>? ?? {};
+          _role = data['role'] as String? ?? '';
+          _isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'owner';
+        });
+      } else {
+        // If no user doc found, check if this is the store owner
+        final storeDoc = await FirestoreService().getCurrentStoreDoc();
+        if (storeDoc != null && mounted) {
+          final storeData = storeDoc.data() as Map<String, dynamic>?;
+          if (storeData?['ownerId'] == widget.uid) {
+            setState(() {
+              _isAdmin = true;
+              _role = 'Owner';
+            });
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading permissions: $e');
+    }
+  }
+
+  bool _hasPermission(String permission) {
+    if (_isAdmin) return true;
+    return _permissions[permission] == true;
   }
 
   /// FAST FETCH: Using memory cache and reactive streams for 0ms load
@@ -166,27 +205,33 @@ class _SettingsPageState extends State<SettingsPage> {
           _buildProfileCard(),
           const SizedBox(height: 24),
           _buildSectionTitle("App Config"),
-          _buildModernTile(
-            title: context.tr('business_details'),
-            icon: Icons.store_mall_directory_rounded,
-            color: const Color(0xFF1976D2),
-            onTap: () => _navigateTo('BusinessDetails'),
-            subtitle: "Manage business profile & currency",
-          ),
-          _buildModernTile(
-            title: context.tr('receipt_customization'),
-            icon: Icons.receipt_long_rounded,
-            color: const Color(0xFFFF9800),
-            onTap: () => _navigateTo('ReceiptCustomization'),
-            subtitle: "Invoice templates & format",
-          ),
-          _buildModernTile(
-            title: context.tr('tax_settings'),
-            icon: Icons.percent_rounded,
-            color: const Color(0xFF43A047),
-            onTap: () => _navigateTo('TaxSettings'),
-            subtitle: "GST, VAT & local tax compliance",
-          ),
+          // Business Details - only visible if admin or has editBusinessProfile permission
+          if (_isAdmin || _hasPermission('editBusinessProfile'))
+            _buildModernTile(
+              title: context.tr('business_details'),
+              icon: Icons.store_mall_directory_rounded,
+              color: const Color(0xFF1976D2),
+              onTap: () => _navigateTo('BusinessDetails'),
+              subtitle: "Manage business profile & currency",
+            ),
+          // Receipt Customization - only visible if admin or has receiptCustomization permission
+          if (_isAdmin || _hasPermission('receiptCustomization'))
+            _buildModernTile(
+              title: context.tr('receipt_customization'),
+              icon: Icons.receipt_long_rounded,
+              color: const Color(0xFFFF9800),
+              onTap: () => _navigateTo('ReceiptCustomization'),
+              subtitle: "Invoice templates & format",
+            ),
+          // Tax Settings - only visible if admin or has taxSettings permission
+          if (_isAdmin || _hasPermission('taxSettings'))
+            _buildModernTile(
+              title: context.tr('tax_settings'),
+              icon: Icons.percent_rounded,
+              color: const Color(0xFF43A047),
+              onTap: () => _navigateTo('TaxSettings'),
+              subtitle: "GST, VAT & local tax compliance",
+            ),
           _buildModernTile(
             title: context.tr('printer_setup'),
             icon: Icons.print_rounded,

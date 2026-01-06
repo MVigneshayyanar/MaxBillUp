@@ -9,6 +9,8 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Menu/InviteStaffPage.dart';
+import 'package:maxbillup/Settings/RoleManagement.dart';
+import 'package:maxbillup/Settings/PermissionEditor.dart';
 
 class StaffManagementPage extends StatefulWidget {
   final String uid;
@@ -164,7 +166,8 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   Stream<QuerySnapshot> _getStaffStream() {
-    return _firestoreService.getStoreCollection('users').then((collection) => collection.where('role', whereIn: ['staff', 'Staff', 'manager', 'Manager', 'Admin', 'admin']).snapshots(includeMetadataChanges: true)).asStream().asyncExpand((snapshot) => snapshot);
+    // Get all users except the owner (those who have a 'role' field set)
+    return _firestoreService.getStoreCollection('users').then((collection) => collection.where('invitedBy', isNotEqualTo: null).snapshots(includeMetadataChanges: true)).asStream().asyncExpand((snapshot) => snapshot);
   }
 
   // ==========================================
@@ -182,6 +185,13 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: widget.onBack),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.shield_outlined, color: kWhite, size: 22),
+            tooltip: 'Manage Roles',
+            onPressed: () {
+              Navigator.push(context, CupertinoPageRoute(builder: (_) => RoleManagementPage(uid: widget.uid)));
+            },
+          ),
           IconButton(
             icon: _isCheckingVerifications ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.refresh_rounded, color: kWhite, size: 22),
             onPressed: _isCheckingVerifications ? null : _checkAllPendingVerifications,
@@ -352,9 +362,28 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         borderRadius: BorderRadius.circular(16),
         side: const BorderSide(color: kPrimaryColor, width: 1), // Changed outline to blue
       ),
-      onSelected: (v) {
+      onSelected: (v) async {
         if (v == 'toggle') { if (!isVerified && !isActive) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Email verification required"), backgroundColor: kOrange)); } else { _toggleStaffStatus(staffId, !isActive); } }
-        else if (v == 'perms') Navigator.push(context, MaterialPageRoute(builder: (_) => StaffPermissionsPage(staffId: staffId, staffName: name, currentPermissions: permissions)));
+        else if (v == 'perms') {
+          final currentPerms = Map<String, bool>.from(permissions.map((k, v) => MapEntry(k, v == true)));
+          final result = await Navigator.push<Map<String, bool>>(
+            context,
+            CupertinoPageRoute(
+              builder: (_) => PermissionEditorPage(
+                title: '$name Permissions',
+                permissions: currentPerms,
+                isDefault: false,
+              ),
+            ),
+          );
+          if (result != null) {
+            await _firestoreService.updateDocument('users', staffId, {'permissions': result, 'updatedAt': FieldValue.serverTimestamp()});
+            await FirebaseFirestore.instance.collection('users').doc(staffId).update({'permissions': result}).catchError((_) {});
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Permissions updated!'), backgroundColor: kGoogleGreen));
+            }
+          }
+        }
         else if (v == 'edit') _showEditStaffDialog(context, staffId, name, phone, email, role, isActive, permissions);
         else if (v == 'delete') _showDeleteConfirmation(context, staffId, name);
       },
@@ -485,17 +514,33 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   Widget _buildDialogDropdown(String current, Function(String?) onSel) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: current, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
-          items: ['Staff', 'Manager', 'Admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
-          onChanged: onSel,
-        ),
-      ),
+    return FutureBuilder<QuerySnapshot>(
+      future: FirestoreService().getStoreCollection('roles').then((col) => col.get()),
+      builder: (context, snapshot) {
+        List<String> roles = ['Staff', 'Manager', 'Admin']; // Default fallback
+
+        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+          roles = snapshot.data!.docs.map((doc) => doc.id).toList();
+        }
+
+        // Ensure current role is in the list
+        if (!roles.contains(current)) {
+          roles.add(current);
+        }
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: current, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+              items: roles.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+              onChanged: onSel,
+            ),
+          ),
+        );
+      },
     );
   }
 }

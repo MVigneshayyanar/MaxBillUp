@@ -27,6 +27,15 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
   String _selectedRole = 'Staff';
   bool _isLoading = false;
 
+  List<Map<String, dynamic>> _availableRoles = [];
+  bool _rolesLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableRoles();
+  }
+
   @override
   void dispose() {
     _nameCtrl.dispose();
@@ -39,6 +48,84 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
   // ==========================================
   // LOGIC METHODS (PRESERVED BIT-BY-BIT)
   // ==========================================
+
+  Future<void> _loadAvailableRoles() async {
+    try {
+      final rolesCollection = await FirestoreService().getStoreCollection('roles');
+      final snapshot = await rolesCollection.get();
+
+      if (snapshot.docs.isNotEmpty) {
+        setState(() {
+          _availableRoles = snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return {
+              'name': doc.id,
+              'permissions': data['permissions'] ?? {},
+              'isDefault': data['isDefault'] ?? false,
+            };
+          }).toList();
+          _rolesLoaded = true;
+
+          // Ensure selected role exists in loaded roles
+          if (!_availableRoles.any((r) => r['name'] == _selectedRole)) {
+            _selectedRole = _availableRoles.first['name'];
+          }
+        });
+      } else {
+        // Initialize default roles if none exist
+        await _initializeDefaultRoles();
+      }
+    } catch (e) {
+      debugPrint('Error loading roles: $e');
+      // Keep default fallback
+      setState(() {
+        _availableRoles = [
+          {'name': 'Staff', 'permissions': _getDefaultPermissions('Staff'), 'isDefault': true},
+          {'name': 'Manager', 'permissions': _getDefaultPermissions('Manager'), 'isDefault': true},
+          {'name': 'Admin', 'permissions': _getDefaultPermissions('Admin'), 'isDefault': true},
+        ];
+        _rolesLoaded = true;
+      });
+    }
+  }
+
+  Future<void> _initializeDefaultRoles() async {
+    try {
+      final rolesCollection = await FirestoreService().getStoreCollection('roles');
+
+      final defaultRoles = {
+        'Staff': _getDefaultPermissions('Staff'),
+        'Manager': _getDefaultPermissions('Manager'),
+        'Admin': _getDefaultPermissions('Admin'),
+      };
+
+      for (var entry in defaultRoles.entries) {
+        await rolesCollection.doc(entry.key).set({
+          'name': entry.key,
+          'permissions': entry.value,
+          'isDefault': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Reload after initialization
+      await _loadAvailableRoles();
+    } catch (e) {
+      debugPrint('Error initializing default roles: $e');
+    }
+  }
+
+  Future<Map<String, bool>> _getRolePermissions(String roleName) async {
+    try {
+      final role = _availableRoles.firstWhere(
+        (r) => r['name'] == roleName,
+        orElse: () => {'permissions': _getDefaultPermissions(roleName)},
+      );
+      return Map<String, bool>.from(role['permissions'] ?? {});
+    } catch (e) {
+      return _getDefaultPermissions(roleName);
+    }
+  }
 
   Future<void> _handleInvite() async {
     if (!_formKey.currentState!.validate()) return;
@@ -65,6 +152,9 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId == null) throw Exception('Store ID not found');
 
+      // Fetch permissions from role
+      final rolePermissions = await _getRolePermissions(_selectedRole);
+
       Map<String, dynamic> userData = {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
@@ -75,7 +165,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
         'isActive': false,
         'isEmailVerified': false,
         'tempPassword': _passCtrl.text.trim(),
-        'permissions': _getDefaultPermissions(_selectedRole),
+        'permissions': rolePermissions,
         'createdAt': FieldValue.serverTimestamp(),
         'invitedBy': widget.uid,
       };
@@ -116,7 +206,36 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
 
   Map<String, bool> _getDefaultPermissions(String role) {
     bool isAdmin = role.toLowerCase().contains('admin');
-    return {'quotation': true, 'billHistory': true, 'creditNotes': isAdmin, 'customerManagement': true, 'expenses': isAdmin, 'creditDetails': isAdmin, 'staffManagement': isAdmin, 'analytics': isAdmin, 'daybook': isAdmin, 'salesSummary': isAdmin, 'salesReport': isAdmin, 'itemSalesReport': isAdmin, 'topCustomer': isAdmin, 'stockReport': isAdmin, 'lowStockProduct': isAdmin, 'topProducts': isAdmin, 'topCategory': isAdmin, 'expensesReport': isAdmin, 'taxReport': isAdmin, 'hsnReport': isAdmin, 'staffSalesReport': isAdmin, 'addProduct': isAdmin, 'addCategory': isAdmin};
+    bool isManager = role.toLowerCase().contains('manager');
+    return {
+      'quotation': true,
+      'billHistory': true,
+      'creditNotes': isAdmin,
+      'customerManagement': true,
+      'expenses': isAdmin,
+      'creditDetails': isAdmin,
+      'staffManagement': isAdmin,
+      'analytics': isAdmin,
+      'daybook': isAdmin,
+      'salesSummary': isAdmin,
+      'salesReport': isAdmin,
+      'itemSalesReport': isAdmin,
+      'topCustomer': isAdmin,
+      'stockReport': isAdmin,
+      'lowStockProduct': isAdmin,
+      'topProducts': isAdmin,
+      'topCategory': isAdmin,
+      'expensesReport': isAdmin,
+      'taxReport': isAdmin,
+      'hsnReport': isAdmin,
+      'staffSalesReport': isAdmin,
+      'addProduct': isAdmin,
+      'addCategory': isAdmin,
+      // Settings permissions
+      'editBusinessProfile': isAdmin,
+      'receiptCustomization': isAdmin || isManager,
+      'taxSettings': isAdmin || isManager,
+    };
   }
 
   Future<void> _importFromContacts() async {
@@ -259,7 +378,12 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
         child: DropdownButton<String>(
           value: _selectedRole, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
-          items: ['Staff', 'Manager', 'Admin'].map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+          items: _availableRoles.map((role) {
+            return DropdownMenuItem<String>(
+              value: role['name'],
+              child: Text(role['name'], style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14, color: kBlack87)),
+            );
+          }).toList(),
           onChanged: (v) => setState(() => _selectedRole = v!),
         ),
       ),
@@ -283,3 +407,5 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
     );
   }
 }
+
+
