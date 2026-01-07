@@ -201,6 +201,12 @@ class _MenuPageState extends State<MenuPage> {
           return userPerm;
         }
 
+        // Check if any item in a section is visible
+        bool hasFinancialsItems = (isAdmin || _hasPermission('expenses')) ||
+                                  (isAdmin || _hasPermission('creditDetails')) ||
+                                  (isAdmin || _hasPermission('quotation'));
+        bool hasAdminItems = isAdmin || _hasPermission('staffManagement');
+
         // Conditional Rendering
         if (_currentView != null) {
           return _handleViewRouting(isAdmin, planProvider);
@@ -225,25 +231,31 @@ class _MenuPageState extends State<MenuPage> {
                           subtitle: (currentPlan.toLowerCase() == 'free' || currentPlan.toLowerCase() == 'starter')
                               ? "Last 7 days only"
                               : "View and manage invoices",
-                          isLocked: false  // Available to all, but with 7-day limit for free/starter users
                       ),
                     if (_hasPermission('customerManagement') || isAdmin)
-                      _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances", isLocked: !isFeatureAvailable('customerManagement', requiredRank: 1)),
-                    _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns", isLocked: planRank < 1),
+                      if (isFeatureAvailable('customerManagement', requiredRank: 1))
+                        _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances"),
+                    if (planRank >= 1)
+                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns"),
 
-                    const SizedBox(height: 12),
-                    _buildSectionLabel("Financials"),
-                    if (_hasPermission('expenses') || isAdmin)
+                    // Financials Section
+                    if (hasFinancialsItems) ...[
+                      const SizedBox(height: 12),
+                      _buildSectionLabel("Financials"),
+                    ],
+                    if ((_hasPermission('expenses') || isAdmin) && isFeatureAvailable('expenses', requiredRank: 1))
                       _buildExpenseExpansionTile(context),
-                    if (_hasPermission('creditDetails') || isAdmin)
-                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker", isLocked: !isFeatureAvailable('creditDetails', requiredRank: 2)),
-                    if (_hasPermission('quotation') || isAdmin)
-                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma", isLocked: !isFeatureAvailable('quotation', requiredRank: 1)),
+                    if ((_hasPermission('creditDetails') || isAdmin) && isFeatureAvailable('creditDetails', requiredRank: 2))
+                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker"),
+                    if ((_hasPermission('quotation') || isAdmin) && isFeatureAvailable('quotation', requiredRank: 1))
+                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma"),
 
-                    const SizedBox(height: 12),
-                    _buildSectionLabel("Administration"),
-                    if (isAdmin || _hasPermission('staffManagement'))
-                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", isLocked: !isFeatureAvailable('staffManagement', requiredRank: 2)),
+                    // Administration Section
+                    if (hasAdminItems && isFeatureAvailable('staffManagement', requiredRank: 2)) ...[
+                      const SizedBox(height: 12),
+                      _buildSectionLabel("Administration"),
+                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions"),
+                    ],
 
                     const SizedBox(height: 12),
                     _buildSectionLabel("Support"),
@@ -360,7 +372,7 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle, bool isLocked = false}) {
+  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
@@ -368,11 +380,7 @@ class _MenuPageState extends State<MenuPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            if (isLocked) {
-              PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid);
-            } else {
-              setState(() => _currentView = viewKey);
-            }
+            setState(() => _currentView = viewKey);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -397,10 +405,7 @@ class _MenuPageState extends State<MenuPage> {
                     ],
                   ),
                 ),
-                if (isLocked)
-                  Icon(Icons.lock_rounded, color: kGrey400.withOpacity(0.5), size: 18)
-                else
-                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
               ],
             ),
           ),
@@ -499,42 +504,48 @@ class VideoTutorialPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kWhite,
-      appBar: AppBar(
-        title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
-        backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.05), shape: BoxShape.circle),
-              child: const Icon(Icons.play_circle_filled_rounded, size: 80, color: kPrimaryColor),
-            ),
-            const SizedBox(height: 32),
-            const Text('Master Your Business', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 12),
-            const Text('Watch our comprehensive video guide to learn how to manage inventory, sales, and staff effectively.',
-                textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: kBlack54, height: 1.5, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity, height: 56,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                label: const Text('Watch on YouTube', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
-                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: () async {
-                  final url = Uri.parse('https://www.youtube.com');
-                  if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
-                },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kWhite,
+        appBar: AppBar(
+          title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
+          backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.05), shape: BoxShape.circle),
+                child: const Icon(Icons.play_circle_filled_rounded, size: 80, color: kPrimaryColor),
               ),
-            ),
-          ],
+              const SizedBox(height: 32),
+              const Text('Master Your Business', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBlack87)),
+              const SizedBox(height: 12),
+              const Text('Watch our comprehensive video guide to learn how to manage inventory, sales, and staff effectively.',
+                  textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: kBlack54, height: 1.5, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 40),
+              SizedBox(
+                width: double.infinity, height: 56,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  label: const Text('Watch on YouTube', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  onPressed: () async {
+                    final url = Uri.parse('https://www.youtube.com');
+                    if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -775,35 +786,42 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        backgroundColor: kPrimaryColor,
-        centerTitle: true,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
-          onPressed: widget.onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          widget.onBack();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          backgroundColor: kPrimaryColor,
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            onPressed: widget.onBack,
+          ),
+          title: Text(context.tr('billhistory'),
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         ),
-        title: Text(context.tr('billhistory'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-      ),
-      body: Column(
-        children: [
-          _buildHeaderSection(),
-          Expanded(
-            child: FutureBuilder<int>(
-              future: PlanPermissionHelper.getBillHistoryDaysLimit(),
-              builder: (context, planSnap) {
-                final limit = planSnap.data ?? 7;
-                return StreamBuilder<List<QueryDocumentSnapshot>>(
-                  stream: _combinedStream,
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                    final list = _processList(snapshot.data!, limit);
-                    if (list.isEmpty) return _buildEmpty();
+        body: Column(
+          children: [
+            _buildHeaderSection(),
+            Expanded(
+              child: FutureBuilder<int>(
+                future: PlanPermissionHelper.getBillHistoryDaysLimit(),
+                builder: (context, planSnap) {
+                  final limit = planSnap.data ?? 7;
+                  return StreamBuilder<List<QueryDocumentSnapshot>>(
+                    stream: _combinedStream,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      final list = _processList(snapshot.data!, limit);
+                      if (list.isEmpty) return _buildEmpty();
 
-                    return ListView.separated(
+                      return ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: list.length,
                       separatorBuilder: (c, i) => const SizedBox(height: 10),
@@ -815,6 +833,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -1180,9 +1199,10 @@ class SalesDetailPage extends StatelessWidget {
       }
 
       final result = {
-        'canSaleReturn': permissions['saleReturn'] == true,
-        'canCancelBill': permissions['cancelBill'] == true,
-        'canEditBill': permissions['editBill'] == true,
+        // Check both old and new permission keys for backward compatibility
+        'canSaleReturn': permissions['returnInvoice'] == true || permissions['saleReturn'] == true,
+        'canCancelBill': permissions['cancelInvoice'] == true || permissions['cancelBill'] == true,
+        'canEditBill': permissions['editInvoice'] == true || permissions['editBill'] == true,
         'isAdmin': false,
       };
 
@@ -2015,20 +2035,25 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        title: Text(context.tr('credit_notes'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
-          onPressed: widget.onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: Text(context.tr('credit_notes'),
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            onPressed: widget.onBack,
+          ),
         ),
-      ),
-      body: Column(
+        body: Column(
         children: [
           // ENTERPRISE SEARCH & FILTER HEADER
           Container(
@@ -2104,6 +2129,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -2882,59 +2908,65 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        backgroundColor: kGreyBg,
-        appBar: AppBar(
-          elevation: 0,
-          backgroundColor: kPrimaryColor,
-          iconTheme: const IconThemeData(color: kWhite),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, size: 22),
-            onPressed: widget.onBack,
-          ),
-          title: _isSearching
-              ? TextField(
-            controller: _searchController,
-            autofocus: true,
-            style: const TextStyle(color: kWhite, fontSize: 16),
-            decoration: const InputDecoration(
-              hintText: "Search name or contact...",
-              hintStyle: TextStyle(color: Colors.white70),
-              border: InputBorder.none,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: DefaultTabController(
+        length: 2,
+        child: Scaffold(
+          backgroundColor: kGreyBg,
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: kPrimaryColor,
+            iconTheme: const IconThemeData(color: kWhite),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, size: 22),
+              onPressed: widget.onBack,
             ),
-          )
-              : const Text(
-            'Credit Tracker',
-            style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18),
-          ),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
-              onPressed: () => setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) _searchController.clear();
-              }),
+            title: _isSearching
+                ? TextField(
+              controller: _searchController,
+              autofocus: true,
+              style: const TextStyle(color: kWhite, fontSize: 16),
+              decoration: const InputDecoration(
+                hintText: "Search name or contact...",
+                hintStyle: TextStyle(color: Colors.white70),
+                border: InputBorder.none,
+              ),
+            )
+                : const Text(
+              'Credit Tracker',
+              style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18),
             ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: kWhite,
-            indicatorWeight: 4,
-            labelStyle: TextStyle(fontWeight: FontWeight.w800, color: kWhite, fontSize: 12, letterSpacing: 0.5),
-            unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70, fontSize: 12),
-            tabs: [
-              Tab(text: "Sales credit"),
-              Tab(text: "Purchase credit"),
+            centerTitle: true,
+            actions: [
+              IconButton(
+                icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
+                onPressed: () => setState(() {
+                  _isSearching = !_isSearching;
+                  if (!_isSearching) _searchController.clear();
+                }),
+              ),
+            ],
+            bottom: const TabBar(
+              indicatorColor: kWhite,
+              indicatorWeight: 4,
+              labelStyle: TextStyle(fontWeight: FontWeight.w800, color: kWhite, fontSize: 12, letterSpacing: 0.5),
+              unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, color: Colors.white70, fontSize: 12),
+              tabs: [
+                Tab(text: "Sales credit"),
+                Tab(text: "Purchase credit"),
+              ],
+            ),
+          ),
+          body: TabBarView(
+            children: [
+              _buildSalesList(),
+              _buildPurchaseList(),
             ],
           ),
-        ),
-        body: TabBarView(
-          children: [
-            _buildSalesList(),
-            _buildPurchaseList(),
-          ],
         ),
       ),
     );
@@ -4010,20 +4042,25 @@ class _CustomersPageState extends State<CustomersPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        title: Text(context.tr('customer_management'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
-          onPressed: widget.onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: Text(context.tr('customer_management'),
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            onPressed: widget.onBack,
+          ),
         ),
-      ),
-      body: Column(
+        body: Column(
         children: [
           // Updated Search Header Area with Sort Button
           Container(
@@ -4159,6 +4196,7 @@ class _CustomersPageState extends State<CustomersPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

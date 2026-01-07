@@ -205,6 +205,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
   double get _total => _cart.fold(0.0, (sum, item) => sum + item.total);
 
+  // Helper function to format category names: First letter uppercase, rest lowercase
+  String _formatCategoryName(String name) {
+    if (name.isEmpty) return name;
+    return name[0].toUpperCase() + name.substring(1).toLowerCase();
+  }
+
   void _addToCart(String id, String name, double price, bool stockEnabled, double stock,
       {String? taxName, double? taxPercentage, String? taxType}) {
     final idx = _cart.indexWhere((item) => item.productId == id);
@@ -509,7 +515,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     color: isSelected ? kWhite : kPrimaryColor,
                   )
                       : Text(
-                    cat,
+                    _formatCategoryName(cat),
                     style: TextStyle(
                       color: isSelected ? kWhite : kBlack54,
                       fontWeight: FontWeight.w700,
@@ -575,10 +581,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
         return GridView.builder(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: w > 600 ? 220 : 170,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 0.95,
+            maxCrossAxisExtent: w > 600 ? 220 : (w > 400 ? 130 : 115),
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 0.85,
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {

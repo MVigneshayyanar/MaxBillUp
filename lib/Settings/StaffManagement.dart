@@ -176,29 +176,34 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        title: const Text('Staff Management', style: TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w700)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: widget.onBack),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.shield_outlined, color: kWhite, size: 22),
-            tooltip: 'Manage Roles',
-            onPressed: () {
-              Navigator.push(context, CupertinoPageRoute(builder: (_) => RoleManagementPage(uid: widget.uid)));
-            },
-          ),
-          IconButton(
-            icon: _isCheckingVerifications ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.refresh_rounded, color: kWhite, size: 22),
-            onPressed: _isCheckingVerifications ? null : _checkAllPendingVerifications,
-          )
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: const Text('Staff Management', style: TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w700)),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: widget.onBack),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.shield_outlined, color: kWhite, size: 22),
+              tooltip: 'Manage Roles',
+              onPressed: () {
+                Navigator.push(context, CupertinoPageRoute(builder: (_) => RoleManagementPage(uid: widget.uid)));
+              },
+            ),
+            IconButton(
+              icon: _isCheckingVerifications ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.refresh_rounded, color: kWhite, size: 22),
+              onPressed: _isCheckingVerifications ? null : _checkAllPendingVerifications,
+            )
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Navigator.push(context, CupertinoPageRoute(builder: (_) => InviteStaffPage(uid: widget.uid)));
           if (result == true) {
@@ -269,6 +274,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

@@ -23,6 +23,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
   // Permission categories for organized display
   final Map<String, List<String>> _categories = {
     'Sales & Billing': ['quotation', 'billHistory', 'creditNotes'],
+    'Invoice Actions': ['editInvoice', 'returnInvoice', 'cancelInvoice'],
     'Customer Management': ['customerManagement', 'creditDetails'],
     'Expenses': ['expenses'],
     'Staff & Analytics': ['staffManagement', 'analytics'],
@@ -39,6 +40,18 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
   void initState() {
     super.initState();
     _editedPermissions = Map.from(widget.permissions);
+
+    // Ensure all known permissions exist (add missing ones with default false)
+    final allKnownPermissions = <String>[];
+    for (var permList in _categories.values) {
+      allKnownPermissions.addAll(permList);
+    }
+
+    for (var perm in allKnownPermissions) {
+      if (!_editedPermissions.containsKey(perm)) {
+        _editedPermissions[perm] = false;
+      }
+    }
   }
 
   String _formatPermissionName(String key) {

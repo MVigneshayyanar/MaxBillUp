@@ -52,19 +52,24 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        backgroundColor: kPrimaryColor,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
-          onPressed: widget.onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          backgroundColor: kPrimaryColor,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            onPressed: widget.onBack,
+          ),
+          centerTitle: true,
+          elevation: 0,
         ),
-        centerTitle: true,
-        elevation: 0,
-      ),
-      body: Column(
+        body: Column(
         children: [
           // ENTERPRISE HEADER: DATE & NEW BUTTON
           Container(
@@ -173,6 +178,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

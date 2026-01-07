@@ -283,7 +283,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'email': widget.email,
         'name': _ownerNameCtrl.text.trim(),
         'storeId': storeId,
-        'role': 'admin',
+        'role': 'owner',
         'isActive': true,
         'isEmailVerified': true,
         'createdAt': FieldValue.serverTimestamp(),

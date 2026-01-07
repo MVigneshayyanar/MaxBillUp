@@ -141,26 +141,45 @@ class _ReportsPageState extends State<ReportsPage> {
 
     if (_currentView != null) {
       _savedScrollOffset = _scrollController.hasClients ? _scrollController.offset : 0.0;
-      switch (_currentView) {
-        case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
-        case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
-        case 'Summary': return IncomeSummaryPage(onBack: _reset);
-        case 'SalesSummary': return SalesSummaryPage(onBack: _reset);
-        case 'SalesReport': return FullSalesHistoryPage(onBack: _reset);
-        case 'ExpenseReport': return ExpenseReportPage(onBack: _reset);
-        case 'TopProducts': return TopProductsPage(uid: widget.uid, onBack: _reset);
-        case 'LowStock': return LowStockPage(uid: widget.uid, onBack: _reset);
-        case 'ItemSales': return ItemSalesPage(onBack: _reset);
-        case 'TopCategories': return TopCategoriesPage(onBack: _reset);
-        case 'TopCustomers': return TopCustomersPage(uid: widget.uid, onBack: _reset);
-        case 'StockReport': return StockReportPage(onBack: _reset);
-        case 'StaffReport': return StaffSaleReportPage(onBack: _reset);
-        case 'TaxReport': return TaxReportPage(onBack: _reset);
-        case 'PaymentReport': return PaymentReportPage(onBack: _reset);
-        case 'GSTReport': return GSTReportPage(onBack: _reset);
-      }
+
+      // Wrap sub-pages with PopScope to handle Android back button
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            _reset();
+          }
+        },
+        child: _buildSubPage(),
+      );
     }
 
+    return _buildMainReportsPage(context, isFullyLoaded, isPaidPlan);
+  }
+
+  Widget _buildSubPage() {
+    switch (_currentView) {
+      case 'Analytics': return AnalyticsPage(uid: widget.uid, onBack: _reset);
+      case 'DayBook': return DayBookPage(uid: widget.uid, onBack: _reset);
+      case 'Summary': return IncomeSummaryPage(onBack: _reset);
+      case 'SalesSummary': return SalesSummaryPage(onBack: _reset);
+      case 'SalesReport': return FullSalesHistoryPage(onBack: _reset);
+      case 'ExpenseReport': return ExpenseReportPage(onBack: _reset);
+      case 'TopProducts': return TopProductsPage(uid: widget.uid, onBack: _reset);
+      case 'LowStock': return LowStockPage(uid: widget.uid, onBack: _reset);
+      case 'ItemSales': return ItemSalesPage(onBack: _reset);
+      case 'TopCategories': return TopCategoriesPage(onBack: _reset);
+      case 'TopCustomers': return TopCustomersPage(uid: widget.uid, onBack: _reset);
+      case 'StockReport': return StockReportPage(onBack: _reset);
+      case 'StaffReport': return StaffSaleReportPage(onBack: _reset);
+      case 'TaxReport': return TaxReportPage(onBack: _reset);
+      case 'PaymentReport': return PaymentReportPage(onBack: _reset);
+      case 'GSTReport': return GSTReportPage(onBack: _reset);
+      default: return _buildMainReportsPage(context, true, true);
+    }
+  }
+
+  Widget _buildMainReportsPage(BuildContext context, bool isFullyLoaded, bool isPaidPlan) {
     bool isFeatureAvailable(String permission) {
       // If not fully loaded yet, assume feature is available (no lock shown)
       if (!isFullyLoaded) return true;
@@ -170,6 +189,12 @@ class _ReportsPageState extends State<ReportsPage> {
       final userPerm = _permissions[permission] == true;
       return userPerm && isPaidPlan;
     }
+
+    // Check if any item in a section is visible
+    bool hasAnalyticsItems = isFeatureAvailable('analytics') || isFeatureAvailable('salesSummary');
+    bool hasSalesItems = isFeatureAvailable('salesReport') || isFeatureAvailable('itemSalesReport') || isFeatureAvailable('topCustomer') || isFeatureAvailable('staffSalesReport');
+    bool hasInventoryItems = isFeatureAvailable('stockReport') || isFeatureAvailable('lowStockProduct') || isFeatureAvailable('topProducts') || isFeatureAvailable('topCategory');
+    bool hasFinancialsItems = isFeatureAvailable('expensesReport') || isFeatureAvailable('taxReport');
 
     return Scaffold(
       backgroundColor: kGreyBg,
@@ -185,32 +210,57 @@ class _ReportsPageState extends State<ReportsPage> {
         controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         children: [
-          _buildSectionLabel(context.tr('analytics_overview')),
-          _buildReportTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends', isLocked: !isFeatureAvailable('analytics')),
-          _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log', isLocked: false),
-          _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues', isLocked: !isFeatureAvailable('salesSummary')),
-          _buildReportTile(context.tr('sales_summary'), Icons.analytics_rounded, const Color(0xFF673AB7), 'SalesSummary', subtitle: 'Sales performance', isLocked: !isFeatureAvailable('salesSummary')),
-          _buildReportTile('Payment Report', Icons.payments_rounded, const Color(0xFF00897B), 'PaymentReport', subtitle: 'Cash & online breakdown', isLocked: !isFeatureAvailable('salesSummary')),
+          // Analytics Overview Section
+          if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
+          if (isFeatureAvailable('analytics'))
+            _buildReportTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends'),
+          _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
+          if (isFeatureAvailable('salesSummary'))
+            _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues'),
+          if (isFeatureAvailable('salesSummary'))
+            _buildReportTile(context.tr('sales_summary'), Icons.analytics_rounded, const Color(0xFF673AB7), 'SalesSummary', subtitle: 'Sales performance'),
+          if (isFeatureAvailable('salesSummary'))
+            _buildReportTile('Payment Report', Icons.payments_rounded, const Color(0xFF00897B), 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
-          const SizedBox(height: 12),
-          _buildSectionLabel(context.tr('sales_transactions')),
-          _buildReportTile(context.tr('sales_report'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history', isLocked: !isFeatureAvailable('salesReport')),
-          _buildReportTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product', isLocked: !isFeatureAvailable('itemSalesReport')),
-          _buildReportTile(context.tr('top_customers'), Icons.emoji_events_rounded, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients', isLocked: !isFeatureAvailable('topCustomer')),
-          _buildReportTile(context.tr('staff_sale_report'), Icons.person_rounded, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user', isLocked: !isFeatureAvailable('staffSalesReport')),
+          // Sales & Transactions Section
+          if (hasSalesItems) ...[
+            const SizedBox(height: 12),
+            _buildSectionLabel(context.tr('sales_transactions')),
+          ],
+          if (isFeatureAvailable('salesReport'))
+            _buildReportTile(context.tr('sales_report'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history'),
+          if (isFeatureAvailable('itemSalesReport'))
+            _buildReportTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product'),
+          if (isFeatureAvailable('topCustomer'))
+            _buildReportTile(context.tr('top_customers'), Icons.emoji_events_rounded, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients'),
+          if (isFeatureAvailable('staffSalesReport'))
+            _buildReportTile(context.tr('staff_sale_report'), Icons.person_rounded, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user'),
 
-          const SizedBox(height: 12),
-          _buildSectionLabel(context.tr('inventory_products')),
-          _buildReportTile(context.tr('stock_report'), Icons.warehouse_rounded, const Color(0xFF303F9F), 'StockReport', subtitle: 'Full inventory valuation', isLocked: !isFeatureAvailable('stockReport')),
-          _buildReportTile(context.tr('low_stock_products'), Icons.inventory_rounded, kOrange, 'LowStock', subtitle: 'Restock action required', isLocked: !isFeatureAvailable('lowStockProduct')),
-          _buildReportTile(context.tr('top_products'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items', isLocked: !isFeatureAvailable('topProducts')),
-          _buildReportTile(context.tr('top_categories'), Icons.category_rounded, const Color(0xFFE91E63), 'TopCategories', subtitle: 'Department performance', isLocked: !isFeatureAvailable('topCategory')),
+          // Inventory & Products Section
+          if (hasInventoryItems) ...[
+            const SizedBox(height: 12),
+            _buildSectionLabel(context.tr('inventory_products')),
+          ],
+          if (isFeatureAvailable('stockReport'))
+            _buildReportTile(context.tr('stock_report'), Icons.warehouse_rounded, const Color(0xFF303F9F), 'StockReport', subtitle: 'Full inventory valuation'),
+          if (isFeatureAvailable('lowStockProduct'))
+            _buildReportTile(context.tr('low_stock_products'), Icons.inventory_rounded, kOrange, 'LowStock', subtitle: 'Restock action required'),
+          if (isFeatureAvailable('topProducts'))
+            _buildReportTile(context.tr('top_products'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items'),
+          if (isFeatureAvailable('topCategory'))
+            _buildReportTile(context.tr('top_categories'), Icons.category_rounded, const Color(0xFFE91E63), 'TopCategories', subtitle: 'Department performance'),
 
-          const SizedBox(height: 12),
-          _buildSectionLabel(context.tr('financials_tax')),
-          _buildReportTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking', isLocked: !isFeatureAvailable('expensesReport')),
-          _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance', isLocked: !isFeatureAvailable('taxReport')),
-          _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF1565C0), 'GSTReport', subtitle: 'GST on sales & purchases', isLocked: !isFeatureAvailable('taxReport')),
+          // Financials & Tax Section
+          if (hasFinancialsItems) ...[
+            const SizedBox(height: 12),
+            _buildSectionLabel(context.tr('financials_tax')),
+          ],
+          if (isFeatureAvailable('expensesReport'))
+            _buildReportTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
+          if (isFeatureAvailable('taxReport'))
+            _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance'),
+          if (isFeatureAvailable('taxReport'))
+            _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF1565C0), 'GSTReport', subtitle: 'GST on sales & purchases'),
           const SizedBox(height: 40),
         ],
       ),
@@ -229,7 +279,7 @@ class _ReportsPageState extends State<ReportsPage> {
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildReportTile(String title, IconData icon, Color color, String viewName, {String? subtitle, bool isLocked = false}) {
+  Widget _buildReportTile(String title, IconData icon, Color color, String viewName, {String? subtitle}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -241,11 +291,7 @@ class _ReportsPageState extends State<ReportsPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            if (isLocked) {
-              PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid);
-            } else {
-              setState(() => _currentView = viewName);
-            }
+            setState(() => _currentView = viewName);
           },
           borderRadius: BorderRadius.circular(16),
           child: Padding(
@@ -276,10 +322,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     ],
                   ),
                 ),
-                if (isLocked)
-                  Icon(Icons.lock_rounded, color: kGrey400.withOpacity(0.5), size: 18)
-                else
-                  const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
               ],
             ),
           ),
@@ -297,6 +340,7 @@ enum DateFilterOption {
   today,
   yesterday,
   last7Days,
+  last30Days,
   thisMonth,
   lastMonth,
   customDate,
@@ -342,6 +386,8 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
         return 'Yesterday';
       case DateFilterOption.last7Days:
         return 'Last 7 Days';
+      case DateFilterOption.last30Days:
+        return 'Last 30 Days';
       case DateFilterOption.thisMonth:
         return 'This Month';
       case DateFilterOption.lastMonth:
@@ -508,6 +554,11 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                                 break;
                               case DateFilterOption.last7Days:
                                 start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
+                                end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+                                widget.onDateChanged(option, start, end);
+                                break;
+                              case DateFilterOption.last30Days:
+                                start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
                                 end = DateTime(now.year, now.month, now.day, 23, 59, 59);
                                 widget.onDateChanged(option, start, end);
                                 break;
@@ -928,91 +979,82 @@ class ReportPdfGenerator {
 
       // Save to Downloads folder
       String? savedPath;
+      bool savedToDownloads = false;
 
       if (Platform.isAndroid) {
-        // For Android, save to public Downloads directory
         try {
           print('=== PDF SAVE DEBUG ===');
           print('Attempting to save PDF: $fileName');
 
-          // Get the public Downloads directory
-          Directory? downloadsDir;
+          // Try to save to Downloads folder using direct path
+          // On Android, Downloads folder is at /storage/emulated/0/Download
+          final downloadsPath = '/storage/emulated/0/Download';
+          final downloadsDir = Directory(downloadsPath);
 
-          // Try to get the Downloads directory
-          if (await Directory('/storage/emulated/0/Download').exists()) {
-            downloadsDir = Directory('/storage/emulated/0/Download');
-            print('Using Downloads path: /storage/emulated/0/Download');
-          } else if (await Directory('/storage/emulated/0/Downloads').exists()) {
-            downloadsDir = Directory('/storage/emulated/0/Downloads');
-            print('Using Downloads path: /storage/emulated/0/Downloads');
-          } else {
-            print('ERROR: Neither Download nor Downloads folder exists!');
-          }
+          if (await downloadsDir.exists()) {
+            print('Downloads directory exists: ${downloadsDir.path}');
 
-          if (downloadsDir != null) {
-            // Create the file in Downloads folder
+            // Save file to Downloads folder
             final file = File('${downloadsDir.path}/$fileName');
-            print('Full file path: ${file.path}');
-
-            // Write the PDF bytes
             await file.writeAsBytes(pdfBytes, flush: true);
-            print('File written successfully');
-            savedPath = file.path;
 
-            // Verify the file was created
             if (await file.exists()) {
               final fileSize = await file.length();
-              print('✓ File saved successfully! Size: $fileSize bytes');
-            } else {
-              print('✗ ERROR: File not found after writing!');
-            }
-
-            // Notify the media scanner so the file shows up immediately
-            try {
-              // This will make the file visible in file managers
-              final result = await Process.run('am', [
-                'broadcast',
-                '-a',
-                'android.intent.action.MEDIA_SCANNER_SCAN_FILE',
-                '-d',
-                'file://${file.path}'
-              ]);
-              print('Media scan result: ${result.stdout}');
-            } catch (e) {
-              print('Media scan failed: $e');
+              print('✓ PDF saved to Downloads: ${file.path}, Size: $fileSize bytes');
+              savedPath = file.path;
+              savedToDownloads = true;
             }
           } else {
-            print('Fallback: Using external storage directory');
-            // Fallback: use external storage directory
-            final dir = await getExternalStorageDirectory();
-            if (dir != null) {
-              final downloadFolder = Directory('${dir.path}/Download');
-              await downloadFolder.create(recursive: true);
-              final file = File('${downloadFolder.path}/$fileName');
-              print('Fallback file path: ${file.path}');
-              await file.writeAsBytes(pdfBytes, flush: true);
-              savedPath = file.path;
-              print('Fallback save successful');
+            // Try external storage directory as fallback
+            final extDir = await getExternalStorageDirectory();
+            if (extDir != null) {
+              // Navigate up to find the Download folder
+              // extDir is usually /storage/emulated/0/Android/data/com.yourapp/files
+              final parts = extDir.path.split('/');
+              final storageIndex = parts.indexOf('Android');
+              if (storageIndex > 0) {
+                final basePath = parts.sublist(0, storageIndex).join('/');
+                final downloadDir = Directory('$basePath/Download');
+                if (await downloadDir.exists()) {
+                  final file = File('${downloadDir.path}/$fileName');
+                  await file.writeAsBytes(pdfBytes, flush: true);
+                  if (await file.exists()) {
+                    savedPath = file.path;
+                    savedToDownloads = true;
+                    print('✓ PDF saved to Downloads (fallback): ${file.path}');
+                  }
+                }
+              }
             }
           }
+
+          // Fallback to cache if Downloads folder not accessible
+          if (savedPath == null) {
+            print('Fallback: Saving to cache directory');
+            final cacheDir = await getTemporaryDirectory();
+            final tempFile = File('${cacheDir.path}/$fileName');
+            await tempFile.writeAsBytes(pdfBytes, flush: true);
+            if (await tempFile.exists()) {
+              print('✓ PDF saved to cache: ${tempFile.path}');
+              savedPath = tempFile.path;
+            }
+          }
+
+          print('=== END PDF SAVE DEBUG ===');
         } catch (e, stackTrace) {
           print('ERROR saving PDF: $e');
           print('Stack trace: $stackTrace');
-          // Final fallback: app's external directory
+
+          // Final fallback to cache
           try {
-            final dir = await getExternalStorageDirectory();
-            if (dir != null) {
-              final file = File('${dir.path}/$fileName');
-              print('Final fallback path: ${file.path}');
-              await file.writeAsBytes(pdfBytes, flush: true);
-              savedPath = file.path;
-              print('Final fallback save successful');
-            }
+            final cacheDir = await getTemporaryDirectory();
+            final tempFile = File('${cacheDir.path}/$fileName');
+            await tempFile.writeAsBytes(pdfBytes, flush: true);
+            savedPath = tempFile.path;
           } catch (e2) {
-            print('Final fallback failed: $e2');
+            print('Cache fallback failed: $e2');
           }
         }
-        print('=== END PDF SAVE DEBUG ===');
       } else {
         // For iOS and other platforms
         final dir = await getApplicationDocumentsDirectory();
@@ -1021,43 +1063,102 @@ class ReportPdfGenerator {
         savedPath = file.path;
       }
 
-      // Show success snackbar with share option
+      // Show success dialog
       if (savedPath != null) {
         final file = File(savedPath);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    Platform.isAndroid && savedPath.contains('/Download')
-                        ? 'PDF saved to Downloads folder'
-                        : 'PDF saved successfully',
+
+        // Show success dialog with share option
+        showDialog(
+          context: context,
+          builder: (BuildContext dialogContext) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: kIncomeGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.check_circle, color: kIncomeGreen, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Download Complete', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    savedToDownloads
+                        ? 'PDF saved to Downloads folder!'
+                        : 'PDF generated successfully!',
+                    style: const TextStyle(fontSize: 14, color: kTextSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.insert_drive_file, color: kPrimaryColor, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            fileName,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (savedToDownloads) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      '📁 Check your Downloads folder',
+                      style: TextStyle(fontSize: 12, color: kIncomeGreen, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: const Text('Close', style: TextStyle(color: kTextSecondary)),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(dialogContext);
+                    await Share.shareXFiles(
+                      [XFile(file.path)],
+                      subject: '$reportTitle Report',
+                      text: '$reportTitle - Generated on $dateStr',
+                    );
+                  },
+                  icon: const Icon(Icons.share, size: 18),
+                  label: const Text('Share'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
               ],
-            ),
-            backgroundColor: kIncomeGreen,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Share',
-              textColor: Colors.white,
-              onPressed: () async {
-                await Share.shareXFiles(
-                  [XFile(file.path)],
-                  subject: '$reportTitle Report',
-                  text: '$reportTitle - Generated on $dateStr',
-                );
-              },
-            ),
-          ),
+            );
+          },
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Error: Could not save PDF file'),
+            content: Text('Error: Could not generate PDF file'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 3),
           ),
@@ -1088,6 +1189,34 @@ class AnalyticsPage extends StatefulWidget {
 class _AnalyticsPageState extends State<AnalyticsPage> {
   String _selectedDuration = 'Last 7 Days';
   final FirestoreService _firestoreService = FirestoreService();
+
+  int get _durationDays {
+    switch (_selectedDuration) {
+      case 'Today': return 0;
+      case 'Yesterday': return 1;
+      case 'Last 7 Days': return 7;
+      case 'Last 30 Days': return 30;
+      case 'This Month': return DateTime.now().day;
+      case 'Last 3 Months': return 90;
+      default: return 7;
+    }
+  }
+
+  bool _isInPeriod(DateTime? dt) {
+    if (dt == null) return false;
+    final now = DateTime.now();
+    if (_selectedDuration == 'Today') {
+      return DateFormat('yyyy-MM-dd').format(dt) == DateFormat('yyyy-MM-dd').format(now);
+    } else if (_selectedDuration == 'Yesterday') {
+      final yesterday = now.subtract(const Duration(days: 1));
+      return DateFormat('yyyy-MM-dd').format(dt) == DateFormat('yyyy-MM-dd').format(yesterday);
+    } else if (_selectedDuration == 'This Month') {
+      return dt.year == now.year && dt.month == now.month;
+    } else if (_selectedDuration == 'Last 3 Months') {
+      return now.difference(dt).inDays <= 90;
+    }
+    return now.difference(dt).inDays <= _durationDays;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1152,7 +1281,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             todayTax += tax;
                             todaySaleCount++;
                           }
-                          if (now.difference(dt).inDays <= 7) {
+                          if (_isInPeriod(dt)) {
                             periodIncome += amount;
                             weekRevenue[dt.day] = (weekRevenue[dt.day] ?? 0) + amount;
                             if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
@@ -1177,7 +1306,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             todayExpense += amount;
                             todayExpenseCount++;
                           }
-                          if (now.difference(dt).inDays <= 7) {
+                          if (_isInPeriod(dt)) {
                             periodExpense += amount;
                             weekExpense[dt.day] = (weekExpense[dt.day] ?? 0) + amount;
                           }
@@ -1362,7 +1491,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         underline: const SizedBox(),
         icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 14),
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kPrimaryColor),
-        items: ['Last 7 Days', 'Last 30 Days'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+        items: ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Month', 'Last 3 Months'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
         onChanged: (v) => setState(() => _selectedDuration = v!),
       ),
     );

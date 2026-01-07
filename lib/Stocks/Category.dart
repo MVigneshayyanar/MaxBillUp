@@ -38,6 +38,12 @@ class _CategoryPageState extends State<CategoryPage> {
   CollectionReference? _productsRef;
   Stream<QuerySnapshot>? _categoryStream;
 
+  // Helper function to format category names: First letter uppercase, rest lowercase
+  String _formatCategoryName(String name) {
+    if (name.isEmpty) return name;
+    return name[0].toUpperCase() + name.substring(1).toLowerCase();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -284,7 +290,7 @@ class _CategoryPageState extends State<CategoryPage> {
                     ),
                   ),
                 ),
-                title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                title: Text(_formatCategoryName(name), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
                 subtitle: Text('$count ${count == 1 ? "Product" : "Products"}',
                     style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600)),
                 trailing: (_hasPermission('addCategory') || isAdmin)

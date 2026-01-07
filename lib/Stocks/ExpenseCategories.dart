@@ -45,37 +45,43 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        title: Text(context.tr('Expense Types'),
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
-          onPressed: widget.onBack,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          title: Text(context.tr('Expense Types'),
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            onPressed: widget.onBack,
+          ),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: kWhite,
+            indicatorWeight: 4,
+            labelColor: kWhite,
+            unselectedLabelColor: kWhite.withOpacity(0.7),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
+            tabs: [
+              Tab(text: context.tr('Types').toUpperCase()),
+              Tab(text: context.tr('expense_names').toUpperCase()),
+            ],
+          ),
         ),
-        bottom: TabBar(
+        body: TabBarView(
           controller: _tabController,
-          indicatorColor: kWhite,
-          indicatorWeight: 4,
-          labelColor: kWhite,
-          unselectedLabelColor: kWhite.withOpacity(0.7),
-          labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5),
-          tabs: [
-            Tab(text: context.tr('Types').toUpperCase()),
-            Tab(text: context.tr('expense_names').toUpperCase()),
+          children: [
+            _buildCategoriesTab(),
+            _buildExpenseNamesTab(),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildCategoriesTab(),
-          _buildExpenseNamesTab(),
-        ],
       ),
     );
   }

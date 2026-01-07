@@ -231,6 +231,10 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       'staffSalesReport': isAdmin,
       'addProduct': isAdmin,
       'addCategory': isAdmin,
+      // Invoice permissions
+      'editInvoice': isAdmin || isManager,
+      'returnInvoice': isAdmin || isManager,
+      'cancelInvoice': isAdmin || isManager,
       // Settings permissions
       'editBusinessProfile': isAdmin,
       'receiptCustomization': isAdmin || isManager,

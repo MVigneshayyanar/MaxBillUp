@@ -155,39 +155,58 @@ class _SettingsPageState extends State<SettingsPage> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     if (_currentView != null) {
-      switch (_currentView) {
-        case 'BusinessDetails':
-          return BusinessDetailsPage(
-            uid: widget.uid,
-            onBack: _goBack,
-            initialStoreData: _storeData,
-            initialUserData: _userData,
-          );
-        case 'ReceiptSettings':
-          return ReceiptSettingsPage(onBack: _goBack, onNavigate: _navigateTo, uid: widget.uid, userEmail: widget.userEmail);
-        case 'ReceiptCustomization':
-          return ReceiptCustomizationPage(onBack: _goBack);
-        case 'TaxSettings':
-          return TaxSettingsNew.TaxSettingsPage(uid: widget.uid, onBack: _goBack);
-        case 'PrinterSetup':
-          return PrinterSetupPage(onBack: _goBack);
-        case 'FeatureSettings':
-          return FeatureSettingsPage(onBack: _goBack);
-        case 'Language':
-          return LanguagePage(onBack: _goBack);
-        case 'Theme':
-          return ThemePage(onBack: _goBack);
-        case 'Help':
-          return HelpPage(onBack: _goBack, onNavigate: _navigateTo);
-        case 'FAQs':
-          return FAQsPage(onBack: _goBack);
-        case 'UpcomingFeatures':
-          return UpcomingFeaturesPage(onBack: _goBack);
-        case 'VideoTutorials':
-          return VideoTutorialsPage(onBack: _goBack);
-      }
+      // Wrap sub-pages with PopScope to handle Android back button
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) {
+            _goBack();
+          }
+        },
+        child: _buildSubPage(),
+      );
     }
 
+    return _buildMainSettingsPage(context, screenWidth);
+  }
+
+  Widget _buildSubPage() {
+    switch (_currentView) {
+      case 'BusinessDetails':
+        return BusinessDetailsPage(
+          uid: widget.uid,
+          onBack: _goBack,
+          initialStoreData: _storeData,
+          initialUserData: _userData,
+        );
+      case 'ReceiptSettings':
+        return ReceiptSettingsPage(onBack: _goBack, onNavigate: _navigateTo, uid: widget.uid, userEmail: widget.userEmail);
+      case 'ReceiptCustomization':
+        return ReceiptCustomizationPage(onBack: _goBack);
+      case 'TaxSettings':
+        return TaxSettingsNew.TaxSettingsPage(uid: widget.uid, onBack: _goBack);
+      case 'PrinterSetup':
+        return PrinterSetupPage(onBack: _goBack);
+      case 'FeatureSettings':
+        return FeatureSettingsPage(onBack: _goBack);
+      case 'Language':
+        return LanguagePage(onBack: _goBack);
+      case 'Theme':
+        return ThemePage(onBack: _goBack);
+      case 'Help':
+        return HelpPage(onBack: _goBack, onNavigate: _navigateTo);
+      case 'FAQs':
+        return FAQsPage(onBack: _goBack);
+      case 'UpcomingFeatures':
+        return UpcomingFeaturesPage(onBack: _goBack);
+      case 'VideoTutorials':
+        return VideoTutorialsPage(onBack: _goBack);
+      default:
+        return _buildMainSettingsPage(context, MediaQuery.of(context).size.width);
+    }
+  }
+
+  Widget _buildMainSettingsPage(BuildContext context, double screenWidth) {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
@@ -1903,25 +1922,28 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   }
 
   Widget _buildActionFooter() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
-      decoration: BoxDecoration(
-        color: kWhite,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
-      ),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _saving ? null : _saveSettings,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
-          child: Text(
-            _saving ? "Syncing..." : "Save configuration",
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13),
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+        decoration: BoxDecoration(
+          color: kWhite,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))],
+        ),
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _saving ? null : _saveSettings,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: Text(
+              _saving ? "Syncing..." : "Save configuration",
+              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontSize: 13),
+            ),
           ),
         ),
       ),

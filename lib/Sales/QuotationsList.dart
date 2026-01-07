@@ -96,10 +96,10 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        widget.onBack(); // Reset MenuPage state
-        return false; // Prevent navigation pop
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
       },
       child: Scaffold(
         backgroundColor: kGreyBg,
@@ -109,9 +109,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
-            onPressed: () {
-              widget.onBack(); // Call onBack to reset MenuPage state
-            },
+            onPressed: widget.onBack,
           ),
           title: Text(context.tr('quotations'),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),

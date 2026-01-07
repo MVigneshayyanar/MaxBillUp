@@ -39,6 +39,12 @@ class _ProductsPageState extends State<ProductsPage> {
   bool _isMultiSelectMode = false;
   Set<String> _selectedProductIds = {};
 
+  // Helper function to format category names: First letter uppercase, rest lowercase
+  String _formatCategoryName(String name) {
+    if (name.isEmpty) return name;
+    return name[0].toUpperCase() + name.substring(1).toLowerCase();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -344,7 +350,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           category == 'Favorite'
                               ? const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 14)
                               : Text(
-                            category.toUpperCase(),
+                            _formatCategoryName(category),
                             style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                           ),
                           if (stockEnabled)

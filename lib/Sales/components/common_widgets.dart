@@ -40,6 +40,7 @@ class CommonWidgets {
 
     return SafeArea(
       top: false,
+      bottom: false, // Don't add extra safe area padding
       child: Container(
         decoration: const BoxDecoration(
           color: kWhite,
