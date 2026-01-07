@@ -17,7 +17,7 @@ class PermissionHelper {
         final role = data['role'] ?? 'Staff';
 
         // Admin has all permissions
-        if (role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator') {
+        if (role.toLowerCase() == 'owner' || role.toLowerCase() == 'administrator') {
           return {
             'role': role,
             'permissions': _getAllPermissions(),
@@ -89,7 +89,7 @@ class PermissionHelper {
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         final role = (data['role'] ?? '').toString().toLowerCase();
-        return role == 'admin' || role == 'administrator';
+        return role == 'owner' || role == 'administrator';
       }
     } catch (e) {
       print('Error checking admin status: $e');

@@ -216,23 +216,78 @@ class _LoginPageState extends State<LoginPage> {
       }
       final GoogleSignInAuthentication gAuth = await gUser.authentication;
       final credential = GoogleAuthProvider.credential(accessToken: gAuth.accessToken, idToken: gAuth.idToken);
+
+      final userEmail = gUser.email.toLowerCase().trim();
+
+      // Check if admin account
+      if (userEmail == 'maxmybillapp@gmail.com') {
+        final userCred = await _auth.signInWithCredential(credential);
+        final user = userCred.user;
+        if (mounted) setState(() => _loading = false);
+        if (user != null) {
+          _navigate(user.uid, user.email);
+        }
+        return;
+      }
+
+      // IMPORTANT: Check if email exists as staff account BEFORE signing in with Google
+      // This prevents staff members from accessing their staff account via Google login
+      final existingUserQuery = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: userEmail)
+          .limit(1)
+          .get();
+
+      bool isStaffAccount = false;
+      if (existingUserQuery.docs.isNotEmpty) {
+        final existingUserData = existingUserQuery.docs.first.data();
+        final existingRole = existingUserData['role'] as String?;
+        // Check if this is a staff account (not owner)
+        isStaffAccount = existingRole != null && existingRole.toLowerCase() != 'owner';
+      }
+
+      // Proceed with Google sign-in
       final userCred = await _auth.signInWithCredential(credential);
       final user = userCred.user;
 
       if (user != null) {
-        final userEmail = user.email?.toLowerCase().trim();
-        if (userEmail == 'maxmybillapp@gmail.com') {
+        if (isStaffAccount) {
+          // This email belongs to a staff account - ALWAYS redirect to create new business
+          // Staff accounts should use email/password login, not Google
           if (mounted) setState(() => _loading = false);
-          _navigate(user.uid, user.email);
-          return;
-        }
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        if (mounted) setState(() => _loading = false);
-        if (userDoc.exists) {
-          await _firestoreService.notifyStoreDataChanged();
-          _navigate(user.uid, user.email);
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (context) => BusinessDetailsPage(
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+              ),
+            ),
+          );
         } else {
-          Navigator.push(context, CupertinoPageRoute(builder: (context) => BusinessDetailsPage(uid: user.uid, email: user.email, displayName: user.displayName)));
+          // Check if this Google UID has a user document (existing business owner)
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+
+          if (userDoc.exists) {
+            // Existing business owner - proceed to app
+            await _firestoreService.notifyStoreDataChanged();
+            if (mounted) setState(() => _loading = false);
+            _navigate(user.uid, user.email);
+          } else {
+            // New user - redirect to business registration
+            if (mounted) setState(() => _loading = false);
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => BusinessDetailsPage(
+                  uid: user.uid,
+                  email: user.email,
+                  displayName: user.displayName,
+                ),
+              ),
+            );
+          }
         }
       }
     } catch (e) {

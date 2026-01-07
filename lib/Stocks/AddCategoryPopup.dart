@@ -34,7 +34,7 @@ class _AddCategoryPopupState extends State<AddCategoryPopup> {
     final userData = await PermissionHelper.getUserPermissions(widget.uid);
     final role = userData['role'] as String;
     final permissions = userData['permissions'] as Map<String, dynamic>;
-    final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+    final isAdmin = role.toLowerCase() == 'owner' || role.toLowerCase() == 'administrator';
     final hasPermission = permissions['addCategory'] == true;
 
     if (!hasPermission && !isAdmin && mounted) {

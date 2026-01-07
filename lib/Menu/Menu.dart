@@ -164,7 +164,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
 
         // IMPORTANT: Don't show lock icons until provider is initialized
         // This prevents the brief flash of lock icons when navigating to this page
@@ -1185,7 +1185,7 @@ class SalesDetailPage extends StatelessWidget {
       debugPrint('Staff permissions retrieved: $permissions');
 
       // Check if user is admin
-      final isAdmin = role.toLowerCase() == 'admin' || role.toLowerCase() == 'administrator';
+      final isAdmin = role.toLowerCase() == 'owner' || role.toLowerCase() == 'administrator';
       debugPrint('User is admin: $isAdmin');
 
       if (isAdmin) {
@@ -1408,7 +1408,7 @@ class SalesDetailPage extends StatelessWidget {
                     'timestamp': FieldValue.serverTimestamp(),
                     'status': 'Available',
                     'reason': 'Bill Cancelled',
-                    'createdBy': 'Admin',
+                    'createdBy': 'owner',
                   });
 
                   // If it was a credit sale, also reverse the balance
@@ -1434,7 +1434,7 @@ class SalesDetailPage extends StatelessWidget {
                 await salesCollection.doc(documentId).update({
                   'status': 'cancelled',
                   'cancelledAt': FieldValue.serverTimestamp(),
-                  'cancelledBy': data['staffName'] ?? 'Admin',
+                  'cancelledBy': data['staffName'] ?? 'owner',
                   'cancelReason': 'Bill Cancelled',
                 });
 
@@ -1625,7 +1625,7 @@ class SalesDetailPage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 8),
                                   _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', 'Invoice-${data['invoiceNumber']}'),
-                                  _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'Admin'),
+                                  _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'owner'),
                                   _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
                                   _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
 

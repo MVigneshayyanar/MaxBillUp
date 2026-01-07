@@ -115,7 +115,7 @@ class _ReportsPageState extends State<ReportsPage> {
     }
   }
 
-  bool get isAdmin => _role.toLowerCase() == 'admin' || _role.toLowerCase() == 'administrator';
+  bool get isAdmin => _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
 
   void _reset() {
     setState(() {
@@ -5629,7 +5629,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                 else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                 if (_isInDateRange(dt)) {
-                  String staffName = data['staffName']?.toString() ?? 'Admin';
+                  String staffName = data['staffName']?.toString() ?? 'owner';
                   double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                   double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0;
                   String paymentMode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();

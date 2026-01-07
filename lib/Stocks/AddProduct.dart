@@ -121,7 +121,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
   Future<void> _checkPermission() async {
     final userData = await PermissionHelper.getUserPermissions(widget.uid);
-    if (userData['permissions']['addProduct'] != true && !userData['role'].toLowerCase().contains('admin') && mounted) {
+    if (userData['permissions']['addProduct'] != true && !userData['role'].toLowerCase().contains('owner') && mounted) {
       Navigator.pop(context);
       PermissionHelper.showPermissionDeniedDialog(context);
     }

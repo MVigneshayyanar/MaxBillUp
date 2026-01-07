@@ -100,7 +100,7 @@ class _CategoryPageState extends State<CategoryPage> {
   }
 
   bool _hasPermission(String permission) => _permissions[permission] == true;
-  bool get isAdmin => _role.toLowerCase().contains('admin');
+  bool get isAdmin => _role.toLowerCase().contains('owner');
 
   @override
   void dispose() {
@@ -699,7 +699,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     final canAddCategory = PermissionHelper.getUserPermissions(widget.uid).then((userData) {
       final permissions = userData['permissions'] as Map<String, dynamic>;
       final role = userData['role'] as String;
-      return permissions['addCategory'] == true || role.toLowerCase().contains('admin');
+      return permissions['addCategory'] == true || role.toLowerCase().contains('owner');
     });
     return FutureBuilder<bool>(
       future: canAddCategory,

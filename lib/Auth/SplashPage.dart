@@ -9,7 +9,9 @@ import 'package:provider/provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'LoginPage.dart';
+import 'BusinessDetailsPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Admin/Home.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -47,15 +49,15 @@ class _SplashPageState extends State<SplashPage>
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      // Initialize PlanProvider in background (non-blocking)
-      final planProvider = Provider.of<PlanProvider>(context, listen: false);
-      planProvider.initialize(); // Don't await - let it run in background
-
-      if (!mounted) return;
-
       // Check if the logged-in user is admin
       final userEmail = user.email?.toLowerCase() ?? '';
       if (userEmail == 'maxmybillapp@gmail.com') {
+        // Initialize PlanProvider in background (non-blocking)
+        final planProvider = Provider.of<PlanProvider>(context, listen: false);
+        planProvider.initialize(); // Don't await - let it run in background
+
+        if (!mounted) return;
+
         // Navigate to Admin Home page
         Navigator.of(context).pushReplacement(
           CupertinoPageRoute(
@@ -65,8 +67,52 @@ class _SplashPageState extends State<SplashPage>
             ),
           ),
         );
-      } else {
+        return;
+      }
+
+      // Check if user has completed business registration
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        if (!mounted) return;
+
+        if (!userDoc.exists) {
+          // User started registration but didn't complete - redirect to BusinessDetailsPage
+          Navigator.of(context).pushReplacement(
+            CupertinoPageRoute(
+              builder: (_) => BusinessDetailsPage(
+                uid: user.uid,
+                email: user.email,
+                displayName: user.displayName,
+              ),
+            ),
+          );
+          return;
+        }
+
+        // User has completed registration - proceed normally
+        // Initialize PlanProvider in background (non-blocking)
+        final planProvider = Provider.of<PlanProvider>(context, listen: false);
+        planProvider.initialize(); // Don't await - let it run in background
+
+        if (!mounted) return;
+
         // Navigate to NewSalePage for regular users
+        Navigator.of(context).pushReplacement(
+          CupertinoPageRoute(
+            builder: (_) => NewSalePage(
+              uid: user.uid,
+              userEmail: user.email,
+            ),
+          ),
+        );
+      } catch (e) {
+        debugPrint('Error checking user registration status: $e');
+        // On error, navigate to NewSalePage as fallback
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
           CupertinoPageRoute(
             builder: (_) => NewSalePage(
