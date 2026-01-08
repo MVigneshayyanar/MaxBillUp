@@ -352,7 +352,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),

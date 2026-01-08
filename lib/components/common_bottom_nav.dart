@@ -99,8 +99,8 @@ class CommonBottomNav extends StatelessWidget {
             Text(
               label, // Enterprise standard uppercase
               style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected ? kPrimaryColor : kBlack54.withOpacity(0.4),
                 letterSpacing: 0.5,
               ),

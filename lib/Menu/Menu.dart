@@ -436,7 +436,7 @@ class _MenuPageState extends State<MenuPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
                           if (subtitle != null) ...[
                             const SizedBox(height: 2),
                             Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
