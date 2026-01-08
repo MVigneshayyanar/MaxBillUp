@@ -213,7 +213,7 @@ class FirestoreService {
     final collection = await getStoreCollection('sales');
     final query = await collection.orderBy('invoiceNumber', descending: true).limit(1).get();
     if (query.docs.isEmpty) return 100001;
-    final maxNum = int.tryParse(query.docs.first['invoiceNumber'].toString()) ?? 100000;
+    final maxNum = int.tryParse(query.docs.first['invoiceNumber'].toString()) ?? 10000;
     return maxNum < 100001 ? 100001 : maxNum + 1;
   }
 
@@ -222,7 +222,7 @@ class FirestoreService {
     final collection = await getStoreCollection('quotations');
     final query = await collection.orderBy('quotationNumber', descending: true).limit(1).get();
     if (query.docs.isEmpty) return 100001;
-    final maxNum = int.tryParse(query.docs.first['quotationNumber'].toString()) ?? 100000;
+    final maxNum = int.tryParse(query.docs.first['quotationNumber'].toString()) ?? 10000;
     return maxNum < 100001 ? 100001 : maxNum + 1;
   }
 

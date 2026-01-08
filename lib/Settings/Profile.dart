@@ -19,6 +19,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/language_provider.dart';
@@ -26,7 +27,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
 
-// ==========================================
+// ==========================================DF
 // 1. MAIN SETTINGS PAGE
 // ==========================================
 class SettingsPage extends StatefulWidget {
@@ -1707,10 +1708,41 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _showPayMode = true;
   bool _showSavings = true;
 
+  // Document number counters (only invoice and quotation are editable)
+  final _invoiceNumberCtrl = TextEditingController(text: '100001');
+  final _quotationNumberCtrl = TextEditingController(text: '100001');
+
+  // Live current numbers (what will actually be used next)
+  String _liveInvoiceNumber = '...';
+  String _liveQuotationNumber = '...';
+  bool _loadingLiveNumbers = true;
+
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadLiveNumbers();
+  }
+
+  /// Load the actual next numbers that will be used
+  Future<void> _loadLiveNumbers() async {
+    setState(() => _loadingLiveNumbers = true);
+    try {
+      final results = await Future.wait([
+        NumberGeneratorService.generateInvoiceNumber(),
+        NumberGeneratorService.generateQuotationNumber(),
+      ]);
+      if (mounted) {
+        setState(() {
+          _liveInvoiceNumber = results[0];
+          _liveQuotationNumber = results[1];
+          _loadingLiveNumbers = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading live numbers: $e');
+      if (mounted) setState(() => _loadingLiveNumbers = false);
+    }
   }
 
   Future<void> _loadSettings() async {
@@ -1729,6 +1761,22 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       _showPayMode = prefs.getBool('receipt_show_payment_mode') ?? true;
       _showSavings = prefs.getBool('receipt_show_save_amount') ?? true;
     });
+
+    // Load document number counters from Firestore
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            _invoiceNumberCtrl.text = (data['nextInvoiceNumber'] ?? data['invoiceCounter'] ?? 100001).toString();
+            _quotationNumberCtrl.text = (data['nextQuotationNumber'] ?? data['quotationCounter'] ?? 100001).toString();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading document counters: $e');
+    }
   }
 
   Future<void> _saveSettings() async {
@@ -1750,6 +1798,12 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 
     final storeId = await FirestoreService().getCurrentStoreId();
     if (storeId != null) {
+      // Parse document numbers with validation (default to 100001)
+      final invoiceNum = int.tryParse(_invoiceNumberCtrl.text) ?? 100001;
+      final quotationNum = int.tryParse(_quotationNumberCtrl.text) ?? 100001;
+
+      debugPrint('💾 Saving document numbers: Invoice=$invoiceNum, Quotation=$quotationNum');
+
       await FirebaseFirestore.instance.collection('store').doc(storeId).update({
         'invoiceSettings.template': _selectedTemplateIndex,
         'invoiceSettings.header': _docTitleCtrl.text,
@@ -1763,11 +1817,26 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         'invoiceSettings.showMRP': _showMRP,
         'invoiceSettings.showPaymentMode': _showPayMode,
         'invoiceSettings.showSaveAmount': _showSavings,
+        // Document number counters (only invoice and quotation)
+        'nextInvoiceNumber': invoiceNum,
+        'nextQuotationNumber': quotationNum,
       });
     }
 
+    // Refresh live numbers after saving
+    await _loadLiveNumbers();
+
     setState(() => _saving = false);
-    widget.onBack();
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Settings saved successfully!'),
+          backgroundColor: kGoogleGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -1817,6 +1886,14 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
                   _buildToggleItem("Show MRP Column", _showMRP, (v) => setState(() => _showMRP = v)),
                   _buildToggleItem("Show Payment Mode", _showPayMode, (v) => setState(() => _showPayMode = v)),
                   _buildToggleItem("Display Savings Alert", _showSavings, (v) => setState(() => _showSavings = v)),
+                ]),
+
+                const SizedBox(height: 32),
+
+                // Current Document Numbers with Edit Option
+                _buildSettingsSection("Current Document Numbers", [
+                  _buildEditableNumberField(_invoiceNumberCtrl, "Next Invoice Number", Icons.receipt_long_rounded, kPrimaryColor, _liveInvoiceNumber),
+                  _buildEditableNumberField(_quotationNumberCtrl, "Next Quotation Number", Icons.request_quote_rounded, Colors.orange, _liveQuotationNumber),
                 ]),
                 const SizedBox(height: 40),
               ],
@@ -1905,6 +1982,139 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     );
   }
 
+  Widget _buildEditableNumberField(TextEditingController ctrl, String label, IconData icon, Color color, String liveValue) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 22),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                const SizedBox(height: 4),
+                _loadingLiveNumbers
+                    ? const SizedBox(width: 80, height: 24, child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))))
+                    : Text(liveValue, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+              ],
+            ),
+          ),
+          // Edit button
+          GestureDetector(
+            onTap: () => _showEditNumberDialog(ctrl, label, icon, color, liveValue),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.edit_rounded, size: 14, color: kPrimaryColor),
+                  SizedBox(width: 4),
+                  Text("Edit", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kPrimaryColor)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditNumberDialog(TextEditingController ctrl, String label, IconData icon, Color color, String currentValue) {
+    final editCtrl = TextEditingController(text: currentValue);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Enter the next number to use:", style: TextStyle(fontSize: 12, color: kBlack54)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: editCtrl,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: color.withOpacity(0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: color.withOpacity(0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: color, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "💡 This will be the next number used for new documents.",
+              style: TextStyle(fontSize: 10, color: kBlack54, fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newValue = int.tryParse(editCtrl.text);
+              if (newValue != null && newValue > 0) {
+                ctrl.text = editCtrl.text;
+                Navigator.pop(context);
+                // Save settings and refresh live numbers
+                await _saveSettings();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter a valid number"), backgroundColor: Colors.red),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text("Save", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputField(TextEditingController ctrl, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -1920,6 +2130,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       ),
     );
   }
+
 
   Widget _buildActionFooter() {
     return SafeArea(

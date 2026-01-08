@@ -4,11 +4,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
-import 'dart:math';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
 
 class QuotationPage extends StatefulWidget {
   final String uid;
@@ -212,8 +212,8 @@ class _QuotationPageState extends State<QuotationPage> {
       final storeData = storeDoc?.data() as Map<String, dynamic>?;
       final staffName = storeData?['ownerName'] ?? 'Staff';
 
-      final random = Random();
-      final quotationNumber = (100000 + random.nextInt(900000)).toString();
+      // Generate quotation number using the service (respects custom starting number)
+      final quotationNumber = await NumberGeneratorService.generateQuotationNumber();
 
       // Calculate tax information from cart items
       final Map<String, double> taxMap = {};

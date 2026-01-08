@@ -241,7 +241,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       return 100001;
     }
 
-    final lastStoreId = querySnapshot.docs.first.data()['storeId'] as int? ?? 100000;
+    final lastStoreId = querySnapshot.docs.first.data()['storeId'] as int? ?? 10000;
     return lastStoreId + 1;
   }
 
