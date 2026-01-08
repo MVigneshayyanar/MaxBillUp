@@ -33,6 +33,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   String _searchQuery = '';
   final FirestoreService _firestoreService = FirestoreService();
   bool _isCheckingVerifications = false;
+  bool _isDialogOpen = false; // Track if any dialog is currently open
 
   @override
   void initState() {
@@ -161,8 +162,23 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   void _showLoading(bool show) {
-    if (show) { showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator())); }
-    else { Navigator.of(context, rootNavigator: true).pop(); }
+    if (show) {
+      setState(() => _isDialogOpen = true);
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+      );
+    } else {
+      // Pop the loading dialog and immediately reset the flag
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+      setState(() => _isDialogOpen = false);
+    }
   }
 
   Stream<QuerySnapshot> _getStaffStream() {
@@ -179,7 +195,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) widget.onBack();
+        // Only trigger navigation if it's not a dialog being dismissed
+        if (!didPop && !_isDialogOpen) {
+          widget.onBack();
+        }
       },
       child: Scaffold(
         backgroundColor: kGreyBg,
@@ -422,55 +441,201 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   }
 
   void _showStaffDetailsDialog(BuildContext ctx, String id, String n, String p, String e, String r, bool a) {
-    showDialog(context: ctx, builder: (_) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: kWhite,
-      title: Text(n, style: const TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
-      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _info("Role", r), _info("Email", e), _info("Phone", p), _info("Status", a ? "ACTIVE" : "INACTIVE"),
-      ]),
-      actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CLOSE"))],
-    ));
+    setState(() => _isDialogOpen = true);
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: kWhite,
+        title: Text(n, style: const TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _info("Role", r), _info("Email", e), _info("Phone", p), _info("Status", a ? "ACTIVE" : "INACTIVE"),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+            },
+            child: const Text("CLOSE")
+          )
+        ],
+      )
+    ).then((_) {
+      if (mounted) setState(() => _isDialogOpen = false);
+    });
   }
 
   Widget _info(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Text("$l: ", style: const TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: kBlack54)), Text(v, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87))]));
 
   void _showDeleteConfirmation(BuildContext context, String staffId, String name) {
-    showDialog(context: context, builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: kWhite,
-      title: const Text('Remove Staff Member?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
-      content: Text('This will permanently delete access for $name. They won\'t be able to login again.', style: const TextStyle(color: kBlack54, fontSize: 13)),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
-        ElevatedButton(onPressed: () async { await _firestoreService.deleteDocument('users', staffId); await FirebaseFirestore.instance.collection('users').doc(staffId).delete().catchError((_) {}); if(mounted) Navigator.pop(context); }, style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0), child: const Text("DELETE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))),
+    setState(() => _isDialogOpen = true);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: kWhite,
+        title: const Text('Remove Staff Member?', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87)),
+        content: Text('This will permanently delete access for $name. They won\'t be able to login again with their email/password.', style: const TextStyle(color: kBlack54, fontSize: 13)),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              // Reset flag immediately since we're starting a new operation
+              if (mounted) setState(() => _isDialogOpen = false);
+              _showLoading(true);
+
+            try {
+              // Get staff data first to retrieve email and tempPassword
+              final staffDoc = await _firestoreService.getStoreCollection('users')
+                  .then((col) => col.doc(staffId).get());
+
+              if (staffDoc.exists) {
+                final staffData = staffDoc.data() as Map<String, dynamic>;
+                final email = staffData['email'] as String?;
+                final tempPassword = staffData['tempPassword'] as String?;
+
+                // Try to delete Firebase Auth account (email/password only)
+                if (email != null && email.isNotEmpty) {
+                  await _deleteStaffAuthAccount(email, tempPassword);
+                }
+              }
+
+              // Delete Firestore documents
+              await _firestoreService.deleteDocument('users', staffId);
+              await FirebaseFirestore.instance.collection('users').doc(staffId).delete().catchError((_) {});
+
+              _showLoading(false);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✅ $name removed successfully'),
+                    backgroundColor: kGoogleGreen,
+                  ),
+                );
+              }
+            } catch (e) {
+              _showLoading(false);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error removing staff: $e'),
+                    backgroundColor: kErrorColor,
+                  ),
+                );
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0),
+          child: const Text("DELETE", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+        ),
       ],
-    ));
+    )).then((_) {
+      if (mounted) setState(() => _isDialogOpen = false);
+    });
+  }
+
+  /// Deletes the staff member's email/password authentication account from Firebase Auth
+  /// This only affects email/password login - Google sign-in with same email remains intact
+  Future<void> _deleteStaffAuthAccount(String email, String? tempPassword) async {
+    FirebaseApp? tempApp;
+    try {
+      // Clean up any existing secondary app
+      try {
+        var existing = Firebase.app('DeleteStaffApp');
+        await existing.delete();
+      } catch (_) {}
+
+      // Create secondary Firebase app instance
+      tempApp = await Firebase.initializeApp(
+        name: 'DeleteStaffApp',
+        options: Firebase.app().options,
+      );
+
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
+
+      // Try to sign in with email/password to get the user
+      if (tempPassword != null && tempPassword.isNotEmpty) {
+        try {
+          final cred = await tempAuth.signInWithEmailAndPassword(
+            email: email,
+            password: tempPassword,
+          );
+
+          // Delete the authenticated user
+          if (cred.user != null) {
+            await cred.user!.delete();
+            debugPrint('✅ Deleted Firebase Auth account for: $email');
+
+            // Wait a moment to ensure Firebase processes the deletion
+            await Future.delayed(const Duration(milliseconds: 500));
+          }
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'user-not-found') {
+            debugPrint('⚠️ Auth account not found for: $email (may already be deleted)');
+          } else if (e.code == 'wrong-password') {
+            debugPrint('⚠️ Cannot delete auth account - password mismatch for: $email');
+          } else {
+            debugPrint('⚠️ Error deleting auth account for $email: ${e.message}');
+          }
+        }
+      } else {
+        debugPrint('⚠️ No tempPassword available for $email - cannot delete auth account');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error in deleteStaffAuthAccount: $e');
+    } finally {
+      // Clean up secondary app
+      await tempApp?.delete();
+    }
   }
 
   void _showEditStaffDialog(BuildContext ctx, String sid, String cn, String cp, String ce, String cr, bool ca, Map<String, dynamic> cprms) {
     final nameC = TextEditingController(text: cn); String role = cr;
-    showDialog(context: ctx, builder: (context) => StatefulBuilder(builder: (context, setDialogState) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: kWhite,
-      title: const Text('Edit Staff Details', style: TextStyle(fontWeight: FontWeight.w800)),
-      content: Column(mainAxisSize: MainAxisSize.min, children: [
-        _buildSectionLabel("IDENTITY"),
-        _buildDialogField(nameC, 'Full Name', Icons.person),
-        const SizedBox(height: 16),
-        _buildSectionLabel("ROLE"),
-        _buildDialogDropdown(role, (v) => setDialogState(() => role = v!))
-      ]),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
-        ElevatedButton(onPressed: () async {
-          final upd = {'name': nameC.text.trim(), 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
-          await _firestoreService.updateDocument('users', sid, upd);
-          await FirebaseFirestore.instance.collection('users').doc(sid).update(upd).catchError((_) {});
-          if(mounted) Navigator.pop(context);
-        }, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0), child: const Text("UPDATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))),
-      ],
-    )));
+    setState(() => _isDialogOpen = true);
+    showDialog(
+      context: ctx,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: kWhite,
+          title: const Text('Edit Staff Details', style: TextStyle(fontWeight: FontWeight.w800)),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            _buildSectionLabel("IDENTITY"),
+            _buildDialogField(nameC, 'Full Name', Icons.person),
+            const SizedBox(height: 16),
+            _buildSectionLabel("ROLE"),
+            _buildDialogDropdown(role, (v) => setDialogState(() => role = v!))
+          ]),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final upd = {'name': nameC.text.trim(), 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
+                await _firestoreService.updateDocument('users', sid, upd);
+                await FirebaseFirestore.instance.collection('users').doc(sid).update(upd).catchError((_) {});
+                if(mounted) Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0),
+              child: const Text("UPDATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))
+            ),
+          ],
+        )
+      )
+    ).then((_) {
+      if (mounted) setState(() => _isDialogOpen = false);
+    });
   }
 
   void _activateStaff(String staffId) async {

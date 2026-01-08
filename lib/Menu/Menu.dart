@@ -190,13 +190,11 @@ class _MenuPageState extends State<MenuPage> {
 
         // Helper function to check if feature is available based on plan
         bool isFeatureAvailable(String permission, {int requiredRank = 1}) {
-          // Check plan rank first
-          if (planRank < requiredRank) return false;
-
-          // If admin and has required plan, allow access
+          // Show all cards for admins - upgrade prompt will be shown on click if needed
           if (isAdmin) return true;
 
-          // Check user permission
+          // For staff, check both plan rank and user permission
+          if (planRank < requiredRank) return false;
           final userPerm = _permissions[permission] == true;
           return userPerm;
         }
@@ -234,9 +232,9 @@ class _MenuPageState extends State<MenuPage> {
                       ),
                     if (_hasPermission('customerManagement') || isAdmin)
                       if (isFeatureAvailable('customerManagement', requiredRank: 1))
-                        _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances"),
-                    if (planRank >= 1)
-                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns"),
+                        _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances", requiredRank: 1),
+                    if (isAdmin || _hasPermission('creditNotes'))
+                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns", requiredRank: 1),
 
                     // Financials Section
                     if (hasFinancialsItems) ...[
@@ -246,15 +244,15 @@ class _MenuPageState extends State<MenuPage> {
                     if ((_hasPermission('expenses') || isAdmin) && isFeatureAvailable('expenses', requiredRank: 1))
                       _buildExpenseExpansionTile(context),
                     if ((_hasPermission('creditDetails') || isAdmin) && isFeatureAvailable('creditDetails', requiredRank: 2))
-                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker"),
+                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker", requiredRank: 2),
                     if ((_hasPermission('quotation') || isAdmin) && isFeatureAvailable('quotation', requiredRank: 1))
-                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma"),
+                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma", requiredRank: 1),
 
                     // Administration Section
                     if (hasAdminItems && isFeatureAvailable('staffManagement', requiredRank: 2)) ...[
                       const SizedBox(height: 12),
                       _buildSectionLabel("Administration"),
-                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions"),
+                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", requiredRank: 2),
                     ],
 
                     const SizedBox(height: 12),
@@ -372,46 +370,103 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            setState(() => _currentView = viewKey);
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 44, height: 44,
-                  decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                  child: Icon(icon, color: color, size: 22),
+  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle, int requiredRank = 0}) {
+    return Consumer<PlanProvider>(
+      builder: (context, planProvider, child) {
+        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
+        final currentPlan = planProvider.cachedPlan;
+
+        // Determine current plan rank
+        int planRank = 0;
+        if (currentPlan.toLowerCase().contains('essential')) {
+          planRank = 1;
+        } else if (currentPlan.toLowerCase().contains('growth')) {
+          planRank = 2;
+        } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
+          planRank = 3;
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                // Check if feature requires a higher plan
+                if (requiredRank > 0 && planRank < requiredRank) {
+                  // Show upgrade dialog for admins on free/starter plans
+                  if (isAdmin) {
+                    PlanPermissionHelper.showUpgradeDialog(
+                      context,
+                      title,
+                      uid: widget.uid,
+                      currentPlan: currentPlan,
+                    );
+                    return;
+                  }
+
+                  // For staff, check permission too
+                  if (!_hasPermission(_getPermissionKeyFromView(viewKey))) {
+                    PlanPermissionHelper.showUpgradeDialog(
+                      context,
+                      title,
+                      uid: widget.uid,
+                      currentPlan: currentPlan,
+                    );
+                    return;
+                  }
+                }
+
+                // All checks passed, navigate to the view
+                setState(() => _currentView = viewKey);
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                      child: Icon(icon, color: color, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                          if (subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
-                      ],
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  // Helper method to map view keys to permission keys
+  String _getPermissionKeyFromView(String viewKey) {
+    switch (viewKey) {
+      case 'BillHistory': return 'billHistory';
+      case 'Customers': return 'customerManagement';
+      case 'CreditNotes': return 'creditNotes';
+      case 'Expenses': return 'expenses';
+      case 'CreditDetails': return 'creditDetails';
+      case 'Quotation': return 'quotation';
+      case 'StaffManagement': return 'staffManagement';
+      default: return viewKey.toLowerCase();
+    }
   }
 
   Widget _buildExpenseExpansionTile(BuildContext context) {

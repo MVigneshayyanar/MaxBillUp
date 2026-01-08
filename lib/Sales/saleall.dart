@@ -670,6 +670,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ),
     );
   }
+  String formatCategory(String text) {
+    if (text.isEmpty) return text;
+    return text[0].toUpperCase() + text.substring(1).toLowerCase();
+  }
 
   Widget _buildProductCard(String id, Map<String, dynamic> data) {
     final name = data['itemName'] ?? 'Unnamed';
@@ -757,8 +761,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           child: Text(
                             name,
                             style: TextStyle(
-                             fontWeight: FontWeight.w700,
-                              fontSize: 13,
+                             fontWeight: FontWeight.w600,
+                              fontSize: 15,
                               height: 1,
                               color: isExpired ? kErrorColor : kBlack87,
                             ),
@@ -774,9 +778,15 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          category.toUpperCase(),
-                          style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5),
+                          formatCategory(category),
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: kOrange,
+                            letterSpacing: 0.5,
+                          ),
                         ),
+
                         const SizedBox(height: 2),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,

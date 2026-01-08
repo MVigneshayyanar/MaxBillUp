@@ -185,7 +185,8 @@ class _ReportsPageState extends State<ReportsPage> {
       if (!isFullyLoaded) return true;
 
       if (permission == 'DayBook') return true;
-      if (isAdmin) return isPaidPlan;
+      // Show all cards for admins - upgrade prompt will be shown on click if needed
+      if (isAdmin) return true;
       final userPerm = _permissions[permission] == true;
       return userPerm && isPaidPlan;
     }
@@ -280,6 +281,11 @@ class _ReportsPageState extends State<ReportsPage> {
   );
 
   Widget _buildReportTile(String title, IconData icon, Color color, String viewName, {String? subtitle}) {
+    // Get current plan from provider
+    final planProvider = context.watch<PlanProvider>();
+    final currentPlan = planProvider.cachedPlan;
+    final isPaidPlan = planProvider.canAccessReports();
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -291,6 +297,39 @@ class _ReportsPageState extends State<ReportsPage> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
+            // Check if DayBook - always allow access
+            if (viewName == 'DayBook') {
+              setState(() => _currentView = viewName);
+              return;
+            }
+
+            // For admins on free/starter plan, show upgrade dialog
+            if (isAdmin && !isPaidPlan) {
+              PlanPermissionHelper.showUpgradeDialog(
+                context,
+                title,
+                uid: widget.uid,
+                currentPlan: currentPlan,
+              );
+              return;
+            }
+
+            // For staff, check user permissions
+            if (!isAdmin) {
+              // Staff must have both permission AND paid plan
+              final hasPermission = _permissions[_getPermissionKey(viewName)] == true;
+              if (!hasPermission || !isPaidPlan) {
+                PlanPermissionHelper.showUpgradeDialog(
+                  context,
+                  title,
+                  uid: widget.uid,
+                  currentPlan: currentPlan,
+                );
+                return;
+              }
+            }
+
+            // All checks passed, open the report
             setState(() => _currentView = viewName);
           },
           borderRadius: BorderRadius.circular(16),
@@ -329,6 +368,25 @@ class _ReportsPageState extends State<ReportsPage> {
         ),
       ),
     );
+  }
+
+  // Helper method to map view names to permission keys
+  String _getPermissionKey(String viewName) {
+    switch (viewName) {
+      case 'Analytics': return 'analytics';
+      case 'SalesSummary': return 'salesSummary';
+      case 'SalesReport': return 'salesReport';
+      case 'ItemSales': return 'itemSalesReport';
+      case 'TopCustomers': return 'topCustomer';
+      case 'StaffReport': return 'staffSalesReport';
+      case 'StockReport': return 'stockReport';
+      case 'LowStock': return 'lowStockProduct';
+      case 'TopProducts': return 'topProducts';
+      case 'TopCategories': return 'topCategory';
+      case 'ExpenseReport': return 'expensesReport';
+      case 'TaxReport': return 'taxReport';
+      default: return viewName.toLowerCase();
+    }
   }
 }
 // ==========================================

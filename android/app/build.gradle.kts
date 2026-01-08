@@ -73,3 +73,11 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-analytics")
 }
+
+// Force specific Razorpay SDK version to fix NoSuchMethodError crash
+configurations.all {
+    resolutionStrategy {
+        force("com.razorpay:checkout:1.6.33")
+    }
+}
+

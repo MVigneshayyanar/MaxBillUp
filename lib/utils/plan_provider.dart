@@ -7,6 +7,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 /// NO CACHING - Every access fetches from backend
 class PlanProvider extends ChangeNotifier {
   static const String PLAN_FREE = 'Free';
+  static const String PLAN_STARTER = 'Starter';
   static const String PLAN_Essential = 'Essential';
   static const String PLAN_Growth = 'Growth';
   static const String PLAN_MAX = 'Pro';
@@ -210,66 +211,71 @@ class PlanProvider extends ChangeNotifier {
   // ASYNC PERMISSION CHECKS - Always fetch fresh
   // ==========================================
 
+  bool _isPlanFree(String plan) => plan == PLAN_FREE || plan == PLAN_STARTER;
+
   Future<bool> canAccessReportsAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canAccessDaybookAsync() async {
-    final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return true; // Daybook is FREE for everyone
   }
 
   Future<bool> canAccessQuotationAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canAccessFullBillHistoryAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canEditBillAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canAccessCustomerCreditAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canUseLogoOnBillAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canImportContactsAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canUseBulkInventoryAsync() async {
     final plan = await getCurrentPlan();
-    return plan != PLAN_FREE;
+    return !_isPlanFree(plan);
   }
 
   Future<bool> canAccessStaffManagementAsync() async {
     final plan = await getCurrentPlan();
-    return plan == PLAN_Growth || plan == PLAN_MAX;
+    // Starter is the free plan - no staff management
+    if (plan == PLAN_FREE || plan == PLAN_STARTER) return false;
+    return plan == PLAN_Essential || plan == PLAN_Growth || plan == PLAN_MAX;
   }
 
   Future<int> getMaxStaffCountAsync() async {
     final plan = await getCurrentPlan();
     switch (plan) {
       case PLAN_FREE:
-      case PLAN_Essential:
+      case PLAN_STARTER:
         return 0;
+      case PLAN_Essential:
+        return 1; // Admin + 1 Manager
       case PLAN_Growth:
-        return 3;
+        return 3; // Admin + 3 Staff
       case PLAN_MAX:
-        return 10;
+        return 15; // Admin + 15 Staff
       default:
         return 0;
     }
@@ -277,7 +283,7 @@ class PlanProvider extends ChangeNotifier {
 
   Future<int> getBillHistoryDaysLimitAsync() async {
     final plan = await getCurrentPlan();
-    return plan == PLAN_FREE ? 7 : 36500;
+    return _isPlanFree(plan) ? 7 : 36500;
   }
 
   Future<bool> canAddMoreStaffAsync(int currentStaffCount) async {
@@ -291,26 +297,30 @@ class PlanProvider extends ChangeNotifier {
   // These return results based on cached plan value
   // ==========================================
 
-  bool canAccessReports() => _cachedPlan != PLAN_FREE;
+  bool _isFreePlan() => _cachedPlan == PLAN_FREE || _cachedPlan == PLAN_STARTER;
+
+  bool canAccessReports() => !_isFreePlan();
   bool canAccessDaybook() => true; // Daybook is FREE
-  bool canAccessQuotation() => _cachedPlan != PLAN_FREE;
-  bool canAccessFullBillHistory() => _cachedPlan != PLAN_FREE;
-  bool canEditBill() => _cachedPlan != PLAN_FREE;
-  bool canAccessCustomerCredit() => _cachedPlan != PLAN_FREE;
-  bool canUseLogoOnBill() => _cachedPlan != PLAN_FREE;
-  bool canImportContacts() => _cachedPlan != PLAN_FREE;
-  bool canUseBulkInventory() => _cachedPlan != PLAN_FREE;
-  bool canAccessStaffManagement() => _cachedPlan == PLAN_Growth || _cachedPlan == PLAN_MAX;
+  bool canAccessQuotation() => !_isFreePlan();
+  bool canAccessFullBillHistory() => !_isFreePlan();
+  bool canEditBill() => !_isFreePlan();
+  bool canAccessCustomerCredit() => !_isFreePlan();
+  bool canUseLogoOnBill() => !_isFreePlan();
+  bool canImportContacts() => !_isFreePlan();
+  bool canUseBulkInventory() => !_isFreePlan();
+  bool canAccessStaffManagement() => _cachedPlan == PLAN_Essential || _cachedPlan == PLAN_Growth || _cachedPlan == PLAN_MAX;
 
   int getMaxStaffCount() {
     switch (_cachedPlan) {
       case PLAN_FREE:
-      case PLAN_Essential:
+      case PLAN_STARTER:
         return 0;
+      case PLAN_Essential:
+        return 1; // Admin + 1 Manager
       case PLAN_Growth:
-        return 3;
+        return 3; // Admin + 3 Staff
       case PLAN_MAX:
-        return 10;
+        return 15; // Admin + 15 Staff
       default:
         return 0;
     }

@@ -22,9 +22,10 @@ class SubscriptionPlanPage extends StatefulWidget {
 }
 
 class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
-  late Razorpay _razorpay;
+  Razorpay? _razorpay;
   String _selectedPlan = 'Growth';
   int _selectedDuration = 1; // 1, 6, or 12 months
+  bool _isPaymentInProgress = false;
 
   final List<Map<String, dynamic>> plans = [
     {
@@ -108,20 +109,31 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   @override
   void initState() {
     super.initState();
-    _razorpay = Razorpay();
+    _initializeRazorpay();
     // Default to 'Growth' if current plan is Starter or Free
     _selectedPlan = (widget.currentPlan.toLowerCase().contains('starter') || widget.currentPlan.toLowerCase().contains('free'))
         ? 'Growth'
         : widget.currentPlan;
+  }
 
-    _razorpay.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-    _razorpay.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-    _razorpay.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+  void _initializeRazorpay() {
+    try {
+      _razorpay = Razorpay();
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
+      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
+      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    } catch (e) {
+      debugPrint('Error initializing Razorpay: $e');
+    }
   }
 
   @override
   void dispose() {
-    _razorpay.clear();
+    try {
+      _razorpay?.clear();
+    } catch (e) {
+      debugPrint('Error disposing Razorpay: $e');
+    }
     super.dispose();
   }
 
@@ -184,6 +196,21 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void _handleExternalWallet(ExternalWalletResponse response) {}
 
   void _startPayment() {
+    if (_razorpay == null) {
+      _initializeRazorpay();
+      if (_razorpay == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr('Payment service unavailable. Please try again.')),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        return;
+      }
+    }
+
     final plan = plans.firstWhere((p) => p['name'] == _selectedPlan);
     final amount = plan['price'][_selectedDuration.toString()] * 100;
 
@@ -209,9 +236,17 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     };
 
     try {
-      _razorpay.open(options);
+      _razorpay!.open(options);
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('Razorpay open error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr('Failed to open payment. Please try again.')),
+          backgroundColor: kErrorColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
   }
 

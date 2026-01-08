@@ -333,7 +333,7 @@ class _ProductsPageState extends State<ProductsPage> {
                           Expanded(
                             child: Text(
                               name,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBlack87),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -404,7 +404,7 @@ class _ProductsPageState extends State<ProductsPage> {
       ),
       child: Text(
         isOut ? 'OUT OF STOCK' : 'QTY: ${stock.toInt()}',
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.2),
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.2),
       ),
     );
   }

@@ -141,11 +141,67 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       } catch (_) {}
 
       tempApp = await Firebase.initializeApp(name: 'SecondaryApp', options: Firebase.app().options);
-      UserCredential cred = await FirebaseAuth.instanceFor(app: tempApp)
-          .createUserWithEmailAndPassword(email: _emailCtrl.text.trim(), password: _passCtrl.text.trim());
+      final tempAuth = FirebaseAuth.instanceFor(app: tempApp);
 
-      if (cred.user != null) {
-        await cred.user!.updateDisplayName(_nameCtrl.text.trim());
+      UserCredential? cred;
+
+      // Try to create the user account
+      try {
+        cred = await tempAuth.createUserWithEmailAndPassword(
+          email: _emailCtrl.text.trim(),
+          password: _passCtrl.text.trim(),
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          // Email already exists - try to sign in and delete the old account
+          debugPrint('⚠️ Email already in use, attempting to delete old account...');
+
+          try {
+            // Try to sign in with the same password
+            final oldCred = await tempAuth.signInWithEmailAndPassword(
+              email: _emailCtrl.text.trim(),
+              password: _passCtrl.text.trim(),
+            );
+
+            if (oldCred.user != null) {
+              // Delete the old account
+              await oldCred.user!.delete();
+              debugPrint('✅ Old account deleted successfully');
+
+              // Wait a moment for Firebase to process the deletion
+              await Future.delayed(const Duration(milliseconds: 500));
+
+              // Now create the new account
+              cred = await tempAuth.createUserWithEmailAndPassword(
+                email: _emailCtrl.text.trim(),
+                password: _passCtrl.text.trim(),
+              );
+            }
+          } catch (deleteError) {
+            debugPrint('❌ Could not delete old account: $deleteError');
+            // If we can't delete the old account, show error to user
+            if (mounted) {
+              _showLoadingIndicator(false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('This email is already registered. Please use a different email or contact the previous owner to remove the account.'),
+                  backgroundColor: kErrorColor,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+            await tempApp?.delete();
+            if (mounted) setState(() => _isLoading = false);
+            return;
+          }
+        } else {
+          // Other auth error, rethrow
+          rethrow;
+        }
+      }
+
+      if (cred?.user != null) {
+        await cred!.user!.updateDisplayName(_nameCtrl.text.trim());
         await cred.user!.sendEmailVerification();
       }
 
@@ -159,7 +215,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
         'name': _nameCtrl.text.trim(),
         'phone': _phoneCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
-        'uid': cred.user!.uid,
+        'uid': cred!.user!.uid,
         'storeId': storeId,
         'role': _selectedRole,
         'isActive': false,
