@@ -127,10 +127,93 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
     }
   }
 
+  /// Check if user can add more staff based on their plan
+  Future<bool> _checkStaffLimit() async {
+    try {
+      // Get current store document to check plan
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc == null) return false;
+
+      final storeData = storeDoc.data() as Map<String, dynamic>?;
+      final plan = (storeData?['plan'] ?? 'Free').toString().toLowerCase();
+
+      // Determine max staff based on plan
+      int maxStaff = 0;
+      if (plan.contains('essential')) {
+        maxStaff = 1;
+      } else if (plan.contains('growth')) {
+        maxStaff = 3;
+      } else if (plan.contains('pro') || plan.contains('premium')) {
+        maxStaff = 15;
+      }
+
+      // Count current staff (excluding the owner/admin)
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return false;
+
+      final usersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('storeId', isEqualTo: storeId)
+          .get();
+
+      // Count only staff members (not the owner)
+      int currentStaffCount = 0;
+      for (var doc in usersSnapshot.docs) {
+        final userData = doc.data();
+        final role = (userData['role'] ?? '').toString().toLowerCase();
+        // Don't count the owner/admin who created the store
+        if (doc.id != widget.uid && role != 'owner') {
+          currentStaffCount++;
+        }
+      }
+
+      debugPrint('🔍 Staff limit check: plan=$plan, maxStaff=$maxStaff, currentStaff=$currentStaffCount');
+
+      if (currentStaffCount >= maxStaff) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                maxStaff == 0
+                    ? 'Staff management is not available on your current plan. Please upgrade.'
+                    : 'You have reached your staff limit ($maxStaff). Upgrade to add more staff.',
+              ),
+              backgroundColor: kErrorColor,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 4),
+              action: SnackBarAction(
+                label: 'UPGRADE',
+                textColor: kWhite,
+                onPressed: () {
+                  // Navigate to subscription page
+                  Navigator.pop(context);
+                },
+              ),
+            ),
+          );
+        }
+        return false;
+      }
+
+      return true;
+    } catch (e) {
+      debugPrint('Error checking staff limit: $e');
+      return true; // Allow on error to not block the flow
+    }
+  }
+
   Future<void> _handleInvite() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
+
+    // Check staff limit before proceeding
+    final canAdd = await _checkStaffLimit();
+    if (!canAdd) {
+      setState(() => _isLoading = false);
+      return;
+    }
+
     _showLoadingIndicator(true);
 
     FirebaseApp? tempApp;

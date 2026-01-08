@@ -249,10 +249,10 @@ class _MenuPageState extends State<MenuPage> {
                       _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma", requiredRank: 1),
 
                     // Administration Section
-                    if (hasAdminItems && isFeatureAvailable('staffManagement', requiredRank: 2)) ...[
+                    if (hasAdminItems && isFeatureAvailable('staffManagement', requiredRank: 1)) ...[
                       const SizedBox(height: 12),
                       _buildSectionLabel("Administration"),
-                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", requiredRank: 2),
+                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", requiredRank: 1),
                     ],
 
                     const SizedBox(height: 12),

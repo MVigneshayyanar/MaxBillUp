@@ -160,34 +160,45 @@ class PlanProvider extends ChangeNotifier {
     try {
       final storeDoc = await FirestoreService().getCurrentStoreDoc();
       if (storeDoc == null || !storeDoc.exists) {
+        debugPrint('🔍 getCurrentPlan: No store doc, returning Free');
         return PLAN_FREE;
       }
 
       final data = storeDoc.data() as Map<String, dynamic>?;
-      if (data == null) return PLAN_FREE;
+      if (data == null) {
+        debugPrint('🔍 getCurrentPlan: No data, returning Free');
+        return PLAN_FREE;
+      }
 
       String? planValue = data['plan']?.toString();
       if (planValue == null || planValue.trim().isEmpty) {
+        debugPrint('🔍 getCurrentPlan: No plan value, returning Free');
         return PLAN_FREE;
       }
 
       final plan = planValue.trim();
+      debugPrint('🔍 getCurrentPlan: Raw plan from Firestore = "$plan"');
 
-      // Check expiry for paid plans
-      if (plan != PLAN_FREE) {
+      // Check expiry for paid plans (case-insensitive)
+      if (!_isPlanFree(plan)) {
         final expiryDateStr = data['subscriptionExpiryDate']?.toString();
-        if (expiryDateStr != null) {
+        debugPrint('🔍 getCurrentPlan: expiryDateStr = "$expiryDateStr"');
+        if (expiryDateStr != null && expiryDateStr.isNotEmpty) {
           try {
             final expiryDate = DateTime.parse(expiryDateStr);
+            debugPrint('🔍 getCurrentPlan: expiryDate = $expiryDate, now = ${DateTime.now()}');
             if (DateTime.now().isAfter(expiryDate)) {
+              debugPrint('🔍 getCurrentPlan: Plan EXPIRED, returning Free');
               return PLAN_FREE; // Expired
             }
           } catch (e) {
-            return PLAN_FREE;
+            debugPrint('🔍 getCurrentPlan: Error parsing expiry: $e');
+            // Don't return FREE on parse error - just continue with the plan
           }
         }
       }
 
+      debugPrint('🔍 getCurrentPlan: Returning plan = "$plan"');
       return plan;
     } catch (e) {
       debugPrint('Error fetching plan: $e');
@@ -211,7 +222,10 @@ class PlanProvider extends ChangeNotifier {
   // ASYNC PERMISSION CHECKS - Always fetch fresh
   // ==========================================
 
-  bool _isPlanFree(String plan) => plan == PLAN_FREE || plan == PLAN_STARTER;
+  bool _isPlanFree(String plan) {
+    final planLower = plan.toLowerCase();
+    return planLower == 'free' || planLower == 'starter';
+  }
 
   Future<bool> canAccessReportsAsync() async {
     final plan = await getCurrentPlan();
@@ -259,22 +273,30 @@ class PlanProvider extends ChangeNotifier {
 
   Future<bool> canAccessStaffManagementAsync() async {
     final plan = await getCurrentPlan();
+    final planLower = plan.toLowerCase();
+    debugPrint('🔍 canAccessStaffManagementAsync: plan="$plan", planLower="$planLower"');
     // Starter is the free plan - no staff management
-    if (plan == PLAN_FREE || plan == PLAN_STARTER) return false;
-    return plan == PLAN_Essential || plan == PLAN_Growth || plan == PLAN_MAX;
+    if (planLower == 'free' || planLower == 'starter') {
+      debugPrint('🔍 canAccessStaffManagementAsync: returning FALSE (free/starter)');
+      return false;
+    }
+    final canAccess = planLower == 'essential' || planLower == 'growth' || planLower == 'pro';
+    debugPrint('🔍 canAccessStaffManagementAsync: returning $canAccess');
+    return canAccess;
   }
 
   Future<int> getMaxStaffCountAsync() async {
     final plan = await getCurrentPlan();
-    switch (plan) {
-      case PLAN_FREE:
-      case PLAN_STARTER:
+    final planLower = plan.toLowerCase();
+    switch (planLower) {
+      case 'free':
+      case 'starter':
         return 0;
-      case PLAN_Essential:
+      case 'essential':
         return 1; // Admin + 1 Manager
-      case PLAN_Growth:
+      case 'growth':
         return 3; // Admin + 3 Staff
-      case PLAN_MAX:
+      case 'pro':
         return 15; // Admin + 15 Staff
       default:
         return 0;
@@ -297,7 +319,10 @@ class PlanProvider extends ChangeNotifier {
   // These return results based on cached plan value
   // ==========================================
 
-  bool _isFreePlan() => _cachedPlan == PLAN_FREE || _cachedPlan == PLAN_STARTER;
+  bool _isFreePlan() {
+    final planLower = _cachedPlan.toLowerCase();
+    return planLower == 'free' || planLower == 'starter';
+  }
 
   bool canAccessReports() => !_isFreePlan();
   bool canAccessDaybook() => true; // Daybook is FREE
@@ -308,18 +333,22 @@ class PlanProvider extends ChangeNotifier {
   bool canUseLogoOnBill() => !_isFreePlan();
   bool canImportContacts() => !_isFreePlan();
   bool canUseBulkInventory() => !_isFreePlan();
-  bool canAccessStaffManagement() => _cachedPlan == PLAN_Essential || _cachedPlan == PLAN_Growth || _cachedPlan == PLAN_MAX;
+  bool canAccessStaffManagement() {
+    final planLower = _cachedPlan.toLowerCase();
+    return planLower == 'essential' || planLower == 'growth' || planLower == 'pro';
+  }
 
   int getMaxStaffCount() {
-    switch (_cachedPlan) {
-      case PLAN_FREE:
-      case PLAN_STARTER:
+    final planLower = _cachedPlan.toLowerCase();
+    switch (planLower) {
+      case 'free':
+      case 'starter':
         return 0;
-      case PLAN_Essential:
+      case 'essential':
         return 1; // Admin + 1 Manager
-      case PLAN_Growth:
+      case 'growth':
         return 3; // Admin + 3 Staff
-      case PLAN_MAX:
+      case 'pro':
         return 15; // Admin + 15 Staff
       default:
         return 0;
@@ -327,7 +356,7 @@ class PlanProvider extends ChangeNotifier {
   }
 
   int getBillHistoryDaysLimit() {
-    return _cachedPlan == PLAN_FREE ? 7 : 36500;
+    return _isFreePlan() ? 7 : 36500;
   }
 
   @override
