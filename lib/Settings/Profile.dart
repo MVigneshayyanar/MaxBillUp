@@ -443,7 +443,7 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: color, size: 22),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
         subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)) : null,
         trailing: const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
       ),
@@ -1708,13 +1708,17 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   bool _showPayMode = true;
   bool _showSavings = true;
 
-  // Document number counters (only invoice and quotation are editable)
+  // Document number counters
   final _invoiceNumberCtrl = TextEditingController(text: '100001');
   final _quotationNumberCtrl = TextEditingController(text: '100001');
+  final _purchaseNumberCtrl = TextEditingController(text: '100001');
+  final _expenseNumberCtrl = TextEditingController(text: '100001');
 
   // Live current numbers (what will actually be used next)
   String _liveInvoiceNumber = '...';
   String _liveQuotationNumber = '...';
+  String _livePurchaseNumber = '...';
+  String _liveExpenseNumber = '...';
   bool _loadingLiveNumbers = true;
 
   @override
@@ -1731,11 +1735,15 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       final results = await Future.wait([
         NumberGeneratorService.generateInvoiceNumber(),
         NumberGeneratorService.generateQuotationNumber(),
+        NumberGeneratorService.generateExpenseNumber(),
+        NumberGeneratorService.generatePurchaseNumber(),
       ]);
       if (mounted) {
         setState(() {
           _liveInvoiceNumber = results[0];
           _liveQuotationNumber = results[1];
+          _liveExpenseNumber = results[2];
+          _livePurchaseNumber = results[3];
           _loadingLiveNumbers = false;
         });
       }
@@ -1771,6 +1779,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           setState(() {
             _invoiceNumberCtrl.text = (data['nextInvoiceNumber'] ?? data['invoiceCounter'] ?? 100001).toString();
             _quotationNumberCtrl.text = (data['nextQuotationNumber'] ?? data['quotationCounter'] ?? 100001).toString();
+            _purchaseNumberCtrl.text = (data['nextPurchaseNumber'] ?? data['purchaseCounter'] ?? 100001).toString();
+            _expenseNumberCtrl.text = (data['nextExpenseNumber'] ?? data['expenseCounter'] ?? 100001).toString();
           });
         }
       }
@@ -1801,8 +1811,10 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       // Parse document numbers with validation (default to 100001)
       final invoiceNum = int.tryParse(_invoiceNumberCtrl.text) ?? 100001;
       final quotationNum = int.tryParse(_quotationNumberCtrl.text) ?? 100001;
+      final purchaseNum = int.tryParse(_purchaseNumberCtrl.text) ?? 100001;
+      final expenseNum = int.tryParse(_expenseNumberCtrl.text) ?? 100001;
 
-      debugPrint('💾 Saving document numbers: Invoice=$invoiceNum, Quotation=$quotationNum');
+      debugPrint('💾 Saving document numbers: Invoice=$invoiceNum, Quotation=$quotationNum, Purchase=$purchaseNum, Expense=$expenseNum');
 
       await FirebaseFirestore.instance.collection('store').doc(storeId).update({
         'invoiceSettings.template': _selectedTemplateIndex,
@@ -1817,9 +1829,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         'invoiceSettings.showMRP': _showMRP,
         'invoiceSettings.showPaymentMode': _showPayMode,
         'invoiceSettings.showSaveAmount': _showSavings,
-        // Document number counters (only invoice and quotation)
+        // Document number counters
         'nextInvoiceNumber': invoiceNum,
         'nextQuotationNumber': quotationNum,
+        'nextPurchaseNumber': purchaseNum,
+        'nextExpenseNumber': expenseNum,
       });
     }
 
@@ -1894,6 +1908,8 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
                 _buildSettingsSection("Current Document Numbers", [
                   _buildEditableNumberField(_invoiceNumberCtrl, "Next Invoice Number", Icons.receipt_long_rounded, kPrimaryColor, _liveInvoiceNumber),
                   _buildEditableNumberField(_quotationNumberCtrl, "Next Quotation Number", Icons.request_quote_rounded, Colors.orange, _liveQuotationNumber),
+                  _buildEditableNumberField(_purchaseNumberCtrl, "Next Purchase Number", Icons.shopping_cart_rounded, Colors.green, _livePurchaseNumber),
+                  _buildEditableNumberField(_expenseNumberCtrl, "Next Expense Number", Icons.account_balance_wallet_rounded, Colors.purple, _liveExpenseNumber),
                 ]),
                 const SizedBox(height: 40),
               ],

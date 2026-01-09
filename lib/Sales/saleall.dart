@@ -579,12 +579,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
         });
 
         return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: w > 600 ? 220 : (w > 400 ? 130 : 115),
             crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 0.85,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.0,
           ),
           itemCount: filtered.length,
           itemBuilder: (ctx, idx) {
@@ -686,138 +686,168 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final category = data['category'] ?? 'General';
     final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
 
-    // Check expiry date
+    // Expiry check
     final expiryDateStr = data['expiryDate'] as String?;
     bool isExpired = false;
     if (expiryDateStr != null && expiryDateStr.isNotEmpty) {
       try {
         final expiryDate = DateTime.parse(expiryDateStr);
         isExpired = expiryDate.isBefore(DateTime.now());
-      } catch (e) {
-        // Invalid date format, ignore
-      }
+      } catch (_) {}
     }
 
     return Consumer<LocalStockService>(
       builder: (context, localStockService, child) {
-        // FIX: Always sync Firestore stock to local cache to ensure cache is up-to-date
-        // This prevents stale cache from showing "OUT OF STOCK" when Firestore has stock
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (localStockService.hasStock(id)) {
             final cachedStock = localStockService.getStock(id);
-            // If Firestore stock is different, update the cache
             if (cachedStock != firestoreStock.toInt()) {
-              print('📦 Syncing stock cache for $name: cache=$cachedStock, firestore=${firestoreStock.toInt()}');
               localStockService.cacheStock(id, firestoreStock.toInt());
             }
           } else {
-            // No cache yet, initialize it with Firestore value
             localStockService.cacheStock(id, firestoreStock.toInt());
           }
         });
 
-        // Use Firestore stock as source of truth (it's fresher after each rebuild)
         final stock = firestoreStock;
         final isOutOfStock = stockEnabled && stock <= 0;
-        final isLowStock = stockEnabled && lowStockAlert > 0 && stock > 0 && stock <= lowStockAlert;
+        final isLowStock =
+            stockEnabled && lowStockAlert > 0 && stock > 0 && stock <= lowStockAlert;
 
         return GestureDetector(
           onTap: () {
-            // Check if product is expired
             if (isExpired) {
               _showExpiredProductDialog(name);
               return;
             }
             if (price > 0) {
-              _addToCart(id, name, price, stockEnabled, stock,
-                  taxName: data['taxName'], taxPercentage: data['taxPercentage'], taxType: data['taxType']);
+              _addToCart(
+                id,
+                name,
+                price,
+                stockEnabled,
+                stock,
+                taxName: data['taxName'],
+                taxPercentage: data['taxPercentage'],
+                taxType: data['taxType'],
+              );
             }
           },
           child: Stack(
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isExpired
                       ? kErrorColor.withOpacity(0.05)
-                      : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
+                      : isLowStock
+                          ? kOrange.withOpacity(0.05)
+                          : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: isExpired
-                          ? kErrorColor.withOpacity(0.5)
-                          : (isAnimating ? kGoogleGreen : kGrey200),
-                      width: isAnimating ? 2 : 1
+                    color: isExpired
+                        ? kErrorColor.withOpacity(0.5)
+                        : isLowStock
+                            ? kOrange.withOpacity(0.5)
+                            : (isAnimating ? kGoogleGreen : kGrey200),
+                    width: isAnimating ? 2 : 1,
                   ),
                 ),
-                padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    /// NAME + FAVORITE
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             name,
-                            style: TextStyle(
-                             fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              height: 1,
-                              color: isExpired ? kErrorColor : kBlack87,
-                            ),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 15,
+                              height: 1.1,
+                              color: isExpired
+                                  ? kErrorColor
+                                  : isLowStock
+                                      ? kOrange
+                                      : kBlack87,
+                            ),
                           ),
                         ),
                         if (isFavorite)
-                          const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 14),
+                          const Icon(
+                            Icons.favorite_rounded,
+                            color: kPrimaryColor,
+                            size: 13,
+                          ),
                       ],
                     ),
+
+                    /// CATEGORY + PRICE + STOCK in bottom section
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           formatCategory(category),
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: kOrange,
-                            letterSpacing: 0.5,
+                            letterSpacing: 0.3,
                           ),
                         ),
-
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    "${price.toStringAsFixed(0)}",
+                                    price.toStringAsFixed(0),
                                     style: TextStyle(
                                       fontWeight: FontWeight.w900,
-                                      fontSize: 13,
-                                      color: isExpired ? kErrorColor : kPrimaryColor,
+                                      fontSize: 12,
+                                      color: isExpired
+                                          ? kErrorColor
+                                          : isLowStock
+                                              ? kOrange
+                                              : kPrimaryColor,
                                     ),
                                   ),
                                   if (stockEnabled) ...[
                                     const SizedBox(height: 2),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 5, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: isOutOfStock ? kErrorColor.withOpacity(0.08) : kGoogleGreen.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(6),
+                                        color: isOutOfStock
+                                            ? kErrorColor.withOpacity(0.08)
+                                            : isLowStock
+                                                ? kOrange.withOpacity(0.08)
+                                                : kGoogleGreen.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(5),
                                       ),
                                       child: Text(
-                                        isOutOfStock ? 'OUT OF STOCK' : '${stock.toInt()} $unit',
+                                        isOutOfStock
+                                            ? 'OUT OF STOCK'
+                                            : '${stock.toInt()} $unit',
                                         style: TextStyle(
-                                          fontSize: 9,
+                                          fontSize: 8,
                                           fontWeight: FontWeight.w900,
-                                          color: isOutOfStock ? kErrorColor : kGoogleGreen,
+                                          color: isOutOfStock
+                                              ? kErrorColor
+                                              : isLowStock
+                                                  ? kOrange
+                                                  : kGoogleGreen,
                                         ),
                                       ),
                                     ),
@@ -825,24 +855,26 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                 ],
                               ),
                             ),
-                            // Low stock indicator at right bottom
                             if (isLowStock && !isOutOfStock)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 5, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: kOrange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: kOrange.withOpacity(0.3)),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                      color: kOrange.withOpacity(0.3)),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.warning_amber_rounded, color: kOrange, size: 10),
+                                    Icon(Icons.warning_amber_rounded,
+                                        size: 9, color: kOrange),
                                     SizedBox(width: 2),
                                     Text(
                                       'LOW',
                                       style: TextStyle(
-                                        fontSize: 8,
+                                        fontSize: 7,
                                         fontWeight: FontWeight.w900,
                                         color: kOrange,
                                       ),
@@ -857,22 +889,25 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   ],
                 ),
               ),
+
+              /// +1 animation
               if (isAnimating)
                 Positioned.fill(
                   child: TweenAnimationBuilder<double>(
                     key: ValueKey(_animationCounter),
-                    tween: Tween<double>(begin: 0.0, end: 1.0),
+                    tween: Tween(begin: 0.0, end: 1.0),
                     duration: const Duration(milliseconds: 800),
                     builder: (context, value, child) {
                       return Opacity(
-                        opacity: 1.0 - value,
+                        opacity: 1 - value,
                         child: Transform.translate(
                           offset: Offset(0, -30 * value),
                           child: Transform.scale(
-                            scale: 1.0 + (value * 0.5),
+                            scale: 1 + (value * 0.5),
                             child: Center(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
                                   color: kOrange,
                                   borderRadius: BorderRadius.circular(20),
@@ -893,13 +928,15 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     },
                   ),
                 ),
-              // Expired badge overlay
+
+              /// EXPIRED badge
               if (isExpired)
                 Positioned(
                   top: 4,
                   right: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: kErrorColor,
                       borderRadius: BorderRadius.circular(6),
@@ -920,6 +957,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
       },
     );
   }
+
+
 
   void _showExpiredProductDialog(String productName) {
     showDialog(

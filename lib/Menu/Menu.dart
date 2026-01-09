@@ -59,6 +59,11 @@ class _MenuPageState extends State<MenuPage> {
   String? _logoUrl;
   Map<String, dynamic> _permissions = {};
 
+  // Slider State
+  final PageController _headerController = PageController();
+  int _currentHeaderIndex = 0;
+  Timer? _sliderTimer;
+
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   StreamSubscription<DocumentSnapshot>? _storeSubscription;
 
@@ -69,13 +74,23 @@ class _MenuPageState extends State<MenuPage> {
     _initFastFetch();
     _loadPermissions();
     _initStoreLogo();
+    _startHeaderSlider();
   }
 
-  /// FAST FETCH: Instant cache retrieval with reactive listener
-  void _initFastFetch() {
-    final fs = FirestoreService();
+  void _startHeaderSlider() {
+    _sliderTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (_headerController.hasClients) {
+        int nextRow = (_currentHeaderIndex + 1) % 2;
+        _headerController.animateToPage(
+          nextRow,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
+  }
 
-    // 1. Immediate Cache Fetch
+  void _initFastFetch() {
     FirebaseFirestore.instance.collection('users').doc(widget.uid).get(
         const GetOptions(source: Source.cache)
     ).then((doc) {
@@ -88,7 +103,6 @@ class _MenuPageState extends State<MenuPage> {
       }
     });
 
-    // 2. Live Sync Listener
     _userSubscription = FirebaseFirestore.instance
         .collection('users')
         .doc(widget.uid)
@@ -105,26 +119,10 @@ class _MenuPageState extends State<MenuPage> {
     });
   }
 
-  /// Initialize store logo listener
   void _initStoreLogo() async {
     final storeId = await FirestoreService().getCurrentStoreId();
     if (storeId == null) return;
 
-    // Immediate cache fetch
-    FirebaseFirestore.instance.collection('store').doc(storeId).get(
-        const GetOptions(source: Source.cache)
-    ).then((doc) {
-      if (doc.exists && mounted) {
-        final data = doc.data() as Map<String, dynamic>?;
-        if (data != null) {
-          setState(() {
-            _logoUrl = data['logoUrl'] as String?;
-          });
-        }
-      }
-    });
-
-    // Live sync listener
     _storeSubscription = FirebaseFirestore.instance
         .collection('store')
         .doc(storeId)
@@ -145,8 +143,8 @@ class _MenuPageState extends State<MenuPage> {
     final userData = await PermissionHelper.getUserPermissions(widget.uid);
     if (mounted) {
       setState(() {
-        _permissions = userData['permissions'] as Map<String, dynamic>;
-        _role = userData['role'] as String;
+        _permissions = userData['permissions'] as Map<String, dynamic>? ?? {};
+        _role = userData['role'] as String? ?? "staff";
       });
     }
   }
@@ -155,6 +153,8 @@ class _MenuPageState extends State<MenuPage> {
   void dispose() {
     _userSubscription?.cancel();
     _storeSubscription?.cancel();
+    _sliderTimer?.cancel();
+    _headerController.dispose();
     super.dispose();
   }
 
@@ -165,47 +165,25 @@ class _MenuPageState extends State<MenuPage> {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
-
-        // IMPORTANT: Don't show lock icons until provider is initialized
-        // This prevents the brief flash of lock icons when navigating to this page
         final isProviderReady = planProvider.isInitialized;
-
-        // Use cached plan for instant access - auto-updates when subscription changes
         final currentPlan = planProvider.cachedPlan;
 
-        // Determine plan rank: Starter=0, Essential=1, Growth=2, Pro=3
-        // If provider not ready, assume max rank to avoid flash of locks
+        // Plan Ranking for Feature Gating
         int planRank = isProviderReady ? 0 : 3;
         if (isProviderReady) {
-          if (currentPlan.toLowerCase().contains('essential')) {
-            planRank = 1;
-          } else if (currentPlan.toLowerCase().contains('growth')) {
-            planRank = 2;
-          } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
-            planRank = 3;
-          } else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) {
-            planRank = 0;
-          }
+          if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
+          else if (currentPlan.toLowerCase().contains('growth')) planRank = 2;
+          else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+          else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) planRank = 0;
         }
 
-        // Helper function to check if feature is available based on plan
-        bool isFeatureAvailable(String permission, {int requiredRank = 1}) {
-          // Show all cards for admins - upgrade prompt will be shown on click if needed
+        // Feature visibility helper
+        bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
           if (isAdmin) return true;
-
-          // For staff, check both plan rank and user permission
           if (planRank < requiredRank) return false;
-          final userPerm = _permissions[permission] == true;
-          return userPerm;
+          return _hasPermission(permission);
         }
 
-        // Check if any item in a section is visible
-        bool hasFinancialsItems = (isAdmin || _hasPermission('expenses')) ||
-                                  (isAdmin || _hasPermission('creditDetails')) ||
-                                  (isAdmin || _hasPermission('quotation'));
-        bool hasAdminItems = isAdmin || _hasPermission('staffManagement');
-
-        // Conditional Rendering
         if (_currentView != null) {
           return _handleViewRouting(isAdmin, planProvider);
         }
@@ -214,53 +192,56 @@ class _MenuPageState extends State<MenuPage> {
           backgroundColor: kGreyBg,
           body: Column(
             children: [
-              _buildEnterpriseHeader(context, planProvider),
+              // Profile Header (reduced height)
+              SizedBox(
+                height: MediaQuery.of(context).padding.top + 120,
+                child: _buildProfileHeader(context, planProvider),
+              ),
+
+              // Banner (separate row below header)
+              _buildBannerHeader(context),
+
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(16),
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                   children: [
-                    _buildSectionLabel("Core Operations"),
+                    _buildSectionLabel("CORE OPERATIONS"),
                     if (_hasPermission('billHistory') || isAdmin)
                       _buildMenuTile(
-                          context.tr('billhistory'),
-                          Icons.receipt_long_rounded,
-                          kGoogleGreen,
-                          'BillHistory',
-                          subtitle: (currentPlan.toLowerCase() == 'free' || currentPlan.toLowerCase() == 'starter')
-                              ? "Last 7 days only"
-                              : "View and manage invoices",
+                        context.tr('billhistory'),
+                        Icons.receipt_long_rounded,
+                        kGoogleGreen,
+                        'BillHistory',
                       ),
-                    if (_hasPermission('customerManagement') || isAdmin)
-                      if (isFeatureAvailable('customerManagement', requiredRank: 1))
-                        _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', subtitle: "Directory & balances", requiredRank: 1),
+                    if (isFeatureAvailable('customerManagement', requiredRank: 1))
+                      _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', requiredRank: 1),
+
                     if (isAdmin || _hasPermission('creditNotes'))
-                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', subtitle: "Sales returns & returns", requiredRank: 1),
-
-                    // Financials Section
-                    if (hasFinancialsItems) ...[
-                      const SizedBox(height: 12),
-                      _buildSectionLabel("Financials"),
-                    ],
-                    if ((_hasPermission('expenses') || isAdmin) && isFeatureAvailable('expenses', requiredRank: 1))
-                      _buildExpenseExpansionTile(context),
-                    if ((_hasPermission('creditDetails') || isAdmin) && isFeatureAvailable('creditDetails', requiredRank: 2))
-                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', subtitle: "Outstanding dues tracker", requiredRank: 2),
-                    if ((_hasPermission('quotation') || isAdmin) && isFeatureAvailable('quotation', requiredRank: 1))
-                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', subtitle: "Estimates & proforma", requiredRank: 1),
-
-                    // Administration Section
-                    if (hasAdminItems && isFeatureAvailable('staffManagement', requiredRank: 1)) ...[
-                      const SizedBox(height: 12),
-                      _buildSectionLabel("Administration"),
-                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', subtitle: "Roles & permissions", requiredRank: 1),
-                    ],
+                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', requiredRank: 1),
 
                     const SizedBox(height: 12),
-                    _buildSectionLabel("Support"),
-                    _buildMenuTile(context.tr('video_tutorials'), Icons.ondemand_video_rounded, const Color(0xFF2F7CF6), 'VideoTutorial', subtitle: "How-to guides"),
-                    _buildMenuTile(context.tr('knowledge_base'), Icons.school_rounded, const Color(0xFFE6AE00), 'Knowledge', subtitle: "Documentation & tips"),
+                    _buildSectionLabel("FINANCIALS"),
+                    if (isFeatureAvailable('expenses', requiredRank: 1))
+                      _buildExpenseExpansionTile(context),
 
-                    const SizedBox(height: 40),
+                    if (isFeatureAvailable('creditDetails', requiredRank: 2))
+                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
+
+                    if (isFeatureAvailable('quotation', requiredRank: 1))
+                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', requiredRank: 1),
+
+                    const SizedBox(height: 12),
+                    _buildSectionLabel("ADMINISTRATION"),
+                    if (isFeatureAvailable('staffManagement', requiredRank: 1))
+                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', requiredRank: 1),
+
+                    const SizedBox(height: 12),
+                    _buildSectionLabel("SUPPORT"),
+                    _buildMenuTile(context.tr('video_tutorials'), Icons.ondemand_video_rounded, const Color(0xFF2F7CF6), 'VideoTutorial'),
+                    _buildMenuTile(context.tr('knowledge_base'), Icons.school_rounded, const Color(0xFFE6AE00), 'Knowledge'),
+
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
@@ -272,96 +253,115 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  Widget _buildEnterpriseHeader(BuildContext context, PlanProvider planProvider) {
+  // --- UI BUILDERS ---
+
+  Widget _buildProfileHeader(BuildContext context, PlanProvider planProvider) {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 20, bottom: 24, left: 20, right: 20),
-      decoration: const BoxDecoration(color: kPrimaryColor),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 20),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          colors: [kPrimaryColor, kPrimaryColor],
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
-            child: Image.asset('assets/MAX_my_bill_mic.png', width: 68, height: 68, fit: BoxFit.contain),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(18)),
+            child: Image.asset('assets/MAX_my_bill_mic.png', width: 60, height: 60),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center, // Fixed MainAxisAlignment assignment
               children: [
                 Text(_businessName, style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                      child: Text(_role[0].toUpperCase() + _role.substring(1).toLowerCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                    ),
+                    _buildHeaderBadge(_role.toUpperCase(), kWhite.withOpacity(0.2)),
                     const SizedBox(width: 8),
                     _buildPlanBadge(planProvider),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Text(_email, style: TextStyle(color: kWhite.withOpacity(0.7), fontSize: 11, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Text(_email, style: TextStyle(color: kWhite.withOpacity(0.7), fontSize: 11)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          // Store logo - clickable to navigate to profile
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (_) => SettingsPage(uid: widget.uid, userEmail: widget.userEmail),
-                ),
-              );
-            },
-            child: Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: kWhite.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kWhite.withOpacity(0.3), width: 2),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: _logoUrl != null && _logoUrl!.isNotEmpty
-                    ? Image.network(
-                  _logoUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Icon(Icons.store_rounded, size: 28, color: kWhite);
-                  },
-                )
-                    : const Icon(Icons.store_rounded, size: 28, color: kWhite),
-              ),
-            ),
-          ),
+          _buildStoreAvatar(),
         ],
       ),
     );
   }
 
-  Widget _buildPlanBadge(PlanProvider planProvider) {
-    // Use cached plan for instant access - auto-updates when subscription changes
-    final plan = planProvider.cachedPlan;
-    final isPremium = !plan.toLowerCase().contains('free') && !plan.toLowerCase().contains('starter');
+  Widget _buildBannerHeader(BuildContext context) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SubscriptionPlanPage(uid: widget.uid, currentPlan: plan))),
+      onTap: () {
+        final planProvider = Provider.of<PlanProvider>(context, listen: false);
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => SubscriptionPlanPage(
+              uid: widget.uid,
+              currentPlan: planProvider.cachedPlan,
+            ),
+          ),
+        );
+      },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(8)),
-        child: Row(
-          children: [
-            const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
-            const SizedBox(width: 4),
-            Text(plan[0].toUpperCase() + plan.substring(1).toLowerCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
-          ],
+        width: double.infinity,
+        decoration: const BoxDecoration(color: kPrimaryColor),
+        child: AspectRatio(
+          aspectRatio: 45 / 16, // 1125:400 ratio
+          child: Image.asset(
+            'assets/Upgrade_Now.png',
+            fit: BoxFit.contain,
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStoreAvatar() {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SettingsPage(uid: widget.uid, userEmail: widget.userEmail))),
+      child: Container(
+        width: 54, height: 54,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: kWhite.withOpacity(0.3), width: 2),
+          image: _logoUrl != null && _logoUrl!.isNotEmpty
+              ? DecorationImage(image: NetworkImage(_logoUrl!), fit: BoxFit.cover) : null,
+        ),
+        child: (_logoUrl == null || _logoUrl!.isEmpty) ? const Icon(Icons.store_rounded, color: kWhite) : null,
+      ),
+    );
+  }
+
+  Widget _buildPlanBadge(PlanProvider planProvider) {
+    final plan = planProvider.cachedPlan;
+    final isPremium = !plan.toLowerCase().contains('free') && !plan.toLowerCase().contains('starter');
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(6)),
+      child: Row(
+        children: [
+          const Icon(Icons.star_rounded, color: kWhite, size: 10),
+          const SizedBox(width: 4),
+          Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+      child: Text(text, style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -370,7 +370,8 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {String? subtitle, int requiredRank = 0}) {
+  // --- THE MODERN CARD UI (FUNCTIONAL) ---
+  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
@@ -378,50 +379,38 @@ class _MenuPageState extends State<MenuPage> {
 
         // Determine current plan rank
         int planRank = 0;
-        if (currentPlan.toLowerCase().contains('essential')) {
-          planRank = 1;
-        } else if (currentPlan.toLowerCase().contains('growth')) {
-          planRank = 2;
-        } else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) {
-          planRank = 3;
-        }
+        if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
+        else if (currentPlan.toLowerCase().contains('growth')) planRank = 2;
+        else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          // margin removed to keep cards touching as requested
+          decoration: BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kGrey200.withOpacity(0.5)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
+            ],
+          ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
+              borderRadius: BorderRadius.circular(16),
               onTap: () {
-                // Check if feature requires a higher plan
+                // Check for plan rank and user permissions
                 if (requiredRank > 0 && planRank < requiredRank) {
-                  // Show upgrade dialog for admins on free/starter plans
                   if (isAdmin) {
-                    PlanPermissionHelper.showUpgradeDialog(
-                      context,
-                      title,
-                      uid: widget.uid,
-                      currentPlan: currentPlan,
-                    );
+                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                     return;
                   }
-
-                  // For staff, check permission too
                   if (!_hasPermission(_getPermissionKeyFromView(viewKey))) {
-                    PlanPermissionHelper.showUpgradeDialog(
-                      context,
-                      title,
-                      uid: widget.uid,
-                      currentPlan: currentPlan,
-                    );
+                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                     return;
                   }
                 }
-
-                // All checks passed, navigate to the view
                 setState(() => _currentView = viewKey);
               },
-              borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Row(
@@ -433,16 +422,7 @@ class _MenuPageState extends State<MenuPage> {
                     ),
                     const SizedBox(width: 14),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
-                          ],
-                        ],
-                      ),
+                      child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
                     ),
                     const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
                   ],
@@ -455,7 +435,44 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // Helper method to map view keys to permission keys
+  Widget _buildExpenseExpansionTile(BuildContext context) {
+    const Color color = Color(0xFFE91E63);
+    return Container(
+      decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kGrey200.withOpacity(0.5))
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          leading: Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.account_balance_wallet_rounded, color: color, size: 22),
+          ),
+          title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
+          childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
+          children: [
+            _buildSubMenuItem('Stock Purchase', 'StockPurchase'),
+            _buildSubMenuItem('Direct Expenses', 'Expenses'),
+            _buildSubMenuItem('Vendors', 'Vendors'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubMenuItem(String text, String viewKey) {
+    return ListTile(
+      onTap: () => setState(() => _currentView = viewKey),
+      title: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack54)),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: kGrey300),
+      dense: true, visualDensity: const VisualDensity(vertical: -2),
+    );
+  }
+
   String _getPermissionKeyFromView(String viewKey) {
     switch (viewKey) {
       case 'BillHistory': return 'billHistory';
@@ -469,65 +486,20 @@ class _MenuPageState extends State<MenuPage> {
     }
   }
 
-  Widget _buildExpenseExpansionTile(BuildContext context) {
-    const Color color = Color(0xFFE91E63);
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-      child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
-          tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          leading: Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.account_balance_wallet_rounded, color: color, size: 22),
-          ),
-          title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
-          childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
-          children: [
-            _buildSubMenuItem(context.tr('stock_purchase'), 'StockPurchase'),
-            _buildSubMenuItem(context.tr('expenses'), 'Expenses'),
-            _buildSubMenuItem(context.tr('expense_category'), 'ExpenseCategories'),
-            _buildSubMenuItem('Vendors Management', 'Vendors'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSubMenuItem(String text, String viewKey) {
-    return ListTile(
-      onTap: () => setState(() => _currentView = viewKey),
-      title: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack54)),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: kGrey300),
-      dense: true,
-      visualDensity: const VisualDensity(vertical: -2),
-    );
-  }
-
   Widget _handleViewRouting(bool isAdmin, PlanProvider planProvider) {
     void reset() => setState(() => _currentView = null);
-
     switch (_currentView) {
-      case 'NewSale': return NewSalePage(uid: widget.uid, userEmail: widget.userEmail);
       case 'BillHistory': return SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
       case 'Customers': return CustomersPage(uid: widget.uid, onBack: reset);
       case 'StockPurchase': return StockPurchasePage(uid: widget.uid, onBack: reset);
       case 'Expenses': return ExpensesPage(uid: widget.uid, onBack: reset);
-      case 'ExpenseCategories': return ExpenseCategoriesPage(uid: widget.uid, onBack: reset);
       case 'Vendors': return VendorsPage(uid: widget.uid, onBack: reset);
+      case 'Quotation': return _buildAsyncRoute(planProvider.canAccessQuotationAsync(), 'Quotation', reset, QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
+      case 'CreditNotes': return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Credit Notes', reset, CreditNotesPage(uid: widget.uid, onBack: reset));
+      case 'CreditDetails': return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Credit Details', reset, CreditDetailsPage(uid: widget.uid, onBack: reset));
+      case 'StaffManagement': return _buildAsyncRoute(planProvider.canAccessStaffManagementAsync(), 'Staff Management', reset, StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
       case 'Knowledge': return KnowledgePage(onBack: reset);
       case 'VideoTutorial': return VideoTutorialPage(onBack: reset);
-
-      case 'Quotation':
-        return _buildAsyncRoute(planProvider.canAccessQuotationAsync(), 'Quotation', reset, QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
-      case 'CreditNotes':
-        return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Customer Credit', reset, CreditNotesPage(uid: widget.uid, onBack: reset));
-      case 'CreditDetails':
-        return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Customer Credit', reset, CreditDetailsPage(uid: widget.uid, onBack: reset));
-      case 'StaffManagement':
-        return _buildAsyncRoute(planProvider.canAccessStaffManagementAsync(), 'Staff Management', reset, StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
     }
     return Container();
   }

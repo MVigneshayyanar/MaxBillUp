@@ -46,7 +46,7 @@ class CommonWidgets {
           color: kWhite,
           border: Border(top: BorderSide(color: kGrey200, width: 1)),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         child: Row(
           children: [
             // Save order button
@@ -55,7 +55,7 @@ class CommonWidgets {
               onSaveOrder,
               kPrimaryColor,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
 
             // Customer button
             if (onCustomer != null) ...[
@@ -64,7 +64,7 @@ class CommonWidgets {
                 onCustomer,
                 customerName != null && customerName.isNotEmpty ? kOrange : kPrimaryColor,
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
             ],
 
             const Spacer(),
@@ -73,8 +73,8 @@ class CommonWidgets {
             GestureDetector(
               onTap: onBill,
               child: Container(
-                height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: kPrimaryColor,
                   borderRadius: BorderRadius.circular(12),
@@ -82,18 +82,18 @@ class CommonWidgets {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.receipt_long_rounded, color: kWhite, size: 20),
-                    const SizedBox(width: 12),
+                    const Icon(Icons.receipt_long_rounded, color: kWhite, size: 18),
+                    const SizedBox(width: 10),
                     Text(
                       "${totalBill.toStringAsFixed(0)}",
-                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: kWhite, fontSize: 17, fontWeight: FontWeight.w900),
                     ),
-                    const SizedBox(width: 10),
-                    Container(width: 1, height: 16, color: kWhite.withValues(alpha: 0.3)),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 8),
+                    Container(width: 1, height: 14, color: kWhite.withValues(alpha: 0.3)),
+                    const SizedBox(width: 8),
                     Text(
                       context.tr('Bill'),
-                      style: const TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                      style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                     ),
                   ],
                 ),
@@ -110,14 +110,14 @@ class CommonWidgets {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 56,
-        width: 56,
+        height: 50,
+        width: 50,
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withOpacity(0.2), width: 1.5),
         ),
-        child: Icon(icon, color: color, size: 24),
+        child: Icon(icon, color: color, size: 22),
       ),
     );
   }

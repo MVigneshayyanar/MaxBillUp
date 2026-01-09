@@ -812,7 +812,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                                     ),
                                     const SizedBox(width: 4),
                                     const Icon(Icons.edit, color: kPrimaryColor, size: 20),
@@ -826,7 +826,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 child: Text(
                                   item.total.toStringAsFixed(0),
                                   textAlign: TextAlign.right,
-                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14),
+                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
                                 ),
                               ),
                             ],
