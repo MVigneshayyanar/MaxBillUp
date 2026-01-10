@@ -357,11 +357,16 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 isQuotationMode: widget.isQuotationMode,
                 onSaveOrder: () {
                   if (_cart.isEmpty) return;
+                  // Get savedOrderId from widget or CartService
+                  final savedOrderId = widget.savedOrderId ?? context.read<CartService>().savedOrderId;
                   CommonWidgets.showSaveOrderDialog(
                     context: context,
                     uid: widget.uid,
                     cartItems: _cart,
                     totalBill: _total,
+                    savedOrderId: savedOrderId,
+                    savedOrderName: _selectedCustomerName,
+                    savedOrderPhone: _selectedCustomerPhone,
                     onSuccess: () {
                       _cart.clear();
                       widget.onCartChanged?.call(_cart);

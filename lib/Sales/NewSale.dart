@@ -145,6 +145,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         orderData['customerName'] as String?,
         orderData['customerGST'] as String?,
       );
+      // Set the saved order ID if we have _loadedSavedOrderId
+      if (_loadedSavedOrderId != null) {
+        context.read<CartService>().setSavedOrderId(_loadedSavedOrderId);
+      }
 
       setState(() {
         _sharedCartItems = cartItems;
@@ -171,9 +175,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       // Show dialog to ask for customer info
       _showCustomerInputDialog(orderId, data);
     } else {
+      // Set the loaded order ID first
+      _loadedSavedOrderId = orderId;
       // Load the order data directly
       _loadSavedOrderData(data);
-      _loadedSavedOrderId = orderId;
+      // Set savedOrderId in CartService
+      context.read<CartService>().setSavedOrderId(orderId);
 
       // Switch to "View All" tab (index 1)
       setState(() {
@@ -255,9 +262,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
               Navigator.pop(context);
 
+              // Set the loaded order ID first
+              _loadedSavedOrderId = orderId;
               // Load the order data
               _loadSavedOrderData(data);
-              _loadedSavedOrderId = orderId;
+              // Set savedOrderId in CartService
+              context.read<CartService>().setSavedOrderId(orderId);
 
               // Switch to "View All" tab (index 1)
               setState(() {

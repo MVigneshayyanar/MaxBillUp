@@ -199,7 +199,7 @@ class _MenuPageState extends State<MenuPage> {
           body: Column(
             children: [
               SizedBox(
-                height: MediaQuery.of(context).padding.top + 120,
+                height: MediaQuery.of(context).padding.top + 110,
                 child: _buildProfileHeader(context, planProvider),
               ),
 
@@ -208,7 +208,7 @@ class _MenuPageState extends State<MenuPage> {
               Expanded(
                 child: ListView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical:10),
                   children: [
                     _buildSectionLabel("CORE OPERATIONS"),
                     if (_hasPermission('billHistory') || isAdmin)
@@ -244,6 +244,7 @@ class _MenuPageState extends State<MenuPage> {
                     _buildSectionLabel("SUPPORT"),
                     _buildMenuTile(context.tr('video_tutorials'), Icons.ondemand_video_rounded, const Color(0xFF2F7CF6), 'VideoTutorial'),
                     _buildMenuTile(context.tr('knowledge_base'), Icons.school_rounded, const Color(0xFFE6AE00), 'Knowledge'),
+                    _buildMenuTile('Support', Icons.support_agent_rounded, kPrimaryColor, 'Support'),
 
                     const SizedBox(height: 80),
                   ],
@@ -259,7 +260,7 @@ class _MenuPageState extends State<MenuPage> {
 
   Widget _buildProfileHeader(BuildContext context, PlanProvider planProvider) {
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 20),
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top-10, left: 20, right: 20, bottom: 0),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft, end: Alignment.bottomRight,
@@ -631,6 +632,7 @@ class _MenuPageState extends State<MenuPage> {
       case 'StaffManagement': return _buildAsyncRoute(planProvider.canAccessStaffManagementAsync(), 'Staff Management', reset, StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
       case 'Knowledge': return KnowledgePage(onBack: reset);
       case 'VideoTutorial': return VideoTutorialPage(onBack: reset);
+      case 'Support': return SupportPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
     }
     return Container();
   }
@@ -6370,3 +6372,424 @@ class _EditBillPageState extends State<EditBillPage> {
     }
   }
 }
+
+// ==========================================
+// SUPPORT PAGE
+// ==========================================
+class SupportPage extends StatefulWidget {
+  final String uid;
+  final String? userEmail;
+  final VoidCallback onBack;
+
+  const SupportPage({
+    super.key,
+    required this.uid,
+    this.userEmail,
+    required this.onBack,
+  });
+
+  @override
+  State<SupportPage> createState() => _SupportPageState();
+}
+
+class _SupportPageState extends State<SupportPage> {
+  final _formKey = GlobalKey<FormState>();
+  final _subjectController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  String _selectedCategory = 'Technical Issue';
+  bool _isSubmitting = false;
+
+  // Store details
+  String? _businessName;
+  String? _businessLocation;
+  String? _businessPhone;
+  String? _storePlan;
+
+  final List<String> _categories = [
+    'Technical Issue',
+    'Billing Question',
+    'Feature Request',
+    'Bug Report',
+    'Account Help',
+    'General Inquiry',
+    'Other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      // Load user's email if available
+      if (widget.userEmail != null && widget.userEmail!.isNotEmpty) {
+        _emailController.text = widget.userEmail!;
+      }
+
+      // Try to load business/user details from store settings
+      final storeDoc = await FirestoreService().getDocument('users', widget.uid);
+      if (storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          // Store details for internal tracking
+          _businessName = data['businessName'] as String?;
+          _businessLocation = data['businessLocation'] as String?;
+          _businessPhone = data['phone'] as String?;
+          _storePlan = data['plan'] as String?;
+
+          // Pre-fill form fields
+          if (data['businessName'] != null) {
+            _nameController.text = data['businessName'];
+          }
+          if (data['phone'] != null) {
+            _phoneController.text = data['phone'];
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading user data: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _subjectController.dispose();
+    _descriptionController.dispose();
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitSupport() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      await FirebaseFirestore.instance.collection('support').add({
+        // User/Contact Information
+        'uid': widget.uid,
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+
+        // Store/Business Details
+        'businessName': _businessName ?? _nameController.text.trim(),
+        'businessLocation': _businessLocation ?? '',
+        'businessPhone': _businessPhone ?? _phoneController.text.trim(),
+        'storePlan': _storePlan ?? 'Unknown',
+
+        // Issue Details
+        'category': _selectedCategory,
+        'subject': _subjectController.text.trim(),
+        'description': _descriptionController.text.trim(),
+
+        // Status & Timestamps
+        'status': 'Open',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Support request submitted successfully! We\'ll get back to you soon.'),
+            backgroundColor: kGoogleGreen,
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        // Clear form
+        _subjectController.clear();
+        _descriptionController.clear();
+        setState(() => _selectedCategory = 'Technical Issue');
+
+        // Go back after a short delay
+        Future.delayed(const Duration(milliseconds: 1500), () {
+          if (mounted) widget.onBack();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error submitting support request: $e'),
+            backgroundColor: kErrorColor,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) widget.onBack();
+      },
+      child: Scaffold(
+        backgroundColor: kWhite,
+        appBar: AppBar(
+          title: const Text('Support', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
+          backgroundColor: kPrimaryColor,
+          centerTitle: true,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
+            onPressed: widget.onBack,
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.support_agent_rounded, size: 32, color: Color(0xFF1976D2)),
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Need Help?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+                            SizedBox(height: 4),
+                            Text('We\'re here to assist you with any questions or issues.', style: TextStyle(fontSize: 13, color: kBlack54, height: 1.4)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Contact Information Section
+                const Text('Contact Information', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kBlack87)),
+                const SizedBox(height: 12),
+
+                // Name Field
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Your Name',
+                    hintText: 'Enter your name',
+                    prefixIcon: const Icon(Icons.person_outline, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Email Field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'Enter your email',
+                    prefixIcon: const Icon(Icons.email_outlined, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!value.contains('@')) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Phone Field
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number (Optional)',
+                    hintText: 'Enter your phone number',
+                    prefixIcon: const Icon(Icons.phone_outlined, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Issue Details Section
+                const Text('Issue Details', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kBlack87)),
+                const SizedBox(height: 12),
+
+                // Category Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedCategory,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    prefixIcon: const Icon(Icons.category_outlined, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                  items: _categories.map((category) {
+                    return DropdownMenuItem(
+                      value: category,
+                      child: Text(category),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedCategory = value);
+                    }
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Subject Field
+                TextFormField(
+                  controller: _subjectController,
+                  decoration: InputDecoration(
+                    labelText: 'Subject',
+                    hintText: 'Brief summary of your issue',
+                    prefixIcon: const Icon(Icons.title_rounded, color: kPrimaryColor),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a subject';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // Description Field
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    hintText: 'Please describe your issue in detail',
+                    alignLabelWithHint: true,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(bottom: 80),
+                      child: Icon(Icons.description_outlined, color: kPrimaryColor),
+                    ),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please describe your issue';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'Please provide more details (at least 10 characters)';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 32),
+
+                // Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitSupport,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      disabledBackgroundColor: kGrey300,
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 24,
+                            width: 24,
+                            child: CircularProgressIndicator(color: kWhite, strokeWidth: 2),
+                          )
+                        : const Text(
+                            'Submit Support Request',
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 0.5, color: kWhite),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Help Text
+                Center(
+                  child: Text(
+                    'We typically respond within 24 hours',
+                    style: TextStyle(fontSize: 13, color: kBlack54.withOpacity(0.7)),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
