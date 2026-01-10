@@ -282,7 +282,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         child: OutlinedButton(
                           onPressed: () { Navigator.pop(context); _removeSingleItem(idx); },
                           style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                          child: Text(context.tr('remove').toUpperCase(), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                          child: Text(context.tr('remove'), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -318,7 +318,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             elevation: 0
                           ),
-                          child: Text(context.tr('save').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
+                          child: Text(context.tr('save'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                         ),
                       ),
                     ],
@@ -356,7 +356,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                      child: Text(context.tr('clear').toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                      child: Text(context.tr('clear'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
                     ),
                   ),
                 ],
@@ -383,7 +383,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
   Widget _dialogLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(text.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
@@ -551,7 +551,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       Container(width: 1, height: 16, color: kWhite.withOpacity(0.3)),
                       const SizedBox(width: 10),
                       Text(
-                        context.tr('QUOTE').toUpperCase(),
+                        context.tr('QUOTE'),
                         style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
@@ -644,10 +644,10 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               ),
               child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text(context.tr('product').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('qty').toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('price').toUpperCase(), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('total').toUpperCase(), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 4, child: Text(context.tr('Product'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
                 ],
               ),
             ),
@@ -711,7 +711,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       children: [
                         const Icon(Icons.delete_sweep_rounded, color: kErrorColor, size: 18),
                         const SizedBox(width: 4),
-                        Text(context.tr('clear').toUpperCase(), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 11)),
+                        Text(context.tr('clear'), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 11)),
                       ],
                     ),
                   ),
@@ -719,7 +719,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                    child: Text('${_sharedCartItems?.length ?? 0} ITEMS', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                    child: Text('${_sharedCartItems?.length ?? 0} Items', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                   ),
                 ],
               ),

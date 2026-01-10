@@ -423,7 +423,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
+        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'Store Details',
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),

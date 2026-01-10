@@ -64,6 +64,14 @@ class _MenuPageState extends State<MenuPage> {
   int _currentHeaderIndex = 0;
   Timer? _sliderTimer;
 
+  // Banner Images List
+  final List<String> _bannerImages = [
+    'assets/Upgrade_Now.png',
+    'assets/Update_Now.png',
+    'assets/Start_Billing.png',
+    'assets/View_Report.png',
+  ];
+
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   StreamSubscription<DocumentSnapshot>? _storeSubscription;
 
@@ -78,12 +86,12 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   void _startHeaderSlider() {
-    _sliderTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _sliderTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       if (_headerController.hasClients) {
-        int nextRow = (_currentHeaderIndex + 1) % 2;
+        int nextIndex = (_currentHeaderIndex + 1) % _bannerImages.length;
         _headerController.animateToPage(
-          nextRow,
-          duration: const Duration(milliseconds: 50),
+          nextIndex,
+          duration: const Duration(milliseconds: 800),
           curve: Curves.easeInOutCubic,
         );
       }
@@ -168,7 +176,6 @@ class _MenuPageState extends State<MenuPage> {
         final isProviderReady = planProvider.isInitialized;
         final currentPlan = planProvider.cachedPlan;
 
-        // Plan Ranking for Feature Gating
         int planRank = isProviderReady ? 0 : 3;
         if (isProviderReady) {
           if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
@@ -177,7 +184,6 @@ class _MenuPageState extends State<MenuPage> {
           else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) planRank = 0;
         }
 
-        // Feature visibility helper
         bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
           if (isAdmin) return true;
           if (planRank < requiredRank) return false;
@@ -192,13 +198,11 @@ class _MenuPageState extends State<MenuPage> {
           backgroundColor: kGreyBg,
           body: Column(
             children: [
-              // Profile Header (reduced height)
               SizedBox(
                 height: MediaQuery.of(context).padding.top + 120,
                 child: _buildProfileHeader(context, planProvider),
               ),
 
-              // Banner (separate row below header)
               _buildBannerHeader(context),
 
               Expanded(
@@ -253,8 +257,6 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  // --- UI BUILDERS ---
-
   Widget _buildProfileHeader(BuildContext context, PlanProvider planProvider) {
     return Container(
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top + 10, left: 20, right: 20, bottom: 20),
@@ -271,7 +273,7 @@ class _MenuPageState extends State<MenuPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center, // Fixed MainAxisAlignment assignment
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(_businessName, style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900), maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
@@ -293,52 +295,165 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   Widget _buildBannerHeader(BuildContext context) {
+    final double bannerWidth = MediaQuery.of(context).size.width - 32;
+    final double bannerHeight = bannerWidth * (400 / 1125);
+
     return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: GestureDetector(
-        onTap: () {
-          final planProvider = Provider.of<PlanProvider>(context, listen: false);
-          Navigator.push(
-            context,
-            CupertinoPageRoute(
-              builder: (_) => SubscriptionPlanPage(
-                uid: widget.uid,
-                currentPlan: planProvider.cachedPlan,
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Container(
+        height: bannerHeight,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: kPrimaryColor.withOpacity(0.15),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // 1. Clipped content (Image)
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: PageView.builder(
+                  controller: _headerController,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentHeaderIndex = index;
+                    });
+                  },
+                  itemCount: _bannerImages.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _handleBannerNavigation(index),
+                      child: Image.asset(
+                        _bannerImages[index],
+                        fit: BoxFit.cover, // Changed from fill to cover for better quality
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          );
-        },
-        child: Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: kPrimaryColor,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: AspectRatio(
-            aspectRatio: 45 / 16, // 1125:400 ratio
-            child: Image.asset(
-              'assets/Upgrade_Now.png',
-              fit: BoxFit.contain,
+            // 2. Border overlay (Ensures edges are always visible on top of image)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: kPrimaryColor, width: 2.5),
+                  ),
+                ),
+              ),
             ),
-          ),
+            // 3. Indicators
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  _bannerImages.length,
+                      (index) => Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: _currentHeaderIndex == index ? 18 : 6,
+                    height: 5,
+                    decoration: BoxDecoration(
+                      color: _currentHeaderIndex == index
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(2.5),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  void _handleBannerNavigation(int index) {
+    final planProvider = Provider.of<PlanProvider>(context, listen: false);
+
+    switch (index) {
+      case 0:
+      case 1:
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => SubscriptionPlanPage(
+              uid: widget.uid,
+              currentPlan: planProvider.cachedPlan,
+            ),
+          ),
+        );
+        break;
+      case 2:
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => NewSalePage(
+              uid: widget.uid,
+              userEmail: widget.userEmail,
+            ),
+          ),
+        );
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => DayBookPage(
+              uid: widget.uid,
+              onBack: () => Navigator.pop(context),
+            ),
+          ),
+        );
+        break;
+    }
   }
 
   Widget _buildStoreAvatar() {
     return GestureDetector(
       onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SettingsPage(uid: widget.uid, userEmail: widget.userEmail))),
       child: Container(
-        width: 100, height:100,
+        width: 60, height: 60,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kWhite.withOpacity(0.3), width: 2),
-          image: _logoUrl != null && _logoUrl!.isNotEmpty
-              ? DecorationImage(image: NetworkImage(_logoUrl!), fit: BoxFit.cover) : null,
+          color: kWhite.withOpacity(0.1),
         ),
-        child: (_logoUrl == null || _logoUrl!.isEmpty) ? const Icon(Icons.store_rounded, color: kWhite) : null,
+        child: Stack(
+          children: [
+            // Clipped Image
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _logoUrl != null && _logoUrl!.isNotEmpty
+                    ? Image.network(_logoUrl!, fit: BoxFit.cover)
+                    : Container(
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.store_rounded, color: kWhite, size: 30),
+                ),
+              ),
+            ),
+            // Border Overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kWhite.withOpacity(0.5), width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -381,27 +496,24 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 12, left: 4),
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  // --- THE MODERN CARD UI (FUNCTIONAL) ---
   Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
         final currentPlan = planProvider.cachedPlan;
 
-        // Determine current plan rank
         int planRank = 0;
         if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
         else if (currentPlan.toLowerCase().contains('growth')) planRank = 2;
         else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
 
         return Container(
-          // margin removed to keep cards touching as requested
+          margin: const EdgeInsets.only(bottom: 8),
           decoration: BoxDecoration(
             color: kWhite,
             borderRadius: BorderRadius.circular(12),
@@ -413,9 +525,8 @@ class _MenuPageState extends State<MenuPage> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               onTap: () {
-                // Check for plan rank and user permissions
                 if (requiredRank > 0 && planRank < requiredRank) {
                   if (isAdmin) {
                     PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
@@ -455,6 +566,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget _buildExpenseExpansionTile(BuildContext context) {
     const Color color = Color(0xFFE91E63);
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
           color: kWhite,
           borderRadius: BorderRadius.circular(16),
@@ -540,6 +652,7 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 }
+
 
 // ==========================================
 // VIDEO TUTORIAL PAGE (STYLIZED)

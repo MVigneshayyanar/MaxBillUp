@@ -51,7 +51,7 @@ class StockAppBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: kGreyBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: kGrey200, width: 1),
+                border: Border.all(color: kPrimaryColor, width: 1),
               ),
               child: Stack(
                 children: [
@@ -83,14 +83,14 @@ class StockAppBar extends StatelessWidget {
                       // Product Tab
                       _buildTabWithCount(
                         context,
-                        label: context.tr('products').toUpperCase(),
+                        label: context.tr('products'),
                         collection: 'Products',
                         index: 0,
                       ),
                       // Category Tab
                       _buildTabWithCount(
                         context,
-                        label: context.tr('category').toUpperCase(),
+                        label: context.tr('category'),
                         collection: 'categories',
                         index: 1,
                       ),
@@ -128,8 +128,9 @@ class StockAppBar extends StatelessWidget {
                         label,
                         style: TextStyle(
                           color: isSelected ? kWhite : kBlack54,
-                          fontSize: 11,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w700,
+
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
                           letterSpacing: 0.5,
                         ),
                       ),

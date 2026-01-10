@@ -127,3 +127,6 @@ flutter:
     - assets/MAX_my_bill_mobile.png
     - assets/MAX_my_bill_mic.png
     - assets/Upgrade_Now.png
+    - assets/Update_Now.png
+    - assets/Start_Billing.png
+    - assets/View_Report.png

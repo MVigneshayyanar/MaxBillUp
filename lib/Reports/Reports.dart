@@ -1357,9 +1357,17 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                             if (!isRefunded) {
                               periodIncome += amount;
                               weekRevenue[dt.day] = (weekRevenue[dt.day] ?? 0) + amount;
-                              if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+
+                              // Handle Split payments separately
+                              if (mode == 'split') {
+                                double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                                double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                                totalCash += splitCash;
+                                totalOnline += splitOnline;
+                              } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
                                 totalOnline += amount;
-                              } else {
+                              } else if (!mode.contains('credit')) {
+                                // Cash payment (exclude credit from cash)
                                 totalCash += amount;
                               }
                             } else {
@@ -1489,7 +1497,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("TODAY'S REVENUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Today's Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text(" ${revenue.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -1504,7 +1512,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             child: Column(
               children: [
                 Text("$count", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("ORDERS", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Orders", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -1758,7 +1766,7 @@ class DayBookPage extends StatelessWidget {
       return [
         (data['invoiceNumber']?.toString() ?? '-').padLeft(5, '0'),
         timeStr,
-        (data['customerName']?.toString() ?? 'Walk-in Guest').toUpperCase(),
+        (data['customerName']?.toString() ?? 'Guest').toUpperCase(),
         (data['paymentMode']?.toString() ?? 'Cash').toUpperCase(),
         "INR ${saleTotal.toStringAsFixed(2)}",
       ];
@@ -1766,15 +1774,15 @@ class DayBookPage extends StatelessWidget {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'EXECUTIVE DAYBOOK - ${DateFormat('dd MMMM yyyy').format(DateTime.now()).toUpperCase()}',
-      headers: ['INV #', 'TIME', 'CUSTOMER NAME', 'PAYMENT', 'AMOUNT'],
+      reportTitle: 'Executive Daybook - ${DateFormat('dd MMMM yyyy').format(DateTime.now())}',
+      headers: ['Invoice', 'Time', 'Customer Name', 'Payment', 'Amount'],
       rows: rows,
-      summaryTitle: "TOTAL SETTLEMENT",
+      summaryTitle: "Total Settlement",
       summaryValue: " ${total.toStringAsFixed(2)}",
       additionalSummary: {
         'Total Invoices': '${todayDocs.length}',
         'Avg. Ticket Size': ' ${(todayDocs.isNotEmpty ? total / todayDocs.length : 0).toStringAsFixed(2)}',
-        'Status': 'CLOSED'
+        'Status': 'Closed'
       },
     );
   }
@@ -1857,7 +1865,7 @@ class DayBookPage extends StatelessWidget {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
-                                  "DAILY SALES LOG",
+                                  "Daily Sales Log",
                                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.5),
                                 ),
                                 Text(
@@ -1910,7 +1918,7 @@ class DayBookPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("NET CASHFLOW", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const Text("Net Cashflow", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 2),
                 Text(" ${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
               ],
@@ -1926,7 +1934,7 @@ class DayBookPage extends StatelessWidget {
             child: Column(
               children: [
                 Text("$count", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kPrimaryColor)),
-                const Text("INVOICES", style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
+                const Text("Invoices", style: TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
               ],
             ),
           ),
@@ -1952,7 +1960,7 @@ class DayBookPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("HOURLY PERFORMANCE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+          const Text("Hourly Performance", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
           const SizedBox(height: 20),
           SizedBox(
             height: 120,
@@ -2052,11 +2060,11 @@ class DayBookPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    (data['customerName'] ?? 'Walk-in Guest').toString().toUpperCase(),
+                    (data['customerName'] ?? 'Guest').toString().toUpperCase(),
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
                     maxLines: 1
                 ),
-                Text("INV #${data['invoiceNumber'] ?? 'N/A'}  •  $timeStr", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
+                Text("Invoice${data['invoiceNumber'] ?? 'N/A'}  •  $timeStr", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -2174,11 +2182,27 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                       productCost += cost;
                       saleCount++;
 
-                      if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) online += total;
-                      else if (mode.contains('credit') && mode.contains('note')) creditNote += total;
-                      else if (mode.contains('credit')) credit += total;
-                      else if (mode.contains('unsettled')) unsettled += total;
-                      else cash += total;
+                      // Handle Split payments separately
+                      if (mode == 'split') {
+                        // For split payments, get the individual amounts
+                        double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                        double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                        double splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
+                        cash += splitCash;
+                        online += splitOnline;
+                        credit += splitCredit;
+                      } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                        online += total;
+                      } else if (mode.contains('credit') && mode.contains('note')) {
+                        creditNote += total;
+                      } else if (mode.contains('credit')) {
+                        credit += total;
+                      } else if (mode.contains('unsettled')) {
+                        unsettled += total;
+                      } else {
+                        // Cash payment
+                        cash += total;
+                      }
 
                       if (dt != null) hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + total;
                     }
@@ -2277,7 +2301,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "NET ESTIMATED PROFIT",
+                  "Net Estimated Profit",
                   style: TextStyle(color: kTextSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 4),
@@ -2306,7 +2330,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                   "${margin.toStringAsFixed(1)}%",
                   style: TextStyle(color: isPositive ? kIncomeGreen : kExpenseRed, fontWeight: FontWeight.w900, fontSize: 14),
                 ),
-                const Text("MARGIN", style: TextStyle(color: kTextSecondary, fontSize: 8, fontWeight: FontWeight.bold)),
+                const Text("Margin", style: TextStyle(color: kTextSecondary, fontSize: 8, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -2476,7 +2500,6 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
               _buildLegendRow(kChartBlue, 'Online', online),
               _buildLegendRow(kChartPurple, 'Refunds', cn),
               _buildLegendRow(kChartRed, 'Credit', credit),
-              _buildLegendRow(kChartAmber, 'Pending', unsettled),
             ],
           ),
         )
@@ -2537,10 +2560,10 @@ class FullSalesHistoryPage extends StatelessWidget {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'EXECUTIVE SALES AUDIT LOG',
-      headers: ['INV #', 'DATE', 'CUSTOMER NAME', 'MODE', 'AMOUNT'],
+      reportTitle: 'Executive Sales Audit Log',
+      headers: ['Invoice', 'Date', 'Customer Name', 'Mode', 'Amount'],
       rows: rows,
-      summaryTitle: 'TOTAL NET SETTLEMENT',
+      summaryTitle: 'Total Net Settlement',
       summaryValue: "${totalSales.toStringAsFixed(2)}",
       additionalSummary: {
         'Invoices Closed': '${filteredDocs.length}',
@@ -2695,7 +2718,7 @@ class FullSalesHistoryPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("NET SETTLEMENT VALUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Net Settlement Value", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -2710,7 +2733,7 @@ class FullSalesHistoryPage extends StatelessWidget {
             child: Column(
               children: [
                 Text("$count", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("CLOSED", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Closed", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -2839,13 +2862,13 @@ class FullSalesHistoryPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (data['customerName'] ?? 'Walk-in Guest').toString().toUpperCase(),
+                  (data['customerName'] ?? 'Guest').toString().toUpperCase(),
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                    "INV #${data['invoiceNumber'] ?? 'N/A'}  •  $timeStr",
+                    "Invoice${data['invoiceNumber'] ?? 'N/A'}  •  $timeStr",
                     style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -2890,7 +2913,7 @@ class TopCustomersPage extends StatelessWidget {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'CUSTOMER CONTRIBUTION AUDIT',
+      reportTitle: 'Customer Contribution Audit',
       headers: ['RANK', 'CUSTOMER NAME', 'TOTAL SPEND'],
       rows: rows,
       summaryTitle: 'GRAND TOTAL SETTLEMENT',
@@ -2938,7 +2961,7 @@ class TopCustomersPage extends StatelessWidget {
               }
 
               double amt = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-              String name = data['customerName'] ?? 'Walk-in Guest';
+              String name = data['customerName'] ?? 'Guest';
               spendMap[name] = (spendMap[name] ?? 0) + amt;
             }
 
@@ -3241,7 +3264,7 @@ class _StockReportPageState extends State<StockReportPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'EXECUTIVE STOCK VALUATION AUDIT',
+      reportTitle: 'Executive Stock Valuation Audit',
       headers: ['PRODUCT NAME', 'ID', 'STOCK', 'COST', 'RETAIL', 'VALUATION'],
       rows: rows,
       summaryTitle: 'TOTAL RETAIL VALUE',
@@ -3584,7 +3607,7 @@ class ItemSalesPage extends StatelessWidget {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'ITEM SALES VELOCITY AUDIT',
+      reportTitle: 'Item Sales Velocity Audit',
       headers: ['RANK', 'ITEM DESCRIPTION', 'UNITS SOLD'],
       rows: rows,
       summaryTitle: 'TOTAL UNIT SETTLEMENT',
@@ -3933,7 +3956,7 @@ class _LowStockPageState extends State<LowStockPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'STOCK REPLENISHMENT AUDIT',
+      reportTitle: 'Stock Replenishment Audit',
       headers: ['ITEM ID', 'PRODUCT NAME', 'MIN REQUIRED', 'ON HAND', 'STATUS'],
       rows: rows,
       summaryTitle: 'TOTAL ALERTS',
@@ -4259,7 +4282,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'PRODUCT PERFORMANCE AUDIT',
+      reportTitle: 'Product Performance Audit',
       headers: ['PRODUCT NAME', 'QTY', 'REVENUE', 'PROFIT'],
       rows: rows,
       summaryTitle: 'NET PRODUCT REVENUE',
@@ -5653,12 +5676,12 @@ class TaxReportPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (data['customerName'] ?? 'Walk-in Guest').toString().toUpperCase(),
+                  (data['customerName'] ?? 'Guest').toString().toUpperCase(),
                   style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
                   maxLines: 1,
                 ),
                 Text(
-                    "INV #${data['invoiceNumber'] ?? 'N/A'} • ${_formatDate(data['date'])}",
+                    "Invoice${data['invoiceNumber'] ?? 'N/A'} • ${_formatDate(data['date'])}",
                     style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)
                 ),
                 if (taxDetailStr.isNotEmpty)
@@ -5803,7 +5826,24 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                   staffData[staffName]!['totalAmount'] = (staffData[staffName]!['totalAmount'] as double) + total;
                   staffData[staffName]!['totalDiscount'] = (staffData[staffName]!['totalDiscount'] as double) + discount;
 
-                  if (paymentMode.contains('online') || paymentMode.contains('upi') || paymentMode.contains('card')) {
+                  // Handle Split payments separately
+                  if (paymentMode == 'split') {
+                    double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                    double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                    double splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
+                    if (splitCash > 0) {
+                      staffData[staffName]!['cashCount'] = (staffData[staffName]!['cashCount'] as int) + 1;
+                      staffData[staffName]!['cashAmount'] = (staffData[staffName]!['cashAmount'] as double) + splitCash;
+                    }
+                    if (splitOnline > 0) {
+                      staffData[staffName]!['onlineCount'] = (staffData[staffName]!['onlineCount'] as int) + 1;
+                      staffData[staffName]!['onlineAmount'] = (staffData[staffName]!['onlineAmount'] as double) + splitOnline;
+                    }
+                    if (splitCredit > 0) {
+                      staffData[staffName]!['creditCount'] = (staffData[staffName]!['creditCount'] as int) + 1;
+                      staffData[staffName]!['creditAmount'] = (staffData[staffName]!['creditAmount'] as double) + splitCredit;
+                    }
+                  } else if (paymentMode.contains('online') || paymentMode.contains('upi') || paymentMode.contains('card')) {
                     staffData[staffName]!['onlineCount'] = (staffData[staffName]!['onlineCount'] as int) + 1;
                     staffData[staffName]!['onlineAmount'] = (staffData[staffName]!['onlineAmount'] as double) + total;
                   } else if (paymentMode.contains('credit') && paymentMode.contains('note')) {
@@ -6357,8 +6397,8 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                   }
 
                   // --- Income Calculations ---
-                  double incomeCash = 0, incomeOnline = 0;
-                  int incomeCashCount = 0, incomeOnlineCount = 0;
+                  double incomeCash = 0, incomeOnline = 0, incomeCredit = 0;
+                  int incomeCashCount = 0, incomeOnlineCount = 0, incomeCreditCount = 0;
 
                   for (var doc in salesSnapshot.data!.docs) {
                     final data = doc.data() as Map<String, dynamic>;
@@ -6376,9 +6416,29 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                       double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                       String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
-                      if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                      // Handle Split payments separately
+                      if (mode == 'split') {
+                        double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                        double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                        double splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
+                        if (splitCash > 0) {
+                          incomeCash += splitCash;
+                          incomeCashCount++;
+                        }
+                        if (splitOnline > 0) {
+                          incomeOnline += splitOnline;
+                          incomeOnlineCount++;
+                        }
+                        if (splitCredit > 0) {
+                          incomeCredit += splitCredit;
+                          incomeCreditCount++;
+                        }
+                      } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
                         incomeOnline += total;
                         incomeOnlineCount++;
+                      } else if (mode.contains('credit')) {
+                        incomeCredit += total;
+                        incomeCreditCount++;
                       } else {
                         incomeCash += total;
                         incomeCashCount++;
@@ -6447,6 +6507,11 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                                     incomeCashCount + incomeOnlineCount,
                                   ),
 
+                                  if (incomeCredit > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildCreditCard("Credit Sales", incomeCredit, incomeCreditCount, kWarningOrange),
+                                  ],
+
                                   const SizedBox(height: 24),
                                   _buildSectionHeader("Outflow Analysis"),
                                   const SizedBox(height: 8),
@@ -6465,6 +6530,10 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                                   _buildLedgerRow("Cash Position", incomeCash, expenseCash, kIncomeGreen),
                                   const SizedBox(height: 4),
                                   _buildLedgerRow("Online Balance", incomeOnline, expenseOnline, kPrimaryColor),
+                                  if (incomeCredit > 0) ...[
+                                    const SizedBox(height: 4),
+                                    _buildLedgerRow("Credit Outstanding", incomeCredit, 0, kWarningOrange),
+                                  ],
                                   const SizedBox(height: 40),
                                 ]),
                               ),
@@ -6605,7 +6674,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                   children: [
                     _buildCompactDistributionRow("Cash Mode", cash, total, kChartGreen),
                     const SizedBox(height: 8),
-                    _buildCompactDistributionRow("Digital/UPI", online, total, kChartBlue),
+                    _buildCompactDistributionRow("Online Mode", online, total, kChartBlue),
                   ],
                 ),
               ),
@@ -6665,6 +6734,37 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
             "${net.toStringAsFixed(0)}",
             style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: net >= 0 ? kIncomeGreen : kExpenseRed),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreditCard(String label, double amount, int count, Color themeColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: themeColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: themeColor.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: themeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(Icons.credit_card_rounded, color: themeColor, size: 18),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+                Text("$count transactions", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          Text("${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: themeColor)),
         ],
       ),
     );
@@ -6862,6 +6962,12 @@ class _GSTReportPageState extends State<GSTReportPage> {
                           else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                           if (_isInDateRange(dt)) {
+                            // Skip cancelled or returned bills
+                            final String status = (data['status'] ?? '').toString().toLowerCase();
+                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                              continue;
+                            }
+
                             double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                             double gst = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
                             salesRows.add({
@@ -6912,7 +7018,7 @@ class _GSTReportPageState extends State<GSTReportPage> {
                         }
                         if (creditNoteSnapshot.hasData) {
                           for (var doc in creditNoteSnapshot.data!.docs) {
-                            addInward(doc, 'CREDIT NOTE', 'amount', 'gst', '--');
+                            addInward(doc, 'Credit Note', 'amount', 'gst', '--');
                           }
                         }
 
@@ -7193,7 +7299,7 @@ class _GSTReportPageState extends State<GSTReportPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("TAX LIABILITY POSITION", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                const Text("Tax Liability Position", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                 Text("${net.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
               ],
             ),

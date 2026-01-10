@@ -194,7 +194,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Customer Information',
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -400,7 +400,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.grey),
                   onPressed: () => Navigator.of(context).pop(),
@@ -700,7 +700,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     final screenHeight = MediaQuery.of(context).size.height;
     final topPadding = MediaQuery.of(context).padding.top;
 
-    _maxCartHeight = screenHeight - topPadding - 175;
+    _maxCartHeight = screenHeight - topPadding - 350;
 
     // Listen to CartService for changes (e.g., when cart is cleared from Bill page)
     final cartService = Provider.of<CartService>(context);
@@ -970,7 +970,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
                     child: Text(
                       '${_sharedCartItems?.length ?? 0} Items',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
                     ),
                   ),
                 ],

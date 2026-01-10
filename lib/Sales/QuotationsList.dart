@@ -159,7 +159,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
         },
         backgroundColor: kPrimaryColor,
         icon: const Icon(Icons.add, color: kWhite),
-        label: const Text('NEW QUOTATION', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
+        label: const Text('New Quotation', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
       ),
       ), // WillPopScope closing
     );
@@ -276,10 +276,10 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                 const Divider(height: 20, color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text("QUOTED BY",
+                    const Text("Quoted by",
                         style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(quotedBy,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87))
                   ]),
                   _badge(billed)
                 ]),
