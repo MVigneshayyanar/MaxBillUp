@@ -616,7 +616,7 @@ class LanguageProvider extends ChangeNotifier {
       'create_new':'Create New',
 
       // Menu.dart specific keys
-      'billhistory': 'Sales History',
+      'billhistory': 'Bill History',
       'creditdetails': 'Credits / Dues',
       'expense_report': 'Expense Report',
       'nobillsfound': 'No bills found',

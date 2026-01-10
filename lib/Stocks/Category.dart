@@ -124,7 +124,7 @@ class _CategoryPageState extends State<CategoryPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
         label: Text(
-          context.tr('add_category').toUpperCase(),
+          context.tr('add_category'),
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
         ),
       )

@@ -163,15 +163,118 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _handleLoadSavedOrder(String orderId, Map<String, dynamic> data) {
-    // Load the order data
-    _loadSavedOrderData(data);
-    _loadedSavedOrderId = orderId;
+    // Check if customer info is missing
+    final customerName = data['customerName'] as String?;
+    final customerPhone = data['customerPhone'] as String?;
 
-    // Switch to "View All" tab (index 1)
-    setState(() {
-      _selectedTabIndex = 1;
-      _cartVersion++; // Increment to refresh the view
-    });
+    if ((customerName == null || customerName.isEmpty) && (customerPhone == null || customerPhone.isEmpty)) {
+      // Show dialog to ask for customer info
+      _showCustomerInputDialog(orderId, data);
+    } else {
+      // Load the order data directly
+      _loadSavedOrderData(data);
+      _loadedSavedOrderId = orderId;
+
+      // Switch to "View All" tab (index 1)
+      setState(() {
+        _selectedTabIndex = 1;
+        _cartVersion++; // Increment to refresh the view
+      });
+    }
+  }
+
+  void _showCustomerInputDialog(String orderId, Map<String, dynamic> data) {
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Customer Information',
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please provide customer name or phone number',
+                style: TextStyle(color: kBlack54, fontSize: 13)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: 'Customer Name',
+                prefixIcon: const Icon(Icons.person_outline, color: kPrimaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Phone Number',
+                prefixIcon: const Icon(Icons.phone_outlined, color: kPrimaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final name = nameController.text.trim();
+              final phone = phoneController.text.trim();
+
+              if (name.isEmpty && phone.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please provide at least name or phone number'),
+                    backgroundColor: kErrorColor,
+                  ),
+                );
+                return;
+              }
+
+              // Update data with customer info
+              data['customerName'] = name.isEmpty ? 'Guest' : name;
+              data['customerPhone'] = phone;
+
+              Navigator.pop(context);
+
+              // Load the order data
+              _loadSavedOrderData(data);
+              _loadedSavedOrderId = orderId;
+
+              // Switch to "View All" tab (index 1)
+              setState(() {
+                _selectedTabIndex = 1;
+                _cartVersion++; // Increment to refresh the view
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('CONTINUE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleSearchFocusChange(bool isFocused) {
@@ -758,7 +861,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kOrange, width: 2),
+          border: Border.all(color: Color(0xffffab36), width: 2),
         ),
         child: Column(
           children: [
@@ -768,7 +871,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                 vertical: isSearchFocused ? 6 : 12, // Reduced padding in search mode
               ),
               decoration: const BoxDecoration(
-                color: kOrange,
+                color: Color(0xffffab36),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: Row(

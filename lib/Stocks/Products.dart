@@ -112,7 +112,7 @@ class _ProductsPageState extends State<ProductsPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
         label: Text(
-          context.tr('add_product').toUpperCase(),
+          context.tr('add_product'),
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
         ),
       )
@@ -319,7 +319,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       color: kOrange.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.inventory_2_rounded, color: kOrange, size: 20),
+                    child: const Icon(Icons.inventory_2_rounded, color: Color(0xffCC8758), size: 20),
                   ),
                 if (!_isMultiSelectMode) const SizedBox(width: 14),
                 // Info Column

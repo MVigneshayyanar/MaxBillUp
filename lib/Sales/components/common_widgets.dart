@@ -145,14 +145,26 @@ class CommonWidgets {
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(context.tr('save_order').toUpperCase(),
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
+          title: const Text('SAVE ORDER',
+              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              const Text(
+                'Provide at least customer name or phone number',
+                style: TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w500),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              _buildDialogField(
+                controller: nameCtrl,
+                label: 'Customer Name',
+                icon: Icons.person_outline_rounded,
+              ),
+              const SizedBox(height: 12),
               _buildDialogField(
                 controller: phoneCtrl,
-                label: context.tr('customer_phone_number'),
+                label: 'Phone Number (Optional)',
                 icon: Icons.phone_android_rounded,
                 keyboardType: TextInputType.phone,
                 onChanged: (value) async {
@@ -163,40 +175,51 @@ class CommonWidgets {
                       final doc = await collection.doc(value).get();
                       if (doc.exists) {
                         final data = doc.data() as Map<String, dynamic>?;
-                        nameCtrl.text = data?['name'] ?? '';
+                        if (nameCtrl.text.isEmpty) {
+                          nameCtrl.text = data?['name'] ?? '';
+                        }
                       }
                     } catch (e) { debugPrint(e.toString()); }
                     setDialogState(() => isLoading = false);
                   }
                 },
               ),
-              const SizedBox(height: 16),
               if (isLoading)
-                const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(strokeWidth: 3))
-              else
-                _buildDialogField(
-                  controller: nameCtrl,
-                  label: context.tr('customer_name'),
-                  icon: Icons.person_outline_rounded,
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0),
+                  child: CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
                 ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text(context.tr('cancel').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+              child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
             ),
             ElevatedButton(
               onPressed: () async {
                 final phone = phoneCtrl.text.trim();
                 final name = nameCtrl.text.trim();
-                if (phone.isEmpty || name.isEmpty) return;
+
+                // Require at least name or phone
+                if (name.isEmpty && phone.isEmpty) {
+                  showSnackBar(ctx, 'Please provide at least customer name or phone number', bgColor: kErrorColor);
+                  return;
+                }
+
                 Navigator.pop(ctx);
-                await _saveOrderToFirebase(uid: uid, phone: phone, name: name, cartItems: cartItems, totalBill: totalBill, context: context);
+                await _saveOrderToFirebase(
+                  uid: uid,
+                  phone: phone.isEmpty ? null : phone,
+                  name: name.isEmpty ? (phone.isNotEmpty ? phone : 'Guest') : name,
+                  cartItems: cartItems,
+                  totalBill: totalBill,
+                  context: context
+                );
                 onSuccess();
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: Text(context.tr('save_order').toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+              child: const Text('SAVE ORDER', style: TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
             ),
           ],
         ),
@@ -236,7 +259,7 @@ class CommonWidgets {
 
   static Future<void> _saveOrderToFirebase({
     required String uid,
-    required String phone,
+    String? phone,
     required String name,
     required List<CartItem> cartItems,
     required double totalBill,
@@ -244,14 +267,18 @@ class CommonWidgets {
   }) async {
     try {
       final staffName = await _fetchStaffName(uid);
-      // Use merge to preserve existing customer data (balance, rating, etc.)
-      final customersCollection = await FirestoreService().getStoreCollection('customers');
-      await customersCollection.doc(phone).set({
-        'name': name,
-        'phone': phone,
-        'purchaseCount': 0,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+
+      // Only create/update customer if phone is provided
+      if (phone != null && phone.isNotEmpty) {
+        // Use merge to preserve existing customer data (balance, rating, etc.)
+        final customersCollection = await FirestoreService().getStoreCollection('customers');
+        await customersCollection.doc(phone).set({
+          'name': name,
+          'phone': phone,
+          'purchaseCount': 0,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
 
       final items = cartItems.map((item) => {
         'productId': item.productId,
@@ -263,7 +290,7 @@ class CommonWidgets {
 
       await FirestoreService().addDocument('savedOrders', {
         'customerName': name,
-        'customerPhone': phone,
+        'customerPhone': phone ?? '',
         'items': items,
         'total': totalBill,
         'timestamp': FieldValue.serverTimestamp(),
@@ -271,9 +298,9 @@ class CommonWidgets {
         'staffName': staffName ?? 'Unknown Staff',
       });
 
-      if (context.mounted) showSnackBar(context, context.tr('order_saved_success'), bgColor: kGoogleGreen);
+      if (context.mounted) showSnackBar(context, 'Order saved successfully', bgColor: kGoogleGreen);
     } catch (e) {
-      if (context.mounted) showSnackBar(context, context.tr('error_saving_order').replaceFirst('{0}', e.toString()), bgColor: kErrorColor);
+      if (context.mounted) showSnackBar(context, 'Error: ${e.toString()}', bgColor: kErrorColor);
     }
   }
 

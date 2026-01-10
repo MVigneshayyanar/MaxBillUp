@@ -1319,6 +1319,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
                       Map<int, double> weekRevenue = {}, weekExpense = {};
 
+                      double totalRefunds = 0;
+
                       // --- Process Sales ---
                       for (var doc in salesSnap.data!.docs) {
                         final data = doc.data() as Map<String, dynamic>;
@@ -1333,19 +1335,36 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                         else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
                         String mode = (data['paymentMode'] ?? '').toString().toLowerCase();
 
+                        // Check if bill is cancelled, returned or edited
+                        final String status = (data['status'] ?? '').toString().toLowerCase();
+                        final bool isCancelled = status == 'cancelled';
+                        final bool isReturned = status == 'returned' || data['hasBeenReturned'] == true;
+                        final bool isEdited = status == 'edited' || data['hasBeenEdited'] == true;
+                        final bool isRefunded = isCancelled || isReturned;
+
                         if (dt != null) {
                           if (DateFormat('yyyy-MM-dd').format(dt) == todayStr) {
-                            todayRevenue += amount;
-                            todayTax += tax;
-                            todaySaleCount++;
+                            if (!isRefunded) {
+                              todayRevenue += amount;
+                              todayTax += tax;
+                              todaySaleCount++;
+                            } else {
+                              // Count refunds for today
+                              totalRefunds += amount;
+                            }
                           }
                           if (_isInPeriod(dt)) {
-                            periodIncome += amount;
-                            weekRevenue[dt.day] = (weekRevenue[dt.day] ?? 0) + amount;
-                            if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                              totalOnline += amount;
+                            if (!isRefunded) {
+                              periodIncome += amount;
+                              weekRevenue[dt.day] = (weekRevenue[dt.day] ?? 0) + amount;
+                              if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                                totalOnline += amount;
+                              } else {
+                                totalCash += amount;
+                              }
                             } else {
-                              totalCash += amount;
+                              // Add to refunds instead of cash/online
+                              totalRefunds += amount;
                             }
                           }
                         }
@@ -1413,7 +1432,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                                 _buildSectionHeader("Settlement Channels"),
                                 const SizedBox(height: 10),
                                 _buildChartCard(
-                                  child: _buildDonutChart(totalCash, totalOnline),
+                                  child: _buildDonutChart(totalCash, totalOnline, totalRefunds),
                                 ),
                                 const SizedBox(height: 20),
 
@@ -1598,8 +1617,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     );
   }
 
-  Widget _buildDonutChart(double cash, double online) {
-    double total = cash + online;
+  Widget _buildDonutChart(double cash, double online, [double refunds = 0]) {
+    double total = cash + online + refunds;
     return Row(
       children: [
         Expanded(
@@ -1614,8 +1633,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                     sectionsSpace: 3,
                     centerSpaceRadius: 30,
                     sections: [
-                      PieChartSectionData(color: kChartGreen, value: cash, title: '', radius: 15),
-                      PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 15),
+                      if (cash > 0) PieChartSectionData(color: kChartGreen, value: cash, title: '', radius: 15),
+                      if (online > 0) PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 15),
+                      if (refunds > 0) PieChartSectionData(color: kChartPurple, value: refunds, title: '', radius: 15),
                       if (total == 0) PieChartSectionData(color: kBorderColor, value: 1, title: '', radius: 15),
                     ],
                   ),
@@ -1634,6 +1654,10 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
               _buildLegendRow(kChartGreen, "Cash", cash),
               const SizedBox(height: 8),
               _buildLegendRow(kChartBlue, "Online", online),
+              if (refunds > 0) ...[
+                const SizedBox(height: 8),
+                _buildLegendRow(kChartPurple, "Refunds", refunds),
+              ],
             ],
           ),
         ),
@@ -2116,6 +2140,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                   // --- Calculation Logic ---
                   double grossSale = 0, discount = 0, netSale = 0, productCost = 0;
                   double cash = 0, online = 0, creditNote = 0, credit = 0, unsettled = 0;
+                  double refunds = 0; // Track cancelled/returned bills
                   Map<int, double> hourlyRevenue = {};
                   int saleCount = 0;
 
@@ -2130,6 +2155,18 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                       double discountAmt = double.tryParse(data['discount']?.toString() ?? '0') ?? 0;
                       double cost = double.tryParse(data['productCost']?.toString() ?? '0') ?? 0;
                       String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+
+                      // Check if bill is cancelled or returned
+                      final String status = (data['status'] ?? '').toString().toLowerCase();
+                      final bool isCancelled = status == 'cancelled';
+                      final bool isReturned = status == 'returned' || data['hasBeenReturned'] == true;
+                      final bool isRefunded = isCancelled || isReturned;
+
+                      if (isRefunded) {
+                        // Add to refunds instead of regular sales
+                        refunds += total;
+                        continue; // Skip adding to other totals
+                      }
 
                       grossSale += total + discountAmt;
                       discount += discountAmt;
@@ -2146,6 +2183,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                       if (dt != null) hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + total;
                     }
                   }
+
+                  // Add refunds to creditNote for display (purple section)
+                  creditNote += refunds;
 
                   double profit = netSale - productCost;
 
@@ -2434,7 +2474,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
             children: [
               _buildLegendRow(kChartGreen, 'Cash', cash),
               _buildLegendRow(kChartBlue, 'Online', online),
-              _buildLegendRow(kChartPurple, 'C. Note', cn),
+              _buildLegendRow(kChartPurple, 'Refunds', cn),
               _buildLegendRow(kChartRed, 'Credit', credit),
               _buildLegendRow(kChartAmber, 'Pending', unsettled),
             ],
@@ -2469,8 +2509,17 @@ class FullSalesHistoryPage extends StatelessWidget {
   FullSalesHistoryPage({super.key, required this.onBack});
 
   void _downloadPdf(BuildContext context, List<DocumentSnapshot> docs) {
+    // Filter out cancelled and returned bills for PDF
+    final filteredDocs = docs.where((doc) {
+      final d = doc.data() as Map<String, dynamic>;
+      final String status = (d['status'] ?? '').toString().toLowerCase();
+      final bool isCancelled = status == 'cancelled';
+      final bool isReturned = status == 'returned' || d['hasBeenReturned'] == true;
+      return !isCancelled && !isReturned;
+    }).toList();
+
     double totalSales = 0;
-    final rows = docs.map((doc) {
+    final rows = filteredDocs.map((doc) {
       final d = doc.data() as Map<String, dynamic>;
       DateTime? dt;
       if (d['timestamp'] != null) dt = (d['timestamp'] as Timestamp).toDate();
@@ -2494,7 +2543,7 @@ class FullSalesHistoryPage extends StatelessWidget {
       summaryTitle: 'TOTAL NET SETTLEMENT',
       summaryValue: "${totalSales.toStringAsFixed(2)}",
       additionalSummary: {
-        'Invoices Closed': '${docs.length}',
+        'Invoices Closed': '${filteredDocs.length}',
         'Audit Date': DateFormat('dd MMM yyyy').format(DateTime.now()),
         'Status': 'Verified'
       },
@@ -2881,6 +2930,13 @@ class TopCustomersPage extends StatelessWidget {
             Map<String, double> spendMap = {};
             for (var d in snapshot.data!.docs) {
               var data = d.data() as Map<String, dynamic>;
+
+              // Skip cancelled or returned bills
+              final String status = (data['status'] ?? '').toString().toLowerCase();
+              if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                continue;
+              }
+
               double amt = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
               String name = data['customerName'] ?? 'Walk-in Guest';
               spendMap[name] = (spendMap[name] ?? 0) + amt;
@@ -3568,6 +3624,13 @@ class ItemSalesPage extends StatelessWidget {
             Map<String, int> qtyMap = {};
             for (var d in salesSnap.data!.docs) {
               var data = d.data() as Map<String, dynamic>;
+
+              // Skip cancelled or returned bills
+              final String status = (data['status'] ?? '').toString().toLowerCase();
+              if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                continue;
+              }
+
               if (data['items'] != null) {
                 for (var item in (data['items'] as List)) {
                   String name = item['name']?.toString() ?? 'Unknown';
@@ -4244,6 +4307,12 @@ class _TopProductsPageState extends State<TopProductsPage> {
               else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
               if (_isInDateRange(dt)) {
+                // Skip cancelled or returned bills
+                final String status = (data['status'] ?? '').toString().toLowerCase();
+                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                  continue;
+                }
+
                 if (data['items'] != null && data['items'] is List) {
                   for (var item in (data['items'] as List)) {
                     String name = item['name']?.toString() ?? 'Unknown';
@@ -4671,6 +4740,12 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
               else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
               if (_isInDateRange(dt)) {
+                // Skip cancelled or returned bills
+                final String status = (data['status'] ?? '').toString().toLowerCase();
+                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                  continue;
+                }
+
                 if (data['items'] != null && data['items'] is List) {
                   for (var item in (data['items'] as List)) {
                     String category = item['category']?.toString() ?? 'Uncategorized';
@@ -5364,6 +5439,13 @@ class TaxReportPage extends StatelessWidget {
 
               for (var d in snapshot.data!.docs) {
                 var data = d.data() as Map<String, dynamic>;
+
+                // Skip cancelled or returned bills
+                final String status = (data['status'] ?? '').toString().toLowerCase();
+                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                  continue;
+                }
+
                 double saleTax = double.tryParse(data['totalTax']?.toString() ?? '0') ?? 0;
                 if (saleTax == 0) {
                   saleTax = double.tryParse(data['taxAmount']?.toString() ?? data['tax']?.toString() ?? '0') ?? 0;
@@ -5687,6 +5769,12 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                 else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                 if (_isInDateRange(dt)) {
+                  // Skip cancelled or returned bills
+                  final String status = (data['status'] ?? '').toString().toLowerCase();
+                  if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                    continue;
+                  }
+
                   String staffName = data['staffName']?.toString() ?? 'owner';
                   double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                   double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0;
@@ -6279,6 +6367,12 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                     else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                     if (_isInDateRange(dt)) {
+                      // Skip cancelled or returned bills
+                      final String status = (data['status'] ?? '').toString().toLowerCase();
+                      if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                        continue;
+                      }
+
                       double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                       String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 

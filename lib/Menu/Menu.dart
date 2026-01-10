@@ -266,11 +266,7 @@ class _MenuPageState extends State<MenuPage> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kWhite.withOpacity(0.15), borderRadius: BorderRadius.circular(18)),
-            child: Image.asset('assets/MAX_my_bill_mic.png', width: 60, height: 60),
-          ),
+          _buildStoreAvatar(),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -281,7 +277,7 @@ class _MenuPageState extends State<MenuPage> {
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    _buildHeaderBadge(_role.toUpperCase(), kWhite.withOpacity(0.2)),
+                    _buildHeaderBadge(_role, kWhite.withOpacity(0.2)),
                     const SizedBox(width: 8),
                     _buildPlanBadge(planProvider),
                   ],
@@ -291,34 +287,40 @@ class _MenuPageState extends State<MenuPage> {
               ],
             ),
           ),
-          _buildStoreAvatar(),
         ],
       ),
     );
   }
 
   Widget _buildBannerHeader(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        final planProvider = Provider.of<PlanProvider>(context, listen: false);
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (_) => SubscriptionPlanPage(
-              uid: widget.uid,
-              currentPlan: planProvider.cachedPlan,
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: GestureDetector(
+        onTap: () {
+          final planProvider = Provider.of<PlanProvider>(context, listen: false);
+          Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (_) => SubscriptionPlanPage(
+                uid: widget.uid,
+                currentPlan: planProvider.cachedPlan,
+              ),
             ),
+          );
+        },
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: kPrimaryColor,
+            borderRadius: BorderRadius.circular(12),
           ),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(color: kPrimaryColor),
-        child: AspectRatio(
-          aspectRatio: 45 / 16, // 1125:400 ratio
-          child: Image.asset(
-            'assets/Upgrade_Now.png',
-            fit: BoxFit.contain,
+          clipBehavior: Clip.antiAlias,
+          child: AspectRatio(
+            aspectRatio: 45 / 16, // 1125:400 ratio
+            child: Image.asset(
+              'assets/Upgrade_Now.png',
+              fit: BoxFit.contain,
+            ),
           ),
         ),
       ),
@@ -329,9 +331,9 @@ class _MenuPageState extends State<MenuPage> {
     return GestureDetector(
       onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SettingsPage(uid: widget.uid, userEmail: widget.userEmail))),
       child: Container(
-        width: 54, height: 54,
+        width: 100, height:100,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kWhite.withOpacity(0.3), width: 2),
           image: _logoUrl != null && _logoUrl!.isNotEmpty
               ? DecorationImage(image: NetworkImage(_logoUrl!), fit: BoxFit.cover) : null,
@@ -351,19 +353,34 @@ class _MenuPageState extends State<MenuPage> {
         children: [
           const Icon(Icons.star_rounded, color: kWhite, size: 10),
           const SizedBox(width: 4),
-          Text(plan.toUpperCase(), style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
+          Text(plan, style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
         ],
       ),
     );
   }
 
   Widget _buildHeaderBadge(String text, Color color) {
+    final formattedText = text.isNotEmpty
+        ? text[0].toUpperCase() + text.substring(1).toLowerCase()
+        : text;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
-      child: Text(text, style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        formattedText,
+        style: const TextStyle(
+          color: kWhite,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
+
 
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(bottom: 12, left: 4),
@@ -387,7 +404,7 @@ class _MenuPageState extends State<MenuPage> {
           // margin removed to keep cards touching as requested
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(color: kGrey200.withOpacity(0.5)),
             boxShadow: [
               BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
@@ -457,6 +474,7 @@ class _MenuPageState extends State<MenuPage> {
           children: [
             _buildSubMenuItem('Stock Purchase', 'StockPurchase'),
             _buildSubMenuItem('Direct Expenses', 'Expenses'),
+            _buildSubMenuItem('Expense Type', 'ExpenseCategories'),
             _buildSubMenuItem('Vendors', 'Vendors'),
           ],
         ),
@@ -493,6 +511,7 @@ class _MenuPageState extends State<MenuPage> {
       case 'Customers': return CustomersPage(uid: widget.uid, onBack: reset);
       case 'StockPurchase': return StockPurchasePage(uid: widget.uid, onBack: reset);
       case 'Expenses': return ExpensesPage(uid: widget.uid, onBack: reset);
+      case 'ExpenseCategories': return ExpenseCategoriesPage(uid: widget.uid, onBack: reset);
       case 'Vendors': return VendorsPage(uid: widget.uid, onBack: reset);
       case 'Quotation': return _buildAsyncRoute(planProvider.canAccessQuotationAsync(), 'Quotation', reset, QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
       case 'CreditNotes': return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Credit Notes', reset, CreditNotesPage(uid: widget.uid, onBack: reset));
@@ -771,8 +790,8 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       final paymentStatus = data['paymentStatus'];
       final isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
       final isCancelled = data['status'] == 'cancelled';
-      final isEdited = data['status'] == 'edited';
-      final isReturned = data['status'] == 'returned';
+      final isEdited = data['status'] == 'edited' || data['hasBeenEdited'] == true || data['editedAt'] != null;
+      final isReturned = data['status'] == 'returned' || data['hasBeenReturned'] == true || data['returnedAt'] != null;
 
       if (_statusFilter == 'settled' && (!isSettled || isCancelled || isEdited || isReturned)) return false;
       if (_statusFilter == 'unsettled' && (isSettled || isCancelled || isEdited || isReturned)) return false;
@@ -934,8 +953,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     final paymentStatus = data['paymentStatus'];
     final bool isSettled = paymentStatus != null ? paymentStatus != 'unsettled' : (data.containsKey('paymentMode'));
     final bool isCancelled = data['status'] == 'cancelled';
-    final bool isEdited = data['status'] == 'edited';
-    final bool isReturned = data['status'] == 'returned';
+    // Check both current status and history flags for edited and returned
+    final bool isEdited = data['status'] == 'edited' || data['hasBeenEdited'] == true || data['editedAt'] != null;
+    final bool isReturned = data['status'] == 'returned' || data['hasBeenReturned'] == true || data['returnedAt'] != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -986,43 +1006,65 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   }
 
   Widget _badge(bool settled, bool cancelled, bool edited, bool returned) {
+    List<Widget> badges = [];
+
+    // Show all applicable status badges
     if (cancelled) {
-      return Container(
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: kBlack54.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
         child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
-      );
-    }
-    if (edited) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.2))),
-        child: const Text("Edited", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
-      );
+      ));
     }
     if (returned) {
-      return Container(
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.orange.withOpacity(0.2))),
         child: const Text("Returned", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
-      );
+      ));
     }
-    // Logic: Unsettled (Open) is Green, Settled (Closed) is Red
-    final Color statusColor = settled ? kErrorColor : kGoogleGreen;
-    return Container(
+    if (edited) {
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-            color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: statusColor.withOpacity(0.2))),
-        child: Text(settled ? "Settled" : "Unsettled",
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor)));
+        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.blue.withOpacity(0.2))),
+        child: const Text("Edited", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
+      ));
+    }
+
+    // Only show Unsettled if no other status badges and bill is unsettled
+    // Remove "Settled" indication - don't show it anymore
+    if (badges.isEmpty && !settled) {
+      badges.add(Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+              color: kGoogleGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kGoogleGreen.withOpacity(0.2))),
+          child: const Text("Unsettled",
+              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))));
+    }
+
+    // If no badges at all (settled with no special status), return empty container
+    if (badges.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Return single badge or wrap multiple badges
+    if (badges.length == 1) {
+      return badges[0];
+    }
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: badges,
+    );
   }
 
   void _handleOnTap(QueryDocumentSnapshot doc, Map<String, dynamic> data, bool isSettled, bool isCancelled, double total) {
     // Allow editing only if unsettled and not cancelled/edited/returned
-    final bool isEdited = data['status'] == 'edited';
-    final bool isReturned = data['status'] == 'returned';
+    final bool isEdited = data['status'] == 'edited' || data['hasBeenEdited'] == true || data['editedAt'] != null;
+    final bool isReturned = data['status'] == 'returned' || data['hasBeenReturned'] == true || data['returnedAt'] != null;
 
     if (!isSettled && !isCancelled && !isEdited && !isReturned) {
       final List<CartItem> cartItems = (data['items'] as List<dynamic>? ?? [])
@@ -1457,13 +1499,23 @@ class SalesDetailPage extends StatelessWidget {
                 }
 
                 // 3. Mark the sales document as cancelled (don't delete)
+                // Preserve history flags for edited/returned status
                 final salesCollection = await FirestoreService().getStoreCollection('sales');
-                await salesCollection.doc(documentId).update({
+                final updateData = <String, dynamic>{
                   'status': 'cancelled',
                   'cancelledAt': FieldValue.serverTimestamp(),
                   'cancelledBy': data['staffName'] ?? 'owner',
                   'cancelReason': 'Bill Cancelled',
-                });
+                };
+                // Preserve edit history if bill was previously edited
+                if (data['status'] == 'edited' || data['hasBeenEdited'] == true || data['editedAt'] != null) {
+                  updateData['hasBeenEdited'] = true;
+                }
+                // Preserve return history if bill was previously returned
+                if (data['status'] == 'returned' || data['hasBeenReturned'] == true || data['returnedAt'] != null) {
+                  updateData['hasBeenReturned'] = true;
+                }
+                await salesCollection.doc(documentId).update(updateData);
 
                 if (context.mounted) {
                   // Close loading dialog
@@ -1571,8 +1623,8 @@ class SalesDetailPage extends StatelessWidget {
               final status = data['paymentStatus'];
               final bool settled = status != null ? status != 'unsettled' : (data.containsKey('paymentMode'));
               final bool isCancelled = data['status'] == 'cancelled';
-              final bool isEdited = data['status'] == 'edited';
-              final bool isReturned = data['status'] == 'returned';
+              final bool isEdited = data['status'] == 'edited' || data['hasBeenEdited'] == true || data['editedAt'] != null;
+              final bool isReturned = data['status'] == 'returned' || data['hasBeenReturned'] == true || data['returnedAt'] != null;
 
               return Column(
                 children: [
@@ -1958,9 +2010,11 @@ class SalesDetailPage extends StatelessWidget {
   }
 
   Widget _buildStatusTag(bool settled, bool cancelled, bool edited, bool returned) {
-    // Priority order: cancelled > returned > edited > settled/unsettled
+    List<Widget> badges = [];
+
+    // Priority order: cancelled > returned > edited
     if (cancelled) {
-      return Container(
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: kBlack54.withOpacity(0.1),
@@ -1968,10 +2022,10 @@ class SalesDetailPage extends StatelessWidget {
           border: Border.all(color: kBlack54.withOpacity(0.2)),
         ),
         child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
-      );
+      ));
     }
     if (returned) {
-      return Container(
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.orange.withOpacity(0.1),
@@ -1979,10 +2033,10 @@ class SalesDetailPage extends StatelessWidget {
           border: Border.all(color: Colors.orange.withOpacity(0.2)),
         ),
         child: const Text("Returned", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange)),
-      );
+      ));
     }
     if (edited) {
-      return Container(
+      badges.add(Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color: Colors.blue.withOpacity(0.1),
@@ -1990,21 +2044,40 @@ class SalesDetailPage extends StatelessWidget {
           border: Border.all(color: Colors.blue.withOpacity(0.2)),
         ),
         child: const Text("Edited", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.blue)),
-      );
+      ));
     }
-    // Default: settled/unsettled status
-    final Color statusColor = settled ? kErrorColor : kGoogleGreen;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: statusColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: statusColor.withOpacity(0.2)),
-      ),
-      child: Text(
-        settled ? "Settled" : "Unsettled",
-        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor),
-      ),
+
+    // Only show Unsettled if no other status badges and bill is unsettled
+    // Remove "Settled" indication - don't show it anymore
+    if (badges.isEmpty && !settled) {
+      badges.add(Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: kGoogleGreen.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+        ),
+        child: const Text(
+          "Unsettled",
+          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen),
+        ),
+      ));
+    }
+
+    // If no badges at all (settled with no special status), return empty container
+    if (badges.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // Return single badge or wrap multiple badges
+    if (badges.length == 1) {
+      return badges[0];
+    }
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: badges,
     );
   }
 }// Close BillHistoryPage class
@@ -4888,14 +4961,25 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         if (newQty > 0) { item['quantity'] = newQty; updatedItems.add(item); }
       }
 
-      await salesCollection.doc(widget.documentId).update({
+      // Check if bill was previously edited to preserve the flag
+      final wasEdited = widget.invoiceData['status'] == 'edited' || widget.invoiceData['hasBeenEdited'] == true || widget.invoiceData['editedAt'] != null;
+
+      final updateData = <String, dynamic>{
         'items': updatedItems,
         'total': (widget.invoiceData['total'] ?? 0.0) - totalReturnWithTax,
         'hasReturns': true,
         'returnAmount': (widget.invoiceData['returnAmount'] ?? 0.0) + totalReturnWithTax,
         'lastReturnAt': FieldValue.serverTimestamp(),
         'status': 'returned', // Mark as returned
-      });
+        'hasBeenReturned': true, // Preserve return history
+        'returnedAt': FieldValue.serverTimestamp(),
+      };
+      // Preserve edit history if bill was previously edited
+      if (wasEdited) {
+        updateData['hasBeenEdited'] = true;
+      }
+
+      await salesCollection.doc(widget.documentId).update(updateData);
 
       if (mounted) {
         Navigator.pop(context); // Close loading
@@ -6111,6 +6195,8 @@ class _EditBillPageState extends State<EditBillPage> {
         'updatedAt': FieldValue.serverTimestamp(),
         'editCount': currentEditCount + 1,
         'status': 'edited', // Mark as edited
+        'hasBeenEdited': true, // Preserve edit history
+        'editedAt': FieldValue.serverTimestamp(),
       });
 
       // Handle Partial Credit Note Logic

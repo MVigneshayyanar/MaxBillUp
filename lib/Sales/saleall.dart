@@ -686,6 +686,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final category = data['category'] ?? 'General';
     final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
 
+    // Low stock color
+    const Color lowStockColor = Color(0xffCC8758);
+
     // Expiry check
     final expiryDateStr = data['expiryDate'] as String?;
     bool isExpired = false;
@@ -742,14 +745,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   color: isExpired
                       ? kErrorColor.withOpacity(0.05)
                       : isLowStock
-                          ? kOrange.withOpacity(0.05)
+                          ? lowStockColor.withOpacity(0.05)
                           : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isExpired
                         ? kErrorColor.withOpacity(0.5)
                         : isLowStock
-                            ? kOrange.withOpacity(0.5)
+                            ? lowStockColor.withOpacity(0.5)
                             : (isAnimating ? kGoogleGreen : kGrey200),
                     width: isAnimating ? 2 : 1,
                   ),
@@ -769,13 +772,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                              fontSize: 14,
                               height: 1.1,
-                              color: isExpired
-                                  ? kErrorColor
-                                  : isLowStock
-                                      ? kOrange
-                                      : kBlack87,
+                              color: kBlack87,
                             ),
                           ),
                         ),
@@ -789,101 +788,54 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     ),
 
                     /// CATEGORY + PRICE + STOCK in bottom section
-                    Column(
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          formatCategory(category),
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w700,
-                            color: kOrange,
-                            letterSpacing: 0.3,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                formatCategory(category),
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: kOrange,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                price.toStringAsFixed(0),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 12,
+                                  color: kPrimaryColor,
+                                ),
+                              ),
+                              if (stockEnabled) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  isOutOfStock
+                                      ? 'OUT OF STOCK'
+                                      : '${stock.toInt()} $unit',
+                                  style: TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    color: isOutOfStock
+                                        ? kErrorColor
+                                        : isLowStock
+                                            ? lowStockColor
+                                            : kGoogleGreen,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    price.toStringAsFixed(0),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 12,
-                                      color: isExpired
-                                          ? kErrorColor
-                                          : isLowStock
-                                              ? kOrange
-                                              : kPrimaryColor,
-                                    ),
-                                  ),
-                                  if (stockEnabled) ...[
-                                    const SizedBox(height: 2),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 5, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: isOutOfStock
-                                            ? kErrorColor.withOpacity(0.08)
-                                            : isLowStock
-                                                ? kOrange.withOpacity(0.08)
-                                                : kGoogleGreen.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(5),
-                                      ),
-                                      child: Text(
-                                        isOutOfStock
-                                            ? 'OUT OF STOCK'
-                                            : '${stock.toInt()} $unit',
-                                        style: TextStyle(
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w900,
-                                          color: isOutOfStock
-                                              ? kErrorColor
-                                              : isLowStock
-                                                  ? kOrange
-                                                  : kGoogleGreen,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            if (isLowStock && !isOutOfStock)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 5, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: kOrange.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(5),
-                                  border: Border.all(
-                                      color: kOrange.withOpacity(0.3)),
-                                ),
-                                child: const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.warning_amber_rounded,
-                                        size: 9, color: kOrange),
-                                    SizedBox(width: 2),
-                                    Text(
-                                      'LOW',
-                                      style: TextStyle(
-                                        fontSize: 7,
-                                        fontWeight: FontWeight.w900,
-                                        color: kOrange,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
+                        if (isLowStock && !isOutOfStock)
+                          Icon(Icons.warning_amber_rounded, size: 16, color: lowStockColor),
                       ],
                     ),
                   ],
@@ -929,14 +881,42 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   ),
                 ),
 
-              /// EXPIRED badge
-              if (isExpired)
+              /// LOW STOCK badge - bottom right
+              if (isLowStock && !isOutOfStock)
                 Positioned(
-                  top: 4,
+                  bottom: 4,
                   right: 4,
                   child: Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: lowStockColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: lowStockColor.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 2),
+                        Text(
+                          'LOW STOCK',
+                          style: TextStyle(
+                            fontSize: 7,
+                            fontWeight: FontWeight.w900,
+                            color: lowStockColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+              /// EXPIRED badge - bottom right
+              if (isExpired)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: kErrorColor,
                       borderRadius: BorderRadius.circular(6),
