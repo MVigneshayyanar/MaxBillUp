@@ -397,25 +397,25 @@ class _ReportsPageState extends State<ReportsPage> {
 enum DateFilterOption {
   today,
   yesterday,
+  thisWeek,
   last7Days,
   last30Days,
   thisMonth,
   lastMonth,
+  custom,
   customDate,
   customPeriod,
   customMonth,
 }
 
-// Common date filter widget used across reports
+// --- MODERN EXECUTIVE DATE FILTER ---
 class DateFilterWidget extends StatefulWidget {
   final DateFilterOption selectedOption;
   final DateTime? startDate;
   final DateTime? endDate;
   final Function(DateFilterOption, DateTime, DateTime) onDateChanged;
   final bool showSortButton;
-  final bool showDownloadButton;
   final VoidCallback? onSortPressed;
-  final VoidCallback? onDownloadPressed;
   final bool isDescending;
 
   const DateFilterWidget({
@@ -425,9 +425,7 @@ class DateFilterWidget extends StatefulWidget {
     this.endDate,
     required this.onDateChanged,
     this.showSortButton = false,
-    this.showDownloadButton = false,
     this.onSortPressed,
-    this.onDownloadPressed,
     this.isDescending = true,
   });
 
@@ -436,275 +434,358 @@ class DateFilterWidget extends StatefulWidget {
 }
 
 class _DateFilterWidgetState extends State<DateFilterWidget> {
+  // Theme Tokens
+  static const Color kGreyBg = Color(0xFFF5F5F7);
+  static const Color kWhite = Colors.white;
+  static const Color kTextSecondary = Color(0xFF757575);
+
   String _getFilterLabel(DateFilterOption option) {
     switch (option) {
-      case DateFilterOption.today:
-        return 'Today';
-      case DateFilterOption.yesterday:
-        return 'Yesterday';
-      case DateFilterOption.last7Days:
-        return 'Last 7 Days';
-      case DateFilterOption.last30Days:
-        return 'Last 30 Days';
-      case DateFilterOption.thisMonth:
-        return 'This Month';
-      case DateFilterOption.lastMonth:
-        return 'Last Month';
-      case DateFilterOption.customDate:
-        return 'Custom Date';
-      case DateFilterOption.customPeriod:
-        return 'Custom Period';
-      case DateFilterOption.customMonth:
-        return 'Custom Month';
+      case DateFilterOption.today: return 'Today';
+      case DateFilterOption.yesterday: return 'Yesterday';
+      case DateFilterOption.thisWeek: return 'Week';
+      case DateFilterOption.last7Days: return '7 Days';
+      case DateFilterOption.last30Days: return '30 Days';
+      case DateFilterOption.thisMonth: return 'Month';
+      case DateFilterOption.lastMonth: return 'Last Month';
+      case DateFilterOption.custom: return 'Custom';
+      case DateFilterOption.customDate: return 'Date';
+      case DateFilterOption.customPeriod: return 'Range';
+      case DateFilterOption.customMonth: return 'Target';
     }
   }
 
-  Future<void> _selectCustomDate(BuildContext context) async {
+  void _handleQuickSelect(DateFilterOption option) {
+    final now = DateTime.now();
+    DateTime start = now;
+    DateTime end = now;
+
+    switch (option) {
+      case DateFilterOption.today:
+        start = DateTime(now.year, now.month, now.day);
+        end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        break;
+      case DateFilterOption.yesterday:
+        final yesterday = now.subtract(const Duration(days: 1));
+        start = DateTime(yesterday.year, yesterday.month, yesterday.day);
+        end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
+        break;
+      case DateFilterOption.thisWeek:
+        start = now.subtract(Duration(days: now.weekday - 1));
+        start = DateTime(start.year, start.month, start.day);
+        end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        break;
+      case DateFilterOption.thisMonth:
+        start = DateTime(now.year, now.month, 1);
+        end = DateTime(now.year, now.month, now.day, 23, 59, 59);
+        break;
+      default:
+        _showAdvancedFilterModal();
+        return;
+    }
+    widget.onDateChanged(option, start, end);
+  }
+
+  // --- PICKERS ---
+
+  Future<void> _selectCustomDate() async {
     final picked = await showDatePicker(
       context: context,
       initialDate: widget.startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
+      builder: (context, child) => _applyTheme(child!),
     );
     if (picked != null) {
-      widget.onDateChanged(DateFilterOption.customDate, picked, picked);
+      widget.onDateChanged(DateFilterOption.customDate, picked, DateTime(picked.year, picked.month, picked.day, 23, 59, 59));
     }
   }
 
-  Future<void> _selectCustomPeriod(BuildContext context) async {
-    final start = await showDatePicker(
+  Future<void> _selectCustomPeriod() async {
+    final range = await showDateRangePicker(
       context: context,
-      initialDate: widget.startDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      helpText: 'Select Start Date',
+      initialDateRange: widget.startDate != null && widget.endDate != null
+          ? DateTimeRange(start: widget.startDate!, end: widget.endDate!)
+          : null,
+      builder: (context, child) => _applyTheme(child!),
     );
-    if (start != null && context.mounted) {
-      final end = await showDatePicker(
-        context: context,
-        initialDate: widget.endDate ?? DateTime.now(),
-        firstDate: start,
-        lastDate: DateTime.now(),
-        helpText: 'Select End Date',
-      );
-      if (end != null) {
-        widget.onDateChanged(DateFilterOption.customPeriod, start, end);
-      }
+    if (range != null) {
+      widget.onDateChanged(DateFilterOption.customPeriod, range.start, DateTime(range.end.year, range.end.month, range.end.day, 23, 59, 59));
     }
   }
 
-  Future<void> _selectCustomMonth(BuildContext context) async {
+  Future<void> _selectCustomMonth() async {
     final now = DateTime.now();
     int selectedYear = now.year;
-    int selectedMonth = now.month;
 
-    await showDialog(
+    await showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Month'),
-        content: StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed: () => setDialogState(() => selectedYear--),
-                    ),
-                    Text('$selectedYear', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed: selectedYear < now.year ? () => setDialogState(() => selectedYear++) : null,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: List.generate(12, (index) {
-                    final month = index + 1;
-                    final isDisabled = selectedYear == now.year && month > now.month;
-                    return InkWell(
-                      onTap: isDisabled ? null : () {
-                        setDialogState(() => selectedMonth = month);
-                        Navigator.pop(context);
-                        final firstDay = DateTime(selectedYear, month, 1);
-                        final lastDay = DateTime(selectedYear, month + 1, 0);
-                        widget.onDateChanged(DateFilterOption.customMonth, firstDay, lastDay);
-                      },
-                      child: Container(
-                        width: 60,
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          color: selectedMonth == month ? kPrimaryColor : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: isDisabled ? Colors.grey.shade300 : kPrimaryColor),
-                        ),
-                        child: Text(
-                          DateFormat('MMM').format(DateTime(2024, month)),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: isDisabled ? Colors.grey : (selectedMonth == month ? Colors.white : kPrimaryColor),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _buildIconBtn(Icons.chevron_left, () => setModalState(() => selectedYear--)),
+                  Text('$selectedYear', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                  _buildIconBtn(Icons.chevron_right, selectedYear < now.year ? () => setModalState(() => selectedYear++) : null),
+                ],
+              ),
+              const SizedBox(height: 20),
+              GridView.builder(
+                shrinkWrap: true,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 4, mainAxisSpacing: 8, crossAxisSpacing: 8, childAspectRatio: 1.4),
+                itemCount: 12,
+                itemBuilder: (context, index) {
+                  final month = index + 1;
+                  final isDisabled = selectedYear == now.year && month > now.month;
+                  return InkWell(
+                    onTap: isDisabled ? null : () {
+                      final first = DateTime(selectedYear, month, 1);
+                      final last = DateTime(selectedYear, month + 1, 0, 23, 59, 59);
+                      widget.onDateChanged(DateFilterOption.customMonth, first, last);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isDisabled ? Colors.transparent : kPrimaryColor.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isDisabled ? Colors.grey.shade200 : kPrimaryColor.withOpacity(0.15)),
                       ),
-                    );
-                  }),
-                ),
-              ],
-            );
-          },
+                      child: Text(
+                        DateFormat('MMM').format(DateTime(2024, month)),
+                        style: TextStyle(fontWeight: FontWeight.w900, color: isDisabled ? Colors.grey : kPrimaryColor, fontSize: 12),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  void _showAdvancedFilterModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(left: 8.0, bottom: 12),
+              child: Text("ADVANCED AUDIT TIMEFRAME", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 1.5)),
+            ),
+            _buildModalItem(DateFilterOption.last7Days, Icons.date_range_rounded, () {
+              final now = DateTime.now();
+              widget.onDateChanged(DateFilterOption.last7Days, now.subtract(const Duration(days: 6)), now);
+              Navigator.pop(context);
+            }),
+            _buildModalItem(DateFilterOption.last30Days, Icons.av_timer_rounded, () {
+              final now = DateTime.now();
+              widget.onDateChanged(DateFilterOption.last30Days, now.subtract(const Duration(days: 29)), now);
+              Navigator.pop(context);
+            }),
+            _buildModalItem(DateFilterOption.lastMonth, Icons.calendar_month_rounded, () {
+              final lastMonth = DateTime(DateTime.now().year, DateTime.now().month - 1, 1);
+              widget.onDateChanged(DateFilterOption.lastMonth, lastMonth, DateTime(DateTime.now().year, DateTime.now().month, 0, 23, 59, 59));
+              Navigator.pop(context);
+            }),
+            _buildModalItem(DateFilterOption.customDate, Icons.event_note_rounded, () {
+              Navigator.pop(context);
+              _selectCustomDate();
+            }),
+            _buildModalItem(DateFilterOption.customMonth, Icons.grid_view_rounded, () {
+              Navigator.pop(context);
+              _selectCustomMonth();
+            }),
+            _buildModalItem(DateFilterOption.customPeriod, Icons.date_range_rounded, () {
+              Navigator.pop(context);
+              _selectCustomPeriod();
+            }),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- UI HELPERS ---
+
+  Widget _buildModalItem(DateFilterOption option, IconData icon, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        visualDensity: VisualDensity.compact,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(icon, size: 18, color: kPrimaryColor),
+        title: Text(_getFilterLabel(option), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87)),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _applyTheme(Widget child) {
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: const ColorScheme.light(primary: kPrimaryColor, onPrimary: kWhite, onSurface: Colors.black87),
+        textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: kPrimaryColor)),
+        dialogTheme: DialogThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildIconBtn(IconData icon, VoidCallback? onPressed) {
+    return Container(
+      decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
+      child: IconButton(icon: Icon(icon, size: 18, color: kPrimaryColor), onPressed: onPressed),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        children: [
-          // Date filter dropdown
-          Expanded(
-            child: InkWell(
-              onTap: () {
-                showModalBottomSheet(
-                  context: context,
-                  shape: const RoundedRectangleBorder(
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
-                  builder: (context) => Container(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: DateFilterOption.values.map((option) {
-                        return ListTile(
-                          title: Text(_getFilterLabel(option)),
-                          selected: widget.selectedOption == option,
-                          selectedColor: kPrimaryColor,
-                          onTap: () {
-                            Navigator.pop(context);
-                            final now = DateTime.now();
-                            DateTime start, end;
+    final List<DateFilterOption> quickOptions = [
+      DateFilterOption.today,
+      DateFilterOption.yesterday,
+      DateFilterOption.thisWeek,
+      DateFilterOption.thisMonth,
+    ];
 
-                            switch (option) {
-                              case DateFilterOption.today:
-                                start = DateTime(now.year, now.month, now.day);
-                                end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.yesterday:
-                                final yesterday = now.subtract(const Duration(days: 1));
-                                start = DateTime(yesterday.year, yesterday.month, yesterday.day);
-                                end = DateTime(yesterday.year, yesterday.month, yesterday.day, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.last7Days:
-                                start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 6));
-                                end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.last30Days:
-                                start = DateTime(now.year, now.month, now.day).subtract(const Duration(days: 29));
-                                end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.thisMonth:
-                                start = DateTime(now.year, now.month, 1);
-                                end = DateTime(now.year, now.month, now.day, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.lastMonth:
-                                final lastMonth = DateTime(now.year, now.month - 1, 1);
-                                start = lastMonth;
-                                end = DateTime(now.year, now.month, 0, 23, 59, 59);
-                                widget.onDateChanged(option, start, end);
-                                break;
-                              case DateFilterOption.customDate:
-                                _selectCustomDate(context);
-                                break;
-                              case DateFilterOption.customPeriod:
-                                _selectCustomPeriod(context);
-                                break;
-                              case DateFilterOption.customMonth:
-                                _selectCustomMonth(context);
-                                break;
-                            }
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+    return Container(
+      color: kWhite,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16), // Reduced vertical padding
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. Executive Info Bar (Compact)
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getFilterLabel(widget.selectedOption),
-                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      _getFilterLabel(widget.selectedOption).toUpperCase(),
+                      style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.8), // Smaller label
                     ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, size: 20),
+                    const SizedBox(height: 1),
+                    Text(
+                      widget.startDate != null
+                          ? (widget.startDate == widget.endDate || widget.endDate == null
+                          ? '${DateFormat('dd-MM-yyyy').format(widget.startDate!)} — ${DateFormat('dd-MM-yyyy').format(widget.startDate!)}'
+                          : '${DateFormat('dd-MM-yyyy').format(widget.startDate!)} — ${DateFormat('dd-MM-yyyy').format(widget.endDate!)}')
+                          : 'Set Period',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black87), // Smaller date text
+                    ),
                   ],
                 ),
               ),
-            ),
+              if (widget.showSortButton)
+                _buildActionSquare(
+                  widget.isDescending ? Icons.south_rounded : Icons.north_rounded,
+                  widget.onSortPressed,
+                ),
+            ],
           ),
-          const SizedBox(width: 12),
-          // Display date
-          Text(
-            widget.startDate != null
-                ? (widget.startDate == widget.endDate || widget.endDate == null
-                    ? DateFormat('MMM d, yyyy').format(widget.startDate!)
-                    : '${DateFormat('MMM d').format(widget.startDate!)} - ${DateFormat('MMM d, yyyy').format(widget.endDate!)}')
-                : DateFormat('MMM d, yyyy').format(DateTime.now()),
-            style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
+
+          const SizedBox(height: 8), // Reduced gap between rows
+
+          // 2. Executive Quick Tiling (More compact height)
+          Row(
+            children: [
+              ...quickOptions.map((opt) {
+                bool isSelected = widget.selectedOption == opt;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => _handleQuickSelect(opt),
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 5), // Tightened margin
+                      padding: const EdgeInsets.symmetric(vertical: 6), // Reduced tile height
+                      decoration: BoxDecoration(
+                        color: isSelected ? kPrimaryColor : kGreyBg,
+                        borderRadius: BorderRadius.circular(10), // Slightly smaller radius for compact look
+                        border: Border.all(
+                          color: isSelected ? kPrimaryColor : Colors.transparent,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          _getFilterLabel(opt),
+                          style: TextStyle(
+                            color: isSelected ? kWhite : Colors.black87,
+                            fontSize: 10, // Smaller font
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              // Integrated ALL Button
+              Expanded(
+                child: GestureDetector(
+                  onTap: _showAdvancedFilterModal,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(
+                      color: kGreyBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("ALL", style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w900)),
+                        SizedBox(width: 2),
+                        Icon(Icons.tune_rounded, size: 12, color: kPrimaryColor),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-          if (widget.showSortButton) ...[
-            const SizedBox(width: 12),
-            IconButton(
-              icon: Icon(
-                Icons.sort,
-                color: kPrimaryColor,
-                size: 22,
-              ),
-              onPressed: widget.onSortPressed,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
-          if (widget.showDownloadButton) ...[
-            const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                widget.isDescending ? Icons.arrow_downward : Icons.arrow_upward,
-                color: kPrimaryColor,
-                size: 22,
-              ),
-              onPressed: widget.onDownloadPressed,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-          ],
+          const SizedBox(height: 6),
+          Divider(height: 1, color: Colors.grey.shade100, thickness: 1),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionSquare(IconData icon, VoidCallback? onPressed) {
+    return Container(
+      height: 32, // Reduced from 38
+      width: 32,  // Reduced from 38
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: kPrimaryColor, size: 16), // Smaller icon
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
       ),
     );
   }
@@ -828,7 +909,6 @@ class ReportPdfGenerator {
     Map<String, String>? additionalSummary,
   }) async {
     try {
-      // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -838,129 +918,312 @@ class ReportPdfGenerator {
       final pdf = pw.Document();
       final now = DateTime.now();
       final dateStr = DateFormat('dd MMM yyyy, hh:mm a').format(now);
+      final shortDate = DateFormat('dd MMM yyyy').format(now);
 
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.all(16),
+          margin: const pw.EdgeInsets.all(20),
           build: (pw.Context context) {
             return [
-              // Header - compact
+              // Modern Header with gradient-like effect
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.blue800,
-                  borderRadius: pw.BorderRadius.circular(6),
+                  gradient: const pw.LinearGradient(
+                    colors: [PdfColors.blue800, PdfColors.blue900],
+                    begin: pw.Alignment.topLeft,
+                    end: pw.Alignment.bottomRight,
+                  ),
+                  borderRadius: pw.BorderRadius.circular(12),
                 ),
+                padding: const pw.EdgeInsets.all(20),
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          reportTitle,
-                          style: pw.TextStyle(
-                            color: PdfColors.white,
-                            fontSize: 16,
-                            fontWeight: pw.FontWeight.bold,
+                    pw.Expanded(
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            reportTitle.toUpperCase(),
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 24,
+                              fontWeight: pw.FontWeight.bold,
+                              letterSpacing: 1.2,
+                            ),
                           ),
-                        ),
-                        pw.Text(
-                          'Generated on: $dateStr',
-                          style: const pw.TextStyle(color: PdfColors.white, fontSize: 8),
-                        ),
-                      ],
+                          pw.SizedBox(height: 8),
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: pw.BoxDecoration(
+                              color: PdfColors.blue700,
+                              borderRadius: pw.BorderRadius.circular(20),
+                            ),
+                            child: pw.Text(
+                              '$shortDate',
+                              style: const pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     pw.Container(
-                      padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       decoration: pw.BoxDecoration(
                         color: PdfColors.white,
-                        borderRadius: pw.BorderRadius.circular(4),
+                        borderRadius: pw.BorderRadius.circular(8),
                       ),
                       child: pw.Text(
                         'MAXmybill',
                         style: pw.TextStyle(
                           color: PdfColors.blue800,
-                          fontSize: 10,
+                          fontSize: 16,
                           fontWeight: pw.FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              pw.SizedBox(height: 8),
 
-              // Summary Section - compact
+              pw.SizedBox(height: 24),
+
+              // Modern Summary Cards
               if (summaryTitle != null && summaryValue != null) ...[
                 pw.Container(
-                  padding: const pw.EdgeInsets.all(10),
                   decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(6),
-                    border: pw.Border.all(color: PdfColors.grey300),
+                    color: PdfColors.white,
+                    borderRadius: pw.BorderRadius.circular(12),
+                    border: pw.Border.all(color: PdfColors.grey300, width: 1),
                   ),
                   child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text(summaryTitle, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                      pw.SizedBox(height: 2),
-                      pw.Text(summaryValue, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                      if (additionalSummary != null) ...[
-                        pw.SizedBox(height: 6),
-                        pw.Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
-                          children: additionalSummary.entries.map((e) => pw.Row(
-                            mainAxisSize: pw.MainAxisSize.min,
-                            children: [
-                              pw.Text('${e.key}: ', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-                              pw.Text(e.value, style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
-                            ],
-                          )).toList(),
+                      // Main Summary
+                      pw.Container(
+                        width: double.infinity,
+                        padding: const pw.EdgeInsets.all(20),
+                        decoration: pw.BoxDecoration(
+                          gradient: const pw.LinearGradient(
+                            colors: [PdfColors.blue50, PdfColors.blue100],
+                            begin: pw.Alignment.topLeft,
+                            end: pw.Alignment.bottomRight,
+                          ),
+                          borderRadius: const pw.BorderRadius.only(
+                            topLeft: pw.Radius.circular(12),
+                            topRight: pw.Radius.circular(12),
+                          ),
+                        ),
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(
+                              summaryTitle.toUpperCase(),
+                              style: pw.TextStyle(
+                                fontSize: 10,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.blue800,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            pw.SizedBox(height: 8),
+                            pw.Text(
+                              summaryValue,
+                              style: pw.TextStyle(
+                                fontSize: 32,
+                                fontWeight: pw.FontWeight.bold,
+                                color: PdfColors.blue900,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Additional Summary Grid
+                      if (additionalSummary != null && additionalSummary.isNotEmpty) ...[
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(20),
+                          child: pw.Wrap(
+                            spacing: 16,
+                            runSpacing: 12,
+                            children: additionalSummary.entries.map((e) {
+                              return pw.Container(
+                                width: 150,
+                                padding: const pw.EdgeInsets.all(12),
+                                decoration: pw.BoxDecoration(
+                                  color: PdfColors.grey100,
+                                  borderRadius: pw.BorderRadius.circular(8),
+                                  border: pw.Border.all(color: PdfColors.grey200),
+                                ),
+                                child: pw.Column(
+                                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                                  children: [
+                                    pw.Text(
+                                      e.key.toUpperCase(),
+                                      style: const pw.TextStyle(
+                                        fontSize: 8,
+                                        color: PdfColors.grey600,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                    pw.SizedBox(height: 4),
+                                    pw.Text(
+                                      e.value,
+                                      style: pw.TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: pw.FontWeight.bold,
+                                        color: PdfColors.grey900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ],
                     ],
                   ),
                 ),
-                pw.SizedBox(height: 8),
+                pw.SizedBox(height: 24),
               ],
 
-              // Table - compact
-              pw.TableHelper.fromTextArray(
-                context: context,
-                headers: headers,
-                data: rows,
-                headerStyle: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
+              // Modern Table
+              pw.Container(
+                decoration: pw.BoxDecoration(
                   color: PdfColors.white,
-                  fontSize: 9,
+                  borderRadius: pw.BorderRadius.circular(12),
+                  border: pw.Border.all(color: PdfColors.grey300, width: 1),
                 ),
-                headerDecoration: const pw.BoxDecoration(color: PdfColors.blue800),
-                cellStyle: const pw.TextStyle(fontSize: 8),
-                cellAlignment: pw.Alignment.centerLeft,
-                cellPadding: const pw.EdgeInsets.symmetric(horizontal: 4, vertical: 3),
-                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-                headerAlignments: {
-                  for (int i = 0; i < headers.length; i++) i: pw.Alignment.centerLeft,
-                },
+                child: pw.Table(
+                  border: pw.TableBorder(
+                    horizontalInside: pw.BorderSide(color: PdfColors.grey200, width: 1),
+                    left: pw.BorderSide.none,
+                    right: pw.BorderSide.none,
+                    top: pw.BorderSide.none,
+                    bottom: pw.BorderSide.none,
+                  ),
+                  columnWidths: {
+                    for (int i = 0; i < headers.length; i++)
+                      i: const pw.FlexColumnWidth(),
+                  },
+                  children: [
+                    // Header
+                    pw.TableRow(
+                      decoration: const pw.BoxDecoration(
+                        gradient: pw.LinearGradient(
+                          colors: [PdfColors.blue800, PdfColors.blue900],
+                        ),
+                      ),
+                      children: headers.map((header) {
+                        return pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                          child: pw.Text(
+                            header.toUpperCase(),
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 9,
+                              fontWeight: pw.FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    // Data Rows
+                    ...rows.asMap().entries.map((entry) {
+                      final isEven = entry.key % 2 == 0;
+                      return pw.TableRow(
+                        decoration: pw.BoxDecoration(
+                          color: isEven ? PdfColors.white : PdfColors.grey50,
+                        ),
+                        children: entry.value.map((cell) {
+                          return pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            child: pw.Text(
+                              cell,
+                              style: const pw.TextStyle(
+                                fontSize: 9,
+                                color: PdfColors.grey800,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    }).toList(),
+                  ],
+                ),
               ),
 
-              pw.SizedBox(height: 8),
+              pw.SizedBox(height: 24),
 
-              // Footer - compact
+              // Modern Footer
               pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                padding: const pw.EdgeInsets.all(16),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  borderRadius: pw.BorderRadius.circular(4),
+                  gradient: const pw.LinearGradient(
+                    colors: [PdfColors.grey50, PdfColors.grey100],
+                  ),
+                  borderRadius: pw.BorderRadius.circular(8),
                 ),
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('Total Records: ${rows.length}', style: const pw.TextStyle(fontSize: 8)),
-                    pw.Text('Report generated by MAXmybill', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                    pw.Row(
+                      children: [
+                        pw.Container(
+                          padding: const pw.EdgeInsets.all(8),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.blue800,
+                            borderRadius: pw.BorderRadius.circular(6),
+                          ),
+                          child: pw.Text(
+                            '${rows.length}',
+                            style: pw.TextStyle(
+                              color: PdfColors.white,
+                              fontSize: 14,
+                              fontWeight: pw.FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        pw.SizedBox(width: 10),
+                        pw.Text(
+                          'Total Records',
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.grey700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text(
+                          'Generated by MAXmybill',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.blue800,
+                          ),
+                        ),
+                        pw.SizedBox(height: 2),
+                        pw.Text(
+                          dateStr,
+                          style: const pw.TextStyle(
+                            fontSize: 8,
+                            color: PdfColors.grey600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -969,64 +1232,71 @@ class ReportPdfGenerator {
         ),
       );
 
-      // Close loading
       Navigator.pop(context);
 
-      // Generate file name
       final fileName = '${reportTitle.replaceAll(' ', '_')}_${DateFormat('yyyyMMdd_HHmmss').format(now)}.pdf';
       final pdfBytes = await pdf.save();
 
-      // Request storage permission on Android
       if (Platform.isAndroid) {
-        // PERMISSION FLOW:
-        // 1. Check if permission already granted
-        // 2. If not, show Android OS permission dialog (Allow/Deny)
-        // 3. For Android 11+ (API 30+), also request MANAGE_EXTERNAL_STORAGE if needed
-        // 4. If all denied, offer to open Settings
-
         var storageStatus = await Permission.storage.status;
-
         if (!storageStatus.isGranted) {
-          // Show Android's native permission dialog with "Allow" and "Deny" buttons
           storageStatus = await Permission.storage.request();
-
-          // For Android 11+ (API 30+), try MANAGE_EXTERNAL_STORAGE permission
           if (!storageStatus.isGranted) {
             final manageStatus = await Permission.manageExternalStorage.request();
-
-            // If both permissions denied, offer to open settings
             if (!manageStatus.isGranted) {
               final openSettings = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Permission Required'),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  title: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(child: Text('Permission Required', style: TextStyle(fontSize: 18))),
+                    ],
+                  ),
                   content: const Text(
-                    'Storage permission is needed to save PDF reports to Downloads folder.\n\n'
-                    'Please enable storage permission in app settings.',
+                    'Storage permission is needed to save PDF reports to Downloads folder.\n\nPlease enable storage permission in app settings.',
+                    style: TextStyle(fontSize: 14, color: kTextSecondary, height: 1.5),
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel'),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor),
-                      child: const Text('Open Settings'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kPrimaryColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('Open Settings', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
               );
-
-              if (openSettings == true) {
-                await openAppSettings();
-              }
-
+              if (openSettings == true) await openAppSettings();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Storage permission denied. Cannot save PDF.'),
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.white),
+                      SizedBox(width: 12),
+                      Expanded(child: Text('Storage permission denied. Cannot save PDF.')),
+                    ],
+                  ),
                   backgroundColor: Colors.red,
-                  duration: Duration(seconds: 3),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 3),
                 ),
               );
               return;
@@ -1035,7 +1305,6 @@ class ReportPdfGenerator {
         }
       }
 
-      // Save to Downloads folder
       String? savedPath;
       bool savedToDownloads = false;
 
@@ -1043,50 +1312,56 @@ class ReportPdfGenerator {
         try {
           print('=== PDF SAVE DEBUG ===');
           print('Attempting to save PDF: $fileName');
-
-          // Try to save to Downloads folder using direct path
-          // On Android, Downloads folder is at /storage/emulated/0/Download
           final downloadsPath = '/storage/emulated/0/Download';
           final downloadsDir = Directory(downloadsPath);
 
           if (await downloadsDir.exists()) {
             print('Downloads directory exists: ${downloadsDir.path}');
 
-            // Save file to Downloads folder
-            final file = File('${downloadsDir.path}/$fileName');
-            await file.writeAsBytes(pdfBytes, flush: true);
+            // Create MAXmybill folder inside Downloads
+            final maxmybillDir = Directory('${downloadsDir.path}/MAXmybill');
+            if (!await maxmybillDir.exists()) {
+              await maxmybillDir.create(recursive: true);
+              print('✓ Created MAXmybill folder: ${maxmybillDir.path}');
+            } else {
+              print('MAXmybill folder already exists: ${maxmybillDir.path}');
+            }
 
+            // Save file in MAXmybill folder
+            final file = File('${maxmybillDir.path}/$fileName');
+            await file.writeAsBytes(pdfBytes, flush: true);
             if (await file.exists()) {
               final fileSize = await file.length();
-              print('✓ PDF saved to Downloads: ${file.path}, Size: $fileSize bytes');
+              print('✓ PDF saved to Downloads/MAXmybill: ${file.path}, Size: $fileSize bytes');
               savedPath = file.path;
               savedToDownloads = true;
             }
           } else {
-            // Try external storage directory as fallback
             final extDir = await getExternalStorageDirectory();
             if (extDir != null) {
-              // Navigate up to find the Download folder
-              // extDir is usually /storage/emulated/0/Android/data/com.yourapp/files
               final parts = extDir.path.split('/');
               final storageIndex = parts.indexOf('Android');
               if (storageIndex > 0) {
                 final basePath = parts.sublist(0, storageIndex).join('/');
                 final downloadDir = Directory('$basePath/Download');
                 if (await downloadDir.exists()) {
-                  final file = File('${downloadDir.path}/$fileName');
+                  // Create MAXmybill folder
+                  final maxmybillDir = Directory('${downloadDir.path}/MAXmybill');
+                  if (!await maxmybillDir.exists()) {
+                    await maxmybillDir.create(recursive: true);
+                  }
+
+                  final file = File('${maxmybillDir.path}/$fileName');
                   await file.writeAsBytes(pdfBytes, flush: true);
                   if (await file.exists()) {
                     savedPath = file.path;
                     savedToDownloads = true;
-                    print('✓ PDF saved to Downloads (fallback): ${file.path}');
+                    print('✓ PDF saved to Downloads/MAXmybill (fallback): ${file.path}');
                   }
                 }
               }
             }
           }
-
-          // Fallback to cache if Downloads folder not accessible
           if (savedPath == null) {
             print('Fallback: Saving to cache directory');
             final cacheDir = await getTemporaryDirectory();
@@ -1097,13 +1372,10 @@ class ReportPdfGenerator {
               savedPath = tempFile.path;
             }
           }
-
           print('=== END PDF SAVE DEBUG ===');
         } catch (e, stackTrace) {
           print('ERROR saving PDF: $e');
           print('Stack trace: $stackTrace');
-
-          // Final fallback to cache
           try {
             final cacheDir = await getTemporaryDirectory();
             final tempFile = File('${cacheDir.path}/$fileName');
@@ -1114,36 +1386,45 @@ class ReportPdfGenerator {
           }
         }
       } else {
-        // For iOS and other platforms
         final dir = await getApplicationDocumentsDirectory();
         final file = File('${dir.path}/$fileName');
         await file.writeAsBytes(pdfBytes);
         savedPath = file.path;
       }
 
-      // Show success dialog
       if (savedPath != null) {
         final file = File(savedPath);
-
-        // Show success dialog with share option
         showDialog(
           context: context,
           builder: (BuildContext dialogContext) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor: Colors.white,
               title: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: kIncomeGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [kIncomeGreen, kIncomeGreen.withOpacity(0.7)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: kIncomeGreen.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: const Icon(Icons.check_circle, color: kIncomeGreen, size: 24),
+                    child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 16),
                   const Expanded(
-                    child: Text('Download Complete', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Success!',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                    ),
                   ),
                 ],
               ),
@@ -1153,36 +1434,77 @@ class ReportPdfGenerator {
                 children: [
                   Text(
                     savedToDownloads
-                        ? 'PDF saved to Downloads folder!'
-                        : 'PDF generated successfully!',
-                    style: const TextStyle(fontSize: 14, color: kTextSecondary),
+                        ? 'Your PDF report has been saved to Downloads/MAXmybill folder'
+                        : 'Your PDF report has been generated successfully',
+                    style: const TextStyle(fontSize: 15, color: kTextSecondary, height: 1.4),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.blue.shade100],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.insert_drive_file, color: kPrimaryColor, size: 20),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: kPrimaryColor,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.picture_as_pdf, color: Colors.white, size: 20),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            fileName,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-                            overflow: TextOverflow.ellipsis,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                fileName,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 2,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${(pdfBytes.length / 1024).toStringAsFixed(1)} KB',
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
                   if (savedToDownloads) ...[
-                    const SizedBox(height: 8),
-                    const Text(
-                      '📁 Check your Downloads folder',
-                      style: TextStyle(fontSize: 12, color: kIncomeGreen, fontWeight: FontWeight.w600),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: kIncomeGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: kIncomeGreen.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.folder_outlined, color: kIncomeGreen, size: 18),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Check Downloads/MAXmybill folder',
+                              style: TextStyle(fontSize: 13, color: kIncomeGreen, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ],
@@ -1190,7 +1512,10 @@ class ReportPdfGenerator {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Close', style: TextStyle(color: kTextSecondary)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  ),
+                  child: const Text('Close', style: TextStyle(color: kTextSecondary, fontSize: 15)),
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -1201,12 +1526,14 @@ class ReportPdfGenerator {
                       text: '$reportTitle - Generated on $dateStr',
                     );
                   },
-                  icon: const Icon(Icons.share, size: 18),
-                  label: const Text('Share'),
+                  icon: const Icon(Icons.share_rounded, size: 18),
+                  label: const Text('Share PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 2,
                   ),
                 ),
               ],
@@ -1215,17 +1542,36 @@ class ReportPdfGenerator {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error: Could not generate PDF file'),
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(child: Text('Error: Could not generate PDF file')),
+              ],
+            ),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
           ),
         );
       }
     } catch (e) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error generating PDF: $e'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(child: Text('Error generating PDF: $e')),
+            ],
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     }
   }
@@ -1276,11 +1622,45 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
     return now.difference(dt).inDays <= _durationDays;
   }
 
+  // Store calculated data for PDF download
+  double _todayRevenue = 0, _todayExpense = 0, _todayTax = 0;
+  double _totalOnline = 0, _totalCash = 0;
+  double _periodIncome = 0, _periodExpense = 0;
+  double _totalRefunds = 0;
+  int _todaySaleCount = 0;
+
+  void _downloadPdf(BuildContext context) {
+    final rows = [
+      ['Today Revenue', ' ${_todayRevenue.toStringAsFixed(2)}'],
+      ['Today Expense', ' ${_todayExpense.toStringAsFixed(2)}'],
+      ['Today Tax Collected', ' ${_todayTax.toStringAsFixed(2)}'],
+      ['Period Income', ' ${_periodIncome.toStringAsFixed(2)}'],
+      ['Period Expense', ' ${_periodExpense.toStringAsFixed(2)}'],
+      ['Cash Collection', ' ${_totalCash.toStringAsFixed(2)}'],
+      ['Online Collection', ' ${_totalOnline.toStringAsFixed(2)}'],
+      ['Total Refunds', ' ${_totalRefunds.toStringAsFixed(2)}'],
+    ];
+
+    ReportPdfGenerator.generateAndDownloadPdf(
+      context: context,
+      reportTitle: 'Business Analytics Report',
+      headers: ['Metric', 'Amount'],
+      rows: rows,
+      summaryTitle: "Net Profit",
+      summaryValue: " ${(_periodIncome - _periodExpense).toStringAsFixed(2)}",
+      additionalSummary: {
+        'Period': _selectedDuration,
+        'Total Bills': '$_todaySaleCount',
+        'Refunds': ' ${_totalRefunds.toStringAsFixed(2)}',
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Business Analytics", widget.onBack),
+      appBar: _buildModernAppBar("Business Analytics", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -1397,6 +1777,17 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
                           }
                         }
                       }
+
+                      // Store values for PDF download
+                      _todayRevenue = todayRevenue;
+                      _todayExpense = todayExpense;
+                      _todayTax = todayTax;
+                      _totalOnline = totalOnline;
+                      _totalCash = totalCash;
+                      _periodIncome = periodIncome;
+                      _periodExpense = periodExpense;
+                      _totalRefunds = totalRefunds;
+                      _todaySaleCount = todaySaleCount;
 
                       return CustomScrollView(
                         physics: const BouncingScrollPhysics(),
@@ -1747,16 +2138,33 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 // ==========================================
 // 3. DAYBOOK
 // ==========================================
-class DayBookPage extends StatelessWidget {
+class DayBookPage extends StatefulWidget {
   final String uid;
   final VoidCallback onBack;
+
+  const DayBookPage({super.key, required this.uid, required this.onBack});
+
+  @override
+  State<DayBookPage> createState() => _DayBookPageState();
+}
+
+class _DayBookPageState extends State<DayBookPage> {
   final FirestoreService _firestoreService = FirestoreService();
 
-  DayBookPage({super.key, required this.uid, required this.onBack});
+  // Store data for PDF download
+  List<DocumentSnapshot> _todayDocs = [];
+  double _total = 0;
 
-  void _downloadPdf(BuildContext context, List<DocumentSnapshot> todayDocs, double total) {
+  void _downloadPdf(BuildContext context) {
+    if (_todayDocs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No data available to download'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     // Preparing a high-density table for the PDF
-    final rows = todayDocs.map((doc) {
+    final rows = _todayDocs.map((doc) {
       final data = doc.data() as Map<String, dynamic>;
       DateTime? dt;
       if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
@@ -1778,10 +2186,10 @@ class DayBookPage extends StatelessWidget {
       headers: ['Invoice', 'Time', 'Customer Name', 'Payment', 'Amount'],
       rows: rows,
       summaryTitle: "Total Settlement",
-      summaryValue: " ${total.toStringAsFixed(2)}",
+      summaryValue: " ${_total.toStringAsFixed(2)}",
       additionalSummary: {
-        'Total Invoices': '${todayDocs.length}',
-        'Avg. Ticket Size': ' ${(todayDocs.isNotEmpty ? total / todayDocs.length : 0).toStringAsFixed(2)}',
+        'Total Invoices': '${_todayDocs.length}',
+        'Avg. Ticket Size': ' ${(_todayDocs.isNotEmpty ? _total / _todayDocs.length : 0).toStringAsFixed(2)}',
         'Status': 'Closed'
       },
     );
@@ -1795,8 +2203,8 @@ class DayBookPage extends StatelessWidget {
       backgroundColor: kBackgroundColor,
       appBar: _buildModernAppBar(
           "DayBook Ledger",
-          onBack,
-          onDownload: () => _downloadPdf(context, [], 0) // Actual data handled in FutureBuilder
+          widget.onBack,
+          onDownload: () => _downloadPdf(context)
       ),
       body: FutureBuilder<Stream<QuerySnapshot>>(
         future: _firestoreService.getCollectionStream('sales'),
@@ -1842,6 +2250,10 @@ class DayBookPage extends StatelessWidget {
                   hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + saleTotal;
                 }
               }
+
+              // Store values for PDF download
+              _todayDocs = todayDocs;
+              _total = total;
 
               return Column(
                 children: [
@@ -2121,11 +2533,44 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
         dt.isBefore(_endDate.add(const Duration(seconds: 1)));
   }
 
+  // Store calculated data for PDF download
+  double _grossSale = 0, _discount = 0, _netSale = 0, _productCost = 0;
+  double _cash = 0, _online = 0, _creditNote = 0, _credit = 0, _unsettled = 0, _refunds = 0;
+  int _saleCount = 0;
+
+  void _downloadPdf(BuildContext context) {
+    final rows = [
+      ['Gross Sales', ' ${_grossSale.toStringAsFixed(2)}'],
+      ['Discount', ' ${_discount.toStringAsFixed(2)}'],
+      ['Net Sales', ' ${_netSale.toStringAsFixed(2)}'],
+      ['Product Cost', ' ${_productCost.toStringAsFixed(2)}'],
+      ['Cash', ' ${_cash.toStringAsFixed(2)}'],
+      ['Online', ' ${_online.toStringAsFixed(2)}'],
+      ['Credit Note/Refunds', ' ${_creditNote.toStringAsFixed(2)}'],
+      ['Credit', ' ${_credit.toStringAsFixed(2)}'],
+      ['Unsettled', ' ${_unsettled.toStringAsFixed(2)}'],
+    ];
+
+    ReportPdfGenerator.generateAndDownloadPdf(
+      context: context,
+      reportTitle: 'Financial Insights Report',
+      headers: ['Metric', 'Amount'],
+      rows: rows,
+      summaryTitle: "Net Profit",
+      summaryValue: " ${(_netSale - _productCost).toStringAsFixed(2)}",
+      additionalSummary: {
+        'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
+        'Total Bills': '$_saleCount',
+        'Refunds': ' ${_refunds.toStringAsFixed(2)}',
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Financial Insights", widget.onBack),
+      appBar: _buildModernAppBar("Financial Insights", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -2212,6 +2657,19 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                   creditNote += refunds;
 
                   double profit = netSale - productCost;
+
+                  // Store values for PDF download
+                  _grossSale = grossSale;
+                  _discount = discount;
+                  _netSale = netSale;
+                  _productCost = productCost;
+                  _cash = cash;
+                  _online = online;
+                  _creditNote = creditNote;
+                  _credit = credit;
+                  _unsettled = unsettled;
+                  _refunds = refunds;
+                  _saleCount = saleCount;
 
                   return CustomScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -5422,7 +5880,7 @@ class TaxReportPage extends StatelessWidget {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'TAX COMPLIANCE REPORT',
-      headers: ['INV #', 'CUSTOMER', 'BASE TOTAL', 'TAX AMT'],
+      headers: ['INVOICE', 'CUSTOMER', 'BASE TOTAL', 'TAX AMT'],
       rows: rows,
       summaryTitle: 'TOTAL TAX COLLECTED',
       summaryValue: "${totalTaxAmount.toStringAsFixed(2)}",
@@ -5863,10 +6321,8 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                     endDate: _endDate,
                     onDateChanged: _onDateChanged,
                     showSortButton: true,
-                    showDownloadButton: true,
                     isDescending: _isDescending,
                     onSortPressed: () => setState(() => _isDescending = !_isDescending),
-                    onDownloadPressed: () {},
                   ),
                   Expanded(
                     child: sortedEntries.isEmpty
@@ -6361,11 +6817,43 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
         dt.isBefore(_endDate.add(const Duration(seconds: 1)));
   }
 
+  // Store calculated data for PDF download
+  double _incomeCash = 0, _incomeOnline = 0, _incomeCredit = 0;
+  double _expenseCash = 0, _expenseOnline = 0;
+  int _incomeCashCount = 0, _incomeOnlineCount = 0, _incomeCreditCount = 0;
+  int _expenseCashCount = 0, _expenseOnlineCount = 0;
+
+  void _downloadPdf(BuildContext context) {
+    final rows = [
+      ['Income - Cash', ' ${_incomeCash.toStringAsFixed(2)}', '$_incomeCashCount txns'],
+      ['Income - Online', ' ${_incomeOnline.toStringAsFixed(2)}', '$_incomeOnlineCount txns'],
+      ['Income - Credit', ' ${_incomeCredit.toStringAsFixed(2)}', '$_incomeCreditCount txns'],
+      ['Expense - Cash', ' ${_expenseCash.toStringAsFixed(2)}', '$_expenseCashCount txns'],
+      ['Expense - Online', ' ${_expenseOnline.toStringAsFixed(2)}', '$_expenseOnlineCount txns'],
+    ];
+
+    double totalNet = (_incomeCash + _incomeOnline) - (_expenseCash + _expenseOnline);
+
+    ReportPdfGenerator.generateAndDownloadPdf(
+      context: context,
+      reportTitle: 'Payment Analytics Report',
+      headers: ['Type', 'Amount', 'Transactions'],
+      rows: rows,
+      summaryTitle: "Net Cash Position",
+      summaryValue: " ${totalNet.toStringAsFixed(2)}",
+      additionalSummary: {
+        'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
+        'Total Inflow': ' ${(_incomeCash + _incomeOnline).toStringAsFixed(2)}',
+        'Total Outflow': ' ${(_expenseCash + _expenseOnline).toStringAsFixed(2)}',
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Payment Analytics", widget.onBack),
+      appBar: _buildModernAppBar("Payment Analytics", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -6461,6 +6949,18 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
 
                   double totalNet = (incomeCash + incomeOnline) - (expenseCash + expenseOnline);
 
+                  // Store values for PDF download
+                  _incomeCash = incomeCash;
+                  _incomeOnline = incomeOnline;
+                  _incomeCredit = incomeCredit;
+                  _expenseCash = expenseCash;
+                  _expenseOnline = expenseOnline;
+                  _incomeCashCount = incomeCashCount;
+                  _incomeOnlineCount = incomeOnlineCount;
+                  _incomeCreditCount = incomeCreditCount;
+                  _expenseCashCount = expenseCashCount;
+                  _expenseOnlineCount = expenseOnlineCount;
+
                   return Column(
                     children: [
                       DateFilterWidget(
@@ -6468,9 +6968,6 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                         startDate: _startDate,
                         endDate: _endDate,
                         onDateChanged: _onDateChanged,
-                        showDownloadButton: true,
-                        isDescending: true,
-                        onDownloadPressed: () {},
                       ),
                       Expanded(
                         child: CustomScrollView(
@@ -6847,7 +7344,7 @@ class _GSTReportPageState extends State<GSTReportPage> {
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'GST AUDIT REPORT',
-      headers: ['DATE', 'CAT', 'INV #', 'GSTIN', 'TOTAL', 'GST'],
+      headers: ['DATE', 'CAT', 'INVOICE', 'GSTIN', 'TOTAL', 'GST'],
       rows: allRows,
       summaryTitle: "NET GST LIABILITY",
       summaryValue: " ${netLiability.toStringAsFixed(2)}",
