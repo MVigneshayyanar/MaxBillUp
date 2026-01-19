@@ -3316,7 +3316,16 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showCustomerSettlementDialog(doc.id, data, balance),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CustomerCreditDetailsPage(
+                customerId: doc.id,
+                customerData: data,
+                currentBalance: balance,
+              ),
+            ),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -3924,6 +3933,706 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 }
+
+// ==========================================
+// CUSTOMER CREDIT DETAILS PAGE (NEW PAGE)
+// ==========================================
+class CustomerCreditDetailsPage extends StatefulWidget {
+  final String customerId;
+  final Map<String, dynamic> customerData;
+  final double currentBalance;
+
+  const CustomerCreditDetailsPage({
+    super.key,
+    required this.customerId,
+    required this.customerData,
+    required this.currentBalance,
+  });
+
+  @override
+  State<CustomerCreditDetailsPage> createState() => _CustomerCreditDetailsPageState();
+}
+
+class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
+  @override
+  Widget build(BuildContext context) {
+    final customerName = (widget.customerData['name'] ?? 'Customer').toString();
+    final phone = (widget.customerData['phone'] ?? 'N/A').toString();
+    final rating = (widget.customerData['rating'] ?? 0) as num;
+
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: kPrimaryColor,
+        iconTheme: const IconThemeData(color: kWhite),
+        title: Text(customerName, style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        centerTitle: true,
+      ),
+      body: Column(
+        children: [
+          // Customer Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: kPrimaryColor,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                // Customer Avatar and Info
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: kWhite.withOpacity(0.2),
+                      radius: 28,
+                      child: Text(
+                        customerName[0].toUpperCase(),
+                        style: const TextStyle(color: kWhite, fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(phone, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          if (rating > 0)
+                            Row(
+                              children: List.generate(5, (i) => Icon(
+                                i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                size: 14,
+                                color: i < rating ? kOrange : Colors.white30,
+                              )),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                // Total Balance Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: kWhite.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text('TOTAL OUTSTANDING', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                      const SizedBox(height: 8),
+                      Text('₹${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Credit Bills List Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Credit Bills', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('Tap to settle', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kOrange)),
+                ),
+              ],
+            ),
+          ),
+
+          // Credit Bills List
+          Expanded(
+            child: FutureBuilder<CollectionReference>(
+              future: FirestoreService().getStoreCollection('credits'),
+              builder: (context, collectionSnapshot) {
+                if (!collectionSnapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                }
+                return StreamBuilder<QuerySnapshot>(
+                  stream: collectionSnapshot.data!
+                      .where('customerId', isEqualTo: widget.customerId)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 60, color: kErrorColor),
+                            const SizedBox(height: 16),
+                            Text('Error: ${snapshot.error}', style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final docs = snapshot.data?.docs ?? [];
+                    // Filter for credit sales only (type == 'credit_sale' or no type but has amount > 0 and invoiceNumber)
+                    // Also filter out settled ones
+                    final unsettledDocs = docs.where((d) {
+                      final data = d.data() as Map<String, dynamic>;
+                      final type = data['type'] as String?;
+                      final isSettled = data['isSettled'] == true;
+                      final amount = (data['amount'] ?? 0.0).toDouble();
+
+                      // Include if it's a credit_sale type and not settled
+                      // Or if it has no type but has positive amount and invoice (legacy data)
+                      if (isSettled) return false;
+                      if (type == 'credit_sale') return true;
+                      if (type == null && amount > 0 && data['invoiceNumber'] != null) return true;
+                      return false;
+                    }).toList();
+
+                    // Sort by timestamp descending
+                    unsettledDocs.sort((a, b) {
+                      final aData = a.data() as Map<String, dynamic>;
+                      final bData = b.data() as Map<String, dynamic>;
+                      final aTime = aData['timestamp'] as Timestamp?;
+                      final bTime = bData['timestamp'] as Timestamp?;
+                      if (aTime == null && bTime == null) return 0;
+                      if (aTime == null) return 1;
+                      if (bTime == null) return -1;
+                      return bTime.compareTo(aTime);
+                    });
+
+                    if (unsettledDocs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle_outline_rounded, size: 60, color: kGoogleGreen.withOpacity(0.3)),
+                            const SizedBox(height: 16),
+                            const Text('No pending credit bills', style: TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: unsettledDocs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) => _buildCreditBillCard(unsettledDocs[index]),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      // Settle All Button
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton(
+            onPressed: () => _showSettleAllDialog(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+            child: const Text('SETTLE FULL BALANCE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 14)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditBillCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final amount = (data['amount'] ?? 0.0).toDouble();
+    final invoiceNumber = (data['invoiceNumber'] ?? 'N/A').toString();
+    final note = (data['note'] ?? '').toString();
+    final dateStr = data['date'] as String?;
+    final creditDueDateStr = data['creditDueDate'] as String?;
+
+    DateTime? billDate;
+    DateTime? dueDate;
+
+    if (dateStr != null) {
+      billDate = DateTime.tryParse(dateStr);
+    }
+    if (creditDueDateStr != null) {
+      dueDate = DateTime.tryParse(creditDueDateStr);
+    }
+
+    // Check if due date is near (within 7 days) or overdue
+    bool isOverdue = false;
+    bool isNearDue = false;
+    int daysRemaining = 0;
+
+    if (dueDate != null) {
+      final now = DateTime.now();
+      final difference = dueDate.difference(now).inDays;
+      daysRemaining = difference;
+      isOverdue = difference < 0;
+      isNearDue = difference >= 0 && difference <= 7;
+    }
+
+    Color dueDateColor = kBlack54;
+    String dueDateLabel = 'Due Date';
+    if (isOverdue) {
+      dueDateColor = kErrorColor;
+      dueDateLabel = 'OVERDUE';
+    } else if (isNearDue) {
+      dueDateColor = kOrange;
+      dueDateLabel = daysRemaining == 0 ? 'DUE TODAY' : 'DUE IN $daysRemaining DAYS';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isOverdue ? kErrorColor.withOpacity(0.5) : (isNearDue ? kOrange.withOpacity(0.5) : kGrey200)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showSettleBillDialog(doc.id, data, amount),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row - Invoice & Date
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.receipt_long_rounded, size: 16, color: kPrimaryColor),
+                        const SizedBox(width: 8),
+                        Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kPrimaryColor)),
+                      ],
+                    ),
+                    if (billDate != null)
+                      Text(
+                        '${billDate.day.toString().padLeft(2, '0')}-${billDate.month.toString().padLeft(2, '0')}-${billDate.year}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // Due Date Row
+                if (dueDate != null) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: dueDateColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.event_rounded, size: 14, color: dueDateColor),
+                        const SizedBox(width: 6),
+                        Text(
+                          '$dueDateLabel: ${dueDate.day.toString().padLeft(2, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.year}',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: dueDateColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                const Divider(height: 1, color: kGrey100),
+                const SizedBox(height: 12),
+
+                // Amount Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        const SizedBox(height: 4),
+                        Text('₹${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: kGoogleGreen.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+                      ),
+                      child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSettleBillDialog(String docId, Map<String, dynamic> data, double amount) {
+    final TextEditingController amountController = TextEditingController(text: amount.toStringAsFixed(2));
+    String paymentMode = 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: kWhite,
+          title: const Text('Settle Credit Bill', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kGoogleGreen.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGoogleGreen.withOpacity(0.15)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Bill amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
+                    Text('₹${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'Settlement Amount',
+                    prefixIcon: Icon(Icons.currency_rupee_rounded, color: kPrimaryColor, size: 18),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
+              const SizedBox(height: 8),
+              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final settlementAmount = double.tryParse(amountController.text);
+                if (settlementAmount == null || settlementAmount <= 0 || settlementAmount > amount) return;
+                Navigator.pop(ctx);
+                await _settleCreditBill(docId, data, settlementAmount, paymentMode);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSettleAllDialog() {
+    final TextEditingController amountController = TextEditingController(text: widget.currentBalance.toStringAsFixed(2));
+    String paymentMode = 'Cash';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: kWhite,
+          title: const Text('Settle Full Balance', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kGoogleGreen.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGoogleGreen.withOpacity(0.15)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Total outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
+                    Text('₹${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  decoration: const InputDecoration(
+                    labelText: 'Settlement Amount',
+                    prefixIcon: Icon(Icons.currency_rupee_rounded, color: kPrimaryColor, size: 18),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
+              const SizedBox(height: 8),
+              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
+              const SizedBox(height: 8),
+              _buildPayOption(setDialogState, paymentMode, 'Waive Off', Icons.block_outlined, kOrange, (v) => paymentMode = v),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final settlementAmount = double.tryParse(amountController.text);
+                if (settlementAmount == null || settlementAmount <= 0 || settlementAmount > widget.currentBalance) return;
+                Navigator.pop(ctx);
+                await _settleFullBalance(settlementAmount, paymentMode);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPayOption(StateSetter setDialogState, String current, String val, IconData icon, Color color, Function(String) onSel) {
+    final sel = current == val;
+    return InkWell(
+      onTap: () => setDialogState(() => onSel(val)),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: sel ? color.withOpacity(0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: sel ? color : kGrey200),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: sel ? color : kBlack54, size: 18),
+            const SizedBox(width: 12),
+            Text(val, style: TextStyle(color: sel ? color : kBlack87, fontWeight: sel ? FontWeight.w900 : FontWeight.w600, fontSize: 13)),
+            const Spacer(),
+            if (sel) Icon(Icons.check_circle_rounded, color: color, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _settleCreditBill(String docId, Map<String, dynamic> data, double amount, String paymentMode) async {
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+    try {
+      final custs = await FirestoreService().getStoreCollection('customers');
+      final creds = await FirestoreService().getStoreCollection('credits');
+
+      final originalAmount = (data['amount'] ?? 0.0).toDouble();
+
+      // Update customer balance
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final customerDoc = await tx.get(custs.doc(widget.customerId));
+        if (customerDoc.exists) {
+          final customerData = customerDoc.data() as Map<String, dynamic>;
+          final currentBalance = (customerData['balance'] ?? 0.0).toDouble();
+          tx.update(custs.doc(widget.customerId), {
+            'balance': currentBalance - amount,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          });
+        }
+      });
+
+      // Mark the credit bill as settled (fully or partially)
+      if (amount >= originalAmount) {
+        // Fully settled
+        await creds.doc(docId).update({
+          'isSettled': true,
+          'settledAt': FieldValue.serverTimestamp(),
+          'settledAmount': amount,
+          'settlementMethod': paymentMode,
+        });
+      } else {
+        // Partially settled - update remaining amount
+        await creds.doc(docId).update({
+          'amount': originalAmount - amount,
+          'partiallySettledAt': FieldValue.serverTimestamp(),
+          'lastPartialAmount': amount,
+          'lastPartialMethod': paymentMode,
+        });
+      }
+
+      // Add settlement record
+      await creds.add({
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': amount,
+        'type': 'settlement',
+        'method': paymentMode,
+        'relatedCreditId': docId,
+        'invoiceNumber': data['invoiceNumber'],
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Settlement for Invoice #${data['invoiceNumber']}',
+      });
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Payment settled successfully'),
+            backgroundColor: kGoogleGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        // Refresh the page
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CustomerCreditDetailsPage(
+              customerId: widget.customerId,
+              customerData: widget.customerData,
+              currentBalance: widget.currentBalance - amount,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _settleFullBalance(double amount, String paymentMode) async {
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+    try {
+      final custs = await FirestoreService().getStoreCollection('customers');
+      final creds = await FirestoreService().getStoreCollection('credits');
+
+      // Update customer balance
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        tx.update(custs.doc(widget.customerId), {
+          'balance': widget.currentBalance - amount,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      });
+
+      // Add settlement record
+      await creds.add({
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': amount,
+        'type': 'settlement',
+        'method': paymentMode,
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Full balance settlement',
+      });
+
+      // If settling full balance, mark all credit_sale entries as settled
+      if (amount >= widget.currentBalance) {
+        final creditDocs = await creds
+            .where('customerId', isEqualTo: widget.customerId)
+            .where('type', isEqualTo: 'credit_sale')
+            .get();
+
+        for (var doc in creditDocs.docs) {
+          final docData = doc.data() as Map<String, dynamic>;
+          if (docData['isSettled'] != true) {
+            await creds.doc(doc.id).update({
+              'isSettled': true,
+              'settledAt': FieldValue.serverTimestamp(),
+              'settlementMethod': paymentMode,
+            });
+          }
+        }
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Balance settled successfully'),
+            backgroundColor: kGoogleGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+        Navigator.pop(context); // Go back to credit list
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: kErrorColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+  }
+}
+
 // 4. PURCHASE CREDIT NOTE DETAIL PAGE
 // ==========================================
 class PurchaseCreditNoteDetailPage extends StatefulWidget {

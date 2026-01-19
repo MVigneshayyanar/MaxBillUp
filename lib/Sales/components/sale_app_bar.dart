@@ -133,7 +133,7 @@ class SaleAppBar extends StatelessWidget {
               Text(
                 text,
                 style: TextStyle(
-                  color: isSelected ? kWhite : kBlack54,
+                  color: isSelected ? kWhite : Colors.black,
                   fontSize: 13,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
                   letterSpacing: 0.5,

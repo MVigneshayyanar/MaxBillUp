@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Add padding/inset to ensure icon fits within safe zone (66% of 108dp) -->
-    <!-- Using 20% padding on each side to ensure visibility -->
+    <!-- Increased padding to ensure icon fits within safe zone on all devices -->
+    <!-- Using 25% padding (27dp out of 108dp) to ensure full visibility without cropping -->
+    <!-- This ensures the icon stays within the 66dp safe zone (108dp * 0.66 = 71.28dp) -->
     <item
         android:drawable="@drawable/ic_launcher_foreground"
-        android:top="21dp"
-        android:bottom="21dp"
-        android:left="21dp"
-        android:right="21dp"/>
+        android:top="27dp"
+        android:bottom="27dp"
+        android:left="27dp"
+        android:right="27dp"/>
 </layer-list>
 

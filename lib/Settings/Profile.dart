@@ -727,95 +727,76 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
 
 
   /// Handle FAB press - enables all fields or saves all edited fields
+  // dart
+  // Add/replace these members inside `_BusinessDetailsPageState`
+
   void _handleFabPress() {
-    final bool isAnyFieldEditing = _fieldEditStates.values.any((isEditing) => isEditing == true);
+    final bool isAnyFieldEditing = _fieldEditStates.values.any((v) => v == true);
 
     if (isAnyFieldEditing) {
-      // Save all edited fields
+      // User clicked "Save"
       _saveAllFields();
     } else {
-      // Enable edit mode for all fields
+      // Enable editing for all editable fields
       setState(() {
-        _fieldEditStates = {
-          'businessName': true,
-          'location': true,
-          'taxType': true,
-          'taxNumber': true,
-          'licenseType': true,
-          'licenseNumber': true,
-          'currency': true,
-          'ownerName': true,
-          'phoneNumber': true,
-        };
+        _editing = true;
+        _fieldEditStates.updateAll((key, value) => true);
       });
     }
   }
 
-  /// Save all fields that are currently being edited
   Future<void> _saveAllFields() async {
-    // Validate business name
-    if (_nameCtrl.text.trim().isEmpty) {
-      CommonWidgets.showSnackBar(context, 'Business Name is required', bgColor: const Color(0xFFFF5252));
+    // Basic form validation (if you use _formKey around fields)
+    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
+      CommonWidgets.showSnackBar(context, 'Please fix validation errors', bgColor: const Color(0xFFFF5252));
       return;
     }
 
     setState(() => _loading = true);
 
     try {
-      final firestoreService = FirestoreService();
-      final storeCollection = await firestoreService.getStoreCollection('settings');
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) throw Exception('Store ID not found');
 
-      // Combine tax type and number
-      final taxType = _taxTypeCtrl.text.trim();
-      final taxNumber = _taxNumberCtrl.text.trim();
-      final combinedTax = taxType.isNotEmpty && taxNumber.isNotEmpty
-          ? '$taxType $taxNumber'
-          : taxNumber.isNotEmpty ? taxNumber : '';
-
-      // Combine license type and number
-      final licenseType = _licenseTypeCtrl.text.trim();
-      final licenseNumber = _licenseNumberCtrl.text.trim();
-      final combinedLicense = licenseType.isNotEmpty && licenseNumber.isNotEmpty
-          ? '$licenseType $licenseNumber'
-          : licenseNumber.isNotEmpty ? licenseNumber : '';
-
-      Map<String, dynamic> updateData = {
+      // Build update payload (trimmed values)
+      final updateData = <String, dynamic>{
         'businessName': _nameCtrl.text.trim(),
-        'businessLocation': _locCtrl.text.trim(),
-        'taxType': combinedTax,
-        'gstin': combinedTax,
-        'licenseNumber': combinedLicense,
-        'currency': _selectedCurrency,
-        'ownerName': _ownerCtrl.text.trim(),
         'businessPhone': _phoneCtrl.text.trim(),
-        'updatedAt': FieldValue.serverTimestamp(),
+        'businessLocation': _locCtrl.text.trim(),
+        'ownerName': _ownerCtrl.text.trim(),
+        'email': _emailCtrl.text.trim(),
+        'currency': _selectedCurrency,
+        // Combine tax/license fields if present
+        'taxType': (_taxTypeCtrl.text.trim().isNotEmpty && _taxNumberCtrl.text.trim().isNotEmpty)
+            ? '${_taxTypeCtrl.text.trim()} ${_taxNumberCtrl.text.trim()}'
+            : (_taxNumberCtrl.text.trim().isNotEmpty ? _taxNumberCtrl.text.trim() : _taxTypeCtrl.text.trim()),
+        'licenseNumber': (_licenseTypeCtrl.text.trim().isNotEmpty && _licenseNumberCtrl.text.trim().isNotEmpty)
+            ? '${_licenseTypeCtrl.text.trim()} ${_licenseNumberCtrl.text.trim()}'
+            : (_licenseNumberCtrl.text.trim().isNotEmpty ? _licenseNumberCtrl.text.trim() : _licenseTypeCtrl.text.trim()),
       };
 
-      await storeCollection.doc('profile').set(updateData, SetOptions(merge: true));
+      await FirebaseFirestore.instance.collection('store').doc(storeId).set(updateData, SetOptions(merge: true));
       await FirestoreService().notifyStoreDataChanged();
 
-      // Disable all edit states
-      setState(() {
-        _fieldEditStates = {
-          'businessName': false,
-          'location': false,
-          'taxType': false,
-          'taxNumber': false,
-          'licenseType': false,
-          'licenseNumber': false,
-          'currency': false,
-          'ownerName': false,
-          'phoneNumber': false,
-        };
-      });
+      // Disable all edit states on success
+      if (mounted) {
+        setState(() {
+          _editing = false;
+          _fieldEditStates.updateAll((key, value) => false);
+        });
+      }
 
       CommonWidgets.showSnackBar(context, 'All changes saved successfully!', bgColor: const Color(0xFF4CAF50));
     } catch (e) {
       CommonWidgets.showSnackBar(context, 'Error saving: ${e.toString()}', bgColor: const Color(0xFFFF5252));
+      debugPrint('BusinessDetailsPage save error: $e');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
+
+  // Replace / ensure the Scaffold's floatingActionButton uses this snippet:
+
 
   Future<void> _loadData() async {
     try {
@@ -1010,27 +991,20 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             ),
           ),
         ),
-        floatingActionButton: _loading
-            ? null
-            : FloatingActionButton.extended(
-                onPressed: _handleFabPress,
-                backgroundColor: isAnyFieldEditing ? kGoogleGreen : kPrimaryColor,
-                elevation: 6,
-                icon: Icon(
-                  isAnyFieldEditing ? Icons.save_rounded : Icons.edit_rounded,
-                  color: kWhite,
-                  size: 22,
-                ),
-                label: Text(
-                  isAnyFieldEditing ? 'UPDATE' : 'EDIT',
-                  style: const TextStyle(
-                    color: kWhite,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: _handleFabPress,
+          backgroundColor: kPrimaryColor,
+          icon: Icon(
+            _fieldEditStates.values.any((v) => v)
+                ? Icons.save_rounded
+                : Icons.edit_rounded,
+            color: kWhite,
+          ),
+          label: Text(
+            _fieldEditStates.values.any((v) => v) ? 'SAVE' : 'EDIT',
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900),
+          ),
+        ),
       ),
     );
   }

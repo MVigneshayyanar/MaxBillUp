@@ -1544,6 +1544,7 @@ class _PaymentPageState extends State<PaymentPage> {
   double _cashReceived = 0.0;
   final TextEditingController _displayController = TextEditingController(text: '0.0');
   double get _change => _cashReceived - widget.totalAmount;
+  DateTime? _creditDueDate;
 
   @override
   void initState() {
@@ -1551,6 +1552,9 @@ class _PaymentPageState extends State<PaymentPage> {
     if (widget.paymentMode != 'Credit') {
       _cashReceived = widget.totalAmount;
       _displayController.text = widget.totalAmount.toStringAsFixed(1);
+    } else {
+      // Default due date: 30 days from today for credit payments
+      _creditDueDate = DateTime.now().add(const Duration(days: 30));
     }
   }
 
@@ -1582,7 +1586,7 @@ class _PaymentPageState extends State<PaymentPage> {
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
-      if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber);
+      if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber, _creditDueDate);
 
       // Update customer totalSales for ALL payment types when customer is linked
       if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
@@ -1609,7 +1613,7 @@ class _PaymentPageState extends State<PaymentPage> {
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
-  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
+  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber, DateTime? creditDueDate) async {
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
     final creditsCollection = await FirestoreService().getStoreCollection('credits');
 
@@ -1636,6 +1640,8 @@ class _PaymentPageState extends State<PaymentPage> {
       'timestamp': FieldValue.serverTimestamp(),
       'date': DateTime.now().toIso8601String(),
       'note': 'Credit sale - Invoice #$invoiceNumber',
+      'creditDueDate': creditDueDate?.toIso8601String(),
+      'isSettled': false,
     });
   }
 
@@ -1726,8 +1732,142 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     bool canPay = widget.paymentMode == 'Credit' || _cashReceived >= widget.totalAmount - 0.01;
-    return Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context))), body: Column(children: [Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))), child: Column(children: [Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)), Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)), const SizedBox(height: 24), Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: kGrey200, width: 2)), child: Column(children: [const Text('RECEIVED AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)), const SizedBox(height: 8), Text(_displayController.text, style: TextStyle(fontSize: 48, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kPrimaryColor, letterSpacing: -1))])), const SizedBox(height: 16), if (widget.paymentMode != 'Credit') Row(mainAxisAlignment: MainAxisAlignment.center, children: [Text('CHANGE: ', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)), Text('${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _change >= 0 ? kGoogleGreen : kGoogleRed))])])), const Spacer(), SafeArea(top: false, child: Container(padding: const EdgeInsets.fromLTRB(20, 20, 20, 12), decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))), child: Column(children: [_buildKeyPad(), const SizedBox(height: 24), SizedBox(width: double.infinity, height: 60, child: ElevatedButton(onPressed: canPay ? _completeSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0), child: const Text('COMPLETE SALE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite, letterSpacing: 1))))])))]));
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+            decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
+            child: Column(
+              children: [
+                Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)),
+                Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: kGrey200, width: 2)),
+                  child: Column(
+                    children: [
+                      const Text('RECEIVED AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                      const SizedBox(height: 8),
+                      Text(_displayController.text, style: TextStyle(fontSize: 48, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kPrimaryColor, letterSpacing: -1)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (widget.paymentMode != 'Credit')
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)),
+                      Text('${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _change >= 0 ? kGoogleGreen : kGoogleRed)),
+                    ],
+                  ),
+                // Credit Due Date Selector
+                if (widget.paymentMode == 'Credit') ...[
+                  const SizedBox(height: 16),
+                  InkWell(
+                    onTap: () => _selectCreditDueDate(context),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: kOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kOrange.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.event_rounded, color: kOrange, size: 20),
+                          const SizedBox(width: 8),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                              const SizedBox(height: 2),
+                              Text(
+                                _creditDueDate != null
+                                    ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
+                                    : 'Select Date',
+                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.edit_rounded, color: kOrange, size: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Spacer(),
+          SafeArea(
+            top: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+              child: Column(
+                children: [
+                  _buildKeyPad(),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 60,
+                    child: ElevatedButton(
+                      onPressed: canPay ? _completeSale : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                      child: const Text('COMPLETE SALE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
+  Future<void> _selectCreditDueDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _creditDueDate ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: kPrimaryColor,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _creditDueDate) {
+      setState(() {
+        _creditDueDate = picked;
+      });
+    }
+  }
+
   Widget _buildKeyPad() { final List<String> keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back']; return GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 1.8), itemCount: keys.length, itemBuilder: (ctx, i) => _buildKey(keys[i])); }
   Widget _buildKey(String key) { return Material(color: kGreyBg, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => _onKeyTap(key), borderRadius: BorderRadius.circular(14), child: Center(child: key == 'back' ? const Icon(Icons.backspace_rounded, color: kBlack87, size: 22) : Text(key, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87))))); }
 }
@@ -1754,13 +1894,22 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   double _creditAmount = 0.0;
   double get _totalPaid => _cashAmount + _onlineAmount + _creditAmount;
   double get _dueAmount => widget.totalAmount - _totalPaid;
+  DateTime? _creditDueDate;
 
   @override
   void initState() {
     super.initState();
     _cashController.addListener(() => setState(() => _cashAmount = double.tryParse(_cashController.text) ?? 0.0));
     _onlineController.addListener(() => setState(() => _onlineAmount = double.tryParse(_onlineController.text) ?? 0.0));
-    _creditController.addListener(() => setState(() => _creditAmount = double.tryParse(_creditController.text) ?? 0.0));
+    _creditController.addListener(() {
+      setState(() {
+        _creditAmount = double.tryParse(_creditController.text) ?? 0.0;
+        // Set default due date when credit is entered
+        if (_creditAmount > 0 && _creditDueDate == null) {
+          _creditDueDate = DateTime.now().add(const Duration(days: 30));
+        }
+      });
+    });
   }
 
   Future<void> _processSplitSale() async {
@@ -1782,7 +1931,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'paymentMode': 'Split', 'cashReceived': _totalPaid - _creditAmount, 'cashReceived_split': _cashAmount, 'onlineReceived_split': _onlineAmount, 'creditIssued_split': _creditAmount, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
-      if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber);
+      if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber, _creditDueDate);
 
       // Update customer totalSales and add payment log entry for split payment when customer is linked
       if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
@@ -1814,7 +1963,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
 
-  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber) async {
+  Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber, DateTime? creditDueDate) async {
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
     final creditsCollection = await FirestoreService().getStoreCollection('credits');
 
@@ -1841,6 +1990,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       'timestamp': FieldValue.serverTimestamp(),
       'date': DateTime.now().toIso8601String(),
       'note': 'Split payment credit - Invoice #$invoiceNumber',
+      'creditDueDate': creditDueDate?.toIso8601String(),
+      'isSettled': false,
     });
   }
 
@@ -1941,6 +2092,44 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             _buildInput('Online / UPI', Icons.qr_code_scanner_rounded, _onlineController),
             const SizedBox(height: 12),
             _buildInput('Credit Book', Icons.menu_book_rounded, _creditController, enabled: widget.customerPhone != null),
+            // Credit Due Date Selector - show when credit amount > 0
+            if (_creditAmount > 0) ...[
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => _selectCreditDueDate(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: kOrange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kOrange.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.event_rounded, color: kOrange, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                            const SizedBox(height: 2),
+                            Text(
+                              _creditDueDate != null
+                                  ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
+                                  : 'Select Date',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.edit_rounded, color: kOrange, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(20),
@@ -1960,6 +2149,33 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _selectCreditDueDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _creditDueDate ?? DateTime.now().add(const Duration(days: 30)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: kPrimaryColor,
+              onPrimary: kWhite,
+              surface: kWhite,
+              onSurface: kBlack87,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _creditDueDate) {
+      setState(() {
+        _creditDueDate = picked;
+      });
+    }
   }
 
   Widget _buildInput(String label, IconData icon, TextEditingController ctrl, {bool enabled = true}) {

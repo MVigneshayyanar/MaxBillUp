@@ -200,7 +200,7 @@ class _ReportsPageState extends State<ReportsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text(context.tr('reports').toUpperCase(),
+        title: Text(context.tr('reports'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
