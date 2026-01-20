@@ -813,7 +813,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                price.toAmount(),
+                                AmountFormatter.format(price),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12,
@@ -825,7 +825,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                 Text(
                                   isOutOfStock
                                       ? 'OUT OF STOCK'
-                                      : '${stock.toAmount()} $unit',
+                                      : '${AmountFormatter.format(stock)} $unit',
                                   style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,

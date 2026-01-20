@@ -500,7 +500,7 @@ class _QuotationPageState extends State<QuotationPage> {
           Expanded(
             flex: 2,
             child: Text(
-                '${item.quantity}x${item.price.toAmount()}',
+                '${item.quantity}x${AmountFormatter.format(item.price)}',
                 style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700)
             ),
           ),
@@ -510,7 +510,7 @@ class _QuotationPageState extends State<QuotationPage> {
           Expanded(
             flex: 2,
             child: Text(
-                item.total.toAmount(),
+                AmountFormatter.format(item.total),
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kBlack87)
             ),
           ),

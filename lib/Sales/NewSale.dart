@@ -8,6 +8,7 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/services/cart_service.dart';
 
 class NewSalePage extends StatefulWidget {
@@ -933,11 +934,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 ),
                               ),
                               Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
-                              Expanded(flex: 2, child: Text(item.price.toStringAsFixed(0), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.price), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  item.total.toStringAsFixed(0),
+                                  AmountFormatter.format(item.total),
                                   textAlign: TextAlign.right,
                                   style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
                                 ),

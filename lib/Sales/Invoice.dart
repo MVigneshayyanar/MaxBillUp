@@ -6,6 +6,7 @@ import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:intl/intl.dart';

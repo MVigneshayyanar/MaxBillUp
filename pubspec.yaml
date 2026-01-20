@@ -43,7 +43,7 @@ dependencies:
   intl: ^0.19.0
   google_sign_in: ^6.2.2
   pdf: ^3.11.1
-  printing: ^5.13.4
+  printing: 5.13.4
   path_provider: ^2.1.5
   shared_preferences: ^2.3.3
   permission_handler: ^12.0.1
@@ -95,28 +95,20 @@ flutter:
 
   # SF Pro Display fonts
   fonts:
-    - family: MiSans
+    - family: Lato
       fonts:
-        - asset: fonts/misans/MiSans-ExtraLight.ttf
-          weight: 200
-        - asset: fonts/misans/MiSans-Light.ttf
+        - asset: fonts/Lato-Light.ttf
           weight: 300
-        - asset: fonts/misans/MiSans-Regular.ttf
+        - asset: fonts/Lato-Regular.ttf
           weight: 400
-        - asset: fonts/misans/MiSans-Normal.ttf
-          weight: 400
-        - asset: fonts/misans/MiSans-Medium.ttf
-          weight: 500
-        - asset: fonts/misans/MiSans-Demibold.ttf
-          weight: 600
-        - asset: fonts/misans/MiSans-Semibold.ttf
-          weight: 600
-        - asset: fonts/misans/MiSans-Bold.ttf
+        - asset: fonts/Lato-Bold.ttf
           weight: 700
-        - asset: fonts/misans/MiSans-Heavy.ttf
-          weight: 800
-        - asset: fonts/misans/MiSans-Thin.ttf
-          weight: 100
+        - asset: fonts/NotoSans-Medium.ttf
+          weight: 300
+        - asset: fonts/NotoSans-Regular.ttf
+          weight: 400
+        - asset: fonts/NotoSans-Bold.ttf
+          weight: 700
 
   # Application assets
   assets:
