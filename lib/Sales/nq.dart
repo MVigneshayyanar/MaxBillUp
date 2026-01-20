@@ -10,6 +10,7 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 
 class NewQuotationPage extends StatefulWidget {
   final String uid;
@@ -210,7 +211,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                   Expanded(
                                     child: TextField(
                                       controller: qtyController,
-                                      keyboardType: TextInputType.number,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87),
@@ -544,7 +545,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       const Icon(Icons.description_rounded, color: kWhite, size: 20),
                       const SizedBox(width: 12),
                       Text(
-                        "Rs ${(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0).toStringAsFixed(0)}",
+                        "Rs ${(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0).toAmount()}",
                         style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(width: 10),

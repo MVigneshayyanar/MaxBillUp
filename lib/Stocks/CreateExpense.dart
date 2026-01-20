@@ -573,7 +573,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _totalAmountController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   hintText: '0.00',
                   prefixIcon: const Icon(Icons.currency_rupee, color: _primaryColor),
@@ -628,7 +628,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _paidAmountController,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0.00',
                     prefixIcon: const Icon(Icons.payment, color: _successColor),
@@ -720,7 +720,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               const SizedBox(height: 8),
               TextFormField(
                 controller: _gstAmountController,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   hintText: '0.00',
                   prefixIcon: const Icon(Icons.calculate, color: _primaryColor),

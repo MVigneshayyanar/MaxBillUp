@@ -6474,7 +6474,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                     Expanded(
                                       child: TextField(
                                         controller: qtyController,
-                                        keyboardType: TextInputType.number,
+                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                         textAlign: TextAlign.center,
                                         onChanged: (v) => setDialogState(() {}),
                                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87),

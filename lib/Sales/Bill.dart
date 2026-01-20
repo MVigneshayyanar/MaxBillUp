@@ -424,7 +424,7 @@ class _BillPageState extends State<BillPage> {
                                   Expanded(
                                     child: TextField(
                                       controller: qtyController,
-                                      keyboardType: TextInputType.number,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
@@ -930,7 +930,7 @@ class _BillPageState extends State<BillPage> {
                                     setDialogState(() {
                                       if (val == true) { _selectedCreditNotes.add({'id': doc.id, 'amount': (data['amount'] ?? 0.0).toDouble()}); }
                                       else { _selectedCreditNotes.removeWhere((cn) => cn['id'] == doc.id); }
-                                      _totalCreditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + (cn['amount'] as double));
+                                      _totalCreditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + ((cn['amount'] ?? 0).toDouble()));
                                     });
                                   },
                                 ),
@@ -1706,7 +1706,7 @@ class _PaymentPageState extends State<PaymentPage> {
     double remainingToDeduct = amountToDeduct;
     for (var creditNote in selectedCreditNotes) {
       if (remainingToDeduct <= 0) break;
-      final double noteAmount = (creditNote['amount'] as double);
+      final double noteAmount = (creditNote['amount'] ?? 0).toDouble();
 
       if (noteAmount <= remainingToDeduct) {
         // Fully used
@@ -2047,7 +2047,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     double remainingToDeduct = amountToDeduct;
     for (var creditNote in selectedCreditNotes) {
       if (remainingToDeduct <= 0) break;
-      final double noteAmount = (creditNote['amount'] as double);
+      final double noteAmount = (creditNote['amount'] ?? 0).toDouble();
       if (noteAmount <= remainingToDeduct) {
         await FirestoreService().updateDocument('creditNotes', creditNote['id'], {
           'status': 'Used',
@@ -2180,7 +2180,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
   Widget _buildInput(String label, IconData icon, TextEditingController ctrl, {bool enabled = true}) {
     return TextFormField(
-        controller: ctrl, enabled: enabled, keyboardType: TextInputType.number,
+        controller: ctrl, enabled: enabled, keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
           labelText: label, prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54),
           filled: true, fillColor: kWhite,

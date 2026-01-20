@@ -138,8 +138,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
                 ],
               ),
-              const SizedBox(height: 24),
-              _buildPopupTextField(controller: amountController, label: "Amount to Add", icon: Icons.add_moderator, keyboardType: TextInputType.number),
+              const SizedBox(height: 24), _buildPopupTextField(controller: amountController, label: "Amount to Add", icon: Icons.add_moderator, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,

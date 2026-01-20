@@ -5,6 +5,7 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -499,7 +500,7 @@ class _QuotationPageState extends State<QuotationPage> {
           Expanded(
             flex: 2,
             child: Text(
-                '${item.quantity}x${item.price.toStringAsFixed(0)}',
+                '${item.quantity}x${item.price.toAmount()}',
                 style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w700)
             ),
           ),
@@ -509,7 +510,7 @@ class _QuotationPageState extends State<QuotationPage> {
           Expanded(
             flex: 2,
             child: Text(
-                item.total.toStringAsFixed(0),
+                item.total.toAmount(),
                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kBlack87)
             ),
           ),
@@ -533,7 +534,7 @@ class _QuotationPageState extends State<QuotationPage> {
                   height: 32,
                   child: TextField(
                     controller: _itemDiscountControllers[index],
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     onChanged: (v) => _updateItemDiscount(index, v),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
@@ -603,7 +604,7 @@ class _QuotationPageState extends State<QuotationPage> {
     return SizedBox(
       height: 48,
       child: TextField(
-        controller: ctrl, keyboardType: TextInputType.number, onChanged: onChange,
+        controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: onChange,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),

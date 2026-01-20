@@ -171,12 +171,12 @@ class _VendorsPageState extends State<VendorsPage> {
                 _buildStat('VENDORS', _vendors.length.toString(), Icons.people_outline_rounded),
                 _buildStat(
                   'TOTAL SPENT',
-                  '${_vendors.fold(0.0, (sum, v) => sum + (v['totalPurchases'] as double)).toStringAsFixed(0)}',
+                  '${_vendors.fold(0.0, (sum, v) => sum + ((v['totalPurchases'] ?? 0).toDouble())).toStringAsFixed(0)}',
                   Icons.payments_rounded,
                 ),
                 _buildStat(
                   'BILLS',
-                  _vendors.fold(0, (sum, v) => sum + (v['purchaseCount'] as int)).toString(),
+                  _vendors.fold(0, (sum, v) => sum + ((v['purchaseCount'] ?? 0) as int)).toString(),
                   Icons.receipt_long_rounded,
                 ),
               ],

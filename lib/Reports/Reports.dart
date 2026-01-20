@@ -174,7 +174,7 @@ class _ReportsPageState extends State<ReportsPage> {
       case 'StaffReport': return StaffSaleReportPage(onBack: _reset);
       case 'TaxReport': return TaxReportPage(onBack: _reset);
       case 'PaymentReport': return PaymentReportPage(onBack: _reset);
-      case 'GSTReport': return GSTReportPage(onBack: _reset);
+      case 'GSTReport': return TaxReportPage(onBack: _reset); // Unified with Tax Report
       default: return _buildMainReportsPage(context, true, true);
     }
   }
@@ -260,8 +260,8 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildReportTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
           if (isFeatureAvailable('taxReport'))
             _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance'),
-          if (isFeatureAvailable('taxReport'))
-            _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF1565C0), 'GSTReport', subtitle: 'GST on sales & purchases'),
+          //if (isFeatureAvailable('taxReport'))
+           // _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF1565C0), 'GSTReport', subtitle: 'GST on sales & purchases'),
           const SizedBox(height: 40),
         ],
       ),
@@ -2150,10 +2150,23 @@ class DayBookPage extends StatefulWidget {
 
 class _DayBookPageState extends State<DayBookPage> {
   final FirestoreService _firestoreService = FirestoreService();
+  DateTime _selectedDate = DateTime.now();
 
   // Store data for PDF download
   List<DocumentSnapshot> _todayDocs = [];
   double _total = 0;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
+  }
 
   void _downloadPdf(BuildContext context) {
     if (_todayDocs.isEmpty) {
@@ -2197,115 +2210,223 @@ class _DayBookPageState extends State<DayBookPage> {
 
   @override
   Widget build(BuildContext context) {
-    final String todayDateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final String selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     return Scaffold(
       backgroundColor: kBackgroundColor,
       appBar: _buildModernAppBar(
-          "DayBook Ledger",
+          "DayBook",
           widget.onBack,
           onDownload: () => _downloadPdf(context)
       ),
-      body: FutureBuilder<Stream<QuerySnapshot>>(
-        future: _firestoreService.getCollectionStream('sales'),
-        builder: (context, streamSnapshot) {
-          if (!streamSnapshot.hasData) {
+      body: FutureBuilder<List<Stream<QuerySnapshot>>>(
+        future: Future.wait([
+          _firestoreService.getCollectionStream('sales'),
+          _firestoreService.getCollectionStream('expenses'),
+          _firestoreService.getCollectionStream('stockPurchases'),
+        ]),
+        builder: (context, streamsSnapshot) {
+          if (!streamsSnapshot.hasData) {
             return const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2));
           }
           return StreamBuilder<QuerySnapshot>(
-            stream: streamSnapshot.data!,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-              }
+            stream: streamsSnapshot.data![0],
+            builder: (context, salesSnapshot) {
+              return StreamBuilder<QuerySnapshot>(
+                stream: streamsSnapshot.data![1],
+                builder: (context, expenseSnapshot) {
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: streamsSnapshot.data![2],
+                    builder: (context, purchaseSnapshot) {
+                      if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      }
 
-              final allDocs = snapshot.data!.docs;
-              var todayDocs = allDocs.where((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                DateTime? dt;
-                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                if (dt == null) return false;
-                return DateFormat('yyyy-MM-dd').format(dt) == todayDateStr;
-              }).toList();
+                      // Filter data for selected date
+                      final filteredSales = salesSnapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        if (dt == null) return false;
+                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                      }).toList();
 
-              todayDocs.sort((a, b) {
-                final da = (a.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                final db = (b.data() as Map<String, dynamic>)['timestamp'] as Timestamp?;
-                return (db?.toDate() ?? DateTime.now()).compareTo(da?.toDate() ?? DateTime.now());
-              });
+                      final filteredExpenses = expenseSnapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        if (dt == null) return false;
+                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                      }).toList();
 
-              double total = todayDocs.fold(0, (sum, doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                return sum + (double.tryParse(data['total']?.toString() ?? '0') ?? 0);
-              });
+                      final filteredPurchases = purchaseSnapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        if (dt == null) return false;
+                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                      }).toList();
 
-              Map<int, double> hourlyRevenue = {for (var i = 0; i < 24; i++) i: 0.0};
-              for (var doc in todayDocs) {
-                final data = doc.data() as Map<String, dynamic>;
-                DateTime? dt;
-                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                if (dt != null) {
-                  double saleTotal = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                  hourlyRevenue[dt.hour] = (hourlyRevenue[dt.hour] ?? 0) + saleTotal;
-                }
-              }
+                      // Calculate comprehensive stats
+                      int totalSalesCount = 0, totalExpensesCount = 0, totalPurchasesCount = 0;
+                      double totalSalesAmount = 0, totalExpensesAmount = 0, totalPurchasesAmount = 0;
+                      double saleCreditGiven = 0, saleCreditReceived = 0;
+                      double purchaseCreditAdded = 0, purchaseCreditPaid = 0;
 
-              // Store values for PDF download
-              _todayDocs = todayDocs;
-              _total = total;
+                      // Payment breakdown
+                      double paymentOutCash = 0, paymentOutOnline = 0;
+                      double paymentInCash = 0, paymentInOnline = 0;
 
-              return Column(
-                children: [
-                  // High-Density Integrated KPI Header
-                  _buildExecutiveKpiHeader(total, todayDocs.length),
+                      // Build transaction rows
+                      List<Map<String, dynamic>> allTransactions = [];
 
-                  Expanded(
-                    child: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        // Ultra-Compact Chart Section
-                        SliverToBoxAdapter(
-                          child: _buildCompactAnalytics(hourlyRevenue),
-                        ),
+                      // Process Sales
+                      for (var doc in filteredSales) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final String status = (data['status'] ?? '').toString().toLowerCase();
+                        if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                          continue;
+                        }
 
-                        // Transaction Ledger Heading
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          sliver: SliverToBoxAdapter(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  "Daily Sales Log",
-                                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.5),
-                                ),
-                                Text(
-                                  "${todayDocs.length} ENTRIES",
-                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
-                                ),
-                              ],
+                        double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+
+                        totalSalesCount++;
+                        totalSalesAmount += total;
+
+                        // Track cash in
+                        if (mode.contains('cash')) {
+                          paymentInCash += total;
+                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                          paymentInOnline += total;
+                        } else if (mode.contains('credit')) {
+                          saleCreditGiven += total;
+                        }
+
+                        allTransactions.add({
+                          'category': 'Sale',
+                          'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
+                          'name': data['customerName']?.toString() ?? '--',
+                          'total': total,
+                          'cashIn': mode.contains('credit') ? 0.0 : total,
+                          'cashOut': 0.0,
+                          'timestamp': data['timestamp'],
+                          'paymentMode': mode,
+                        });
+                      }
+
+                      // Process Expenses
+                      for (var doc in filteredExpenses) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+
+                        totalExpensesCount++;
+                        totalExpensesAmount += amount;
+
+                        // Track cash out
+                        if (mode.contains('cash')) {
+                          paymentOutCash += amount;
+                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                          paymentOutOnline += amount;
+                        }
+
+                        allTransactions.add({
+                          'category': 'Expense',
+                          'particulars': data['category']?.toString() ?? 'VI EXPENSE',
+                          'name': data['name']?.toString() ?? 'SELF',
+                          'total': amount,
+                          'cashIn': 0.0,
+                          'cashOut': amount,
+                          'timestamp': data['timestamp'],
+                          'paymentMode': mode,
+                        });
+                      }
+
+                      // Process Purchases
+                      for (var doc in filteredPurchases) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        double amount = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
+                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+
+                        totalPurchasesCount++;
+                        totalPurchasesAmount += amount;
+
+                        // Track cash out
+                        if (mode.contains('cash')) {
+                          paymentOutCash += amount;
+                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                          paymentOutOnline += amount;
+                        }
+
+                        allTransactions.add({
+                          'category': 'Purchase',
+                          'particulars': data['invoiceNumber']?.toString() ?? '--',
+                          'name': data['supplierName']?.toString() ?? 'Supplier',
+                          'total': amount,
+                          'cashIn': 0.0,
+                          'cashOut': amount,
+                          'timestamp': data['timestamp'],
+                          'paymentMode': mode,
+                        });
+                      }
+
+                      // Sort transactions by time
+                      allTransactions.sort((a, b) {
+                        DateTime? dtA, dtB;
+                        if (a['timestamp'] != null) dtA = (a['timestamp'] as Timestamp).toDate();
+                        if (b['timestamp'] != null) dtB = (b['timestamp'] as Timestamp).toDate();
+                        if (dtA == null || dtB == null) return 0;
+                        return dtA.compareTo(dtB);
+                      });
+
+                      return Column(
+                        children: [
+                          // Date Selector
+                          _buildDayBookDateSelector(),
+
+                          Expanded(
+                            child: SingleChildScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 12),
+
+                                  // Summary Cards
+                                  _buildDayBookSummaryCards(
+                                    totalSalesCount, totalSalesAmount,
+                                    totalExpensesCount, totalExpensesAmount,
+                                    totalPurchasesCount, totalPurchasesAmount,
+                                    saleCreditGiven, saleCreditReceived,
+                                    purchaseCreditAdded, purchaseCreditPaid,
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  // Payment Breakdown
+                                  _buildDayBookPaymentBreakdown(
+                                    paymentOutCash, paymentOutOnline,
+                                    paymentInCash, paymentInOnline,
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  // Transaction Table
+                                  _buildDayBookTransactionTable(allTransactions),
+
+                                  const SizedBox(height: 30),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-
-                        // Ledger List (Zero Margin Rows)
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 0),
-                          sliver: todayDocs.isEmpty
-                              ? const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.only(top: 60), child: Center(child: Text("No data for current cycle", style: TextStyle(color: kTextSecondary)))))
-                              : SliverList(
-                            delegate: SliverChildBuilderDelegate(
-                                  (context, index) => _buildHighDensityLedgerRow(todayDocs[index].data() as Map<String, dynamic>, index == todayDocs.length - 1),
-                              childCount: todayDocs.length,
-                            ),
-                          ),
-                        ),
-                        const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                      ],
-                    ),
-                  ),
-                ],
+                        ],
+                      );
+                    },
+                  );
+                },
               );
             },
           );
@@ -2442,50 +2563,613 @@ class _DayBookPageState extends State<DayBookPage> {
 
   Widget _buildHighDensityLedgerRow(Map<String, dynamic> data, bool isLast) {
     double saleTotal = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+    double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0;
+    double tax = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
     String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+    String status = (data['status'] ?? '').toString().toLowerCase();
+    bool isCancelled = status == 'cancelled';
+    bool isReturned = status == 'returned' || data['hasBeenReturned'] == true;
 
     Color modeColor = kIncomeGreen;
     if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) modeColor = kPrimaryColor;
     else if (mode.contains('credit')) modeColor = kWarningOrange;
 
+    Color statusColor = kIncomeGreen;
+    String statusText = 'COMPLETED';
+    if (isCancelled) {
+      statusColor = kExpenseRed;
+      statusText = 'CANCELLED';
+    } else if (isReturned) {
+      statusColor = kWarningOrange;
+      statusText = 'RETURNED';
+    }
+
     DateTime? dt;
     if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
     final timeStr = dt != null ? DateFormat('hh:mm a').format(dt) : '--:--';
+    final dateStr = dt != null ? DateFormat('dd MMM').format(dt) : '--/--';
+
+    // Get items list
+    List<dynamic> items = data['items'] ?? [];
+    int itemCount = items.length;
+
+    // Get customer details
+    String customerName = (data['customerName'] ?? 'Guest').toString();
+    String customerPhone = (data['customerPhone'] ?? '').toString();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isCancelled || isReturned ? statusColor.withOpacity(0.3) : kBorderColor.withOpacity(0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header Section
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: modeColor.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Invoice Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: modeColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.receipt_rounded, size: 14, color: modeColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        '#${data['invoiceNumber'] ?? 'N/A'}',
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: modeColor),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Time Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kBackgroundColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time_rounded, size: 12, color: kTextSecondary),
+                      const SizedBox(width: 4),
+                      Text(timeStr, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary)),
+                    ],
+                  ),
+                ),
+                const Spacer(),
+                // Status Badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: statusColor.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    statusText,
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor, letterSpacing: 0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Customer & Items Section
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Customer Info
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.person_rounded, size: 16, color: kPrimaryColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            customerName.toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (customerPhone.isNotEmpty)
+                            Text(
+                              customerPhone,
+                              style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                // Items Summary
+                if (itemCount > 0) ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: kBackgroundColor.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kBorderColor.withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.shopping_bag_outlined, size: 14, color: kTextSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$itemCount ITEM${itemCount > 1 ? 'S' : ''}',
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ...items.take(3).map((item) {
+                          String itemName = item['name']?.toString() ?? 'Item';
+                          int qty = int.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
+                          double itemPrice = double.tryParse(item['total']?.toString() ?? '0') ?? 0;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 4,
+                                  height: 4,
+                                  decoration: const BoxDecoration(
+                                    color: kPrimaryColor,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '$itemName × $qty',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Text(
+                                  ' ${itemPrice.toStringAsFixed(0)}',
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                        if (itemCount > 3)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              '+${itemCount - 3} more items...',
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary, fontStyle: FontStyle.italic),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Financial Details Row
+                Row(
+                  children: [
+                    // Payment Method
+                    Expanded(
+                      child: _buildDetailTile(
+                        icon: mode.contains('online') || mode.contains('upi')
+                            ? Icons.credit_card_rounded
+                            : mode.contains('credit')
+                                ? Icons.event_note_rounded
+                                : Icons.money_rounded,
+                        label: 'PAYMENT',
+                        value: mode.toUpperCase(),
+                        color: modeColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Discount (if any)
+                    if (discount > 0)
+                      Expanded(
+                        child: _buildDetailTile(
+                          icon: Icons.local_offer_rounded,
+                          label: 'DISCOUNT',
+                          value: ' ${discount.toStringAsFixed(0)}',
+                          color: kWarningOrange,
+                        ),
+                      ),
+                    if (discount > 0) const SizedBox(width: 8),
+                    // Tax (if any)
+                    if (tax > 0)
+                      Expanded(
+                        child: _buildDetailTile(
+                          icon: Icons.receipt_long_rounded,
+                          label: 'TAX',
+                          value: ' ${tax.toStringAsFixed(0)}',
+                          color: kIncomeGreen,
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Footer with Total
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: modeColor.withOpacity(0.05),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              border: Border(
+                top: BorderSide(color: kBorderColor.withOpacity(0.3)),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'TOTAL AMOUNT',
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.8),
+                ),
+                Text(
+                  ' ${saleTotal.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    color: isCancelled || isReturned ? Colors.grey : modeColor,
+                    letterSpacing: -0.5,
+                    decoration: isCancelled || isReturned ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailTile({required IconData icon, required String label, required String value, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 10, color: color),
+              const SizedBox(width: 4),
+              Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.3)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- DAYBOOK UI COMPONENTS ---
+
+  Widget _buildDayBookDateSelector() {
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.3))),
       ),
+      child: InkWell(
+        onTap: () => _selectDate(context),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: kPrimaryColor, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              DateFormat('dd-MM-yyyy').format(_selectedDate),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.black87),
+            ),
+            const Spacer(),
+            Icon(Icons.keyboard_arrow_down_rounded, color: kPrimaryColor.withOpacity(0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayBookSummaryCards(
+    int salesCount, double salesAmount,
+    int expensesCount, double expensesAmount,
+    int purchasesCount, double purchasesAmount,
+    double saleCreditGiven, double saleCreditReceived,
+    double purchaseCreditAdded, double purchaseCreditPaid,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: kBackgroundColor,
+      child: Column(
+        children: [
+          _buildSummaryRow('Total Sales', salesCount, salesAmount),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Total Expenses', expensesCount, expensesAmount),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Total Purchases', purchasesCount, purchasesAmount),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Sale Credit Given', 0, saleCreditGiven),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Sale Credit Received', 0, saleCreditReceived),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Purchase Credit Added', 0, purchaseCreditAdded),
+          const SizedBox(height: 8),
+          _buildSummaryRow('Purchase Credit paid', 0, purchaseCreditPaid),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, int count, double amount) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+          Row(
+            children: [
+              Text('$count', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kPrimaryColor)),
+              const SizedBox(width: 20),
+              Text('Rs ${amount.toStringAsFixed(1)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayBookPaymentBreakdown(double outCash, double outOnline, double inCash, double inOnline) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Minimal Payment Indicator
-          Container(
-            width: 3,
-            height: 24,
-            decoration: BoxDecoration(color: modeColor, borderRadius: BorderRadius.circular(10)),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5D4037),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Rs ${(outCash + outOnline).toStringAsFixed(1)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+                  const SizedBox(height: 4),
+                  const Text('Total Payment Out', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+                  const Divider(color: Colors.white30, height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${outCash.toStringAsFixed(1)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('${outOnline.toStringAsFixed(1)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Cash', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                      const Text('Online', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                    (data['customerName'] ?? 'Guest').toString().toUpperCase(),
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
-                    maxLines: 1
-                ),
-                Text("Invoice${data['invoiceNumber'] ?? 'N/A'}  •  $timeStr", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Rs ${(inCash + inOnline).toStringAsFixed(1)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+                  const SizedBox(height: 4),
+                  const Text('Total Payment In', style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600)),
+                  const Divider(color: Colors.white30, height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('${inCash.toStringAsFixed(1)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                      Text('${inOnline.toStringAsFixed(1)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Cash', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                      const Text('Online', style: TextStyle(fontSize: 11, color: Colors.white60)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayBookTransactionTable(List<Map<String, dynamic>> transactions) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor.withOpacity(0.4)),
+      ),
+      child: Column(
+        children: [
+          // Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: kBackgroundColor.withOpacity(0.5),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: const [
+                Expanded(flex: 2, child: Text('Category', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text('Particulars', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text('Name', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text('CashIn/\nCashOut', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary))),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(" ${saleTotal.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: -0.5)),
-              Text(mode.toUpperCase(), style: TextStyle(fontSize: 7, color: modeColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-            ],
+
+          // Table Rows
+          if (transactions.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(30),
+              child: Text('No transactions for this date', style: TextStyle(color: kTextSecondary, fontSize: 13)),
+            )
+          else
+            ...transactions.map((txn) => _buildDayBookTableRow(txn)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDayBookTableRow(Map<String, dynamic> txn) {
+    final category = txn['category'].toString();
+    final isIncome = category == 'Sale';
+    final cashFlow = isIncome ? txn['cashIn'] as double : txn['cashOut'] as double;
+
+    Color categoryColor = kIncomeGreen;
+    if (category == 'Expense') categoryColor = kExpenseRed;
+    else if (category == 'Purchase') categoryColor = kWarningOrange;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.2))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              category,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: categoryColor),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              txn['particulars'].toString(),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              txn['name'].toString(),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.black87),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              (txn['total'] as double).toStringAsFixed(1),
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isIncome ? kIncomeGreen.withOpacity(0.1) : const Color(0xFF5D4037).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                cashFlow.toStringAsFixed(1),
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: isIncome ? kIncomeGreen : const Color(0xFF5D4037),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -3420,6 +4104,12 @@ class TopCustomersPage extends StatelessWidget {
 
               double amt = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
               String name = data['customerName'] ?? 'Guest';
+
+              // Skip "Guest" customers - only count named customers
+              if (name.toLowerCase() == 'guest') {
+                continue;
+              }
+
               spendMap[name] = (spendMap[name] ?? 0) + amt;
             }
 
@@ -4115,6 +4805,13 @@ class ItemSalesPage extends StatelessWidget {
               if (data['items'] != null) {
                 for (var item in (data['items'] as List)) {
                   String name = item['name']?.toString() ?? 'Unknown';
+
+                  // Skip quick items (item1, item2, etc.) - only count properly named items
+                  if (name.toLowerCase().startsWith('item') &&
+                      RegExp(r'^item\d+$', caseSensitive: false).hasMatch(name.toLowerCase())) {
+                    continue; // Skip quick items
+                  }
+
                   int q = int.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
                   qtyMap[name] = (qtyMap[name] ?? 0) + q;
                 }
@@ -5863,162 +6560,456 @@ class ExpenseReportPage extends StatelessWidget {
   }
 }
 
-class TaxReportPage extends StatelessWidget {
+// ==========================================
+// UNIFIED TAX REPORT PAGE (Tax + GST Combined)
+// ==========================================
+class TaxReportPage extends StatefulWidget {
   final VoidCallback onBack;
+
+  const TaxReportPage({super.key, required this.onBack});
+
+  @override
+  State<TaxReportPage> createState() => _TaxReportPageState();
+}
+
+class _TaxReportPageState extends State<TaxReportPage> {
   final FirestoreService _firestoreService = FirestoreService();
+  DateTime? _fromDate;
+  DateTime? _toDate;
+  bool _showReport = false;
 
-  TaxReportPage({super.key, required this.onBack});
+  Future<void> _selectFromDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _fromDate ?? DateTime.now().subtract(const Duration(days: 30)),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() => _fromDate = picked);
+    }
+  }
 
-  void _downloadPdf(BuildContext context, List<Map<String, dynamic>> taxableDocs, double totalTaxAmount, Map<String, double> taxBreakdown) {
-    final rows = taxableDocs.map((d) => [
-      d['invoiceNumber']?.toString() ?? 'N/A',
-      d['customerName']?.toString() ?? 'Guest',
-      (double.tryParse(d['total']?.toString() ?? '0') ?? 0).toStringAsFixed(2),
-      (d['calculatedTax'] as double).toStringAsFixed(2),
-    ]).toList();
+  Future<void> _selectToDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _toDate ?? DateTime.now(),
+      firstDate: _fromDate ?? DateTime(2020),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() => _toDate = picked);
+    }
+  }
+
+  bool _isInDateRange(DateTime? dt) {
+    if (dt == null || _fromDate == null || _toDate == null) return false;
+    return dt.isAfter(_fromDate!.subtract(const Duration(days: 1))) &&
+        dt.isBefore(_toDate!.add(const Duration(days: 1)));
+  }
+
+  void _downloadPdf({
+    required BuildContext context,
+    required List<Map<String, dynamic>> taxableDocs,
+    required double totalTaxAmount,
+    required Map<String, double> taxBreakdown,
+    required List<Map<String, dynamic>> salesRows,
+    required List<Map<String, dynamic>> purchaseRows,
+    required double totalSalesGST,
+    required double totalPurchaseGST,
+    required double netLiability,
+  }) {
+    // Create comprehensive tax rows combining sales tax and GST data
+    final List<List<String>> allRows = [];
+    
+    // Add Sales Tax Data
+    for (var d in taxableDocs) {
+      allRows.add([
+        DateFormat('dd/MM/yy').format(d['timestamp'] is Timestamp ? (d['timestamp'] as Timestamp).toDate() : DateTime.now()),
+        'TAX - SALES',
+        d['invoiceNumber']?.toString() ?? 'N/A',
+        d['customerName']?.toString() ?? 'Guest',
+        (double.tryParse(d['total']?.toString() ?? '0') ?? 0).toStringAsFixed(2),
+        (d['calculatedTax'] as double).toStringAsFixed(2),
+      ]);
+    }
+
+    // Add GST Sales Data
+    for (var row in salesRows) {
+      allRows.add([
+        DateFormat('dd/MM/yy').format(row['date']),
+        'GST - ${row['category']}',
+        row['invoice'],
+        row['gstNumber'],
+        "${(row['amount'] as double).toStringAsFixed(2)}",
+        "${(row['gst'] as double).toStringAsFixed(2)}",
+      ]);
+    }
+
+    // Add GST Purchase Data
+    for (var row in purchaseRows) {
+      allRows.add([
+        DateFormat('dd/MM/yy').format(row['date']),
+        'GST - ${row['category']}',
+        row['invoice'],
+        row['gstNumber'],
+        "${(row['amount'] as double).toStringAsFixed(2)}",
+        "${(row['gst'] as double).toStringAsFixed(2)}",
+      ]);
+    }
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'TAX COMPLIANCE REPORT',
-      headers: ['INVOICE', 'CUSTOMER', 'BASE TOTAL', 'TAX AMT'],
-      rows: rows,
-      summaryTitle: 'TOTAL TAX COLLECTED',
-      summaryValue: "${totalTaxAmount.toStringAsFixed(2)}",
+      reportTitle: 'COMPREHENSIVE TAX & GST REPORT',
+      headers: ['DATE', 'TYPE', 'INVOICE', 'PARTY', 'TOTAL', 'TAX/GST'],
+      rows: allRows,
+      summaryTitle: 'NET TAX LIABILITY',
+      summaryValue: "${(totalTaxAmount + netLiability).toStringAsFixed(2)}",
       additionalSummary: {
-        ...taxBreakdown.map((k, v) => MapEntry(k.toUpperCase(), "${v.toStringAsFixed(2)}")),
-        'Transaction Count': '${taxableDocs.length}'
+        'Period': '${DateFormat('dd/MM/yy').format(_fromDate!)} to ${DateFormat('dd/MM/yy').format(_toDate!)}',
+        'Sales Tax': '${totalTaxAmount.toStringAsFixed(2)}',
+        'Sales GST': '${totalSalesGST.toStringAsFixed(2)}',
+        'Purchase GST': '${totalPurchaseGST.toStringAsFixed(2)}',
+        'Net GST Liability': '${netLiability.toStringAsFixed(2)}',
+        'Transaction Count': '${taxableDocs.length + salesRows.length + purchaseRows.length}',
+        'Audit Status': 'Verified'
       },
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBackgroundColor,
-      body: FutureBuilder<Stream<QuerySnapshot>>(
-        future: _firestoreService.getCollectionStream('sales'),
-        builder: (context, streamSnapshot) {
-          if (!streamSnapshot.hasData) {
-            return Scaffold(
-              appBar: _buildModernAppBar("Tax Report", onBack),
-              body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
-            );
-          }
-          return StreamBuilder<QuerySnapshot>(
-            stream: streamSnapshot.data!,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return Scaffold(
-                  appBar: _buildModernAppBar("Tax Report", onBack),
-                  body: const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
-                );
-              }
-
-              double totalTaxAmount = 0;
-              Map<String, double> taxBreakdown = {};
-              var taxableDocs = <Map<String, dynamic>>[];
-
-              for (var d in snapshot.data!.docs) {
-                var data = d.data() as Map<String, dynamic>;
-
-                // Skip cancelled or returned bills
-                final String status = (data['status'] ?? '').toString().toLowerCase();
-                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                  continue;
-                }
-
-                double saleTax = double.tryParse(data['totalTax']?.toString() ?? '0') ?? 0;
-                if (saleTax == 0) {
-                  saleTax = double.tryParse(data['taxAmount']?.toString() ?? data['tax']?.toString() ?? '0') ?? 0;
-                }
-
-                if (saleTax > 0) {
-                  totalTaxAmount += saleTax;
-                  if (data['taxes'] != null && data['taxes'] is List) {
-                    List<dynamic> taxes = data['taxes'] as List<dynamic>;
-                    for (var taxItem in taxes) {
-                      if (taxItem is Map<String, dynamic>) {
-                        String taxName = taxItem['name']?.toString() ?? 'Tax';
-                        double taxAmount = double.tryParse(taxItem['amount']?.toString() ?? '0') ?? 0;
-                        taxBreakdown[taxName] = (taxBreakdown[taxName] ?? 0) + taxAmount;
-                      }
-                    }
-                  } else {
-                    taxBreakdown['Tax'] = (taxBreakdown['Tax'] ?? 0) + saleTax;
-                  }
-                  data['calculatedTax'] = saleTax;
-                  taxableDocs.add(data);
-                }
-              }
-
-              var sortedTaxTypes = taxBreakdown.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-
-              return Scaffold(
-                backgroundColor: kBackgroundColor,
-                appBar: _buildModernAppBar(
-                    "Tax Compliance",
-                    onBack,
-                    onDownload: () => _downloadPdf(context, taxableDocs, totalTaxAmount, taxBreakdown)
+    // Show date selection screen if report not yet generated
+    if (!_showReport) {
+      return Scaffold(
+        backgroundColor: kBackgroundColor,
+        appBar: _buildModernAppBar("Tax Report Period", widget.onBack),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 30),
+              _buildSectionHeader("Select Tax Report Duration"),
+              const SizedBox(height: 12),
+              _buildDateTile("START DATE", _fromDate, _selectFromDate),
+              const SizedBox(height: 12),
+              _buildDateTile("END DATE", _toDate, _selectToDate),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (_fromDate != null && _toDate != null)
+                      ? () => setState(() => _showReport = true)
+                      : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: const Text('GENERATE TAX REPORT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
                 ),
-                body: Column(
-                  children: [
-                    _buildTaxExecutiveHeader(totalTaxAmount, taxableDocs.length),
-                    Expanded(
-                      child: CustomScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          if (sortedTaxTypes.isNotEmpty) ...[
-                            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              sliver: SliverToBoxAdapter(child: _buildSectionHeader("Tax Type Breakdown")),
-                            ),
-                            const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                            SliverToBoxAdapter(
-                              child: _buildBreakdownMatrix(sortedTaxTypes),
-                            ),
-                          ],
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      );
+    }
 
-                          const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            sliver: SliverToBoxAdapter(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildSectionHeader("Taxable Ledger"),
-                                  Text(
-                                    "${taxableDocs.length} ENTRIES",
-                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                          taxableDocs.isEmpty
-                              ? const SliverFillRemaining(child: Center(child: Text("No taxable records", style: TextStyle(color: kTextSecondary))))
-                              : SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                    (context, index) => _buildTaxLedgerRow(taxableDocs[index]),
-                                childCount: taxableDocs.length,
-                              ),
-                            ),
-                          ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+    // Show comprehensive tax report
+    return FutureBuilder<List<Stream<QuerySnapshot>>>(
+      future: Future.wait([
+        _firestoreService.getCollectionStream('sales'),
+        _firestoreService.getCollectionStream('expenses'),
+        _firestoreService.getCollectionStream('stockPurchases'),
+        _firestoreService.getCollectionStream('creditNotes'),
+      ]),
+      builder: (context, streamsSnapshot) {
+        if (!streamsSnapshot.hasData) {
+          return Scaffold(
+            backgroundColor: kBackgroundColor,
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                onPressed: () => setState(() => _showReport = false),
+              ),
+              title: const Text('Tax Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+              backgroundColor: kPrimaryColor,
+              centerTitle: true,
+            ),
+            body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
           );
-        },
-      ),
+        }
+
+        return StreamBuilder<QuerySnapshot>(
+          stream: streamsSnapshot.data![0],
+          builder: (context, salesSnapshot) {
+            return StreamBuilder<QuerySnapshot>(
+              stream: streamsSnapshot.data![1],
+              builder: (context, expenseSnapshot) {
+                return StreamBuilder<QuerySnapshot>(
+                  stream: streamsSnapshot.data![2],
+                  builder: (context, purchaseSnapshot) {
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: streamsSnapshot.data![3],
+                      builder: (context, creditNoteSnapshot) {
+                        if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
+                          return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+                        }
+
+                        // --- Process Sales Tax Data ---
+                        double totalTaxAmount = 0;
+                        Map<String, double> taxBreakdown = {};
+                        var taxableDocs = <Map<String, dynamic>>[];
+
+                        for (var d in salesSnapshot.data!.docs) {
+                          var data = d.data() as Map<String, dynamic>;
+                          DateTime? dt;
+                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                          if (_isInDateRange(dt)) {
+                            // Skip cancelled or returned bills
+                            final String status = (data['status'] ?? '').toString().toLowerCase();
+                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                              continue;
+                            }
+
+                            double saleTax = double.tryParse(data['totalTax']?.toString() ?? '0') ?? 0;
+                            if (saleTax == 0) {
+                              saleTax = double.tryParse(data['taxAmount']?.toString() ?? data['tax']?.toString() ?? '0') ?? 0;
+                            }
+
+                            if (saleTax > 0) {
+                              totalTaxAmount += saleTax;
+                              if (data['taxes'] != null && data['taxes'] is List) {
+                                List<dynamic> taxes = data['taxes'] as List<dynamic>;
+                                for (var taxItem in taxes) {
+                                  if (taxItem is Map<String, dynamic>) {
+                                    String taxName = taxItem['name']?.toString() ?? 'Tax';
+                                    double taxAmount = double.tryParse(taxItem['amount']?.toString() ?? '0') ?? 0;
+                                    taxBreakdown[taxName] = (taxBreakdown[taxName] ?? 0) + taxAmount;
+                                  }
+                                }
+                              } else {
+                                taxBreakdown['Tax'] = (taxBreakdown['Tax'] ?? 0) + saleTax;
+                              }
+                              data['calculatedTax'] = saleTax;
+                              taxableDocs.add(data);
+                            }
+                          }
+                        }
+
+                        // --- Process GST Sales Data ---
+                        List<Map<String, dynamic>> salesRows = [];
+                        double totalSalesAmount = 0, totalSalesGST = 0;
+
+                        for (var doc in salesSnapshot.data!.docs) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          DateTime? dt;
+                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                          if (_isInDateRange(dt)) {
+                            final String status = (data['status'] ?? '').toString().toLowerCase();
+                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                              continue;
+                            }
+
+                            double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                            double gst = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
+                            salesRows.add({
+                              'date': dt,
+                              'category': 'SALE',
+                              'invoice': data['invoiceNumber']?.toString() ?? 'N/A',
+                              'gstNumber': data['customerGST']?.toString() ?? '--',
+                              'amount': total,
+                              'gst': gst,
+                              'cancelled': false,
+                            });
+                            totalSalesAmount += total;
+                            totalSalesGST += gst;
+                          }
+                        }
+
+                        // --- Process GST Inward Data (Purchases) ---
+                        List<Map<String, dynamic>> purchaseRows = [];
+                        double totalPurchaseAmount = 0, totalPurchaseGST = 0;
+
+                        void addInward(QueryDocumentSnapshot doc, String cat, String amtKey, String gstKey, String gstNumKey) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          DateTime? dt;
+                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                          if (_isInDateRange(dt)) {
+                            double amount = double.tryParse(data[amtKey]?.toString() ?? '0') ?? 0;
+                            double gst = double.tryParse(data[gstKey]?.toString() ?? '0') ?? 0;
+                            purchaseRows.add({
+                              'date': dt,
+                              'category': cat,
+                              'invoice': data['invoiceNumber']?.toString() ?? '--',
+                              'gstNumber': data[gstNumKey]?.toString() ?? '--',
+                              'amount': amount,
+                              'gst': gst,
+                              'cancelled': false,
+                            });
+                            totalPurchaseAmount += amount;
+                            totalPurchaseGST += gst;
+                          }
+                        }
+
+                        for (var doc in expenseSnapshot.data!.docs) {
+                          addInward(doc, 'EXPENSE', 'amount', 'gst', '--');
+                        }
+                        for (var doc in purchaseSnapshot.data!.docs) {
+                          addInward(doc, 'PURCHASE', 'totalAmount', 'gst', 'supplierGST');
+                        }
+                        if (creditNoteSnapshot.hasData) {
+                          for (var doc in creditNoteSnapshot.data!.docs) {
+                            addInward(doc, 'CREDIT NOTE', 'amount', 'gst', '--');
+                          }
+                        }
+
+                        double gstNetLiability = totalSalesGST - totalPurchaseGST;
+                        double totalNetTax = totalTaxAmount + gstNetLiability;
+                        var sortedTaxTypes = taxBreakdown.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+                        return Scaffold(
+                          backgroundColor: kBackgroundColor,
+                          appBar: AppBar(
+                            leading: IconButton(
+                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                              onPressed: () => setState(() => _showReport = false),
+                            ),
+                            title: const Text('Tax Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                            backgroundColor: kPrimaryColor,
+                            elevation: 0,
+                            centerTitle: true,
+                            actions: [
+                              IconButton(
+                                icon: const Icon(Icons.file_download_outlined, color: Colors.white),
+                                onPressed: () => _downloadPdf(
+                                  context: context,
+                                  taxableDocs: taxableDocs,
+                                  totalTaxAmount: totalTaxAmount,
+                                  taxBreakdown: taxBreakdown,
+                                  salesRows: salesRows,
+                                  purchaseRows: purchaseRows,
+                                  totalSalesGST: totalSalesGST,
+                                  totalPurchaseGST: totalPurchaseGST,
+                                  netLiability: gstNetLiability,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ),
+                          body: Column(
+                            children: [
+                              _buildUnifiedTaxHeader(totalNetTax, totalTaxAmount, totalSalesGST, totalPurchaseGST, gstNetLiability),
+
+                              Expanded(
+                                child: CustomScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  slivers: [
+                                    SliverPadding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+                                      sliver: SliverList(
+                                        delegate: SliverChildListDelegate([
+                                          // Tax Type Breakdown Section
+                                          if (sortedTaxTypes.isNotEmpty) ...[
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                                              child: _buildSectionHeader("Tax Type Breakdown"),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            _buildBreakdownMatrix(sortedTaxTypes),
+                                            const SizedBox(height: 24),
+                                          ],
+
+                                          // Taxable Sales Ledger
+                                          if (taxableDocs.isNotEmpty) ...[
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  _buildSectionHeader("Sales Tax Ledger"),
+                                                  Text(
+                                                    "${taxableDocs.length} BILLS",
+                                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ...taxableDocs.map((doc) => Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                                              child: _buildTaxLedgerRow(doc),
+                                            )).toList(),
+                                            const SizedBox(height: 24),
+                                          ],
+
+                                          // GST on Outward Supplies
+                                          if (salesRows.isNotEmpty) ...[
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                                              child: _buildSectionHeader("GST on Outward Supplies (Sales)"),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _buildGstTable(salesRows),
+                                            const SizedBox(height: 24),
+                                          ],
+
+                                          // GST on Inward Supplies
+                                          if (purchaseRows.isNotEmpty) ...[
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                                              child: _buildSectionHeader("GST on Inward Supplies (Purchases)"),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            _buildGstTable(purchaseRows),
+                                            const SizedBox(height: 24),
+                                          ],
+
+                                          // Compliance Summary
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                                            child: _buildSectionHeader("Tax Compliance Summary"),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            child: _buildComprehensiveSummary(
+                                              totalTaxAmount,
+                                              totalSalesAmount,
+                                              totalSalesGST,
+                                              totalPurchaseAmount,
+                                              totalPurchaseGST,
+                                              gstNetLiability,
+                                              totalNetTax,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 40),
+                                        ]),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -6031,7 +7022,7 @@ class TaxReportPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTaxExecutiveHeader(double total, int count) {
+  Widget _buildUnifiedTaxHeader(double totalNet, double salesTax, double salesGST, double purchaseGST, double gstNet) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -6039,30 +7030,62 @@ class TaxReportPage extends StatelessWidget {
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("TOTAL TAX COLLECTED", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 2),
-              Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kIncomeGreen, letterSpacing: -1)),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("TOTAL TAX LIABILITY", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  const SizedBox(height: 2),
+                  Text(" ${totalNet.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: totalNet >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text("SALES TAX: ${salesTax.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kIncomeGreen)),
+                  const SizedBox(height: 2),
+                  Text("GST NET: ${gstNet.toStringAsFixed(0)}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: gstNet >= 0 ? kExpenseRed : kIncomeGreen)),
+                ],
+              ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: kIncomeGreen.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kIncomeGreen.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Text("$count", style: const TextStyle(color: kIncomeGreen, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("BILLS", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: kIncomeGreen.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text("GST OUT: ${salesGST.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kIncomeGreen)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: kExpenseRed.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Text("GST IN: ${purchaseGST.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kExpenseRed)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -6095,12 +7118,187 @@ class TaxReportPage extends StatelessWidget {
               children: [
                 Text(entry.key.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 const SizedBox(height: 2),
-                Text("${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87)),
+                Text(" ${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87)),
               ],
             ),
           );
         }).toList(),
       ),
+    );
+  }
+
+  Widget _buildDateTile(String label, DateTime? date, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kBorderColor),
+        ),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
+                const SizedBox(height: 4),
+                Text(date != null ? DateFormat('dd MMMM yyyy').format(date) : 'SELECT DATE',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.calendar_month_rounded, color: kPrimaryColor.withOpacity(0.5), size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGstTable(List<Map<String, dynamic>> rows) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
+      ),
+      child: Column(
+        children: [
+          Container(
+            color: kBackgroundColor.withOpacity(0.5),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            child: Row(
+              children: const [
+                Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 3, child: Text("INVOICE/GSTIN", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text("TOTAL", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text("GST", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
+              ],
+            ),
+          ),
+          if (rows.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(20),
+              child: Text("No data available", style: TextStyle(fontSize: 11, color: kTextSecondary)),
+            )
+          else
+            ...rows.map((row) => _buildGstTableRow(row)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGstTableRow(Map<String, dynamic> row) {
+    final String gstin = row['gstNumber'].toString();
+    final String inv = row['invoice'].toString();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.2))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              DateFormat('dd-MM-yy').format(row['date']),
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  inv.toUpperCase(),
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  gstin == "--" ? "UNREGISTERED" : gstin,
+                  style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              " ${(row['amount'] as double).toStringAsFixed(0)}",
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              " ${(row['gst'] as double).toStringAsFixed(1)}",
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black87),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComprehensiveSummary(
+    double salesTax,
+    double salesAmount,
+    double salesGST,
+    double purchaseAmount,
+    double purchaseGST,
+    double gstNet,
+    double totalNet,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: Column(
+        children: [
+          _buildSummaryRow("Sales Tax Collected", salesTax),
+          const SizedBox(height: 8),
+          _buildSummaryRow("Sales GST (Outward)", salesGST),
+          const SizedBox(height: 8),
+          _buildSummaryRow("Purchase GST (Inward)", purchaseGST),
+          const Divider(height: 24),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: totalNet >= 0 ? [kIncomeGreen, kIncomeGreen.withOpacity(0.7)] : [kExpenseRed, kExpenseRed.withOpacity(0.7)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("Total Tax Liability", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+                Text(" ${totalNet.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, double amount) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary)),
+        Text(" ${amount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+      ],
     );
   }
 
@@ -7258,550 +8456,6 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
 }
 
 // ==========================================
-// GST REPORT PAGE (Enhanced with all features from screenshot)
+// GST REPORT NOW MERGED INTO TAX REPORT
+// Use TaxReport for comprehensive tax and GST reporting
 // ==========================================
-class GSTReportPage extends StatefulWidget {
-  final VoidCallback onBack;
-
-  const GSTReportPage({super.key, required this.onBack});
-
-  @override
-  State<GSTReportPage> createState() => _GSTReportPageState();
-}
-
-class _GSTReportPageState extends State<GSTReportPage> {
-  final FirestoreService _firestoreService = FirestoreService();
-  DateTime? _fromDate;
-  DateTime? _toDate;
-  bool _showReport = false;
-
-  Future<void> _selectFromDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _fromDate ?? DateTime.now().subtract(const Duration(days: 30)),
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() => _fromDate = picked);
-    }
-  }
-
-  Future<void> _selectToDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _toDate ?? DateTime.now(),
-      firstDate: _fromDate ?? DateTime(2020),
-      lastDate: DateTime.now(),
-    );
-    if (picked != null) {
-      setState(() => _toDate = picked);
-    }
-  }
-
-  bool _isInDateRange(DateTime? dt) {
-    if (dt == null || _fromDate == null || _toDate == null) return false;
-    return dt.isAfter(_fromDate!.subtract(const Duration(days: 1))) &&
-        dt.isBefore(_toDate!.add(const Duration(days: 1)));
-  }
-
-  void _downloadPdf({
-    required BuildContext context,
-    required List<Map<String, dynamic>> sales,
-    required List<Map<String, dynamic>> purchases,
-    required double totalSalesGST,
-    required double totalPurchaseGST,
-    required double netLiability,
-  }) {
-    // Merge all rows for a combined audit list or handle separately as per requirements
-    // Here we create a unified audit trail for the PDF
-    final List<List<String>> allRows = [];
-
-    // Add Sales
-    for (var row in sales) {
-      allRows.add([
-        DateFormat('dd/MM/yy').format(row['date']),
-        row['category'],
-        row['invoice'],
-        row['gstNumber'],
-        "${(row['amount'] as double).toStringAsFixed(2)}",
-        "${(row['gst'] as double).toStringAsFixed(2)}",
-      ]);
-    }
-
-    // Add Purchases
-    for (var row in purchases) {
-      allRows.add([
-        DateFormat('dd/MM/yy').format(row['date']),
-        row['category'],
-        row['invoice'],
-        row['gstNumber'],
-        "${(row['amount'] as double).toStringAsFixed(2)}",
-        "${(row['gst'] as double).toStringAsFixed(2)}",
-      ]);
-    }
-
-    ReportPdfGenerator.generateAndDownloadPdf(
-      context: context,
-      reportTitle: 'GST AUDIT REPORT',
-      headers: ['DATE', 'CAT', 'INVOICE', 'GSTIN', 'TOTAL', 'GST'],
-      rows: allRows,
-      summaryTitle: "NET GST LIABILITY",
-      summaryValue: " ${netLiability.toStringAsFixed(2)}",
-      additionalSummary: {
-        'Period': '${DateFormat('dd/MM/yy').format(_fromDate!)} to ${DateFormat('dd/MM/yy').format(_toDate!)}',
-        'Sales GST': ' ${totalSalesGST.toStringAsFixed(2)}',
-        'Purchase GST': ' ${totalPurchaseGST.toStringAsFixed(2)}',
-        'Audit Status': 'Verified'
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!_showReport) {
-      return Scaffold(
-        backgroundColor: kBackgroundColor,
-        appBar: _buildModernAppBar("Tax Period Selection", widget.onBack),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 30),
-              _buildSectionHeader("Select Audit Duration"),
-              const SizedBox(height: 12),
-              _buildDateTile("START DATE", _fromDate, _selectFromDate),
-              const SizedBox(height: 12),
-              _buildDateTile("END DATE", _toDate, _selectToDate),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (_fromDate != null && _toDate != null)
-                      ? () => setState(() => _showReport = true)
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
-                  ),
-                  child: const Text('GENERATE GST AUDIT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
-                ),
-              ),
-              const SizedBox(height: 30),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return FutureBuilder<List<Stream<QuerySnapshot>>>(
-      future: Future.wait([
-        _firestoreService.getCollectionStream('sales'),
-        _firestoreService.getCollectionStream('expenses'),
-        _firestoreService.getCollectionStream('stockPurchases'),
-        _firestoreService.getCollectionStream('creditNotes'),
-      ]),
-      builder: (context, streamsSnapshot) {
-        if (!streamsSnapshot.hasData) {
-          return Scaffold(
-            backgroundColor: kBackgroundColor,
-            appBar: AppBar(
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-                onPressed: () => setState(() => _showReport = false),
-              ),
-              title: const Text('GST Executive Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-              backgroundColor: kPrimaryColor,
-              centerTitle: true,
-            ),
-            body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
-          );
-        }
-
-        return StreamBuilder<QuerySnapshot>(
-          stream: streamsSnapshot.data![0],
-          builder: (context, salesSnapshot) {
-            return StreamBuilder<QuerySnapshot>(
-              stream: streamsSnapshot.data![1],
-              builder: (context, expenseSnapshot) {
-                return StreamBuilder<QuerySnapshot>(
-                  stream: streamsSnapshot.data![2],
-                  builder: (context, purchaseSnapshot) {
-                    return StreamBuilder<QuerySnapshot>(
-                      stream: streamsSnapshot.data![3],
-                      builder: (context, creditNoteSnapshot) {
-                        if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
-                          return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
-                        }
-
-                        // --- Process Sales Data ---
-                        List<Map<String, dynamic>> salesRows = [];
-                        double totalSalesAmount = 0, totalSalesGST = 0;
-
-                        for (var doc in salesSnapshot.data!.docs) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          DateTime? dt;
-                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                          if (_isInDateRange(dt)) {
-                            // Skip cancelled or returned bills
-                            final String status = (data['status'] ?? '').toString().toLowerCase();
-                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                              continue;
-                            }
-
-                            double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                            double gst = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
-                            salesRows.add({
-                              'date': dt,
-                              'category': 'SALE',
-                              'invoice': data['invoiceNumber']?.toString() ?? 'N/A',
-                              'gstNumber': data['customerGST']?.toString() ?? '--',
-                              'amount': total,
-                              'gst': gst,
-                              'cancelled': data['cancelled'] == true,
-                            });
-                            totalSalesAmount += total;
-                            totalSalesGST += gst;
-                          }
-                        }
-
-                        // --- Process Inward Data ---
-                        List<Map<String, dynamic>> purchaseRows = [];
-                        double totalPurchaseAmount = 0, totalPurchaseGST = 0;
-
-                        void addInward(QueryDocumentSnapshot doc, String cat, String amtKey, String gstKey, String gstNumKey) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          DateTime? dt;
-                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                          if (_isInDateRange(dt)) {
-                            double amount = double.tryParse(data[amtKey]?.toString() ?? '0') ?? 0;
-                            double gst = double.tryParse(data[gstKey]?.toString() ?? '0') ?? 0;
-                            purchaseRows.add({
-                              'date': dt,
-                              'category': cat,
-                              'invoice': data['invoiceNumber']?.toString() ?? '--',
-                              'gstNumber': data[gstNumKey]?.toString() ?? '--',
-                              'amount': amount,
-                              'gst': gst,
-                              'cancelled': false,
-                            });
-                            totalPurchaseAmount += amount;
-                            totalPurchaseGST += gst;
-                          }
-                        }
-
-                        for (var doc in expenseSnapshot.data!.docs) {
-                          addInward(doc, 'EXPENSE', 'amount', 'gst', '--');
-                        }
-                        for (var doc in purchaseSnapshot.data!.docs) {
-                          addInward(doc, 'PURCHASE', 'totalAmount', 'gst', 'supplierGST');
-                        }
-                        if (creditNoteSnapshot.hasData) {
-                          for (var doc in creditNoteSnapshot.data!.docs) {
-                            addInward(doc, 'Credit Note', 'amount', 'gst', '--');
-                          }
-                        }
-
-                        double gstDue = totalSalesGST - totalPurchaseGST;
-
-                        return Scaffold(
-                          backgroundColor: kBackgroundColor,
-                          appBar: AppBar(
-                            leading: IconButton(
-                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-                              onPressed: () => setState(() => _showReport = false),
-                            ),
-                            title: const Text('GST Executive Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                            backgroundColor: kPrimaryColor,
-                            elevation: 0,
-                            centerTitle: true,
-                            actions: [
-                              IconButton(
-                                icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-                                onPressed: () => _downloadPdf(
-                                  context: context,
-                                  sales: salesRows,
-                                  purchases: purchaseRows,
-                                  totalSalesGST: totalSalesGST,
-                                  totalPurchaseGST: totalPurchaseGST,
-                                  netLiability: gstDue,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
-                          ),
-                          body: Column(
-                            children: [
-                              _buildGstLiabilityHeader(gstDue, totalSalesGST, totalPurchaseGST),
-
-                              Expanded(
-                                child: CustomScrollView(
-                                  physics: const BouncingScrollPhysics(),
-                                  slivers: [
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
-                                      sliver: SliverList(
-                                        delegate: SliverChildListDelegate([
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                                            child: _buildSectionHeader("GST on Outward Supplies (Sales)"),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          _buildGstTable(salesRows),
-
-                                          const SizedBox(height: 24),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                                            child: _buildSectionHeader("GST on Inward Supplies (Purchases)"),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          _buildGstTable(purchaseRows),
-
-                                          const SizedBox(height: 24),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                                            child: _buildSectionHeader("Compliance Summary"),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                                            child: _buildAuditSummary(totalSalesAmount, totalSalesGST, totalPurchaseAmount, totalPurchaseGST, gstDue),
-                                          ),
-                                          const SizedBox(height: 40),
-                                        ]),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // --- EXECUTIVE TABLE UI COMPONENTS ---
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title.toUpperCase(),
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
-    );
-  }
-
-  Widget _buildDateTile(String label, DateTime? date, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: kSurfaceColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: kBorderColor),
-        ),
-        child: Row(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
-                const SizedBox(height: 4),
-                Text(date != null ? DateFormat('dd MMMM yyyy').format(date) : 'SELECT DATE',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
-              ],
-            ),
-            const Spacer(),
-            Icon(Icons.calendar_month_rounded, color: kPrimaryColor.withOpacity(0.5), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGstLiabilityHeader(double net, double salesGst, double purchaseGst) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("NET GST LIABILITY", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 2),
-              Text(" ${net.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: net >= 0 ? kExpenseRed : kIncomeGreen, letterSpacing: -1)),
-            ],
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text("OUT: ${salesGst.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kExpenseRed)),
-              Text("IN: ${purchaseGst.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kIncomeGreen)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGstTable(List<Map<String, dynamic>> rows) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
-      ),
-      child: Column(
-        children: [
-          // Table Header Row
-          Container(
-            color: kBackgroundColor.withOpacity(0.5),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: Row(
-              children: const [
-                Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 3, child: Text("INVOICE/GSTIN", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 2, child: Text("TOTAL", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 2, child: Text("GST", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-              ],
-            ),
-          ),
-          if (rows.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text("No data available for this range", style: TextStyle(fontSize: 11, color: kTextSecondary)),
-            )
-          else
-            ...rows.map((row) => _buildGstTableRow(row)).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGstTableRow(Map<String, dynamic> row) {
-    bool isCancelled = row['cancelled'] == true;
-    final String gstin = row['gstNumber'].toString();
-    final String inv = row['invoice'].toString();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.2))),
-        color: isCancelled ? kExpenseRed.withOpacity(0.02) : null,
-      ),
-      child: Row(
-        children: [
-          // Date Column
-          Expanded(
-            flex: 2,
-            child: Text(
-              DateFormat('dd-MM-yy').format(row['date']),
-              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isCancelled ? Colors.grey : Colors.black87),
-            ),
-          ),
-          // Invoice & GSTIN Column
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  inv.toUpperCase(),
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : kPrimaryColor),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  gstin == "--" ? "UNREGISTERED" : gstin,
-                  style: TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold, decoration: isCancelled ? TextDecoration.lineThrough : null),
-                ),
-              ],
-            ),
-          ),
-          // Total Amount Column
-          Expanded(
-            flex: 2,
-            child: Text(
-              "${(row['amount'] as double).toStringAsFixed(0)}",
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isCancelled ? Colors.grey : Colors.black87),
-            ),
-          ),
-          // GST Amount Column
-          Expanded(
-            flex: 2,
-            child: Text(
-              "${(row['gst'] as double).toStringAsFixed(1)}",
-              textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : Colors.black87),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAuditSummary(double sAmt, double sGst, double pAmt, double pGst, double net) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
-      ),
-      child: Column(
-        children: [
-          _buildSummaryRow("Total Sales GST (Outward)", sGst),
-          const SizedBox(height: 8),
-          _buildSummaryRow("Total Purchase GST (Inward)", pGst),
-          const Divider(height: 24),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: net >= 0 ? kExpenseRed : kIncomeGreen,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Tax Liability Position", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-                Text("${net.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 15)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, double gst) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary)),
-        Text("${gst.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-      ],
-    );
-  }
-}

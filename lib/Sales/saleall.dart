@@ -12,6 +12,7 @@ import 'package:maxbillup/components/barcode_scanner.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
@@ -812,7 +813,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                price.toStringAsFixed(0),
+                                price.toAmount(),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12,
@@ -824,7 +825,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                 Text(
                                   isOutOfStock
                                       ? 'OUT OF STOCK'
-                                      : '${stock.toInt()} $unit',
+                                      : '${stock.toAmount()} $unit',
                                   style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,

@@ -473,7 +473,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                   Expanded(
                                     child: TextField(
                                       controller: qtyController,
-                                      keyboardType: TextInputType.number,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),

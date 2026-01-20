@@ -110,7 +110,7 @@ class MyApp extends StatelessWidget {
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2F7CF6), brightness: Brightness.dark),
         useMaterial3: true,
-        fontFamily: 'MiSans',
+        fontFamily: 'NotoSans',
         scaffoldBackgroundColor: Colors.black,
         textSelectionTheme: const TextSelectionThemeData(
           cursorColor: Color(0xFF2F7CF6),

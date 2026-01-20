@@ -389,7 +389,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 
                   const SizedBox(height: 24),
                   _buildSectionLabel("INVOICE DETAILS"),
-                  _buildModernField(_totalAmountController, 'Total Amount *', Icons.payments_rounded, type: TextInputType.number, isMandatory: true, onChanged: () => setState(() {})),
+                  _buildModernField(_totalAmountController, 'Total Amount *', Icons.payments_rounded, type: const TextInputType.numberWithOptions(decimal: true), isMandatory: true, onChanged: () => setState(() {})),
                   const SizedBox(height: 16),
                   _buildModernField(_invoiceNumberController, 'Reference Invoice No', Icons.receipt_long_rounded),
                   const SizedBox(height: 16),
@@ -400,7 +400,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   ]),
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 16),
-                    _buildModernField(_paidAmountController, 'Paid Amount', Icons.payment_rounded, type: TextInputType.number, onChanged: () => setState(() {})),
+                    _buildModernField(_paidAmountController, 'Paid Amount', Icons.payment_rounded, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
                     const SizedBox(height: 12),
                     // Credit Amount Display (auto-calculated)
                     Container(
@@ -433,7 +433,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                       tilePadding: EdgeInsets.zero,
                       title: _buildSectionLabel("ADDITIONAL INFORMATION"),
                       children: [
-                        _buildModernField(_taxAmountController, 'Tax Component (Amount)', Icons.percent_rounded, type: TextInputType.number),
+                        _buildModernField(_taxAmountController, 'Tax Component (Amount)', Icons.percent_rounded, type: const TextInputType.numberWithOptions(decimal: true)),
                         const SizedBox(height: 16),
                         _buildModernField(_notesController, 'Internal Notes', Icons.notes_rounded, maxLines: 3),
                       ],

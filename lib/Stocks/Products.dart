@@ -5,6 +5,7 @@ import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:intl/intl.dart';
 
@@ -403,7 +404,7 @@ class _ProductsPageState extends State<ProductsPage> {
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
-        isOut ? 'OUT OF STOCK' : 'QTY: ${stock.toInt()}',
+        isOut ? 'OUT OF STOCK' : 'QTY: ${stock.toAmount()}',
         style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color, letterSpacing: 0.2),
       ),
     );
@@ -541,7 +542,7 @@ class _ProductsPageState extends State<ProductsPage> {
   // --- REFINED DIALOGS ---
 
   void _showUpdateQuantityDialog(BuildContext context, String id, String name, double current) {
-    final ctrl = TextEditingController(text: current.toStringAsFixed(0));
+    final ctrl = TextEditingController(text: current.toAmount());
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -558,7 +559,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 children: [
                   _qtyBtn(Icons.remove_rounded, () {
                     double v = double.tryParse(ctrl.text) ?? current;
-                    if (v > 0) setDialogState(() => ctrl.text = (v - 1).toStringAsFixed(0));
+                    if (v > 0) setDialogState(() => ctrl.text = (v - 1).toAmount());
                   }),
                   Expanded(
                     child: Container(
@@ -567,7 +568,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                       child: TextField(
                         controller: ctrl,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
                         decoration: const InputDecoration(border: InputBorder.none),
@@ -576,12 +577,12 @@ class _ProductsPageState extends State<ProductsPage> {
                   ),
                   _qtyBtn(Icons.add_rounded, () {
                     double v = double.tryParse(ctrl.text) ?? current;
-                    setDialogState(() => ctrl.text = (v + 1).toStringAsFixed(0));
+                    setDialogState(() => ctrl.text = (v + 1).toAmount());
                   }),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('Current in record: ${current.toInt()}', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
+              Text('Current in record: ${current.toAmount()}', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
             ],
           ),
           actions: [
