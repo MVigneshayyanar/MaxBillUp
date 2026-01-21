@@ -170,7 +170,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                       final data = categories[index].data() as Map<String, dynamic>;
                       final name = data['name'] ?? 'Unnamed Type';
                       final ts = data['timestamp'] as Timestamp?;
-                      final dateStr = ts != null ? DateFormat('dd-MM-yyyy').format(ts.toDate()) : 'N/A';
+                      final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
 
                       return Container(
                         decoration: BoxDecoration(
@@ -281,7 +281,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                       final name = data['name'] ?? 'Unnamed';
                       final usageCount = data['usageCount'] ?? 1;
                       final ts = data['lastUsed'] as Timestamp?;
-                      final dateStr = ts != null ? DateFormat('dd-MM-yy').format(ts.toDate()) : 'N/A';
+                      final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
 
                       return Container(
                         decoration: BoxDecoration(

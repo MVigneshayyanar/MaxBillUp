@@ -1062,7 +1062,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
     final timestamp = data['timestamp'] as Timestamp?;
     final formattedDateTime = timestamp != null
-        ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate())
+        ? DateFormat('dd MMM yyyy • hh:mm a').format(timestamp.toDate())
         : '--';
 
     final paymentStatus = data['paymentStatus'];
@@ -1701,7 +1701,7 @@ class SalesDetailPage extends StatelessWidget {
 
               final data = snapshot.data!.data() as Map<String, dynamic>;
               final ts = data['timestamp'] as Timestamp?;
-              final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : '--';
+              final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : '--';
               final items = (data['items'] as List<dynamic>? ?? []).cast<Map<String, dynamic>>();
 
               // Calculate tax from items (for new sales with tax fields)
@@ -2378,7 +2378,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
     final status = data['status'] ?? 'Available';
     final amount = (data['amount'] ?? 0.0) as num;
     final timestamp = data['timestamp'] as Timestamp?;
-    final dateStr = timestamp != null ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate()) : '--';
+    final dateStr = timestamp != null ? DateFormat('dd MMM yyyy • hh:mm a').format(timestamp.toDate()) : '--';
     final isAvailable = status.toLowerCase() == 'available';
 
     return Container(
@@ -2485,7 +2485,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
     final status = creditNoteData['status'] ?? 'Available';
     final items = (creditNoteData['items'] as List<dynamic>? ?? []);
     final ts = creditNoteData['timestamp'] as Timestamp?;
-    final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : 'N/A';
     final bool isAvailable = status.toLowerCase() == 'available';
 
     return Scaffold(
@@ -2698,7 +2698,7 @@ class CustomerBillsPage extends StatelessWidget {
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
                   title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
-                  subtitle: Text(DateFormat('dd-MM-yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
                   trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
                 ),
               );
@@ -2735,7 +2735,7 @@ class CustomerCreditsPage extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
                   title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
                 ),
               );
@@ -2835,7 +2835,7 @@ class CreditNoteDetailPage extends StatelessWidget {
     final status = creditNoteData['status'] ?? 'Available';
     final items = (creditNoteData['items'] as List<dynamic>? ?? []);
     final timestamp = creditNoteData['timestamp'] as Timestamp?;
-    final dateString = timestamp != null ? DateFormat('dd-MM-yyyy • h:mm a').format(timestamp.toDate()) : 'N/A';
+    final dateString = timestamp != null ? DateFormat('dd MMM yyyy • h:mm a').format(timestamp.toDate()) : 'N/A';
 
     return Scaffold(
       backgroundColor: kWhite,
@@ -3392,7 +3392,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final supplierName = (data['supplierName'] ?? 'Supplier').toString();
     final noteNumber = (data['creditNoteNumber'] ?? 'N/A').toString();
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd-MM-yyyy').format(timestamp.toDate()) : 'Recent';
+    final date = timestamp != null ? DateFormat('dd MMM yyyy').format(timestamp.toDate()) : 'Recent';
 
     return Container(
       decoration: BoxDecoration(
@@ -5593,7 +5593,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(widget.invoiceData['customerName'] ?? 'Walk-in Customer', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87)),
-                    Text("Invoice-${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd-MM-yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
+                    Text("Invoice-${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd MMM yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ],
@@ -5987,7 +5987,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     const Text("Date issued", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
-                    Text(DateFormat('dd-MM-yyyy').format(time), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87)),
+                    Text(DateFormat('dd MMM yyyy').format(time), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87)),
                   ],
                 ),
               ],

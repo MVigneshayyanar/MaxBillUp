@@ -669,7 +669,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   String _formatDOB(dynamic dob) {
     if (dob == null) return 'Not Provided';
     if (dob is Timestamp) {
-      return DateFormat('dd-MM-yyyy').format(dob.toDate());
+      return DateFormat('dd MMM yyyy').format(dob.toDate());
     }
     return 'Not Provided';
   }
@@ -941,7 +941,7 @@ class CustomerBillsPage extends StatelessWidget {
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
                   title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
-                  subtitle: Text(DateFormat('dd-MM-yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
+                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
                   trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
                 ),
               );
@@ -1004,7 +1004,7 @@ class CustomerCreditsPage extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), radius: 18, child: Icon(icon, color: color, size: 16)),
                   title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd-MM-yy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
                 ),
               );

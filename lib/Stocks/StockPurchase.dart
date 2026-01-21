@@ -93,7 +93,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                           const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
                           const SizedBox(width: 12),
                           Text(
-                            DateFormat('dd-MM-yyyy').format(_selectedDate),
+                            DateFormat('dd MMM yyyy').format(_selectedDate),
                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87),
                           ),
                         ],
@@ -185,7 +185,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
 
   Widget _buildPurchaseCard(BuildContext context, String id, Map<String, dynamic> data) {
     final ts = data['timestamp'] as Timestamp?;
-    final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : 'N/A';
     final amount = (data['totalAmount'] ?? 0.0).toDouble();
 
     return Container(
@@ -487,7 +487,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     );
   }
 
-  Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd-MM-yy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
+  Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
 
   Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54), items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
 
@@ -504,7 +504,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = (purchaseData['timestamp'] as Timestamp?)?.toDate();
-    final dateStr = date != null ? DateFormat('dd-MM-yyyy, hh:mm a').format(date) : 'N/A';
+    final dateStr = date != null ? DateFormat('dd MMM yyyy, hh:mm a').format(date) : 'N/A';
     final total = (purchaseData['totalAmount'] ?? 0.0).toDouble();
 
     return Scaffold(

@@ -104,7 +104,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                           const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
                           const SizedBox(width: 12),
                           Text(
-                            DateFormat('dd-MM-yyyy').format(_selectedDate),
+                            DateFormat('dd MMM yyyy').format(_selectedDate),
                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87),
                           ),
                         ],
@@ -215,7 +215,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   Widget _buildExpenseCard(BuildContext context, String id, Map<String, dynamic> data) {
     final amount = (data['amount'] ?? 0.0) as num;
     final ts = data['timestamp'] as Timestamp?;
-    final dateStr = ts != null ? DateFormat('dd-MM-yy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : 'N/A';
 
     return Container(
       decoration: BoxDecoration(
@@ -560,7 +560,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     );
   }
 
-  Widget _buildDateSelector() => GestureDetector(onTap: () => _selectDate(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd-MM-yy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
+  Widget _buildDateSelector() => GestureDetector(onTap: () => _selectDate(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
   Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54), items: ['Cash', 'Credit', 'Online'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
   Widget _buildBottomAction() => SafeArea(child: Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 12), decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _isLoading ? null : _saveExpense, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: kWhite) : const Text('Save expense', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5))))));
 }
@@ -575,7 +575,7 @@ class ExpenseDetailsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = (expenseData['timestamp'] as Timestamp?)?.toDate();
-    final dateStr = date != null ? DateFormat('dd-MM-yyyy, hh:mm a').format(date) : 'N/A';
+    final dateStr = date != null ? DateFormat('dd MMM yyyy, hh:mm a').format(date) : 'N/A';
     final total = (expenseData['amount'] ?? 0.0).toDouble();
 
     return Scaffold(

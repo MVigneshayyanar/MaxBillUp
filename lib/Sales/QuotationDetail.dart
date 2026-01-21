@@ -29,7 +29,7 @@ class QuotationDetailPage extends StatelessWidget {
     final staffName = quotationData['staffName'] ?? 'Staff';
     final timestamp = quotationData['timestamp'] as Timestamp?;
     final formattedDate = timestamp != null
-        ? DateFormat('dd-MM-yyyy, hh:mm a').format(timestamp.toDate())
+        ? DateFormat('dd MMM yyyy, hh:mm a').format(timestamp.toDate())
         : 'N/A';
     final items = quotationData['items'] as List<dynamic>? ?? [];
     final total = (quotationData['total'] ?? 0.0).toDouble();

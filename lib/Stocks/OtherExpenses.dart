@@ -211,7 +211,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                         final timestamp = data['timestamp'] as Timestamp?;
                         final date = timestamp?.toDate();
                         final dateString =
-                        date != null ? DateFormat('dd-MM-yyyy').format(date) : 'N/A';
+                        date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
@@ -481,7 +481,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
           children: [
             const Icon(Icons.calendar_today, size: 18, color: _primaryColor),
             const SizedBox(width: 12),
-            Text(DateFormat('dd-MM-yyyy').format(_selectedDate)),
+            Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
           ],
         ),
       ),
@@ -520,7 +520,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
     final timestamp = expenseData['timestamp'] as Timestamp?;
     final date = timestamp?.toDate();
     final dateString =
-    date != null ? DateFormat('dd-MM-yyyy, h:mm a').format(date) : 'N/A';
+    date != null ? DateFormat('dd MMM yyyy, h:mm a').format(date) : 'N/A';
 
     return Scaffold(
       backgroundColor: Colors.white,

@@ -255,7 +255,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                       style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
                   Text(
                       data['date'] != null
-                          ? DateFormat('dd-MM-yy • hh:mm a').format(DateTime.parse(data['date']))
+                          ? DateFormat('dd MMM yyyy • hh:mm a').format(DateTime.parse(data['date']))
                           : '',
                       style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500))
                 ]),

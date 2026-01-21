@@ -469,7 +469,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                 const SizedBox(width: 12),
                                 Text(
                                   _selectedDOB != null
-                                      ? DateFormat('dd-MM-yyyy').format(_selectedDOB!)
+                                      ? DateFormat('dd MMM yyyy').format(_selectedDOB!)
                                       : 'Select Date',
                                   style: TextStyle(
                                     color: _selectedDOB != null ? kBlack87 : kBlack54,

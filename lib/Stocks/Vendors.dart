@@ -230,7 +230,7 @@ class _VendorsPageState extends State<VendorsPage> {
     if (vendor['lastPurchaseDate'] != null) {
       try {
         final lastDate = (vendor['lastPurchaseDate'] as Timestamp).toDate();
-        lastPurchaseText = 'Last: ${DateFormat('dd-MM-yy').format(lastDate)}';
+        lastPurchaseText = 'Last: ${DateFormat('dd MMM yyyy').format(lastDate)}';
       } catch (e) {
         lastPurchaseText = '';
       }

@@ -692,8 +692,8 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                     Text(
                       widget.startDate != null
                           ? (widget.startDate == widget.endDate || widget.endDate == null
-                          ? '${DateFormat('dd-MM-yyyy').format(widget.startDate!)} — ${DateFormat('dd-MM-yyyy').format(widget.startDate!)}'
-                          : '${DateFormat('dd-MM-yyyy').format(widget.startDate!)} — ${DateFormat('dd-MM-yyyy').format(widget.endDate!)}')
+                          ? '${DateFormat('dd MMM yyyy').format(widget.startDate!)} — ${DateFormat('dd MMM yyyy').format(widget.startDate!)}'
+                          : '${DateFormat('dd MMM yyyy').format(widget.startDate!)} — ${DateFormat('dd MMM yyyy').format(widget.endDate!)}')
                           : 'Set Period',
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black87), // Smaller date text
                     ),
@@ -2224,6 +2224,8 @@ class _DayBookPageState extends State<DayBookPage> {
           _firestoreService.getCollectionStream('sales'),
           _firestoreService.getCollectionStream('expenses'),
           _firestoreService.getCollectionStream('stockPurchases'),
+          _firestoreService.getCollectionStream('credits'),
+          _firestoreService.getCollectionStream('purchaseCreditNotes'),
         ]),
         builder: (context, streamsSnapshot) {
           if (!streamsSnapshot.hasData) {
@@ -2238,7 +2240,13 @@ class _DayBookPageState extends State<DayBookPage> {
                   return StreamBuilder<QuerySnapshot>(
                     stream: streamsSnapshot.data![2],
                     builder: (context, purchaseSnapshot) {
-                      if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: streamsSnapshot.data![3],
+                        builder: (context, creditsSnapshot) {
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: streamsSnapshot.data![4],
+                            builder: (context, purchaseCreditsSnapshot) {
+                      if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData) {
                         return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                       }
 
@@ -2262,6 +2270,26 @@ class _DayBookPageState extends State<DayBookPage> {
                       }).toList();
 
                       final filteredPurchases = purchaseSnapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        if (dt == null) return false;
+                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                      }).toList();
+
+                      // Filter credits for selected date
+                      final filteredCredits = creditsSnapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        if (dt == null) return false;
+                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                      }).toList();
+
+                      // Filter purchase credits for selected date
+                      final filteredPurchaseCredits = purchaseCreditsSnapshot.data!.docs.where((doc) {
                         final data = doc.data() as Map<String, dynamic>;
                         DateTime? dt;
                         if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
@@ -2316,6 +2344,68 @@ class _DayBookPageState extends State<DayBookPage> {
                           'timestamp': data['timestamp'],
                           'paymentMode': mode,
                         });
+                      }
+
+                      // Process Credits (for Sale Credit Received)
+                      for (var doc in filteredCredits) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final type = (data['type'] ?? '').toString().toLowerCase();
+                        final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                        final method = (data['method'] ?? 'Cash').toString().toLowerCase();
+
+                        if (type == 'payment_received') {
+                          // Customer paid back credit
+                          saleCreditReceived += amount;
+
+                          // Track payment method
+                          if (method.contains('cash')) {
+                            paymentInCash += amount;
+                          } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                            paymentInOnline += amount;
+                          }
+
+                          allTransactions.add({
+                            'category': 'Credit Received',
+                            'particulars': data['invoiceNumber']?.toString() ?? 'Payment',
+                            'name': data['customerName']?.toString() ?? 'Customer',
+                            'total': amount,
+                            'cashIn': amount,
+                            'cashOut': 0.0,
+                            'timestamp': data['timestamp'],
+                            'paymentMode': method,
+                          });
+                        }
+                      }
+
+                      // Process Purchase Credits
+                      for (var doc in filteredPurchaseCredits) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final type = (data['type'] ?? '').toString().toLowerCase();
+                        final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                        final status = (data['status'] ?? '').toString().toLowerCase();
+                        final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
+
+                        if (type.contains('purchase') || type.contains('expense')) {
+                          // Purchase on credit
+                          purchaseCreditAdded += amount;
+
+                          // If there's a paid amount, track it as purchase credit paid
+                          if (paidAmount > 0) {
+                            purchaseCreditPaid += paidAmount;
+                            paymentOutCash += paidAmount; // Assume cash payment
+                          }
+
+                          allTransactions.add({
+                            'category': 'Purchase Credit',
+                            'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
+                            'name': data['supplierName']?.toString() ?? 'Supplier',
+                            'total': amount,
+                            'cashIn': 0.0,
+                            'cashOut': paidAmount,
+                            'timestamp': data['timestamp'],
+                            'paymentMode': 'credit',
+                          });
+                        }
                       }
 
                       // Process Expenses
@@ -2421,6 +2511,10 @@ class _DayBookPageState extends State<DayBookPage> {
                             ),
                           ),
                         ],
+                      );
+                            },
+                          );
+                        },
                       );
                     },
                   );
@@ -3034,17 +3128,17 @@ class _DayBookPageState extends State<DayBookPage> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: netCashFlow >= 0
-                  ? [const Color(0xFF2E7D32), const Color(0xFF1B5E20)]
-                  : [const Color(0xFFD32F2F), const Color(0xFFB71C1C)],
+                  ? [const Color(0xFF81C784), const Color(0xFF66BB6A)]  // Soft green
+                  : [const Color(0xFFE57373), const Color(0xFFEF5350)],  // Soft red
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: (netCashFlow >= 0 ? const Color(0xFF2E7D32) : const Color(0xFFD32F2F)).withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 6),
+                  color: (netCashFlow >= 0 ? const Color(0xFF81C784) : const Color(0xFFE57373)).withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -3079,7 +3173,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '₹ ${netCashFlow.abs().toStringAsFixed(2)}',
+                  '${netCashFlow.abs().toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
@@ -3111,8 +3205,8 @@ class _DayBookPageState extends State<DayBookPage> {
                   salesAmount,
                   salesCount,
                   Icons.point_of_sale_rounded,
-                  const Color(0xFF1E88E5),
-                  const Color(0xFF1565C0),
+                  const Color(0xFF64B5F6),  // Soft blue
+                  const Color(0xFF42A5F5),  // Mild blue
                 ),
               ),
               const SizedBox(width: 12),
@@ -3122,8 +3216,8 @@ class _DayBookPageState extends State<DayBookPage> {
                   expensesAmount,
                   expensesCount,
                   Icons.shopping_cart_rounded,
-                  const Color(0xFFE53935),
-                  const Color(0xFFC62828),
+                  const Color(0xFFEF9A9A),  // Soft red/pink
+                  const Color(0xFFE57373),  // Mild red
                 ),
               ),
             ],
@@ -3139,8 +3233,8 @@ class _DayBookPageState extends State<DayBookPage> {
                   purchasesAmount,
                   purchasesCount,
                   Icons.inventory_2_rounded,
-                  const Color(0xFFFB8C00),
-                  const Color(0xFFEF6C00),
+                  const Color(0xFFFFB74D),  // Soft orange
+                  const Color(0xFFFFA726),  // Mild orange
                 ),
               ),
               const SizedBox(width: 12),
@@ -3150,8 +3244,8 @@ class _DayBookPageState extends State<DayBookPage> {
                   saleCreditGiven + purchaseCreditAdded,
                   0,
                   Icons.account_balance_wallet_rounded,
-                  const Color(0xFF8E24AA),
-                  const Color(0xFF6A1B9A),
+                  const Color(0xFFBA68C8),  // Soft purple
+                  const Color(0xFFAB47BC),  // Mild purple
                 ),
               ),
             ],
@@ -3168,13 +3262,13 @@ class _DayBookPageState extends State<DayBookPage> {
             ),
             child: Column(
               children: [
-                _buildCreditDetailRow('Sale Credit Given', saleCreditGiven, Icons.arrow_upward_rounded, const Color(0xFFE53935)),
+                _buildCreditDetailRow('Sale Credit Given', saleCreditGiven, Icons.arrow_upward_rounded, const Color(0xFFEF9A9A)),  // Soft red
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Sale Credit Received', saleCreditReceived, Icons.arrow_downward_rounded, const Color(0xFF2E7D32)),
+                _buildCreditDetailRow('Sale Credit Received', saleCreditReceived, Icons.arrow_downward_rounded, const Color(0xFF81C784)),  // Soft green
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Purchase Credit Added', purchaseCreditAdded, Icons.add_circle_outline_rounded, const Color(0xFFFB8C00)),
+                _buildCreditDetailRow('Purchase Credit Added', purchaseCreditAdded, Icons.add_circle_outline_rounded, const Color(0xFFFFB74D)),  // Soft orange
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Purchase Credit Paid', purchaseCreditPaid, Icons.check_circle_outline_rounded, const Color(0xFF1E88E5)),
+                _buildCreditDetailRow('Purchase Credit Paid', purchaseCreditPaid, Icons.check_circle_outline_rounded, const Color(0xFF64B5F6)),  // Soft blue
               ],
             ),
           ),
@@ -3202,9 +3296,9 @@ class _DayBookPageState extends State<DayBookPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: color1.withOpacity(0.3),
+            color: color1.withOpacity(0.15),  // Very soft shadow
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -3245,7 +3339,7 @@ class _DayBookPageState extends State<DayBookPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            '₹${amount.toStringAsFixed(1)}',
+            '${amount.toStringAsFixed(1)}',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -3283,7 +3377,7 @@ class _DayBookPageState extends State<DayBookPage> {
             ),
           ),
           Text(
-            '₹${amount.toStringAsFixed(1)}',
+            '${amount.toStringAsFixed(1)}',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w900,
@@ -3357,16 +3451,16 @@ class _DayBookPageState extends State<DayBookPage> {
                           child: CircularProgressIndicator(
                             value: outCashPercent,
                             strokeWidth: 10,
-                            backgroundColor: const Color(0xFFFFE0B2),
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFB8C00)),
+                            backgroundColor: const Color(0xFFFFE0B2),  // Keep soft peach background
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB74D)),  // Soft orange
                           ),
                         ),
                         Column(
                           children: [
-                            const Icon(Icons.arrow_circle_up_rounded, color: Color(0xFFFB8C00), size: 28),
+                            const Icon(Icons.arrow_circle_up_rounded, color: Color(0xFFFFB74D), size: 28),  // Soft orange
                             const SizedBox(height: 4),
                             Text(
-                              '₹${totalOut.toStringAsFixed(0)}',
+                              '${totalOut.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -3383,14 +3477,14 @@ class _DayBookPageState extends State<DayBookPage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFFFB8C00),
+                        color: Color(0xFFFFB74D),  // Soft orange
                         letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildPaymentMethodRow('Cash', outCash, const Color(0xFFFB8C00), outCashPercent),
+                    _buildPaymentMethodRow('Cash', outCash, const Color(0xFFFFB74D), outCashPercent),  // Soft orange
                     const SizedBox(height: 6),
-                    _buildPaymentMethodRow('Online', outOnline, const Color(0xFFFF6F00), 1 - outCashPercent),
+                    _buildPaymentMethodRow('Online', outOnline, const Color(0xFFFFA726), 1 - outCashPercent),  // Mild orange
                   ],
                 ),
               ),
@@ -3410,16 +3504,16 @@ class _DayBookPageState extends State<DayBookPage> {
                           child: CircularProgressIndicator(
                             value: inCashPercent,
                             strokeWidth: 10,
-                            backgroundColor: const Color(0xFFC8E6C9),
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2E7D32)),
+                            backgroundColor: const Color(0xFFC8E6C9),  // Keep soft green background
+                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF81C784)),  // Soft green
                           ),
                         ),
                         Column(
                           children: [
-                            const Icon(Icons.arrow_circle_down_rounded, color: Color(0xFF2E7D32), size: 28),
+                            const Icon(Icons.arrow_circle_down_rounded, color: Color(0xFF81C784), size: 28),  // Soft green
                             const SizedBox(height: 4),
                             Text(
-                              '₹${totalIn.toStringAsFixed(0)}',
+                              '${totalIn.toStringAsFixed(0)}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w900,
@@ -3436,14 +3530,14 @@ class _DayBookPageState extends State<DayBookPage> {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF2E7D32),
+                        color: Color(0xFF81C784),  // Soft green
                         letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildPaymentMethodRow('Cash', inCash, const Color(0xFF2E7D32), inCashPercent),
+                    _buildPaymentMethodRow('Cash', inCash, const Color(0xFF81C784), inCashPercent),  // Soft green
                     const SizedBox(height: 6),
-                    _buildPaymentMethodRow('Online', inOnline, const Color(0xFF1B5E20), 1 - inCashPercent),
+                    _buildPaymentMethodRow('Online', inOnline, const Color(0xFF66BB6A), 1 - inCashPercent),  // Mild green
                   ],
                 ),
               ),
@@ -3477,7 +3571,7 @@ class _DayBookPageState extends State<DayBookPage> {
           ),
         ),
         Text(
-          '₹${amount.toStringAsFixed(0)}',
+          '${amount.toStringAsFixed(0)}',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
@@ -3611,18 +3705,26 @@ class _DayBookPageState extends State<DayBookPage> {
     if (txn['timestamp'] != null) dt = (txn['timestamp'] as Timestamp).toDate();
     final timeStr = dt != null ? DateFormat('hh:mm a').format(dt) : 'N/A';
 
-    Color categoryColor = const Color(0xFF2E7D32);
+    Color categoryColor = const Color(0xFF81C784);  // Soft green
     Color bgColor = const Color(0xFFE8F5E9);
     IconData categoryIcon = Icons.point_of_sale_rounded;
 
     if (category == 'Expense') {
-      categoryColor = const Color(0xFFE53935);
+      categoryColor = const Color(0xFFEF9A9A);  // Soft red/pink
       bgColor = const Color(0xFFFFEBEE);
       categoryIcon = Icons.shopping_cart_rounded;
     } else if (category == 'Purchase') {
-      categoryColor = const Color(0xFFFB8C00);
+      categoryColor = const Color(0xFFFFB74D);  // Soft orange
       bgColor = const Color(0xFFFFF3E0);
       categoryIcon = Icons.inventory_2_rounded;
+    } else if (category == 'Credit Received') {
+      categoryColor = const Color(0xFF81C784);  // Soft green
+      bgColor = const Color(0xFFE8F5E9);
+      categoryIcon = Icons.account_balance_wallet_rounded;
+    } else if (category == 'Purchase Credit') {
+      categoryColor = const Color(0xFFBA68C8);  // Soft purple
+      bgColor = const Color(0xFFF3E5F5);
+      categoryIcon = Icons.credit_card_rounded;
     }
 
     return Container(
@@ -3757,7 +3859,7 @@ class _DayBookPageState extends State<DayBookPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '₹${(txn['total'] as double).toStringAsFixed(2)}',
+                            '${(txn['total'] as double).toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -3765,7 +3867,7 @@ class _DayBookPageState extends State<DayBookPage> {
                             ),
                           ),
                           Text(
-                            isIncome ? '+₹${cashFlow.toStringAsFixed(1)}' : '-₹${cashFlow.toStringAsFixed(1)}',
+                            isIncome ? '+${cashFlow.toStringAsFixed(1)}' : '-${cashFlow.toStringAsFixed(1)}',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -7813,7 +7915,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
           Expanded(
             flex: 2,
             child: Text(
-              DateFormat('dd-MM-yy').format(row['date']),
+              DateFormat('dd MMM yyyy').format(row['date']),
               style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
             ),
           ),
@@ -8470,14 +8572,14 @@ class IncomeSummaryPage extends StatelessWidget {
             children: [
               const Text("NET CASH POSITION TODAY", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 2),
-              Text(" ${net.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: net >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
+              Text("${net.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: net >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
             ],
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(" ${income.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kIncomeGreen)),
-              Text(" ${expense.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kExpenseRed)),
+              Text("${income.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kIncomeGreen)),
+              Text("${expense.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kExpenseRed)),
             ],
           ),
         ],

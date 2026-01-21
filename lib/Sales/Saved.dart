@@ -174,7 +174,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
     final total = (data['total'] ?? 0.0).toDouble();
     final items = data['items'] as List<dynamic>? ?? [];
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd-MM-yyyy • hh:mm a').format(timestamp.toDate()) : '--';
+    final date = timestamp != null ? DateFormat('dd MMM yyyy • hh:mm a').format(timestamp.toDate()) : '--';
 
     return Container(
       decoration: BoxDecoration(

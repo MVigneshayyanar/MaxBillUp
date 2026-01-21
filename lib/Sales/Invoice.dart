@@ -1326,7 +1326,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("$headerText #${widget.invoiceNumber}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: colors['text'])),
-              Text(DateFormat('dd-MM-yyyy').format(widget.dateTime), style: TextStyle(fontSize: 11, color: colors['textSub'], fontWeight: FontWeight.w700)),
+              Text(DateFormat('dd MMM yyyy').format(widget.dateTime), style: TextStyle(fontSize: 11, color: colors['textSub'], fontWeight: FontWeight.w700)),
             ],
           ),
         ),
@@ -1480,7 +1480,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           const Text("DATE", style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900)),
-                          Text(DateFormat('dd-MM-yyyy').format(widget.dateTime), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+                          Text(DateFormat('dd MMM yyyy').format(widget.dateTime), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ],
@@ -1570,7 +1570,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text("#${widget.invoiceNumber}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: colors['primary'])),
-                    Text(DateFormat('dd-MM-yy').format(widget.dateTime), style: TextStyle(fontSize: 10, color: colors['textSub'], fontWeight: FontWeight.w700)),
+                    Text(DateFormat('dd MMM yyyy').format(widget.dateTime), style: TextStyle(fontSize: 10, color: colors['textSub'], fontWeight: FontWeight.w700)),
                   ],
                 ),
               ],
@@ -1782,14 +1782,16 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
   Widget _buildSummary(Map<String, Color> colors) {
     // Calculate total qty
-    int totalQty = 0;
+    double totalQty = 0;
     double totalMRP = 0;
     for (final item in widget.items) {
-      totalQty += (item['quantity'] ?? 1) as int;
+      final qty = (item['quantity'] is int)
+          ? (item['quantity'] as int).toDouble()
+          : (item['quantity'] ?? 1.0).toDouble();
+      totalQty += qty;
       // Calculate MRP total for savings calculation (regardless of _showMRP toggle)
       if (item['mrp'] != null) {
         final mrp = (item['mrp'] is int) ? (item['mrp'] as int).toDouble() : (item['mrp'] as double);
-        final qty = (item['quantity'] ?? 1) as int;
         totalMRP += mrp * qty;
       }
     }
@@ -1882,6 +1884,14 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   }
 
   Widget _summaryRow(String label, double amount, Map<String, Color> colors, {bool isNegative = false, bool isCount = false}) {
+    // For count values, show as integer if whole number, otherwise show decimals
+    String displayValue;
+    if (isCount) {
+      displayValue = amount == amount.roundToDouble() ? amount.toInt().toString() : amount.toStringAsFixed(2);
+    } else {
+      displayValue = "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}";
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
@@ -1889,7 +1899,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         children: [
           Text(label, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
           Text(
-            isCount ? amount.toInt().toString() : "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}",
+            displayValue,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
@@ -2100,13 +2110,13 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // Invoice Number and Date on same line for 80mm, separate for 58mm
       if (lineWidth >= 48) {
         String invLine = '${widget.isQuotation ? "QTN" : "INV"} #${widget.invoiceNumber}';
-        String datePart = DateFormat('dd-MM-yyyy').format(widget.dateTime);
+        String datePart = DateFormat('dd MMM yyyy').format(widget.dateTime);
         bytes.addAll(utf8.encode(invLine.padRight(lineWidth - datePart.length) + datePart));
         bytes.add(lf);
       } else {
         bytes.addAll(utf8.encode('${widget.isQuotation ? "QTN" : "INV"}: #${widget.invoiceNumber}'));
         bytes.add(lf);
-        bytes.addAll(utf8.encode('Date: ${DateFormat('dd-MM-yyyy').format(widget.dateTime)}'));
+        bytes.addAll(utf8.encode('Date: ${DateFormat('dd MMM yyyy').format(widget.dateTime)}'));
         bytes.add(lf);
       }
 
@@ -2179,7 +2189,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         // Build single item line
         String itemLine = '';
         itemLine += _truncateText(name, nameWidth - 1).padRight(nameWidth);
-        itemLine += qty.toInt().toString().padRight(qtyWidth);
+        // Show quantity with decimals if it's not a whole number
+        final qtyStr = qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(2);
+        itemLine += qtyStr.padRight(qtyWidth);
         itemLine += _formatPrice(rate, rateWidth - 1).padRight(rateWidth);
         itemLine += '${taxPercent.toInt()}%'.padRight(taxWidth);
         itemLine += _formatPrice(total, totalWidth).padLeft(totalWidth);
@@ -2203,7 +2215,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
       // Total Qty
       if (_showTotalQty) {
-        bytes.addAll(utf8.encode('Total Qty:'.padRight(labelWidth) + totalQty.toInt().toString().padLeft(valueWidth)));
+        final totalQtyStr = totalQty == totalQty.roundToDouble() ? totalQty.toInt().toString() : totalQty.toStringAsFixed(2);
+        bytes.addAll(utf8.encode('Total Qty:'.padRight(labelWidth) + totalQtyStr.padLeft(valueWidth)));
         bytes.add(lf);
       }
 
@@ -2366,7 +2379,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           pw.Divider(color: PdfColors.black, height: 30),
           pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
             pw.Text("${widget.isQuotation ? 'QUOTATION' : 'INVOICE'} #${widget.invoiceNumber}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-            pw.Text("DATE: ${DateFormat('dd-MM-yyyy').format(widget.dateTime)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
+            pw.Text("DATE: ${DateFormat('dd MMM yyyy').format(widget.dateTime)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
           ]),
           pw.SizedBox(height: 16),
           if (widget.customerName != null) ...[
@@ -2440,7 +2453,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       pw.Text("BILL TO", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
                       pw.Text(widget.customerName!, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ]),
-                    pw.Text(DateFormat('dd-MM-yyyy').format(widget.dateTime), style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text(DateFormat('dd MMM yyyy').format(widget.dateTime), style: const pw.TextStyle(fontSize: 10)),
                   ]),
                   pw.SizedBox(height: 20),
                 ],
@@ -2492,7 +2505,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
                     pw.Text("INV: #${widget.invoiceNumber}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    pw.Text(DateFormat('dd-MM-yy').format(widget.dateTime), style: const pw.TextStyle(fontSize: 9)),
+                    pw.Text(DateFormat('dd MMM yyyy').format(widget.dateTime), style: const pw.TextStyle(fontSize: 9)),
                   ],
                 ),
               ],

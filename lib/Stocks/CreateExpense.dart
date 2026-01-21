@@ -792,7 +792,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       const Icon(Icons.calendar_today, color: _primaryColor),
                       const SizedBox(width: 12),
                       Text(
-                        DateFormat('dd-MM-yyyy').format(_selectedDate),
+                        DateFormat('dd MMM yyyy').format(_selectedDate),
                         style: const TextStyle(fontSize: 16),
                       ),
                     ],
