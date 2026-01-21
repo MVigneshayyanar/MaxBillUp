@@ -74,6 +74,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
 
 flutter_launcher_icons:
@@ -81,6 +82,19 @@ flutter_launcher_icons:
   ios: true
   image_path: "assets/MAX_my_bill_icon.png"
   remove_alpha_ios: true
+
+flutter_native_splash:
+  color: "#4A5DF9"
+  image: assets/Splash_Screen.png
+  fullscreen: true
+  android_gravity: center
+  ios_content_mode: center
+  android: true
+  ios: true
+  web: false
+  android_12:
+    color: "#4A5DF9"
+    image: assets/Splash_Screen.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -97,8 +111,6 @@ flutter:
   fonts:
     - family: Lato
       fonts:
-        - asset: fonts/Lato-Light.ttf
-          weight: 300
         - asset: fonts/Lato-Regular.ttf
           weight: 400
         - asset: fonts/Lato-Bold.ttf
@@ -122,3 +134,4 @@ flutter:
     - assets/Update_Now.png
     - assets/Start_Billing.png
     - assets/View_Report.png
+    - assets/Splash_Screen.png
