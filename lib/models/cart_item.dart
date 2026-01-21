@@ -2,7 +2,7 @@ class CartItem {
   final String productId;
   final String name;
   double price; // Changed from final to allow editing
-  int quantity;
+  double quantity; // Changed from int to double to support weights
 
   // Tax information
   final String? taxName;
@@ -13,7 +13,7 @@ class CartItem {
     required this.productId,
     required this.name,
     required this.price,
-    this.quantity = 1,
+    this.quantity = 1.0,
     this.taxName,
     this.taxPercentage,
     this.taxType,

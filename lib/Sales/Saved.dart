@@ -20,22 +20,31 @@ class SavedOrdersPage extends StatefulWidget {
 
 class _SavedOrdersPageState extends State<SavedOrdersPage> {
   void _loadOrder(String orderId, Map<String, dynamic> data) {
-    if (widget.onLoadOrder != null) {
-      widget.onLoadOrder!(orderId, data);
-    } else {
-      // Fallback to standard navigation if no specific callback is provided
-      Navigator.push(
-        context,
-        CupertinoPageRoute(
-          builder: (context) => NewSalePage(
-            uid: widget.uid,
-            userEmail: widget.userEmail,
-            savedOrderData: data,
-            savedOrderId: orderId,
-          ),
-        ),
-      );
+    // Ensure orderName is included in the data
+    final orderData = Map<String, dynamic>.from(data);
+    if (!orderData.containsKey('orderName') && orderData.containsKey('customerName')) {
+      // Backward compatibility: use customerName as orderName if orderName doesn't exist
+      orderData['orderName'] = orderData['customerName'];
     }
+
+    // Always use direct navigation to ensure orderName is properly displayed
+    // Pop current screen if we're in a modal context
+    if (widget.onLoadOrder != null) {
+      Navigator.pop(context); // Close the saved orders page first
+    }
+
+    // Navigate to NewSalePage with saved order data
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NewSalePage(
+          uid: widget.uid,
+          userEmail: widget.userEmail,
+          savedOrderData: orderData,
+          savedOrderId: orderId,
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteOrder(String id) async {
@@ -90,7 +99,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800, fontSize: 12)),
+            child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800, fontSize: 12)),
           ),
           ElevatedButton(
             onPressed: () {
@@ -159,7 +168,9 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
 
   Widget _buildSavedOrderCard(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
-    final name = (data['customerName'] ?? '').toString().trim().isEmpty ? 'Guest' : data['customerName'].toString();
+    final name = (data['orderName'] ?? data['customerName'] ?? '').toString().trim().isEmpty
+        ? 'Guest'
+        : (data['orderName'] ?? data['customerName']).toString();
     final total = (data['total'] ?? 0.0).toDouble();
     final items = data['items'] as List<dynamic>? ?? [];
     final timestamp = data['timestamp'] as Timestamp?;

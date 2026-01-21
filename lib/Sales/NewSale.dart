@@ -58,8 +58,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
-  // Saved ordecount
+  // Saved order tracking
   int _savedOrderCount = 0;
+  String? _savedOrderName; // Track the saved order name
 
   @override
   void initState() {
@@ -128,6 +129,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _loadSavedOrderData(Map<String, dynamic> orderData) {
+    // Extract order name from saved order data
+    _savedOrderName = orderData['orderName'] as String?;
+
     final items = orderData['items'] as List<dynamic>?;
     if (items != null && items.isNotEmpty) {
       final cartItems = items
@@ -141,22 +145,16 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
       // Sync with CartService for persistence
       context.read<CartService>().updateCart(cartItems);
-      context.read<CartService>().setCustomer(
-        orderData['customerPhone'] as String?,
-        orderData['customerName'] as String?,
-        orderData['customerGST'] as String?,
-      );
-      // Set the saved order ID if we have _loadedSavedOrderId
-      if (_loadedSavedOrderId != null) {
-        context.read<CartService>().setSavedOrderId(_loadedSavedOrderId);
+      // ALWAYS set the saved order ID in CartService when loading saved order
+      // This ensures it persists even after app restart
+      final orderId = _loadedSavedOrderId ?? widget.savedOrderId;
+      if (orderId != null) {
+        context.read<CartService>().setSavedOrderId(orderId);
       }
 
       setState(() {
         _sharedCartItems = cartItems;
-        // Load customer information from saved order
-        _selectedCustomerName = orderData['customerName'] as String?;
-        _selectedCustomerPhone = orderData['customerPhone'] as String?;
-        _selectedCustomerGST = orderData['customerGST'] as String?;
+        // Don't set customer information - this is a saved order, not a customer order
       });
     }
   }
@@ -168,27 +166,18 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _handleLoadSavedOrder(String orderId, Map<String, dynamic> data) {
-    // Check if customer info is missing
-    final customerName = data['customerName'] as String?;
-    final customerPhone = data['customerPhone'] as String?;
+    // Set the loaded order ID first
+    _loadedSavedOrderId = orderId;
+    // Load the order data directly
+    _loadSavedOrderData(data);
+    // Set savedOrderId in CartService
+    context.read<CartService>().setSavedOrderId(orderId);
 
-    if ((customerName == null || customerName.isEmpty) && (customerPhone == null || customerPhone.isEmpty)) {
-      // Show dialog to ask for customer info
-      _showCustomerInputDialog(orderId, data);
-    } else {
-      // Set the loaded order ID first
-      _loadedSavedOrderId = orderId;
-      // Load the order data directly
-      _loadSavedOrderData(data);
-      // Set savedOrderId in CartService
-      context.read<CartService>().setSavedOrderId(orderId);
-
-      // Switch to "View All" tab (index 1)
-      setState(() {
-        _selectedTabIndex = 1;
-        _cartVersion++; // Increment to refresh the view
-      });
-    }
+    // Switch to "View All" tab (index 1)
+    setState(() {
+      _selectedTabIndex = 1;
+      _cartVersion++; // Increment to refresh the view
+    });
   }
 
   void _showCustomerInputDialog(String orderId, Map<String, dynamic> data) {
@@ -402,7 +391,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       barrierColor: Colors.black.withOpacity(0.7),
       builder: (context) {
         return StatefulBuilder(builder: (context, setDialogState) {
-          final currentQty = int.tryParse(qtyController.text) ?? 1;
+          final currentQty = double.tryParse(qtyController.text) ?? 1.0;
           final bool exceedsStock = stockEnabled && currentQty > availableStock;
 
           return AlertDialog(
@@ -457,17 +446,19 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 children: [
                                   IconButton(
                                     onPressed: () {
-                                      int current = int.tryParse(qtyController.text) ?? 1;
-                                      if (current > 1) {
-                                        setDialogState(() => qtyController.text = (current - 1).toString());
+                                      double current = double.tryParse(qtyController.text) ?? 1.0;
+                                      if (current > 0.1) {
+                                        double newQty = current >= 1 ? current - 1 : current - 0.1;
+                                        if (newQty < 0.1) newQty = 0.1;
+                                        setDialogState(() => qtyController.text = newQty.toStringAsFixed(newQty < 1 ? 3 : 1).replaceAll(RegExp(r'\.?0+$'), ''));
                                       } else {
                                         Navigator.of(context).pop();
                                         _removeSingleItem(idx);
                                       }
                                     },
                                     icon: Icon(
-                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline : Icons.remove,
-                                      color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
+                                      (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? Icons.delete_outline : Icons.remove,
+                                      color: (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? kErrorColor : kPrimaryColor,
                                       size: 20,
                                     ),
                                   ),
@@ -487,14 +478,14 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                   ),
                                   IconButton(
                                     onPressed: () {
-                                      int current = int.tryParse(qtyController.text) ?? 0;
-                                      int newQty = current + 1;
+                                      double current = double.tryParse(qtyController.text) ?? 0.0;
+                                      double newQty = current >= 1 ? current + 1 : current + 0.1;
 
                                       // Check stock limit
                                       if (stockEnabled && newQty > availableStock) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('Maximum stock available: ${availableStock.toInt()}'),
+                                            content: Text('Maximum stock available: ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg'),
                                             backgroundColor: kErrorColor,
                                             behavior: SnackBarBehavior.floating,
                                             duration: const Duration(seconds: 2),
@@ -503,7 +494,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                         return;
                                       }
 
-                                      setDialogState(() => qtyController.text = newQty.toString());
+                                      setDialogState(() => qtyController.text = newQty.toStringAsFixed(newQty < 1 ? 3 : 1).replaceAll(RegExp(r'\.?0+$'), ''));
                                     },
                                     icon: const Icon(Icons.add, color: kPrimaryColor, size: 20),
                                   ),
@@ -526,7 +517,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        'Only ${availableStock.toInt()} available in stock',
+                                        'Only ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg available in stock',
                                         style: const TextStyle(
                                           color: kErrorColor,
                                           fontSize: 11,
@@ -563,13 +554,13 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                     onPressed: exceedsStock ? null : () {
                       final newName = nameController.text.trim();
                       final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
-                      final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+                      final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
 
                       // Final stock validation
                       if (stockEnabled && newQty > availableStock) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Cannot save: Only ${availableStock.toInt()} available in stock'),
+                            content: Text('Cannot save: Only ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg available in stock'),
                             backgroundColor: kErrorColor,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -642,6 +633,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       setState(() {
         _sharedCartItems = null;
         _loadedSavedOrderId = null;
+        _savedOrderName = null; // Clear saved order name when cart is cleared
         _cartVersion++;
         _highlightedProductId = null;
         // Reset search focus when cart is cleared to show AppBar and categories
@@ -727,6 +719,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             _selectedCustomerName = null;
             _selectedCustomerGST = null;
             _loadedSavedOrderId = null;
+            _savedOrderName = null; // Clear saved order name when cart is cleared
           });
         }
       });
@@ -791,6 +784,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                         key: ValueKey('all_$_cartVersion'),
                         uid: _uid,
                         userEmail: _userEmail,
+                        savedOrderData: _savedOrderName != null
+                            ? {'orderName': _savedOrderName}
+                            : null, // Pass null when no saved order name
                         onCartChanged: _updateCartItems,
                         initialCartItems: _sharedCartItems,
                         savedOrderId: _loadedSavedOrderId,
@@ -933,7 +929,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                   ],
                                 ),
                               ),
-                              Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14))),
+                              Expanded(flex: 2, child: Text(
+                                item.quantity % 1 == 0 ? '${item.quantity.toInt()}' : '${item.quantity.toStringAsFixed(item.quantity < 1 ? 3 : 2).replaceAll(RegExp(r'\.?0+$'), '')}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)
+                              )),
                               Expanded(flex: 2, child: Text(AmountFormatter.format(item.price), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
                               Expanded(
                                 flex: 2,

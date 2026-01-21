@@ -34,6 +34,7 @@ class CommonWidgets {
     VoidCallback? onPrint,
     VoidCallback? onCustomer,
     String? customerName,
+    String? savedOrderName,
     bool isQuotationMode = false,
   }) {
     if (isQuotationMode) return const SizedBox.shrink();
@@ -49,11 +50,14 @@ class CommonWidgets {
         padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
         child: Row(
           children: [
-            // Save order button
-            _buildActionIconButton(
-              Icons.bookmark_add_outlined,
+            // Save order button with order name display
+            _buildActionIconButtonWithText(
+              savedOrderName != null && savedOrderName.isNotEmpty
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_add_outlined,
               onSaveOrder,
-              kPrimaryColor,
+              savedOrderName != null && savedOrderName.isNotEmpty ? kOrange : kPrimaryColor,
+              savedOrderName,
             ),
             const SizedBox(width: 10),
 
@@ -122,13 +126,53 @@ class CommonWidgets {
     );
   }
 
+  static Widget _buildActionIconButtonWithText(IconData icon, VoidCallback onTap, Color color, String? text) {
+    if (text == null || text.isEmpty) {
+      return _buildActionIconButton(icon, onTap, color);
+    }
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        height: 50,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 120),
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Save Order Dialog (Enterprise Flat)
   static void showSaveOrderDialog({
     required BuildContext context,
     required String uid,
     required List<CartItem> cartItems,
     required double totalBill,
-    required VoidCallback onSuccess,
+    required void Function(String orderName, String? orderId) onSuccess,
     String? savedOrderId,
     String? savedOrderName,
     String? savedOrderPhone,
@@ -138,112 +182,79 @@ class CommonWidgets {
       return;
     }
 
-    final phoneCtrl = TextEditingController(text: savedOrderPhone ?? '');
-    final nameCtrl = TextEditingController(text: savedOrderName ?? '');
-    bool isLoading = false;
+    final orderNameCtrl = TextEditingController(text: savedOrderName ?? '');
 
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text(savedOrderId != null ? 'Update Order' : 'Save Order',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                savedOrderId != null
-                    ? 'Update the saved order with new items'
-                    : 'Provide at least customer name or phone number',
-                style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              _buildDialogField(
-                controller: nameCtrl,
-                label: 'Customer Name',
-                icon: Icons.person_outline_rounded,
-              ),
-              const SizedBox(height: 12),
-              _buildDialogField(
-                controller: phoneCtrl,
-                label: 'Phone Number (Optional)',
-                icon: Icons.phone_android_rounded,
-                keyboardType: TextInputType.phone,
-                onChanged: (value) async {
-                  if (value.length >= 10) {
-                    setDialogState(() => isLoading = true);
-                    try {
-                      final collection = await FirestoreService().getStoreCollection('customers');
-                      final doc = await collection.doc(value).get();
-                      if (doc.exists) {
-                        final data = doc.data() as Map<String, dynamic>?;
-                        if (nameCtrl.text.isEmpty) {
-                          nameCtrl.text = data?['name'] ?? '';
-                        }
-                      }
-                    } catch (e) { debugPrint(e.toString()); }
-                    setDialogState(() => isLoading = false);
-                  }
-                },
-              ),
-              if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(savedOrderId != null ? 'Update Order' : 'Save Order',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              savedOrderId != null
+                  ? 'Update the saved order with new items'
+                  : 'Enter a name for this order',
+              style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final phone = phoneCtrl.text.trim();
-                final name = nameCtrl.text.trim();
-
-                // Require at least name or phone
-                if (name.isEmpty && phone.isEmpty) {
-                  showSnackBar(ctx, 'Please provide at least customer name or phone number', bgColor: kErrorColor);
-                  return;
-                }
-
-                Navigator.pop(ctx);
-
-                if (savedOrderId != null) {
-                  // Update existing saved order
-                  await _updateOrderInFirebase(
-                    orderId: savedOrderId,
-                    uid: uid,
-                    phone: phone.isEmpty ? null : phone,
-                    name: name.isEmpty ? (phone.isNotEmpty ? phone : 'Guest') : name,
-                    cartItems: cartItems,
-                    totalBill: totalBill,
-                    context: context,
-                  );
-                } else {
-                  // Create new saved order
-                  await _saveOrderToFirebase(
-                    uid: uid,
-                    phone: phone.isEmpty ? null : phone,
-                    name: name.isEmpty ? (phone.isNotEmpty ? phone : 'Guest') : name,
-                    cartItems: cartItems,
-                    totalBill: totalBill,
-                    context: context,
-                  );
-                }
-                onSuccess();
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              child: Text(savedOrderId != null ? 'UPDATE ORDER' : 'SAVE ORDER',
-                  style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+            const SizedBox(height: 16),
+            _buildDialogField(
+              controller: orderNameCtrl,
+              label: 'Order Name',
+              icon: Icons.bookmark_outline_rounded,
             ),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final orderName = orderNameCtrl.text.trim();
+
+              // Require order name
+              if (orderName.isEmpty) {
+                showSnackBar(ctx, 'Please provide an order name', bgColor: kErrorColor);
+                return;
+              }
+
+              Navigator.pop(ctx);
+
+              String? resultOrderId;
+              if (savedOrderId != null) {
+                // Update existing saved order
+                await _updateOrderInFirebase(
+                  orderId: savedOrderId,
+                  uid: uid,
+                  orderName: orderName,
+                  cartItems: cartItems,
+                  totalBill: totalBill,
+                  context: context,
+                );
+                resultOrderId = savedOrderId; // Use the same orderId for updates
+              } else {
+                // Create new saved order and capture the returned orderId
+                resultOrderId = await _saveOrderToFirebase(
+                  uid: uid,
+                  orderName: orderName,
+                  cartItems: cartItems,
+                  totalBill: totalBill,
+                  context: context,
+                );
+              }
+              onSuccess(orderName, resultOrderId);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: Text(savedOrderId != null ? 'UPDATE ORDER' : 'SAVE ORDER',
+                style: const TextStyle(fontWeight: FontWeight.w800, color: kWhite)),
+          ),
+        ],
       ),
     );
   }
@@ -278,28 +289,15 @@ class CommonWidgets {
     } catch (e) { return null; }
   }
 
-  static Future<void> _saveOrderToFirebase({
+  static Future<String?> _saveOrderToFirebase({
     required String uid,
-    String? phone,
-    required String name,
+    required String orderName,
     required List<CartItem> cartItems,
     required double totalBill,
     required BuildContext context,
   }) async {
     try {
       final staffName = await _fetchStaffName(uid);
-
-      // Only create/update customer if phone is provided
-      if (phone != null && phone.isNotEmpty) {
-        // Use merge to preserve existing customer data (balance, rating, etc.)
-        final customersCollection = await FirestoreService().getStoreCollection('customers');
-        await customersCollection.doc(phone).set({
-          'name': name,
-          'phone': phone,
-          'purchaseCount': 0,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
 
       final items = cartItems.map((item) => {
         'productId': item.productId,
@@ -309,9 +307,8 @@ class CommonWidgets {
         'total': item.total,
       }).toList();
 
-      await FirestoreService().addDocument('savedOrders', {
-        'customerName': name,
-        'customerPhone': phone ?? '',
+      final docRef = await FirestoreService().addDocument('savedOrders', {
+        'orderName': orderName,
         'items': items,
         'total': totalBill,
         'timestamp': FieldValue.serverTimestamp(),
@@ -320,34 +317,23 @@ class CommonWidgets {
       });
 
       if (context.mounted) showSnackBar(context, 'Order saved successfully', bgColor: kGoogleGreen);
+      return docRef.id; // Return the created document ID
     } catch (e) {
       if (context.mounted) showSnackBar(context, 'Error: ${e.toString()}', bgColor: kErrorColor);
+      return null;
     }
   }
 
   static Future<void> _updateOrderInFirebase({
     required String orderId,
     required String uid,
-    String? phone,
-    required String name,
+    required String orderName,
     required List<CartItem> cartItems,
     required double totalBill,
     required BuildContext context,
   }) async {
     try {
       final staffName = await _fetchStaffName(uid);
-
-      // Only create/update customer if phone is provided
-      if (phone != null && phone.isNotEmpty) {
-        // Use merge to preserve existing customer data (balance, rating, etc.)
-        final customersCollection = await FirestoreService().getStoreCollection('customers');
-        await customersCollection.doc(phone).set({
-          'name': name,
-          'phone': phone,
-          'purchaseCount': 0,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
-      }
 
       final items = cartItems.map((item) => {
         'productId': item.productId,
@@ -358,8 +344,7 @@ class CommonWidgets {
       }).toList();
 
       await FirestoreService().updateDocument('savedOrders', orderId, {
-        'customerName': name,
-        'customerPhone': phone ?? '',
+        'orderName': orderName,
         'items': items,
         'total': totalBill,
         'timestamp': FieldValue.serverTimestamp(),

@@ -292,7 +292,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                           onPressed: exceedsStock ? null : () {
                             final newName = nameController.text.trim();
                             final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
-                            final newQty = int.tryParse(qtyController.text.trim()) ?? 1;
+                            final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
 
                             // Final stock validation
                             if (stockEnabled && newQty > availableStock) {

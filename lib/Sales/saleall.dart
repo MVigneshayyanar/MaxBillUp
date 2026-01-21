@@ -75,6 +75,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
 
+  // Saved order tracking
+  String? _savedOrderName;
+
   // +1 animation tracking
   String? _animatingProductId;
   int _animationCounter = 0;
@@ -91,10 +94,27 @@ class _SaleAllPageState extends State<SaleAllPage> {
     });
     _initializeProductsStream();
 
+    // Always extract orderName from savedOrderData if available
+    if (widget.savedOrderData != null) {
+      _savedOrderName = widget.savedOrderData!['orderName'] as String?;
+    }
+
+    // Load cart items
     if (widget.initialCartItems != null) {
       _cart.addAll(widget.initialCartItems!);
     } else if (widget.savedOrderData != null) {
-      _loadOrder(widget.savedOrderData!);
+      // Only load items from savedOrderData if initialCartItems not provided
+      final items = widget.savedOrderData!['items'] as List?;
+      if (items != null) {
+        for (var item in items) {
+          _cart.add(CartItem(
+            productId: item['productId'] ?? '',
+            name: item['name'] ?? '',
+            price: (item['price'] ?? 0.0).toDouble(),
+            quantity: item['quantity'] ?? 1,
+          ));
+        }
+      }
     }
 
     _selectedCustomerPhone = widget.customerPhone;
@@ -127,6 +147,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       // Parent explicitly cleared the cart (e.g., from clear button)
       setState(() {
         _cart.clear();
+        _savedOrderName = null; // Clear saved order name when cart is cleared
       });
     }
 
@@ -191,20 +212,25 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   void _loadOrder(Map<String, dynamic> data) {
-    final items = data['items'] as List?;
-    if (items != null) {
-      for (var item in items) {
-        _cart.add(CartItem(
-          productId: item['productId'] ?? '',
-          name: item['name'] ?? '',
-          price: (item['price'] ?? 0.0).toDouble(),
-          quantity: item['quantity'] ?? 1,
-        ));
+    setState(() {
+      // Extract order name if available
+      _savedOrderName = data['orderName'] as String?;
+
+      final items = data['items'] as List?;
+      if (items != null) {
+        for (var item in items) {
+          _cart.add(CartItem(
+            productId: item['productId'] ?? '',
+            name: item['name'] ?? '',
+            price: (item['price'] ?? 0.0).toDouble(),
+            quantity: item['quantity'] ?? 1,
+          ));
+        }
       }
-    }
+    });
   }
 
-  double get _total => _cart.fold(0.0, (sum, item) => sum + item.total);
+  double get _total => _cart.fold(0.0, (sum, item) => sum + item.totalWithTax);
 
   // Helper function to format category names: First letter uppercase, rest lowercase
   String _formatCategoryName(String name) {
@@ -212,12 +238,247 @@ class _SaleAllPageState extends State<SaleAllPage> {
     return name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
-  void _addToCart(String id, String name, double price, bool stockEnabled, double stock,
+  void _showWeightInputDialog(String id, String name, double price, bool stockEnabled, double stock,
+      {String? taxName, double? taxPercentage, String? taxType}) {
+    final gramController = TextEditingController();
+    final kgController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.scale, color: kPrimaryColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Enter Weight',
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                  ),
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: kPrimaryColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Gram input
+            Container(
+              decoration: BoxDecoration(
+                color: kGreyBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kGrey200),
+              ),
+              child: TextField(
+                controller: gramController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                decoration: InputDecoration(
+                  labelText: 'Grams',
+                  labelStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                  suffixText: 'g',
+                  suffixStyle: const TextStyle(
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onChanged: (value) {
+                  if (value.isNotEmpty && kgController.text.isNotEmpty) {
+                    kgController.clear();
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            // OR text
+            const Text(
+              'OR',
+              style: TextStyle(
+                color: kBlack54,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Kilogram input
+            Container(
+              decoration: BoxDecoration(
+                color: kGreyBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kGrey200),
+              ),
+              child: TextField(
+                controller: kgController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                decoration: InputDecoration(
+                  labelText: 'Kilograms',
+                  labelStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                  suffixText: 'kg',
+                  suffixStyle: const TextStyle(
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+                onChanged: (value) {
+                  if (value.isNotEmpty && gramController.text.isNotEmpty) {
+                    gramController.clear();
+                  }
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Price info
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Price per kg: ',
+                    style: TextStyle(
+                      color: kBlack54,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    AmountFormatter.format(price),
+                    style: const TextStyle(
+                      color: kPrimaryColor,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: kBlack54,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              double finalQuantity = 0.0;
+
+              // Check if gram is entered
+              if (gramController.text.isNotEmpty) {
+                try {
+                  final grams = double.parse(gramController.text);
+                  finalQuantity = grams / 1000; // Convert grams to kg
+                } catch (e) {
+                  CommonWidgets.showSnackBar(
+                    context,
+                    'Please enter a valid number',
+                    bgColor: kErrorColor,
+                  );
+                  return;
+                }
+              }
+              // Check if kg is entered
+              else if (kgController.text.isNotEmpty) {
+                try {
+                  finalQuantity = double.parse(kgController.text);
+                } catch (e) {
+                  CommonWidgets.showSnackBar(
+                    context,
+                    'Please enter a valid number',
+                    bgColor: kErrorColor,
+                  );
+                  return;
+                }
+              }
+              // No input
+              else {
+                CommonWidgets.showSnackBar(
+                  context,
+                  'Please enter weight in grams or kilograms',
+                  bgColor: kOrange,
+                );
+                return;
+              }
+
+              // Validate quantity
+              if (finalQuantity <= 0) {
+                CommonWidgets.showSnackBar(
+                  context,
+                  'Weight must be greater than 0',
+                  bgColor: kErrorColor,
+                );
+                return;
+              }
+
+              Navigator.pop(ctx);
+              _addToCart(id, name, price, stockEnabled, stock, finalQuantity,
+                  taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Add to Cart',
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: kWhite,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addToCart(String id, String name, double price, bool stockEnabled, double stock, double quantity,
       {String? taxName, double? taxPercentage, String? taxType}) {
     final idx = _cart.indexWhere((item) => item.productId == id);
 
     if (idx != -1) {
-      if (stockEnabled && _cart[idx].quantity + 1 > stock) {
+      if (stockEnabled && _cart[idx].quantity + quantity > stock) {
         CommonWidgets.showSnackBar(
           context,
           context.tr('max_stock_reached').replaceFirst('{0}', stock.toInt().toString()),
@@ -225,11 +486,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
         );
         return;
       }
-      _cart[idx].quantity++;
+      _cart[idx].quantity += quantity;
       final item = _cart.removeAt(idx);
       _cart.insert(0, item);
     } else {
-      if (stockEnabled && stock < 1) {
+      if (stockEnabled && stock < quantity) {
         CommonWidgets.showSnackBar(context, context.tr('out_of_stock'), bgColor: kErrorColor);
         return;
       }
@@ -237,6 +498,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         productId: id,
         name: name,
         price: price,
+        quantity: quantity,
         taxName: taxName,
         taxPercentage: taxPercentage,
         taxType: taxType,
@@ -285,6 +547,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final price = (data['price'] ?? 0.0).toDouble();
       final stockEnabled = data['stockEnabled'] ?? false;
       final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
+      final unit = data['stockUnit'] ?? '';
 
       final localStockService = context.read<LocalStockService>();
       localStockService.cacheStock(id, firestoreStock.toInt());
@@ -294,8 +557,32 @@ class _SaleAllPageState extends State<SaleAllPage> {
           : firestoreStock;
 
       if (price > 0) {
-        _addToCart(id, name, price, stockEnabled, stock,
-            taxName: data['taxName'], taxPercentage: data['taxPercentage'], taxType: data['taxType']);
+        // Only show weight dialog for kg unit items
+        if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'kilogram') {
+          _showWeightInputDialog(
+            id,
+            name,
+            price,
+            stockEnabled,
+            stock,
+            taxName: data['taxName'],
+            taxPercentage: data['taxPercentage'],
+            taxType: data['taxType'],
+          );
+        } else {
+          // For non-kg items, add directly with quantity 1
+          _addToCart(
+            id,
+            name,
+            price,
+            stockEnabled,
+            stock,
+            1.0,
+            taxName: data['taxName'],
+            taxPercentage: data['taxPercentage'],
+            taxType: data['taxType'],
+          );
+        }
       }
     } catch (e) {
       debugPrint(e.toString());
@@ -356,6 +643,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               CommonWidgets.buildActionButtons(
                 context: context,
                 isQuotationMode: widget.isQuotationMode,
+                savedOrderName: _savedOrderName,
                 onSaveOrder: () {
                   if (_cart.isEmpty) return;
                   // Get savedOrderId from widget or CartService
@@ -366,12 +654,23 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     cartItems: _cart,
                     totalBill: _total,
                     savedOrderId: savedOrderId,
-                    savedOrderName: _selectedCustomerName,
+                    savedOrderName: _savedOrderName,
                     savedOrderPhone: _selectedCustomerPhone,
-                    onSuccess: () {
-                      _cart.clear();
+                    onSuccess: (String orderName, String? orderId) {
+                      // After saving/updating, clear the cart and saved order name
+                      // The savedOrderId is kept in CartService so future saves can update same order
+                      setState(() {
+                        _savedOrderName = null; // Clear order name since cart is now empty
+                        _cart.clear(); // Clear the cart
+                      });
+                      // Notify parent that cart is now empty
                       widget.onCartChanged?.call(_cart);
-                      setState(() {});
+                      // Update CartService with empty cart but keep savedOrderId
+                      context.read<CartService>().updateCart([]);
+                      // Store the orderId in CartService so future saves update the same order
+                      if (orderId != null) {
+                        context.read<CartService>().setSavedOrderId(orderId);
+                      }
                     },
                   );
                 },
@@ -730,16 +1029,32 @@ class _SaleAllPageState extends State<SaleAllPage> {
               return;
             }
             if (price > 0) {
-              _addToCart(
-                id,
-                name,
-                price,
-                stockEnabled,
-                stock,
-                taxName: data['taxName'],
-                taxPercentage: data['taxPercentage'],
-                taxType: data['taxType'],
-              );
+              // Only show weight dialog for kg unit items
+              if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'kilogram') {
+                _showWeightInputDialog(
+                  id,
+                  name,
+                  price,
+                  stockEnabled,
+                  stock,
+                  taxName: data['taxName'],
+                  taxPercentage: data['taxPercentage'],
+                  taxType: data['taxType'],
+                );
+              } else {
+                // For non-kg items, add directly with quantity 1
+                _addToCart(
+                  id,
+                  name,
+                  price,
+                  stockEnabled,
+                  stock,
+                  1.0,
+                  taxName: data['taxName'],
+                  taxPercentage: data['taxPercentage'],
+                  taxType: data['taxType'],
+                );
+              }
             }
           },
           child: Stack(
