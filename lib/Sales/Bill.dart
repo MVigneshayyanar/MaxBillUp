@@ -17,6 +17,7 @@ import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 
+import '../utils/amount_formatter.dart';
 import 'components/common_widgets.dart';
 
 // ==========================================
@@ -1088,11 +1089,11 @@ class _BillPageState extends State<BillPage> {
                 Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis),
                 Row(
                   children: [
-                    Text('@ ${item.price.toStringAsFixed(0)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
+                    Text('@ ${AmountFormatter.format(item.price)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
                     if (item.taxAmount > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        '+${item.taxAmount.toStringAsFixed(2)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
+                        '+${AmountFormatter.format(item.taxAmount)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
                         style: const TextStyle(
                           color: kBlack54,
                           fontSize: 8,
@@ -1106,7 +1107,7 @@ class _BillPageState extends State<BillPage> {
             ),
           ),
           const SizedBox(width: 8),
-          Text('${item.totalWithTax.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
+          Text(AmountFormatter.format(item.totalWithTax), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _showEditCartItemDialog(idx),
@@ -1185,13 +1186,13 @@ class _BillPageState extends State<BillPage> {
 
                 // Bill Summary Breakdown
                 // 1. Subtotal (Total with Tax)
-                _buildSummaryRow('Subtotal', '${subtotal.toStringAsFixed(2)}'),
+                _buildSummaryRow('Subtotal', AmountFormatter.format(subtotal)),
 
                 // 2. Customer Discount (if available)
                 if (_customerDefaultDiscount > 0) ...[
                   _buildSummaryRow(
-                    'Customer Discount (${_customerDefaultDiscount.toStringAsFixed(1)}%)',
-                    '- ${customerDiscountAmount.toStringAsFixed(2)}',
+                    'Customer Discount (${AmountFormatter.format(_customerDefaultDiscount, maxDecimals: 1)}%)',
+                    '- ${AmountFormatter.format(customerDiscountAmount)}',
                     color: kGoogleGreen,
                   ),
                   const SizedBox(height: 2),
@@ -1200,7 +1201,7 @@ class _BillPageState extends State<BillPage> {
                 // 3. Additional Discount (clickable to edit)
                 _buildSummaryRow(
                   _customerDefaultDiscount > 0 ? 'Additional Discount' : 'Discount',
-                  '- ${additionalDiscountAmount.toStringAsFixed(2)}',
+                  '- ${AmountFormatter.format(additionalDiscountAmount)}',
                   color: kGoogleGreen,
                   isClickable: true,
                   onTap: _showDiscountDialog,
@@ -1211,7 +1212,7 @@ class _BillPageState extends State<BillPage> {
                 if (hasCustomer)
                   _buildSummaryRow(
                     'Return Credit',
-                    '- ${actualCreditUsed.toStringAsFixed(2)}',
+                    '- ${AmountFormatter.format(actualCreditUsed)}',
                     color: kOrange,
                     isClickable: true,
                     onTap: _showCreditNotesDialog,
@@ -1224,7 +1225,7 @@ class _BillPageState extends State<BillPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total Net', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
-                    Text('${finalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    Text(AmountFormatter.format(finalAmount), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -1553,8 +1554,8 @@ class _PaymentPageState extends State<PaymentPage> {
       _cashReceived = widget.totalAmount;
       _displayController.text = widget.totalAmount.toStringAsFixed(1);
     } else {
-      // Default due date: 30 days from today for credit payments
-      _creditDueDate = DateTime.now().add(const Duration(days: 30));
+      // Don't set default due date - let user choose or skip
+      _creditDueDate = null;
     }
   }
 
@@ -1583,7 +1584,13 @@ class _PaymentPageState extends State<PaymentPage> {
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
-        'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0,
+        // Add partial payment tracking for Credit mode
+        if (widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount) ...{
+          'cashReceived_partial': _cashReceived,
+          'creditIssued_partial': widget.totalAmount - _cashReceived,
+        },
+        'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
       if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber, _creditDueDate);
@@ -1608,7 +1615,10 @@ class _PaymentPageState extends State<PaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived, customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
+            cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
+            creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
+            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
@@ -1793,7 +1803,7 @@ class _PaymentPageState extends State<PaymentPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                              const Text('Credit Due Date', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
                               Text(
                                 _creditDueDate != null
@@ -1813,16 +1823,15 @@ class _PaymentPageState extends State<PaymentPage> {
               ],
             ),
           ),
-          const Spacer(),
           SafeArea(
             top: false,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
               decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
               child: Column(
                 children: [
                   _buildKeyPad(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     height: 60,
@@ -1842,29 +1851,85 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Future<void> _selectCreditDueDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    // Show dialog asking user if they want to set a date or skip
+    final shouldSetDate = await showDialog<bool>(
       context: context,
-      initialDate: _creditDueDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: kPrimaryColor,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack87,
-            ),
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Credit Due Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Would you like to set a due date for this credit?', style: TextStyle(fontSize: 13, color: kBlack54)),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: kOrange.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: kOrange, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You can skip this and set it later',
+                        style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          child: child!,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Skip for Now', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Select Date', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
+            ),
+          ],
         );
       },
     );
-    if (picked != null && picked != _creditDueDate) {
-      setState(() {
-        _creditDueDate = picked;
-      });
+
+    if (shouldSetDate == true) {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 365)),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: kPrimaryColor,
+                onPrimary: kWhite,
+                surface: kWhite,
+                onSurface: kBlack87,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null) {
+        setState(() {
+          _creditDueDate = picked;
+        });
+      }
     }
   }
 
@@ -1899,22 +1964,53 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   @override
   void initState() {
     super.initState();
-    _cashController.addListener(() => setState(() => _cashAmount = double.tryParse(_cashController.text) ?? 0.0));
-    _onlineController.addListener(() => setState(() => _onlineAmount = double.tryParse(_onlineController.text) ?? 0.0));
+    _cashController.addListener(() {
+      setState(() {
+        _cashAmount = double.tryParse(_cashController.text) ?? 0.0;
+        _updateCreditAmount();
+      });
+    });
+    _onlineController.addListener(() {
+      setState(() {
+        _onlineAmount = double.tryParse(_onlineController.text) ?? 0.0;
+        _updateCreditAmount();
+      });
+    });
     _creditController.addListener(() {
       setState(() {
         _creditAmount = double.tryParse(_creditController.text) ?? 0.0;
-        // Set default due date when credit is entered
-        if (_creditAmount > 0 && _creditDueDate == null) {
-          _creditDueDate = DateTime.now().add(const Duration(days: 30));
-        }
       });
     });
   }
 
+  void _updateCreditAmount() {
+    // Auto-calculate credit amount as remaining balance
+    final paidAmount = _cashAmount + _onlineAmount;
+    final remainingDue = widget.totalAmount - paidAmount;
+
+    if (remainingDue > 0 && widget.customerPhone != null) {
+      _creditAmount = remainingDue;
+      _creditController.text = remainingDue.toStringAsFixed(2);
+    } else {
+      _creditAmount = 0.0;
+      _creditController.text = '0.00';
+    }
+  }
+
   Future<void> _processSplitSale() async {
-    if (_dueAmount > 0.01) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient'))); return; }
-    if (_creditAmount > 0 && widget.customerPhone == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit'))); return; }
+    // Calculate change - overpayment
+    final paidAmount = _cashAmount + _onlineAmount;
+    final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
+
+    // Allow payment if exact match OR overpayment (change > 0)
+    if (_dueAmount > 0.01 && changeAmount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient')));
+      return;
+    }
+    if (_creditAmount > 0 && widget.customerPhone == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit')));
+      return;
+    }
 
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
@@ -1926,9 +2022,32 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
 
       final baseSaleData = {
-        'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
-        'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
-        'paymentMode': 'Split', 'cashReceived': _totalPaid - _creditAmount, 'cashReceived_split': _cashAmount, 'onlineReceived_split': _onlineAmount, 'creditIssued_split': _creditAmount, 'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'invoiceNumber': invoiceNumber,
+        'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
+        'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed,
+        'discount': widget.discountAmount,
+        'creditUsed': widget.actualCreditUsed,
+        'total': widget.totalAmount,
+        'taxes': taxList,
+        'totalTax': totalTax,
+        'paymentMode': 'Split',
+        'cashReceived': _totalPaid - _creditAmount,
+        'change': changeAmount > 0 ? changeAmount : 0.0, // Add change field
+        'cashReceived_split': _cashAmount,
+        'onlineReceived_split': _onlineAmount,
+        'creditIssued_split': _creditAmount,
+        'customerPhone': widget.customerPhone,
+        'customerName': widget.customerName,
+        'customerGST': widget.customerGST,
+        'creditNote': widget.creditNote,
+        'customNote': widget.customNote,
+        'date': DateTime.now().toIso8601String(),
+        'staffId': widget.uid,
+        'staffName': widget.staffName,
+        'businessName': widget.businessName,
+        'businessLocation': widget.businessLocation,
+        'businessPhone': widget.businessPhone,
+        'timestamp': FieldValue.serverTimestamp(),
       };
 
       if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber, _creditDueDate);
@@ -1958,7 +2077,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
             uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount, customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
+            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
+            cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
+            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
@@ -2069,7 +2190,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    bool canPay = _dueAmount <= 0.01 && _dueAmount >= -0.01;
+    // Calculate change - overpayment (when cash + online > bill amount and no credit)
+    final paidAmount = _cashAmount + _onlineAmount;
+    final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
+    bool canPay = (_dueAmount <= 0.01 && _dueAmount >= -0.01) || changeAmount > 0;
+
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(title: const Text('Split Payment', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, iconTheme: const IconThemeData(color: kWhite), elevation: 0),
@@ -2092,6 +2217,29 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             _buildInput('Online / UPI', Icons.qr_code_scanner_rounded, _onlineController),
             const SizedBox(height: 12),
             _buildInput('Credit Book', Icons.menu_book_rounded, _creditController, enabled: widget.customerPhone != null),
+
+            // Show change amount when overpaid (cash + online > bill and no credit)
+            if (changeAmount > 0) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kGoogleGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle_outline_rounded, color: kGoogleGreen, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kGoogleGreen, letterSpacing: 0.5)),
+                    Text('₹${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kGoogleGreen)),
+                  ],
+                ),
+              ),
+            ],
+
             // Credit Due Date Selector - show when credit amount > 0
             if (_creditAmount > 0) ...[
               const SizedBox(height: 16),
@@ -2130,51 +2278,98 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-              child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Remaining Due', style: TextStyle(fontWeight: FontWeight.w600)),
-                Text('${_dueAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kGoogleRed)),
-              ]),
-            ),
           ],
         ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('SETTLE BILL', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)))),
+          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text('SETTLE BILL - ₹${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 15)))),
         ),
       ),
     );
   }
 
   Future<void> _selectCreditDueDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    // Show dialog asking user if they want to set a date or skip
+    final shouldSetDate = await showDialog<bool>(
       context: context,
-      initialDate: _creditDueDate ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: kPrimaryColor,
-              onPrimary: kWhite,
-              surface: kWhite,
-              onSurface: kBlack87,
-            ),
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Credit Due Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Would you like to set a due date for this credit?', style: TextStyle(fontSize: 13, color: kBlack54)),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kOrange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: kOrange.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: kOrange, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'You can skip this and set it later',
+                        style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          child: child!,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Skip for Now', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kPrimaryColor,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Select Date', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
+            ),
+          ],
         );
       },
     );
-    if (picked != null && picked != _creditDueDate) {
-      setState(() {
-        _creditDueDate = picked;
-      });
+
+    if (shouldSetDate == true) {
+      final DateTime? picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime.now(),
+        lastDate: DateTime.now().add(const Duration(days: 365)),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: kPrimaryColor,
+                onPrimary: kWhite,
+                surface: kWhite,
+                onSurface: kBlack87,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+      if (picked != null) {
+        setState(() {
+          _creditDueDate = picked;
+        });
+      }
     }
   }
 

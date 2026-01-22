@@ -247,7 +247,7 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('lowStockProduct'))
             _buildReportTile(context.tr('low_stock_products'), Icons.inventory_rounded, kOrange, 'LowStock', subtitle: 'Restock action required'),
           if (isFeatureAvailable('topProducts'))
-            _buildReportTile(context.tr('top_products'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items'),
+            _buildReportTile(context.tr('Product Summary'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('topCategory'))
             _buildReportTile(context.tr('top_categories'), Icons.category_rounded, const Color(0xFFE91E63), 'TopCategories', subtitle: 'Department performance'),
 
@@ -2337,7 +2337,7 @@ class _DayBookPageState extends State<DayBookPage> {
                         allTransactions.add({
                           'category': 'Sale',
                           'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
-                          'name': data['customerName']?.toString() ?? '--',
+                          'name': data['customerName']?.toString() ?? 'Guest',
                           'total': total,
                           'cashIn': mode.contains('credit') ? 0.0 : total,
                           'cashOut': 0.0,
@@ -3262,11 +3262,11 @@ class _DayBookPageState extends State<DayBookPage> {
             ),
             child: Column(
               children: [
-                _buildCreditDetailRow('Sale Credit Given', saleCreditGiven, Icons.arrow_upward_rounded, const Color(0xFFEF9A9A)),  // Soft red
+                _buildCreditDetailRow('Sale On Credit', saleCreditGiven, Icons.arrow_upward_rounded, const Color(0xFFEF9A9A)),  // Soft red
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Sale Credit Received', saleCreditReceived, Icons.arrow_downward_rounded, const Color(0xFF81C784)),  // Soft green
+                _buildCreditDetailRow('Sale Credit Collected', saleCreditReceived, Icons.arrow_downward_rounded, const Color(0xFF81C784)),  // Soft green
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Purchase Credit Added', purchaseCreditAdded, Icons.add_circle_outline_rounded, const Color(0xFFFFB74D)),  // Soft orange
+                _buildCreditDetailRow('Purchase Credit', purchaseCreditAdded, Icons.add_circle_outline_rounded, const Color(0xFFFFB74D)),  // Soft orange
                 Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
                 _buildCreditDetailRow('Purchase Credit Paid', purchaseCreditPaid, Icons.check_circle_outline_rounded, const Color(0xFF64B5F6)),  // Soft blue
               ],
@@ -3864,14 +3864,6 @@ class _DayBookPageState extends State<DayBookPage> {
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               color: Colors.black87,
-                            ),
-                          ),
-                          Text(
-                            isIncome ? '+${cashFlow.toStringAsFixed(1)}' : '-${cashFlow.toStringAsFixed(1)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: isIncome ? const Color(0xFF2E7D32) : const Color(0xFFE53935),
                             ),
                           ),
                         ],

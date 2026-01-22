@@ -76,6 +76,11 @@ class InvoicePage extends StatefulWidget {
   final String? customNote;
   final String? deliveryAddress;
   final bool isQuotation;
+  final double? cashReceived_split;
+  final double? onlineReceived_split;
+  final double? creditIssued_split;
+  final double? cashReceived_partial;
+  final double? creditIssued_partial;
 
   const InvoicePage({
     super.key,
@@ -100,6 +105,11 @@ class InvoicePage extends StatefulWidget {
     this.customNote,
     this.deliveryAddress,
     this.isQuotation = false,
+    this.cashReceived_split,
+    this.onlineReceived_split,
+    this.creditIssued_split,
+    this.cashReceived_partial,
+    this.creditIssued_partial,
   });
 
   @override
@@ -1827,7 +1837,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
             children: [
               const Text("NET PAYABLE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
               Text(
-                "Rs ${widget.total.toStringAsFixed(2)}",
+                "Rs ${AmountFormatter.format(widget.total)}",
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: colors['primary']),
               ),
             ],
@@ -1856,6 +1866,129 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
               ),
             ),
 
+          // Split Payment Breakdown
+          if (widget.paymentMode == 'Split' && (widget.cashReceived_split != null || widget.onlineReceived_split != null || widget.creditIssued_split != null))
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kPrimaryColor.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("PAYMENT BREAKDOWN", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  if (widget.cashReceived_split != null && widget.cashReceived_split! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.payments_rounded, size: 14, color: kGoogleGreen),
+                              const SizedBox(width: 6),
+                              const Text("Cash", style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          Text("₹${AmountFormatter.format(widget.cashReceived_split!)}", style: const TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  if (widget.onlineReceived_split != null && widget.onlineReceived_split! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.qr_code_scanner_rounded, size: 14, color: kPrimaryColor),
+                              const SizedBox(width: 6),
+                              const Text("Online/UPI", style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          Text("₹${AmountFormatter.format(widget.onlineReceived_split!)}", style: const TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  if (widget.creditIssued_split != null && widget.creditIssued_split! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.menu_book_rounded, size: 14, color: kOrange),
+                              const SizedBox(width: 6),
+                              const Text("Credit", style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          Text("₹${AmountFormatter.format(widget.creditIssued_split!)}", style: const TextStyle(fontSize: 11, color: kOrange, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
+          // Partial Credit Payment Breakdown (for Credit mode with partial payment)
+          if (widget.paymentMode == 'Credit' && (widget.cashReceived_partial != null || widget.creditIssued_partial != null))
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kOrange.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: kOrange.withValues(alpha: 0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("PAYMENT BREAKDOWN", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+                  if (widget.cashReceived_partial != null && widget.cashReceived_partial! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.payments_rounded, size: 14, color: kGoogleGreen),
+                              const SizedBox(width: 6),
+                              const Text("Cash Paid", style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          Text("₹${AmountFormatter.format(widget.cashReceived_partial!)}", style: const TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  if (widget.creditIssued_partial != null && widget.creditIssued_partial! > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.menu_book_rounded, size: 14, color: kOrange),
+                              const SizedBox(width: 6),
+                              const Text("Credit", style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          Text("₹${AmountFormatter.format(widget.creditIssued_partial!)}", style: const TextStyle(fontSize: 11, color: kOrange, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+
           // Customer Save Amount Message
           if (_showSaveAmountMessage && savings > 0)
             Container(
@@ -1872,7 +2005,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   const Icon(Icons.savings_rounded, color: kGoogleGreen, size: 18),
                   const SizedBox(width: 8),
                   Text(
-                    "You saved${savings.toStringAsFixed(0)} on this order!",
+                    "You saved ₹${AmountFormatter.format(savings)} on this order!",
                     style: const TextStyle(fontSize: 12, color: kGoogleGreen, fontWeight: FontWeight.w800),
                   ),
                 ],
@@ -1887,9 +2020,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     // For count values, show as integer if whole number, otherwise show decimals
     String displayValue;
     if (isCount) {
-      displayValue = amount == amount.roundToDouble() ? amount.toInt().toString() : amount.toStringAsFixed(2);
+      displayValue = AmountFormatter.format(amount);
     } else {
-      displayValue = "${isNegative ? '-' : ''}${amount.toStringAsFixed(2)}";
+      displayValue = "${isNegative ? '-' : ''}${AmountFormatter.format(amount)}";
     }
 
     return Padding(

@@ -272,7 +272,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: kPrimaryColor.withOpacity(0.1),
+                        backgroundColor: kPrimaryColor.withValues(alpha: 0.1),
                         radius: 20,
                         child: Text(
                           (customerData['name'] ?? 'C')[0].toUpperCase(),
@@ -576,6 +576,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         title: Text(context.tr('customerdetails'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
         iconTheme: const IconThemeData(color: kWhite),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_rounded, color: Colors.white),
+            onPressed: () => _confirmDelete(context),
+            tooltip: 'Delete Customer',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -597,7 +604,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: kOrange.withOpacity(0.1),
+                                  backgroundColor: kOrange.withValues(alpha: 0.1),
                                   radius: 24,
                                   child: const Icon(Icons.person, color: kOrange, size: 24),
                                 ),
@@ -687,7 +694,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(color: color.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.15))),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.15))),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -705,7 +712,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ListTile(
-        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 20)),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 20)),
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
         onTap: () {
@@ -868,7 +875,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       body: _loading ? const Center(child: CircularProgressIndicator(color: kPrimaryColor)) : Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          color: kPrimaryColor.withOpacity(0.05),
+          color: kPrimaryColor.withValues(alpha: 0.05),
           child: const Row(children: [
             Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
             Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
@@ -1002,7 +1009,7 @@ class CustomerCreditsPage extends StatelessWidget {
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(backgroundColor: color.withOpacity(0.1), radius: 18, child: Icon(icon, color: color, size: 16)),
+                  leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: Icon(icon, color: color, size: 16)),
                   title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
                   subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),

@@ -256,7 +256,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               return ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: CircleAvatar(
-                  backgroundColor: _primaryColor.withOpacity(0.1),
+                  backgroundColor: _primaryColor.withValues(alpha: 0.1),
                   child: Text(
                     contact.displayName.isNotEmpty ? contact.displayName[0].toUpperCase() : '?',
                     style: const TextStyle(color: _primaryColor,fontWeight: FontWeight.bold),
@@ -318,6 +318,77 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     }
   }
 
+  Future<void> _confirmDeleteCustomer(BuildContext context) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Customer?', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: kErrorColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 48),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'This will permanently delete this customer and all associated data. This action cannot be undone.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: kBlack54, fontSize: 14, height: 1.5),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kErrorColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && widget.customerId != null) {
+      try {
+        await FirestoreService().deleteDocument('customers', widget.customerId!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Customer deleted successfully', style: TextStyle(fontWeight: FontWeight.w600)),
+              backgroundColor: _successColor,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          Navigator.pop(context); // Go back after deletion
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting customer: $e'),
+              backgroundColor: kErrorColor,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   // ==========================================
   // UI BUILD METHODS
   // ==========================================
@@ -338,7 +409,13 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         ),
         centerTitle: true,
         elevation: 0,
-        actions: widget.isEditMode ? [] : [
+        actions: widget.isEditMode ? [
+          IconButton(
+            icon: const Icon(Icons.delete_rounded, color: Colors.white),
+            onPressed: () => _confirmDeleteCustomer(context),
+            tooltip: 'Delete Customer',
+          ),
+        ] : [
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             elevation: 0,
@@ -489,6 +566,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     ),
                   ),
                   const SizedBox(height: 40),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
                 ],
               ),
             ),
@@ -629,7 +707,12 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
   Widget _buildBottomSaveButton() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: 16 + MediaQuery.of(context).padding.bottom,
+      ),
       decoration: const BoxDecoration(
         color: kWhite,
         border: Border(top: BorderSide(color: kGrey200)),
@@ -666,3 +749,4 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     );
   }
 }
+

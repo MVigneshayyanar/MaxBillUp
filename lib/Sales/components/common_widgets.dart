@@ -7,6 +7,7 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:intl/intl.dart';
 
 class CommonWidgets {
@@ -89,7 +90,7 @@ class CommonWidgets {
                     const Icon(Icons.receipt_long_rounded, color: kWhite, size: 18),
                     const SizedBox(width: 10),
                     Text(
-                      "${totalBill.toStringAsFixed(0)}",
+                      "${AmountFormatter.format(totalBill)}",
                       style: const TextStyle(color: kWhite, fontSize: 17, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(width: 8),

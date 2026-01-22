@@ -28,6 +28,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
@@ -1495,6 +1496,11 @@ class SalesDetailPage extends StatelessWidget {
               total: (data['total'] ?? 0).toDouble(),
               paymentMode: data['paymentMode'] ?? 'Cash',
               cashReceived: (data['cashReceived'] ?? data['total'] ?? 0).toDouble(),
+              cashReceived_split: data['paymentMode'] == 'Split' ? (data['cashReceived_split'] ?? 0).toDouble() : null,
+              onlineReceived_split: data['paymentMode'] == 'Split' ? (data['onlineReceived_split'] ?? 0).toDouble() : null,
+              creditIssued_split: data['paymentMode'] == 'Split' ? (data['creditIssued_split'] ?? 0).toDouble() : null,
+              cashReceived_partial: data['paymentMode'] == 'Credit' ? (data['cashReceived_partial'] ?? 0).toDouble() : null,
+              creditIssued_partial: data['paymentMode'] == 'Credit' ? (data['creditIssued_partial'] ?? 0).toDouble() : null,
               customerName: data['customerName'],
               customerPhone: data['customerPhone'],
               customerGSTIN: data['customerGST'],
@@ -1832,6 +1838,56 @@ class SalesDetailPage extends StatelessWidget {
                                   _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
                                   _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
 
+                                  // Payment Split Details Section
+                                  if (data['paymentMode'] == 'Split' || data['paymentMode'] == 'Credit')
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: kPrimaryColor.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Row(
+                                              children: [
+                                                Icon(Icons.account_balance_wallet_outlined, size: 14, color: kPrimaryColor),
+                                                SizedBox(width: 6),
+                                                Text('Payment Split Details', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 10),
+                                            if (data['paymentMode'] == 'Split') ...[
+                                              if ((data['cashReceived_split'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.payments_outlined, 'Cash', (data['cashReceived_split'] ?? 0).toDouble(), kGoogleGreen),
+                                              if ((data['onlineReceived_split'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.account_balance_outlined, 'Online', (data['onlineReceived_split'] ?? 0).toDouble(), kPrimaryColor),
+                                              if ((data['creditIssued_split'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit', (data['creditIssued_split'] ?? 0).toDouble(), kErrorColor),
+                                            ] else if (data['paymentMode'] == 'Credit') ...[
+                                              // For Credit payment mode
+                                              // Check if partial payment fields exist (when some amount was paid)
+                                              if ((data['cashReceived_partial'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.payments_outlined, 'Cash Paid', (data['cashReceived_partial'] ?? 0).toDouble(), kGoogleGreen),
+                                              if ((data['onlineReceived_partial'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.account_balance_outlined, 'Online Paid', (data['onlineReceived_partial'] ?? 0).toDouble(), kPrimaryColor),
+                                              // Show credit amount
+                                              if ((data['creditIssued_partial'] ?? 0).toDouble() > 0)
+                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit Issued', (data['creditIssued_partial'] ?? 0).toDouble(), kErrorColor)
+                                              else if ((data['cashReceived_partial'] ?? 0).toDouble() == 0 && (data['onlineReceived_partial'] ?? 0).toDouble() == 0)
+                                                // Fully credit - calculate from total and cashReceived
+                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit Issued',
+                                                  ((data['total'] ?? 0).toDouble() - (data['cashReceived'] ?? 0).toDouble()), kErrorColor),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
                                   // Display custom note/description if available
                                   if (data['customNote'] != null && (data['customNote'] as String).trim().isNotEmpty)
                                     Padding(
@@ -1912,6 +1968,25 @@ class SalesDetailPage extends StatelessWidget {
           const SizedBox(width: 10),
           Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
           Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSplitRow(IconData icon, String label, double amount, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
+          Text(
+            AmountFormatter.formatWithSymbol(amount),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
+          ),
         ],
       ),
     );
@@ -4049,14 +4124,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Credit Bills', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: kOrange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text('Tap to settle', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kOrange)),
-                ),
+
               ],
             ),
           ),
