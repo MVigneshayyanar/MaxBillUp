@@ -55,6 +55,21 @@ class CartItem {
     }
   }
 
+  // Get per-unit price including tax
+  double get priceWithTax {
+    if (taxType == 'Price includes Tax') {
+      // Tax already included in price
+      return price;
+    } else if (taxType == 'Price is without Tax') {
+      // Add tax to price
+      final taxRate = taxPercentage ?? 0;
+      return price * (1 + (taxRate / 100));
+    } else {
+      // Zero Rated or Exempt
+      return price;
+    }
+  }
+
   // Get total including tax
   double get totalWithTax {
     if (taxType == 'Price includes Tax') {

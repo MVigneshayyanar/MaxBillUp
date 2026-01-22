@@ -15,6 +15,7 @@ import 'package:maxbillup/Menu/AddCustomer.dart';
 import 'package:maxbillup/Menu/KnowledgePage.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
+import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
@@ -1187,11 +1188,19 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
         productId: item['productId'] ?? '',
         name: item['name'] ?? '',
         price: (item['price'] ?? 0).toDouble(),
-        quantity: item['quantity'] is int ? item['quantity'] : int.tryParse(item['quantity'].toString()) ?? 1,
+        quantity: item['quantity'] is int ? item['quantity'].toDouble() : (item['quantity'] is double ? item['quantity'] : double.tryParse(item['quantity'].toString()) ?? 1.0),
+        taxName: item['taxName'],
+        taxPercentage: item['taxPercentage']?.toDouble(),
+        taxType: item['taxType'],
       ))
           .toList();
 
       final isUnsettledSale = data.containsKey('paymentStatus') && data['paymentStatus'] == 'unsettled';
+
+      // Load cart items into CartService before navigating to BillPage
+      // This ensures the items are visible in the bill summary
+      final cartService = Provider.of<CartService>(context, listen: false);
+      cartService.updateCart(cartItems);
 
       Navigator.push(
         context,

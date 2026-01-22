@@ -139,7 +139,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         productId: item['productId'] ?? '',
         name: item['name'] ?? '',
         price: (item['price'] ?? 0).toDouble(),
-        quantity: item['quantity'] ?? 1,
+        quantity: (item['quantity'] ?? 1).toDouble(),
+        taxName: item['taxName'] as String?,
+        taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
+        taxType: item['taxType'] as String?,
       ))
           .toList();
 
@@ -934,11 +937,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)
                               )),
-                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.price), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.priceWithTax), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  AmountFormatter.format(item.total),
+                                  AmountFormatter.format(item.totalWithTax),
                                   textAlign: TextAlign.right,
                                   style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
                                 ),

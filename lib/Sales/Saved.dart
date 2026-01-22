@@ -218,7 +218,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
-                          Text('${items.length} ${items.length == 1 ? 'line item' : 'line items'} total',
+                          Text('${items.length} ${items.length == 1 ? 'item' : 'items'}',
                               style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
                         ],
                       ),

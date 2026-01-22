@@ -305,6 +305,9 @@ class CommonWidgets {
         'price': item.price,
         'quantity': item.quantity,
         'total': item.total,
+        'taxName': item.taxName,
+        'taxPercentage': item.taxPercentage,
+        'taxType': item.taxType,
       }).toList();
 
       final docRef = await FirestoreService().addDocument('savedOrders', {
@@ -341,6 +344,9 @@ class CommonWidgets {
         'price': item.price,
         'quantity': item.quantity,
         'total': item.total,
+        'taxName': item.taxName,
+        'taxPercentage': item.taxPercentage,
+        'taxType': item.taxType,
       }).toList();
 
       await FirestoreService().updateDocument('savedOrders', orderId, {

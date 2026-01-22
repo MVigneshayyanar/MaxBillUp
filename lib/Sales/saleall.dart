@@ -111,7 +111,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
             productId: item['productId'] ?? '',
             name: item['name'] ?? '',
             price: (item['price'] ?? 0.0).toDouble(),
-            quantity: item['quantity'] ?? 1,
+            quantity: (item['quantity'] ?? 1).toDouble(),
+            taxName: item['taxName'] as String?,
+            taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
+            taxType: item['taxType'] as String?,
           ));
         }
       }
@@ -657,20 +660,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     savedOrderName: _savedOrderName,
                     savedOrderPhone: _selectedCustomerPhone,
                     onSuccess: (String orderName, String? orderId) {
-                      // After saving/updating, clear the cart and saved order name
-                      // The savedOrderId is kept in CartService so future saves can update same order
+                      // After saving/updating, clear the cart, saved order name AND savedOrderId
+                      // This allows future saves to create new orders instead of updating
                       setState(() {
                         _savedOrderName = null; // Clear order name since cart is now empty
                         _cart.clear(); // Clear the cart
                       });
                       // Notify parent that cart is now empty
                       widget.onCartChanged?.call(_cart);
-                      // Update CartService with empty cart but keep savedOrderId
+                      // Update CartService with empty cart AND clear savedOrderId
                       context.read<CartService>().updateCart([]);
-                      // Store the orderId in CartService so future saves update the same order
-                      if (orderId != null) {
-                        context.read<CartService>().setSavedOrderId(orderId);
-                      }
+                      context.read<CartService>().setSavedOrderId(null); // Clear savedOrderId to allow new saves
                     },
                   );
                 },
