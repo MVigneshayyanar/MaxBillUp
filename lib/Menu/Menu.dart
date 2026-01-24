@@ -2924,6 +2924,7 @@ class CreditNoteDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
+
         title: const Text('Detail Overview',
             style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: kPrimaryColor,

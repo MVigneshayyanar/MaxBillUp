@@ -214,7 +214,7 @@ class _ReportsPageState extends State<ReportsPage> {
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
           if (isFeatureAvailable('analytics'))
-            _buildReportTile(context.tr('analytics'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends'),
+            _buildReportTile(context.tr('Business  Summary'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends'),
           _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues'),
@@ -276,7 +276,7 @@ class _ReportsPageState extends State<ReportsPage> {
 
   Widget _buildSectionLabel(String text) => Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 12, top: 12),
-    child: Text(text.toUpperCase(),
+    child: Text(text,
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
@@ -352,11 +352,11 @@ class _ReportsPageState extends State<ReportsPage> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
+                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.w500)),
                       ],
                     ],
                   ),
@@ -637,7 +637,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
         visualDensity: VisualDensity.compact,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Icon(icon, size: 18, color: kPrimaryColor),
-        title: Text(_getFilterLabel(option), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87)),
+        title: Text(_getFilterLabel(option), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
         onTap: onTap,
       ),
@@ -685,7 +685,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getFilterLabel(widget.selectedOption).toUpperCase(),
+                      _getFilterLabel(widget.selectedOption),
                       style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.8), // Smaller label
                     ),
                     const SizedBox(height: 1),
@@ -695,7 +695,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                           ? '${DateFormat('dd MMM yyyy').format(widget.startDate!)} — ${DateFormat('dd MMM yyyy').format(widget.startDate!)}'
                           : '${DateFormat('dd MMM yyyy').format(widget.startDate!)} — ${DateFormat('dd MMM yyyy').format(widget.endDate!)}')
                           : 'Set Period',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black87), // Smaller date text
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87), // Smaller date text
                     ),
                   ],
                 ),
@@ -875,25 +875,29 @@ class _EmptyChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-AppBar _buildModernAppBar(String title, VoidCallback onBack, {VoidCallback? onDownload}) {
-  return AppBar(
-    leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20), onPressed: onBack),
-    title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
-    backgroundColor: kPrimaryColor,
-    elevation: 0,
-    centerTitle: true,
-    actions: onDownload != null
-        ? [
-            IconButton(
-              icon: const Icon(Icons.download_rounded, color: Colors.white, size: 22),
-              onPressed: onDownload,
-              tooltip: 'Download PDF',
-            ),
-            const SizedBox(width: 8),
-          ]
-        : null,
-  );
-}
+ AppBar _buildModernAppBar(String title, VoidCallback onBack, {VoidCallback? onDownload}) {
+   return AppBar(
+     // Rounded bottom corners for modern look
+     shape: const RoundedRectangleBorder(
+       borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+     ),
+     leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20), onPressed: onBack),
+     title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+     backgroundColor: kPrimaryColor,
+     elevation: 0,
+     centerTitle: true,
+     actions: onDownload != null
+         ? [
+             IconButton(
+               icon: const Icon(Icons.download_rounded, color: Colors.white, size: 22),
+               onPressed: onDownload,
+               tooltip: 'Download PDF',
+             ),
+             const SizedBox(width: 8),
+           ]
+         : null,
+   );
+ }
 
 // ==========================================
 // PDF REPORT GENERATOR HELPER
@@ -946,7 +950,7 @@ class ReportPdfGenerator {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            reportTitle.toUpperCase(),
+                            reportTitle,
                             style: pw.TextStyle(
                               color: PdfColors.white,
                               fontSize: 24,
@@ -965,7 +969,7 @@ class ReportPdfGenerator {
                               '$shortDate',
                               style: const pw.TextStyle(
                                 color: PdfColors.white,
-                                fontSize: 11,
+                                fontSize: 14,
                               ),
                             ),
                           ),
@@ -1023,7 +1027,7 @@ class ReportPdfGenerator {
                           crossAxisAlignment: pw.CrossAxisAlignment.start,
                           children: [
                             pw.Text(
-                              summaryTitle.toUpperCase(),
+                              summaryTitle,
                               style: pw.TextStyle(
                                 fontSize: 10,
                                 fontWeight: pw.FontWeight.bold,
@@ -1065,7 +1069,7 @@ class ReportPdfGenerator {
                                   mainAxisAlignment: pw.MainAxisAlignment.center,
                                   children: [
                                     pw.Text(
-                                      e.key.toUpperCase(),
+                                      e.key,
                                       style: const pw.TextStyle(
                                         fontSize: 8,
                                         color: PdfColors.grey600,
@@ -1125,7 +1129,7 @@ class ReportPdfGenerator {
                         return pw.Container(
                           padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                           child: pw.Text(
-                            header.toUpperCase(),
+                            header,
                             style: pw.TextStyle(
                               color: PdfColors.white,
                               fontSize: 9,
@@ -1436,7 +1440,7 @@ class ReportPdfGenerator {
                     savedToDownloads
                         ? 'Your PDF report has been saved to Downloads/MAXmybill folder'
                         : 'Your PDF report has been generated successfully',
-                    style: const TextStyle(fontSize: 15, color: kTextSecondary, height: 1.4),
+                    style: const TextStyle(fontSize: 14, color: kTextSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -1476,7 +1480,7 @@ class ReportPdfGenerator {
                               const SizedBox(height: 4),
                               Text(
                                 '${(pdfBytes.length / 1024).toStringAsFixed(1)} KB',
-                                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                               ),
                             ],
                           ),
@@ -1500,7 +1504,7 @@ class ReportPdfGenerator {
                           const Expanded(
                             child: Text(
                               'Check Downloads/MAXmybill folder',
-                              style: TextStyle(fontSize: 13, color: kIncomeGreen, fontWeight: FontWeight.w600),
+                              style: TextStyle(fontSize: 14, color: kIncomeGreen, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -1515,7 +1519,7 @@ class ReportPdfGenerator {
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   ),
-                  child: const Text('Close', style: TextStyle(color: kTextSecondary, fontSize: 15)),
+                  child: const Text('Close', style: TextStyle(color: kTextSecondary, fontSize: 14)),
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
@@ -1527,7 +1531,7 @@ class ReportPdfGenerator {
                     );
                   },
                   icon: const Icon(Icons.share_rounded, size: 18),
-                  label: const Text('Share PDF', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  label: const Text('Share PDF', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: kPrimaryColor,
                     foregroundColor: Colors.white,
@@ -1660,7 +1664,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Business Analytics", widget.onBack, onDownload: () => _downloadPdf(context)),
+      appBar: _buildModernAppBar("Business  Summary", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -1864,7 +1868,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w900,
@@ -2069,8 +2073,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       children: [
         Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.bold))),
-        Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900)),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 14, color: kTextSecondary, fontWeight: FontWeight.bold))),
+        Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900)),
       ],
     );
   }
@@ -2104,7 +2108,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             ],
           ),
           const SizedBox(height: 4),
-          Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
         ],
       ),
     );
@@ -2155,6 +2159,9 @@ class _DayBookPageState extends State<DayBookPage> {
   // Store data for PDF download
   List<DocumentSnapshot> _todayDocs = [];
   double _total = 0;
+  // Transaction filter for the timeline: All, Cash, Online, Split, Credit
+  String _txnFilter = 'All';
+  final List<String> _txnFilterOptions = ['All', 'Cash', 'Online', 'Split', 'Credit'];
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -2187,8 +2194,8 @@ class _DayBookPageState extends State<DayBookPage> {
       return [
         (data['invoiceNumber']?.toString() ?? '-').padLeft(5, '0'),
         timeStr,
-        (data['customerName']?.toString() ?? 'Guest').toUpperCase(),
-        (data['paymentMode']?.toString() ?? 'Cash').toUpperCase(),
+        (data['customerName']?.toString() ?? 'Guest'),
+        (data['paymentMode']?.toString() ?? 'Cash'),
         "INR ${saleTotal.toStringAsFixed(2)}",
       ];
     }).toList();
@@ -2794,8 +2801,8 @@ class _DayBookPageState extends State<DayBookPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            customerName.toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Colors.black87),
+                            customerName,
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2855,7 +2862,7 @@ class _DayBookPageState extends State<DayBookPage> {
                                 Expanded(
                                   child: Text(
                                     '$itemName × $qty',
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -2894,7 +2901,7 @@ class _DayBookPageState extends State<DayBookPage> {
                                 ? Icons.event_note_rounded
                                 : Icons.money_rounded,
                         label: 'PAYMENT',
-                        value: mode.toUpperCase(),
+                        value: mode,
                         color: modeColor,
                       ),
                     ),
@@ -2986,7 +2993,7 @@ class _DayBookPageState extends State<DayBookPage> {
           const SizedBox(height: 2),
           Text(
             value,
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -3022,7 +3029,7 @@ class _DayBookPageState extends State<DayBookPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'DAYBOOK',
+                'Daybook',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
@@ -3043,7 +3050,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     Text(
                       'LIVE',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: 0.5,
@@ -3087,12 +3094,12 @@ class _DayBookPageState extends State<DayBookPage> {
                     children: [
                       const Text(
                         'Selected Date',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kTextSecondary),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kTextSecondary),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         DateFormat('dd MMM yyyy, EEEE').format(_selectedDate),
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87),
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
                       ),
                     ],
                   ),
@@ -3161,11 +3168,11 @@ class _DayBookPageState extends State<DayBookPage> {
                     ),
                     const SizedBox(width: 12),
                     const Text(
-                      'NET CASH FLOW',
+                      'Net Cash Flow',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white70,
+                        color: Colors.white,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -3187,7 +3194,7 @@ class _DayBookPageState extends State<DayBookPage> {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white70,
+                    color: Colors.white,
                   ),
                 ),
               ],
@@ -3319,7 +3326,7 @@ class _DayBookPageState extends State<DayBookPage> {
                   child: Text(
                     '$count',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 14,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
                     ),
@@ -3329,11 +3336,11 @@ class _DayBookPageState extends State<DayBookPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            label.toUpperCase(),
+            label,
             style: const TextStyle(
-              fontSize: 10,
+              fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Colors.white70,
+              color: Colors.white,
               letterSpacing: 0.8,
             ),
           ),
@@ -3370,7 +3377,7 @@ class _DayBookPageState extends State<DayBookPage> {
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
@@ -3425,9 +3432,9 @@ class _DayBookPageState extends State<DayBookPage> {
               ),
               const SizedBox(width: 12),
               const Text(
-                'PAYMENT BREAKDOWN',
+                'Payment Breakdown',
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w900,
                   color: Colors.black87,
                   letterSpacing: 0.8,
@@ -3473,9 +3480,9 @@ class _DayBookPageState extends State<DayBookPage> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'PAYMENT OUT',
+                      'Payment Out',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFFFFB74D),  // Soft orange
                         letterSpacing: 0.5,
@@ -3526,9 +3533,9 @@ class _DayBookPageState extends State<DayBookPage> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'PAYMENT IN',
+                      'Payment In',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF81C784),  // Soft green
                         letterSpacing: 0.5,
@@ -3564,7 +3571,7 @@ class _DayBookPageState extends State<DayBookPage> {
           child: Text(
             method,
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 14,
               fontWeight: FontWeight.w600,
               color: kTextSecondary,
             ),
@@ -3592,6 +3599,28 @@ class _DayBookPageState extends State<DayBookPage> {
   }
 
   Widget _buildDayBookTransactionTable(List<Map<String, dynamic>> transactions) {
+    // Apply selected transaction filter
+    final filteredTransactions = transactions.where((txn) {
+      if (_txnFilter == 'All') return true;
+
+      final pm = (txn['paymentMode'] ?? '').toString().toLowerCase();
+      final category = txn['category']?.toString().toLowerCase() ?? '';
+
+      switch (_txnFilter) {
+        case 'Cash':
+          return pm.contains('cash');
+        case 'Online':
+          return pm.contains('online') || pm.contains('upi') || pm.contains('card');
+        case 'Split':
+          return pm.contains('split');
+        case 'Credit':
+          // credit may appear in paymentMode or category names
+          return pm.contains('credit') || category.contains('credit');
+        default:
+          return true;
+      }
+    }).toList();
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -3623,46 +3652,80 @@ class _DayBookPageState extends State<DayBookPage> {
                 topRight: Radius.circular(16),
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: kPrimaryColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Title row
+                Row(
                   children: [
-                    const Text(
-                      'TRANSACTION TIMELINE',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.black87,
-                        letterSpacing: 0.8,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor,
+                        borderRadius: BorderRadius.circular(10),
                       ),
+                      child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${transactions.length} transactions',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: kTextSecondary,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Transaction Timeline',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black87,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${filteredTransactions.length} of ${transactions.length} Transactions',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: kTextSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
+                ),
+
+                // Filter chips row
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _txnFilterOptions.map((opt) {
+                    final selected = _txnFilter == opt;
+                    return ChoiceChip(
+                      label: Text(
+                        opt,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color: selected ? Colors.white : kPrimaryColor,
+                        ),
+                      ),
+                      selected: selected,
+                      selectedColor: kPrimaryColor,
+                      backgroundColor: kSurfaceColor,
+                      showCheckmark: false,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      onSelected: (_) => setState(() => _txnFilter = opt),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
           ),
 
           // Transactions List
-          if (transactions.isEmpty)
+          if (filteredTransactions.isEmpty)
             Padding(
               padding: const EdgeInsets.all(40),
               child: Center(
@@ -3670,9 +3733,11 @@ class _DayBookPageState extends State<DayBookPage> {
                   children: [
                     Icon(Icons.receipt_long_outlined, size: 48, color: kTextSecondary.withOpacity(0.3)),
                     const SizedBox(height: 12),
-                    const Text(
-                      'No transactions for this date',
-                      style: TextStyle(
+                    Text(
+                      _txnFilter == 'All'
+                        ? 'No transactions for this date'
+                        : 'No $_txnFilter transactions found',
+                      style: const TextStyle(
                         color: kTextSecondary,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -3687,9 +3752,9 @@ class _DayBookPageState extends State<DayBookPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: transactions.length,
+              itemCount: filteredTransactions.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _buildDayBookTransactionCard(transactions[index]),
+              itemBuilder: (context, index) => _buildDayBookTransactionCard(filteredTransactions[index]),
             ),
         ],
       ),
@@ -3771,7 +3836,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     children: [
                       Expanded(
                         child: Text(
-                          category.toUpperCase(),
+                          category,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
@@ -3843,7 +3908,7 @@ class _DayBookPageState extends State<DayBookPage> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              txn['paymentMode'].toString().toUpperCase(),
+                              txn['paymentMode'].toString(),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -4114,9 +4179,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
     return Padding(
       padding: const EdgeInsets.only(left: 4),
       child: Text(
-        text.toUpperCase(),
+        text,
         style: const TextStyle(
-          fontSize: 11,
+          fontSize: 14,
           fontWeight: FontWeight.w800,
           color: kTextSecondary,
           letterSpacing: 1.2,
@@ -4250,7 +4315,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
     return SizedBox(
       height: 140,
       child: data.isEmpty
-          ? const Center(child: Text('No trend data', style: TextStyle(color: kTextSecondary, fontSize: 11)))
+          ? const Center(child: Text('No trend data', style: TextStyle(color: kTextSecondary, fontSize: 14)))
           : BarChart(
         BarChartData(
           gridData: FlGridData(
@@ -4397,8 +4462,8 @@ class FullSalesHistoryPage extends StatelessWidget {
       return [
         (d['invoiceNumber']?.toString() ?? 'N/A').padLeft(5, '0'),
         dateStr,
-        (d['customerName']?.toString() ?? 'GUEST').toUpperCase(),
-        (d['paymentMode']?.toString() ?? 'CASH').toUpperCase(),
+        (d['customerName']?.toString() ?? 'GUEST'),
+        (d['paymentMode']?.toString() ?? 'CASH'),
         "${total.toStringAsFixed(2)}",
       ];
     }).toList();
@@ -4544,7 +4609,7 @@ class FullSalesHistoryPage extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -4707,8 +4772,8 @@ class FullSalesHistoryPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (data['customerName'] ?? 'Guest').toString().toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
+                  (data['customerName'] ?? 'Guest').toString(),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -4724,10 +4789,10 @@ class FullSalesHistoryPage extends StatelessWidget {
             children: [
               Text(
                   "${total.toStringAsFixed(0)}",
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.black87, letterSpacing: -0.5)
+                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87, letterSpacing: -0.5)
               ),
               Text(
-                  mode.toUpperCase(),
+                  mode,
                   style: TextStyle(fontSize: 7, color: modeColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)
               ),
             ],
@@ -4750,7 +4815,7 @@ class TopCustomersPage extends StatelessWidget {
   void _downloadPdf(BuildContext context, List<MapEntry<String, double>> sorted) {
     final rows = sorted.asMap().entries.map((e) => [
       '${e.key + 1}',
-      e.value.key.toUpperCase(),
+      e.value.key,
       "${e.value.value.toStringAsFixed(2)}",
     ]).toList();
 
@@ -4886,7 +4951,7 @@ class TopCustomersPage extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -4975,7 +5040,7 @@ class TopCustomersPage extends StatelessWidget {
                       getTitlesWidget: (v, m) {
                         int index = v.toInt();
                         if (index < 0 || index >= top6.length) return const SizedBox();
-                        String label = top6[index].key.toUpperCase();
+                        String label = top6[index].key;
                         if (label.length > 6) label = label.substring(0, 5) + "..";
                         return SideTitleWidget(
                           meta: m,
@@ -5059,8 +5124,8 @@ class TopCustomersPage extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Text(
-              entry.key.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+              entry.key,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -5070,7 +5135,7 @@ class TopCustomersPage extends StatelessWidget {
             child: Text(
               "${entry.value.toStringAsFixed(0)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kPrimaryColor),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor),
             ),
           ),
         ],
@@ -5104,7 +5169,7 @@ class _StockReportPageState extends State<StockReportPage> {
       final price = double.tryParse(d['price']?.toString() ?? '0') ?? 0;
       final stock = double.tryParse(d['currentStock']?.toString() ?? '0') ?? 0;
       return [
-        (d['itemName']?.toString() ?? 'Unknown').toUpperCase(),
+        (d['itemName']?.toString() ?? 'Unknown'),
         d['itemId']?.toString() ?? 'N/A',
         stock.toStringAsFixed(0),
         "${cost.toStringAsFixed(2)}",
@@ -5328,9 +5393,9 @@ class _StockReportPageState extends State<StockReportPage> {
                 padding: EdgeInsets.all(16),
                 child: Text("SORT INVENTORY BY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1, color: kTextSecondary)),
               ),
-              ListTile(title: const Text('Alphabetical Name', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), leading: const Icon(Icons.sort_by_alpha_rounded), selected: _sortBy == 'name', onTap: () { setState(() => _sortBy = 'name'); Navigator.pop(context); }),
-              ListTile(title: const Text('Stock Quantity', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), leading: const Icon(Icons.inventory_2_rounded), selected: _sortBy == 'stock', onTap: () { setState(() => _sortBy = 'stock'); Navigator.pop(context); }),
-              ListTile(title: const Text('Retail Price', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)), leading: const Icon(Icons.sell_rounded), selected: _sortBy == 'price', onTap: () { setState(() => _sortBy = 'price'); Navigator.pop(context); }),
+              ListTile(title: const Text('Alphabetical Name', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), leading: const Icon(Icons.sort_by_alpha_rounded), selected: _sortBy == 'name', onTap: () { setState(() => _sortBy = 'name'); Navigator.pop(context); }),
+              ListTile(title: const Text('Stock Quantity', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), leading: const Icon(Icons.inventory_2_rounded), selected: _sortBy == 'stock', onTap: () { setState(() => _sortBy = 'stock'); Navigator.pop(context); }),
+              ListTile(title: const Text('Retail Price', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)), leading: const Icon(Icons.sell_rounded), selected: _sortBy == 'price', onTap: () { setState(() => _sortBy = 'price'); Navigator.pop(context); }),
               const SizedBox(height: 20),
             ],
           ),
@@ -5343,7 +5408,7 @@ class _StockReportPageState extends State<StockReportPage> {
           children: [
             const Icon(Icons.tune_rounded, size: 14, color: kPrimaryColor),
             const SizedBox(width: 6),
-            Text(_sortBy.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+            Text(_sortBy, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
           ],
         ),
       ),
@@ -5395,8 +5460,8 @@ class _StockReportPageState extends State<StockReportPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (data['itemName'] ?? 'Unknown').toString().toUpperCase(),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+                  (data['itemName'] ?? 'Unknown').toString(),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -5422,7 +5487,7 @@ class _StockReportPageState extends State<StockReportPage> {
               children: [
                 Text(
                   "${(price * stock).toStringAsFixed(0)}",
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kPrimaryColor),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor),
                 ),
                 Text(
                   "${price.toStringAsFixed(0)} / UNIT",
@@ -5450,7 +5515,7 @@ class ItemSalesPage extends StatelessWidget {
   void _downloadPdf(BuildContext context, List<MapEntry<String, int>> sorted) {
     final rows = sorted.asMap().entries.map((e) => [
       '${e.key + 1}',
-      e.value.key.toUpperCase(),
+      e.value.key,
       e.value.value.toString(),
     ]).toList();
 
@@ -5596,7 +5661,7 @@ class ItemSalesPage extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -5685,7 +5750,7 @@ class ItemSalesPage extends StatelessWidget {
                       getTitlesWidget: (v, m) {
                         int index = v.toInt();
                         if (index < 0 || index >= top6.length) return const SizedBox();
-                        String label = top6[index].key.toUpperCase();
+                        String label = top6[index].key;
                         if (label.length > 6) label = label.substring(0, 5) + "..";
                         return SideTitleWidget(
                           meta: m,
@@ -5754,8 +5819,8 @@ class ItemSalesPage extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              entry.key.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+              entry.key,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -5798,14 +5863,14 @@ class _LowStockPageState extends State<LowStockPage> {
     final rows = [
       ...low.map((e) => [
         e['itemId'].toString(),
-        e['name'].toString().toUpperCase(),
+        e['name'].toString(),
         (e['minStock'] is num ? (e['minStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         (e['currentStock'] is num ? (e['currentStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         'LOW STOCK'
       ]),
       ...out.map((e) => [
         e['itemId'].toString(),
-        e['name'].toString().toUpperCase(),
+        e['name'].toString(),
         (e['minStock'] is num ? (e['minStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         (e['currentStock'] is num ? (e['currentStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
         'OUT OF STOCK'
@@ -5937,7 +6002,7 @@ class _LowStockPageState extends State<LowStockPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -6002,7 +6067,7 @@ class _LowStockPageState extends State<LowStockPage> {
                   isExpanded: true,
                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kPrimaryColor),
                   icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 16),
-                  items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c.toUpperCase()))).toList(),
+                  items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                   onChanged: (v) => setState(() => _selectedCategory = v!),
                 ),
               ),
@@ -6054,13 +6119,13 @@ class _LowStockPageState extends State<LowStockPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item['name'].toString().toUpperCase(),
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+                  item['name'].toString(),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  "ID: ${item['itemId']} • ${item['category'].toString().toUpperCase()}",
+                  "ID: ${item['itemId']} • ${item['category'].toString()}",
                   style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold),
                 ),
               ],
@@ -6071,7 +6136,7 @@ class _LowStockPageState extends State<LowStockPage> {
             child: Text(
               (item['minStock'] is num ? (item['minStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kTextSecondary),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kTextSecondary),
             ),
           ),
           Expanded(
@@ -6079,7 +6144,7 @@ class _LowStockPageState extends State<LowStockPage> {
             child: Text(
               (item['currentStock'] is num ? (item['currentStock'] as num).toDouble() : 0.0).toStringAsFixed(0),
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: accentColor),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: accentColor),
             ),
           ),
         ],
@@ -6132,7 +6197,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
 
   void _downloadPdf(BuildContext context, List<MapEntry<String, Map<String, dynamic>>> products, double totalRev, double totalProfit) {
     final rows = products.map((e) => [
-      e.key.toUpperCase(),
+      e.key,
       (e.value['quantity'] as double).toStringAsFixed(2),
       "${(e.value['amount'] as double).toStringAsFixed(2)}",
       "${(e.value['profit'] as double).toStringAsFixed(2)}",
@@ -6307,7 +6372,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -6326,7 +6391,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("TOTAL PRODUCT REVENUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
+              const Text("Total Product Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
               Text("${revenue.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
@@ -6341,7 +6406,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
             child: Column(
               children: [
                 Text("${profit.toStringAsFixed(0)}", style: const TextStyle(color: kIncomeGreen, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("EST. PROFIT", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
+                const Text("Est. Profit", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -6398,7 +6463,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
                       getTitlesWidget: (v, m) {
                         int index = v.toInt();
                         if (index < 0 || index >= chartData.length) return const SizedBox();
-                        String label = chartData[index].key.toUpperCase();
+                        String label = chartData[index].key;
                         if (label.length > 6) label = label.substring(0, 5) + "..";
                         return SideTitleWidget(
                           meta: m,
@@ -6433,7 +6498,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
           ),
           const SizedBox(height: 8),
           Text(
-              "Top selling products by ${key == 'amount' ? 'revenue contribution' : 'unit quantity sold'}",
+              "Top selling products by ${key == 'Amount' ? 'Revenue Contribution' : 'Unit Quantity Sold'}",
               style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold, letterSpacing: 0.5)
           ),
         ],
@@ -6464,10 +6529,10 @@ class _TopProductsPageState extends State<TopProductsPage> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: const [
-                Expanded(flex: 3, child: Text("PRODUCT NAME", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 1, child: Text("QTY", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("REVENUE", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("PROFIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 3, child: Text("Product Name", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Revenue", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Profit", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
               ],
             ),
           ),
@@ -6488,8 +6553,8 @@ class _TopProductsPageState extends State<TopProductsPage> {
           Expanded(
             flex: 3,
             child: Text(
-              entry.key.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+              entry.key,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -6507,7 +6572,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
             child: Text(
               "${(entry.value['amount'] as double).toStringAsFixed(0)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kPrimaryColor),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor),
             ),
           ),
           Expanded(
@@ -6515,7 +6580,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
             child: Text(
               "${(entry.value['profit'] as double).toStringAsFixed(0)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kIncomeGreen),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kIncomeGreen),
             ),
           ),
         ],
@@ -6567,7 +6632,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
 
   void _downloadPdf(BuildContext context, List<MapEntry<String, Map<String, dynamic>>> categories, double totalRevenue) {
     final rows = categories.map((e) => [
-      e.key.toUpperCase(),
+      e.key,
       (e.value['quantity'] as double).toStringAsFixed(2),
       "${(e.value['amount'] as double).toStringAsFixed(2)}",
     ]).toList();
@@ -6730,7 +6795,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -6820,7 +6885,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
                       getTitlesWidget: (v, m) {
                         int index = v.toInt();
                         if (index < 0 || index >= chartData.length) return const SizedBox();
-                        String label = chartData[index].key.toUpperCase();
+                        String label = chartData[index].key;
                         if (label.length > 6) label = label.substring(0, 5) + "..";
                         return SideTitleWidget(
                           meta: m,
@@ -6897,8 +6962,8 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
           Expanded(
             flex: 3,
             child: Text(
-              entry.key.toUpperCase(),
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
+              entry.key,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -6916,7 +6981,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
             child: Text(
               "${(entry.value['amount'] as double).toStringAsFixed(0)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kPrimaryColor),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor),
             ),
           ),
         ],
@@ -6933,14 +6998,14 @@ class ExpenseReportPage extends StatelessWidget {
 
   void _downloadPdf(BuildContext context, List<Map<String, dynamic>> all, double totalOp, double totalStock) {
     final rows = all.map((e) => [
-      e['title']?.toString().toUpperCase() ?? 'N/A',
-      e['type']?.toString().toUpperCase() ?? 'N/A',
+      e['title']?.toString() ?? 'N/A',
+      e['type']?.toString() ?? 'N/A',
       "${(e['amount'] as double).toStringAsFixed(2)}",
     ]).toList();
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'EXECUTIVE EXPENSE AUDIT - ${DateFormat('dd MMM yyyy').format(DateTime.now()).toUpperCase()}',
+      reportTitle: 'EXECUTIVE EXPENSE AUDIT - ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
       headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT'],
       rows: rows,
       summaryTitle: 'TOTAL EXPENDITURE',
@@ -7085,7 +7150,7 @@ class ExpenseReportPage extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -7238,13 +7303,13 @@ class ExpenseReportPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  data['title'].toString().toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
+                  data['title'].toString(),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                    "$dateStr • ${data['type'].toString().toUpperCase()}",
+                    "$dateStr • ${data['type'].toString()}",
                     style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -7720,7 +7785,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -7819,7 +7884,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.key.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                Text(entry.key, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
                 const SizedBox(height: 2),
                 Text(" ${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87)),
               ],
@@ -7849,7 +7914,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
                 Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
                 const SizedBox(height: 4),
                 Text(date != null ? DateFormat('dd MMMM yyyy').format(date) : 'SELECT DATE',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
               ],
             ),
             const Spacer(),
@@ -7884,7 +7949,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
           if (rows.isEmpty)
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text("No data available", style: TextStyle(fontSize: 11, color: kTextSecondary)),
+              child: Text("No data available", style: TextStyle(fontSize: 14, color: kTextSecondary)),
             )
           else
             ...rows.map((row) => _buildGstTableRow(row)).toList(),
@@ -7917,7 +7982,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  inv.toUpperCase(),
+                  inv,
                   style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -7934,7 +7999,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Text(
               " ${(row['amount'] as double).toStringAsFixed(0)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.black87),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
             ),
           ),
           Expanded(
@@ -7942,7 +8007,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Text(
               " ${(row['gst'] as double).toStringAsFixed(1)}",
               textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.black87),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87),
             ),
           ),
         ],
@@ -7985,7 +8050,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Total Tax Liability", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+                const Text("Total Tax Liability", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
                 Text(" ${totalNet.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
               ],
             ),
@@ -7999,7 +8064,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary)),
+        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextSecondary)),
         Text(" ${amount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
       ],
     );
@@ -8035,8 +8100,8 @@ class _TaxReportPageState extends State<TaxReportPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  (data['customerName'] ?? 'Guest').toString().toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: Colors.black87),
+                  (data['customerName'] ?? 'Guest').toString(),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black87),
                   maxLines: 1,
                 ),
                 Text(
@@ -8046,7 +8111,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
                 if (taxDetailStr.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
-                    child: Text(taxDetailStr.toUpperCase(), style: const TextStyle(fontSize: 7, color: kIncomeGreen, fontWeight: FontWeight.w900, letterSpacing: 0.2)),
+                    child: Text(taxDetailStr, style: const TextStyle(fontSize: 7, color: kIncomeGreen, fontWeight: FontWeight.w900, letterSpacing: 0.2)),
                   ),
               ],
             ),
@@ -8054,7 +8119,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("TAX: ${tax.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: kIncomeGreen)),
+              Text("TAX: ${tax.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kIncomeGreen)),
               Text("VAL: ${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
             ],
           ),
@@ -8251,7 +8316,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
@@ -8315,13 +8380,13 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: kPrimaryColor.withOpacity(0.1),
-                    child: Text(name[0].toUpperCase(), style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: Text(name[0], style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14)),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
                       Text("${data['salesCount']} TRANSACTIONS", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -8371,7 +8436,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary)),
-          Text("${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: color.withOpacity(0.8))),
+          Text("${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color.withOpacity(0.8))),
         ],
       ),
     );
@@ -8537,7 +8602,7 @@ class IncomeSummaryPage extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w900,
@@ -8562,7 +8627,7 @@ class IncomeSummaryPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("NET CASH POSITION TODAY", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
+              const Text("Net Cash Position Today", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 2),
               Text("${net.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: net >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
             ],
@@ -8570,8 +8635,8 @@ class IncomeSummaryPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("${income.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kIncomeGreen)),
-              Text("${expense.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kExpenseRed)),
+              Text("${income.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kIncomeGreen)),
+              Text("${expense.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kExpenseRed)),
             ],
           ),
         ],
@@ -8644,7 +8709,7 @@ class IncomeSummaryPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
               ],
             ),
           ),
@@ -8664,12 +8729,12 @@ class IncomeSummaryPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(period, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          Text(period, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
           Row(
             children: [
-              Text("${income.toStringAsFixed(0)}", style: const TextStyle(color: kIncomeGreen, fontWeight: FontWeight.w900, fontSize: 13)),
+              Text("${income.toStringAsFixed(0)}", style: const TextStyle(color: kIncomeGreen, fontWeight: FontWeight.w900, fontSize: 14)),
               const Text("  /  ", style: TextStyle(color: kTextSecondary)),
-              Text("${expense.toStringAsFixed(0)}", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.w900, fontSize: 13)),
+              Text("${expense.toStringAsFixed(0)}", style: const TextStyle(color: kExpenseRed, fontWeight: FontWeight.w900, fontSize: 14)),
             ],
           ),
         ],
@@ -8943,7 +9008,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
 
   Widget _buildSectionHeader(String title) {
     return Text(
-      title.toUpperCase(),
+      title,
       style: const TextStyle(
         fontSize: 10,
         fontWeight: FontWeight.w900,
@@ -8993,7 +9058,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
           children: [
             Icon(icon, size: 10, color: color),
             const SizedBox(width: 4),
-            Text(" ${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: color)),
+            Text(" ${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
         Text(color == kIncomeGreen ? "IN" : "OUT", style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
@@ -9087,7 +9152,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
             ],
           ),
         ),
-        Text("${percent.toStringAsFixed(0)}%", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color)),
+        Text("${percent.toStringAsFixed(0)}%", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
       ],
     );
   }
@@ -9119,7 +9184,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
           ),
           Text(
             "${net.toStringAsFixed(0)}",
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: net >= 0 ? kIncomeGreen : kExpenseRed),
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: net >= 0 ? kIncomeGreen : kExpenseRed),
           ),
         ],
       ),
@@ -9151,7 +9216,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
               ],
             ),
           ),
-          Text("${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: themeColor)),
+          Text("${amount.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: themeColor)),
         ],
       ),
     );
