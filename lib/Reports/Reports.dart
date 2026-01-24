@@ -200,6 +200,9 @@ class _ReportsPageState extends State<ReportsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('reports'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,
@@ -219,9 +222,9 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile(context.tr('sales_summary'), Icons.analytics_rounded, const Color(0xFF673AB7), 'SalesSummary', subtitle: 'Sales performance'),
+            _buildReportTile(context.tr('Sales Report'), Icons.analytics_rounded, const Color(0xFF673AB7), 'SalesSummary', subtitle: 'Sales performance'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Payment Report', Icons.payments_rounded, const Color(0xFF00897B), 'PaymentReport', subtitle: 'Cash & online breakdown'),
+            _buildReportTile('Payment Summary', Icons.payments_rounded, const Color(0xFF00897B), 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
           // Sales & Transactions Section
           if (hasSalesItems) ...[
@@ -1595,14 +1598,14 @@ class AnalyticsPage extends StatefulWidget {
 }
 
 class _AnalyticsPageState extends State<AnalyticsPage> {
-  String _selectedDuration = 'Last 7 Days';
+  String _selectedDuration = 'Last 7 Days or Last Week';
   final FirestoreService _firestoreService = FirestoreService();
 
   int get _durationDays {
     switch (_selectedDuration) {
       case 'Today': return 0;
       case 'Yesterday': return 1;
-      case 'Last 7 Days': return 7;
+      case 'Last 7 Days or Last Week': return 7;
       case 'Last 30 Days': return 30;
       case 'This Month': return DateTime.now().day;
       case 'Last 3 Months': return 90;
@@ -1971,7 +1974,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         underline: const SizedBox(),
         icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 14),
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kPrimaryColor),
-        items: ['Today', 'Yesterday', 'Last 7 Days', 'Last 30 Days', 'This Month', 'Last 3 Months'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
+        items: ['Today', 'Yesterday', 'Last 7 Days or Last Week', 'Last 30 Days', 'This Month', 'Last 3 Months'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
         onChanged: (v) => setState(() => _selectedDuration = v!),
       ),
     );
@@ -4211,7 +4214,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Net Estimated Profit",
+                  "Estimated Profit",
                   style: TextStyle(color: kTextSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
                 ),
                 const SizedBox(height: 4),
@@ -4254,9 +4257,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       children: [
         Row(
           children: [
-            Expanded(child: _buildMetricTile("Net Sales", net, kPrimaryColor, Icons.account_balance_wallet_rounded)),
+            Expanded(child: _buildMetricTile("Net Revenue", net, kPrimaryColor, Icons.account_balance_wallet_rounded)),
             const SizedBox(width: 10),
-            Expanded(child: _buildMetricTile("Gross Sales", gross, const Color(0xFF5C6BC0), Icons.receipt_rounded)),
+            Expanded(child: _buildMetricTile("Total Sales", gross, const Color(0xFF5C6BC0), Icons.receipt_rounded)),
           ],
         ),
         const SizedBox(height: 10),
@@ -7499,6 +7502,9 @@ class _TaxReportPageState extends State<TaxReportPage> {
           return Scaffold(
             backgroundColor: kBackgroundColor,
             appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                 onPressed: () => setState(() => _showReport = false),
@@ -7647,6 +7653,9 @@ class _TaxReportPageState extends State<TaxReportPage> {
                         return Scaffold(
                           backgroundColor: kBackgroundColor,
                           appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
                             leading: IconButton(
                               icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                               onPressed: () => setState(() => _showReport = false),
@@ -8744,7 +8753,7 @@ class IncomeSummaryPage extends StatelessWidget {
 }
 
 // ==========================================
-// PAYMENT REPORT PAGE (Enhanced with all features from screenshot)
+// Payment Summary PAGE (Enhanced with all features from screenshot)
 // ==========================================
 class PaymentReportPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -8948,7 +8957,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
-                                  _buildSectionHeader("Inflow Analysis"),
+                                  _buildSectionHeader("Income Analysis"),
                                   const SizedBox(height: 8),
                                   _buildFlowAnalyticsCard(
                                     "Total Receipts",
@@ -8965,7 +8974,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                                   ],
 
                                   const SizedBox(height: 24),
-                                  _buildSectionHeader("Outflow Analysis"),
+                                  _buildSectionHeader(" Expenses Analysis"),
                                   const SizedBox(height: 8),
                                   _buildFlowAnalyticsCard(
                                     "Total Payments",

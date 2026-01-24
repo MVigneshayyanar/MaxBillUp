@@ -79,6 +79,9 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
           widget.title,
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16),

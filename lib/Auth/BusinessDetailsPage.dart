@@ -313,6 +313,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text("BUSINESS PROFILE",
             style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,

@@ -265,8 +265,13 @@ class _MenuPageState extends State<MenuPage> {
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top-10, left: 20, right: 20, bottom: 0),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft, end: Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [kPrimaryColor, kPrimaryColor],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
       ),
       child: Row(
@@ -675,6 +680,9 @@ class VideoTutorialPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: kWhite,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
@@ -743,6 +751,9 @@ class GenericListPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(title, style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2F7CF6),
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
@@ -959,6 +970,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           elevation: 0,
@@ -1697,6 +1711,9 @@ class SalesDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kPrimaryColor, // Primary color background like QuotationPage entry
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Invoice Details', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -1799,7 +1816,7 @@ class SalesDetailPage extends StatelessWidget {
                     child: Container(
                       decoration: const BoxDecoration(
                         color: kWhite,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(0)),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                       ),
                       child: Column(
                         children: [
@@ -2342,6 +2359,9 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: Text(context.tr('credit_notes'),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
@@ -2575,6 +2595,9 @@ class _CreditNoteDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kPrimaryColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Credit Note Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -2710,7 +2733,10 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kWhite,
-      appBar: AppBar(title: Text("${widget.customerName} Ledger", style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: Text("${widget.customerName} Ledger", style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
       body: _loading ? const Center(child: CircularProgressIndicator(color: kPrimaryColor)) : Column(children: [
         Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -2765,7 +2791,10 @@ class CustomerBillsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
@@ -2800,7 +2829,10 @@ class CustomerCreditsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: _fetchCredits(),
         builder: (context, snapshot) {
@@ -2854,7 +2886,10 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         backgroundColor: kGreyBg,
-        appBar: AppBar(title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
+        appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Receive Payment", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, iconTheme: const IconThemeData(color: kWhite)),
         body: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -2924,6 +2959,9 @@ class CreditNoteDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
 
         title: const Text('Detail Overview',
             style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
@@ -3218,6 +3256,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         child: Scaffold(
           backgroundColor: kGreyBg,
           appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
             elevation: 0,
             backgroundColor: kPrimaryColor,
             iconTheme: const IconThemeData(color: kWhite),
@@ -4048,6 +4089,9 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         elevation: 0,
         backgroundColor: kPrimaryColor,
         iconTheme: const IconThemeData(color: kWhite),
@@ -4734,6 +4778,9 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Purchase Overview',
             style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 18)),
         backgroundColor: kPrimaryColor,
@@ -5052,6 +5099,9 @@ class _CustomersPageState extends State<CustomersPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: Text(context.tr('customer_management'),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
@@ -5311,6 +5361,9 @@ class StaffManagementList extends StatelessWidget {
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('staffmanagement'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
         backgroundColor: kPrimaryColor,
@@ -5417,6 +5470,9 @@ class _AddStaffPageState extends State<AddStaffPage> {
     return Scaffold(
       backgroundColor: kWhite,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('addnewstaff'),
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 18)),
         backgroundColor: kPrimaryColor,
@@ -5654,6 +5710,9 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('sale_return'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
@@ -6029,6 +6088,9 @@ class _EditBillPageState extends State<EditBillPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
           context.tr('edit_bill'),
           style: const TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontSize: 15, letterSpacing: 1.0),
@@ -7327,6 +7389,9 @@ class _SupportPageState extends State<SupportPage> {
       child: Scaffold(
         backgroundColor: kWhite,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text('Support', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,

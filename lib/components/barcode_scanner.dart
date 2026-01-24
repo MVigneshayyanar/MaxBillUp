@@ -161,6 +161,9 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
             context.tr('scanbarcode'),
             style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 18)

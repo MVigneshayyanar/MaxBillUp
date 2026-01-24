@@ -211,6 +211,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('settings'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -947,6 +950,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text("Business Profile", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
@@ -1394,7 +1400,10 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Printer Setup", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Printer Setup", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1495,7 +1504,10 @@ class FeatureSettingsPage extends StatefulWidget {
 
 class _FeatureSettingsPageState extends State<FeatureSettingsPage> {
   bool _enableAutoPrint = true, _blockOutOfStock = true; double _decimals = 2;
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: const Text("Features", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Features", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)), body: ListView(padding: const EdgeInsets.all(16), children: [_SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) => setState(() => _enableAutoPrint = v)), _SwitchTile("Block Out-of-Stock Sales", _blockOutOfStock, (v) => setState(() => _blockOutOfStock = v)), Padding(padding: const EdgeInsets.all(16), child: Column(children: [Row(children: [const Text("Decimal Precision", style: TextStyle(fontWeight: FontWeight.w700)), const Spacer(), Text(_decimals.toInt().toString(), style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor))]), Slider(value: _decimals, min: 0, max: 4, divisions: 4, activeColor: kPrimaryColor, onChanged: (v) => setState(() => _decimals = v))]))])]));
 }
 
 // ==========================================
@@ -1514,6 +1526,9 @@ class ReceiptSettingsPage extends StatelessWidget {
     return Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text("RECEIPT SETTINGS", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.5)),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
@@ -1834,6 +1849,9 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text("DESIGN ENGINE", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 2.0)),
         backgroundColor: kPrimaryColor,
         centerTitle: true,
@@ -2160,7 +2178,10 @@ class LanguagePage extends StatelessWidget {
     final provider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text("Select Language", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text("Select Language", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)),
       body: Column(
         children: [
           Container(
@@ -2215,5 +2236,8 @@ class UpcomingFeaturesPage extends StatelessWidget { final VoidCallback onBack; 
 class VideoTutorialsPage extends StatelessWidget { final VoidCallback onBack; const VideoTutorialsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Tutorial Videos", onBack); }
 class _SimplePage extends StatelessWidget {
   final String title; final VoidCallback onBack; const _SimplePage(this.title, this.onBack);
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(title: Text(title, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: Center(child: Text("$title Content Loading...", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))));
+  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: Text(title, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: Center(child: Text("$title Content Loading...", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))));
 }

@@ -203,6 +203,9 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text('Staff Management', style: TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w700)),
           backgroundColor: kPrimaryColor,
           elevation: 0,
@@ -794,6 +797,9 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text('Permissions: ${widget.staffName}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),

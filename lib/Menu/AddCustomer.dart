@@ -398,6 +398,9 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
           widget.isEditMode ? 'Edit Customer' : 'Add Customer',
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),

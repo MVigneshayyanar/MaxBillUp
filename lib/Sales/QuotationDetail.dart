@@ -41,6 +41,9 @@ class QuotationDetailPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kPrimaryColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Quotation Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor,
         elevation: 0,

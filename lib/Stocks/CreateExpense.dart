@@ -451,6 +451,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(
           widget.isStockPurchase ? 'Add Stock Purchase' : context.tr('create_expense'),
           style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold),

@@ -78,6 +78,9 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
         title: const Text('Quotation Preview', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         leading: IconButton(icon: const Icon(Icons.close, color: kWhite), onPressed: () => Navigator.pop(context)),

@@ -104,6 +104,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           elevation: 0,

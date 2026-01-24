@@ -60,6 +60,9 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
@@ -371,7 +374,10 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
       body: Form(
         key: _formKey,
         child: Column(
@@ -510,6 +516,9 @@ class StockPurchaseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kPrimaryColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Purchase Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),

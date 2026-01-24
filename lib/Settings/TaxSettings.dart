@@ -271,6 +271,9 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: Text(context.tr('tax_settings').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
           backgroundColor: kPrimaryColor,
           elevation: 0,

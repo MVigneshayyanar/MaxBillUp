@@ -69,6 +69,9 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
     return Scaffold(
       backgroundColor: _scaffoldBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('other_expenses'),
             style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
@@ -393,6 +396,9 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: Text(context.tr('new_other_expense'),
             style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,
@@ -525,6 +531,9 @@ class OtherExpenseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text("Expense Details",
             style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
         backgroundColor: _primaryColor,

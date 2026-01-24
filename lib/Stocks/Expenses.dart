@@ -67,6 +67,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: Text(context.tr('expenses'),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
@@ -445,6 +448,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('New Expense', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack),
@@ -581,6 +587,9 @@ class ExpenseDetailsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: kPrimaryColor,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         title: const Text('Expense Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),

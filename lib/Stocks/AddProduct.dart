@@ -191,6 +191,9 @@ class _AddProductPageState extends State<AddProductPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,

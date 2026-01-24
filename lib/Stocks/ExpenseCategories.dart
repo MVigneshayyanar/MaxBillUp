@@ -53,6 +53,9 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
           title: Text(context.tr('Expense Types'),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
