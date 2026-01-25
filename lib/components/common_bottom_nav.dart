@@ -31,8 +31,10 @@ class CommonBottomNav extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
+        // Add rounded top-left and top-right corners with 24 radius
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: Border(
-          top: BorderSide(color: kGrey200, width: 1),
+          top: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
       ),
       child: SafeArea(
@@ -92,7 +94,7 @@ class CommonBottomNav extends StatelessWidget {
             const SizedBox(height: 6),
             Icon(
               icon,
-              color: isSelected ? kPrimaryColor : kBlack54.withOpacity(0.4),
+              color: isSelected ? kPrimaryColor : Colors.grey[700],
               size: 26, // Slightly larger icon to balance increased height
             ),
             const SizedBox(height: 4),
@@ -101,7 +103,7 @@ class CommonBottomNav extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? kPrimaryColor : kBlack54.withOpacity(0.4),
+                color: isSelected ? kPrimaryColor : Colors.grey[700],
                 letterSpacing: 0.5,
               ),
             ),

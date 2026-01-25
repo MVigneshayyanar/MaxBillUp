@@ -313,13 +313,6 @@ class _MenuPageState extends State<MenuPage> {
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: kPrimaryColor.withOpacity(0.15),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Stack(
           children: [
@@ -353,7 +346,7 @@ class _MenuPageState extends State<MenuPage> {
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: kPrimaryColor, width: 2.5),
+                    border: Border.all(color: Colors.grey.shade300, width: 1.5),
                   ),
                 ),
               ),

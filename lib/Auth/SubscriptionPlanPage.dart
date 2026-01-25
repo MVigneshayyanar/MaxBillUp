@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/Auth/PlanComparisonPage.dart';
 
 class SubscriptionPlanPage extends StatefulWidget {
   final String uid;
@@ -273,6 +274,20 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.compare_arrows_rounded, color: kWhite, size: 20),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PlanComparisonPage(),
+                ),
+              );
+            },
+            tooltip: 'Compare Plans',
+          ),
+        ],
       ),
       body: Column(
         children: [

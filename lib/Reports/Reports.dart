@@ -359,7 +359,7 @@ class _ReportsPageState extends State<ReportsPage> {
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),
-                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.w500)),
+                        Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
                       ],
                     ],
                   ),
