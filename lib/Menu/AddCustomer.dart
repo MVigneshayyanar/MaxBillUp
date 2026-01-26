@@ -338,15 +338,19 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 height: 50,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    Navigator.pop(context);
+                    // Download first, then close dialog and show result
                     final result = await ExcelImportService.downloadCustomerTemplate();
-                    if (mounted) {
-                      if (result != null && !result.startsWith('Error') && !result.toLowerCase().contains('denied')) {
-                        // Show success dialog similar to Report PDF
-                        showDialog(
-                          context: context,
-                          builder: (BuildContext dialogContext) {
-                            final fileName = result.split(RegExp(r'[/\\]')).last;
+                    if (!mounted) return;
+
+                    // Close the import dialog
+                    Navigator.pop(context);
+
+                    if (result != null && !result.startsWith('Error') && !result.toLowerCase().contains('denied')) {
+                      // Show success dialog similar to Report PDF
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext dialogContext) {
+                          final fileName = result.split(RegExp(r'[/\\]')).last;
                             return AlertDialog(
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                               backgroundColor: Colors.white,
@@ -475,7 +479,6 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           ),
                         );
                       }
-                    }
                   },
                   icon: const Icon(Icons.download_rounded, size: 20),
                   label: const Text(
@@ -503,59 +506,289 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 height: 50,
                 child: ElevatedButton.icon(
                   onPressed: () async {
-                    Navigator.pop(context);
-                    // Show loading
+                    bool isLoadingDialogOpen = false; // Track loading dialog state
+
+                    try {
+                      Navigator.pop(context); // Close import dialog
+
+                      // First, pick the Excel file (no loading dialog yet)
+                      print('📂 Opening file picker...');
+                      final fileBytes = await ExcelImportService.pickExcelFile();
+                      print('📂 File picked: ${fileBytes != null ? '${fileBytes.length} bytes' : 'null (cancelled)'}');
+
+                      // If user cancelled file picker, just return
+                      if (fileBytes == null) {
+                        print('📂 User cancelled file selection');
+                        return;
+                      }
+
+                      // File was selected, now show loading dialog
+                      if (!mounted) {
+                        print('⚠️ Widget not mounted after file selection');
+                        return;
+                      }
+
+                      print('⏳ Showing loading dialog...');
+                      isLoadingDialogOpen = true;
+
                     showDialog(
                       context: context,
                       barrierDismissible: false,
-                      builder: (context) => const Center(
-                        child: CircularProgressIndicator(color: kPrimaryColor),
+                      builder: (loadingContext) => PopScope(
+                        canPop: false,
+                        child: Dialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          backgroundColor: Colors.white,
+                          child: Padding(
+                            padding: const EdgeInsets.all(28),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryColor.withValues(alpha: 0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.upload_file_rounded,
+                                    color: kPrimaryColor,
+                                    size: 32,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                const Text(
+                                  'Importing Customers',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: kBlack87,
+                                  ),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Processing your Excel file...',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 24),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: const LinearProgressIndicator(
+                                    backgroundColor: kGrey200,
+                                    valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+                                    minHeight: 6,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     );
 
-                    final result = await ExcelImportService.importCustomers(widget.uid);
+                    try {
+                      // Process the Excel file bytes
+                      print('🔄 Processing Excel file...');
+                      final result = await ExcelImportService.processCustomersExcel(fileBytes, widget.uid);
+                      print('✅ Result: ${result['success']}, Success: ${result['successCount']}, Failed: ${result['failCount']}');
 
-                    if (mounted) Navigator.pop(context); // Close loading
+                      // Close loading dialog
+                      if (mounted && isLoadingDialogOpen) {
+                        isLoadingDialogOpen = false;
+                        Navigator.of(context).pop();
+                        print('❌ Loading dialog closed');
+                      }
 
-                    if (result['success']) {
-                      final successCount = result['successCount'] ?? 0;
-                      final failCount = result['failCount'] ?? 0;
-                      final errors = result['errors'] as List<String>? ?? [];
+                      if (!mounted) return;
 
-                      showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          title: const Text('Import Complete', style: TextStyle(fontWeight: FontWeight.w900)),
-                          content: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('✅ Successfully imported: $successCount'),
-                              if (failCount > 0) Text('❌ Failed: $failCount'),
-                              if (errors.isNotEmpty) ...[
-                                const SizedBox(height: 12),
-                                const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 4),
-                                ...errors.take(5).map((e) => Text('• $e', style: const TextStyle(fontSize: 12))),
-                                if (errors.length > 5) Text('... and ${errors.length - 5} more'),
+                      if (result['success']) {
+                        final successCount = result['successCount'] ?? 0;
+                        final failCount = result['failCount'] ?? 0;
+                        final errors = result['errors'] as List<String>? ?? [];
+
+                        // Show success message
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => AlertDialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            backgroundColor: Colors.white,
+                            title: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [kGoogleGreen, kGoogleGreen.withValues(alpha: 0.7)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: kGoogleGreen.withValues(alpha: 0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                ),
+                                const SizedBox(width: 16),
+                                const Expanded(
+                                  child: Text(
+                                    'Import Complete!',
+                                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+                                  ),
+                                ),
                               ],
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Colors.green.shade50, Colors.green.shade100],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.person_add_rounded, color: kGoogleGreen, size: 24),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          '$successCount customer${successCount != 1 ? 's' : ''} added successfully',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: kGoogleGreen,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (failCount > 0) ...[
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.warning_rounded, color: kOrange, size: 24),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            '$failCount row${failCount != 1 ? 's' : ''} skipped',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: kOrange,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                                if (errors.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  const Text('Issues:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    constraints: const BoxConstraints(maxHeight: 120),
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: errors.take(5).map((e) => Padding(
+                                          padding: const EdgeInsets.only(bottom: 4),
+                                          child: Text('• $e', style: const TextStyle(fontSize: 12, color: kBlack54)),
+                                        )).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                  if (errors.length > 5)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        '... and ${errors.length - 5} more',
+                                        style: const TextStyle(fontSize: 11, color: kBlack54, fontStyle: FontStyle.italic),
+                                      ),
+                                    ),
+                                ],
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pop(context); // Close dialog
+                                  Navigator.pop(context); // Go back to previous page
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  backgroundColor: kPrimaryColor,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Done',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                ),
+                              ),
                             ],
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text('OK'),
-                            ),
-                          ],
-                        ),
-                      );
-                    } else {
-                      if (mounted) {
+                        );
+                      } else {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(result['message'] ?? 'Import failed'),
                             backgroundColor: kErrorColor,
+                          ),
+                        );
+                      }
+                    } catch (e, stackTrace) {
+                      // Close loading dialog on error
+                      print('❌ Error during import: $e');
+                      print('Stack trace: $stackTrace');
+
+                      if (mounted && isLoadingDialogOpen) {
+                        isLoadingDialogOpen = false;
+                        Navigator.of(context).pop();
+                      }
+
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Error during import: ${e.toString()}'),
+                            backgroundColor: kErrorColor,
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                      }
+                    }
+                    } catch (outerError, stackTrace) {
+                      // Catch any error in the entire flow (file picking, dialog, etc)
+                      print('💥 OUTER CATCH - Fatal error: $outerError');
+                      print('Stack trace: $stackTrace');
+
+                      if (mounted) {
+                        // Try to show error to user
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Fatal error: ${outerError.toString()}'),
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 5),
                           ),
                         );
                       }

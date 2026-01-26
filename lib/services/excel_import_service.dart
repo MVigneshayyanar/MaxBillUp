@@ -1,4 +1,6 @@
 import 'dart:io';
+
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
@@ -116,24 +118,53 @@ class ExcelImportService {
     }
   }
 
-  /// Import Customers from Excel
-  static Future<Map<String, dynamic>> importCustomers(String uid) async {
+  /// Pick Excel file - returns file bytes or null if cancelled
+  static Future<Uint8List?> pickExcelFile() async {
     try {
-      // Pick Excel file - Show all files so user can see Excel files
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         allowMultiple: false,
+        allowedExtensions: null,
         withData: true,
         dialogTitle: 'Select Excel File (.xlsx, .xls)',
       );
 
-      if (result == null) {
-        return {'success': false, 'message': 'No file selected'};
+      if (result == null || result.files.isEmpty) {
+        print('📂 File picker cancelled or no file selected');
+        return null;
       }
 
-      // Read Excel file
-      final bytes = result.files.first.bytes ?? await File(result.files.first.path!).readAsBytes();
+      final file = result.files.first;
+      print('📂 File selected: ${file.name}, Size: ${file.size} bytes');
+
+      // Try to get bytes directly first (works on web and some platforms)
+      if (file.bytes != null) {
+        print('📂 Got bytes directly from file picker');
+        return file.bytes;
+      }
+
+      // Fall back to reading from path (desktop platforms)
+      if (file.path != null) {
+        print('📂 Reading bytes from path: ${file.path}');
+        final bytes = await File(file.path!).readAsBytes();
+        print('📂 Read ${bytes.length} bytes from file');
+        return bytes;
+      }
+
+      print('❌ No bytes or path available for file');
+      return null;
+    } catch (e) {
+      print('❌ Error picking file: $e');
+      return null;
+    }
+  }
+
+  /// Process Customer Excel bytes - call this after picking the file
+  static Future<Map<String, dynamic>> processCustomersExcel(Uint8List bytes, String uid) async {
+    try {
+      print('🔵 Starting Excel processing...');
       final excel = Excel.decodeBytes(bytes);
+      print('🔵 Excel decoded successfully');
 
       int successCount = 0;
       int failCount = 0;
@@ -142,12 +173,17 @@ class ExcelImportService {
       // Get the first sheet
       final sheet = excel.tables.keys.first;
       final table = excel.tables[sheet];
+      print('🔵 Sheet: $sheet, Rows: ${table?.rows.length ?? 0}');
 
       if (table == null) {
         return {'success': false, 'message': 'Empty Excel file'};
       }
 
       // Skip header row, start from row 1 (index 1)
+      // Template columns (0-indexed):
+      // 0: Phone Number*, 1: Name*, 2: Tax No, 3: Address, 4: Default Discount %,
+      // 5: Last Due, 6: Date of Birth (dd-MM-yyyy), 7: Customer Rating (out of 5)
+      // * = Required field
       for (int rowIndex = 1; rowIndex < table.rows.length; rowIndex++) {
         try {
           final row = table.rows[rowIndex];
@@ -157,18 +193,67 @@ class ExcelImportService {
             continue;
           }
 
-          // Extract data (columns: Name, Phone, Email, Address, GST)
-          final name = row[0]?.value?.toString().trim() ?? '';
-          final phone = row[1]?.value?.toString().trim() ?? '';
-          final email = row[2]?.value?.toString().trim() ?? '';
-          final address = row[3]?.value?.toString().trim() ?? '';
-          final gst = row[4]?.value?.toString().trim() ?? '';
+          // Extract data based on template columns:
+          // A: Phone Number, B: Name, C: Tax No, D: Address, E: Default Discount %,
+          // F: Last Due, G: Date of Birth, H: Customer Rating
+          final phone = row.length > 0 ? row[0]?.value?.toString().trim() ?? '' : '';
+          final name = row.length > 1 ? row[1]?.value?.toString().trim() ?? '' : '';
+          print('🔵 Processing row ${rowIndex + 1}: $name - $phone');
+          final gstin = row.length > 2 ? row[2]?.value?.toString().trim() ?? '' : '';
+          final address = row.length > 3 ? row[3]?.value?.toString().trim() ?? '' : '';
+          final discountStr = row.length > 4 ? row[4]?.value?.toString().trim() ?? '0' : '0';
+          final lastDueStr = row.length > 5 ? row[5]?.value?.toString().trim() ?? '0' : '0';
+          final dobStr = row.length > 6 ? row[6]?.value?.toString().trim() ?? '' : '';
+          final ratingStr = row.length > 7 ? row[7]?.value?.toString().trim() ?? '0' : '0';
 
           // Validate required fields
           if (name.isEmpty || phone.isEmpty) {
             errors.add('Row ${rowIndex + 1}: Name and Phone are required');
             failCount++;
             continue;
+          }
+
+          // Parse numeric values
+          final defaultDiscount = double.tryParse(discountStr) ?? 0.0;
+          final lastDue = double.tryParse(lastDueStr) ?? 0.0;
+          final rating = int.tryParse(ratingStr) ?? 0;
+
+          // Parse date of birth - Support multiple formats: dd-MM-yyyy, dd/MM/yyyy, yyyy-MM-dd
+          DateTime? dob;
+          if (dobStr.isNotEmpty) {
+            try {
+              final cleanDateStr = dobStr.trim();
+              if (cleanDateStr.contains('-') || cleanDateStr.contains('/')) {
+                final separator = cleanDateStr.contains('-') ? '-' : '/';
+                final parts = cleanDateStr.split(separator);
+                if (parts.length == 3) {
+                  final firstNum = int.tryParse(parts[0]);
+                  if (firstNum != null && firstNum <= 31) {
+                    // dd-MM-yyyy format
+                    dob = DateTime(
+                      int.parse(parts[2]), // year
+                      int.parse(parts[1]), // month
+                      int.parse(parts[0]), // day
+                    );
+                  } else {
+                    // yyyy-MM-dd format
+                    dob = DateTime(
+                      int.parse(parts[0]), // year
+                      int.parse(parts[1]), // month
+                      int.parse(parts[2]), // day
+                    );
+                  }
+                }
+              } else {
+                // Try parsing as Excel date serial number
+                final serialNumber = int.tryParse(cleanDateStr);
+                if (serialNumber != null) {
+                  dob = DateTime(1899, 12, 30).add(Duration(days: serialNumber));
+                }
+              }
+            } catch (e) {
+              errors.add('Row ${rowIndex + 1}: Invalid date format "$dobStr" - customer imported without DOB');
+            }
           }
 
           // Check if customer already exists
@@ -180,42 +265,77 @@ class ExcelImportService {
             continue;
           }
 
-          // Add customer to Firestore
-          await FirestoreService().setDocument('customers', phone, {
+          // Prepare customer data
+          final customerData = {
             'name': name,
             'phone': phone,
-            'email': email,
-            'address': address,
-            'gst': gst,
+            'gstin': gstin.isEmpty ? null : gstin,
+            'gst': gstin.isEmpty ? null : gstin,
+            'address': address.isEmpty ? null : address,
+            'defaultDiscount': defaultDiscount,
+            'rating': rating.clamp(0, 5), // Ensure rating is between 0-5
+            'balance': lastDue,
+            'totalSales': 0,
             'createdAt': FieldValue.serverTimestamp(),
             'uid': uid,
-          });
+          };
+
+          // Add DOB if provided
+          if (dob != null) {
+            customerData['dob'] = Timestamp.fromDate(dob);
+          }
+
+          // Add customer to Firestore
+          await FirestoreService().setDocument('customers', phone, customerData);
+          print('✅ Customer added: $name');
+
+          // If there's a last due amount, create credit entry
+          if (lastDue > 0) {
+            final creditsCollection = await FirestoreService().getStoreCollection('credits');
+            await creditsCollection.add({
+              'customerName': name,
+              'customerPhone': phone,
+              'amount': lastDue,
+              'previousDue': 0,
+              'totalDue': lastDue,
+              'date': FieldValue.serverTimestamp(),
+              'note': 'Opening balance from Excel import',
+              'uid': uid,
+              'type': 'credit',
+            });
+            print('✅ Credit entry added for $name: $lastDue');
+          }
 
           successCount++;
         } catch (e) {
+          print('❌ Error on row ${rowIndex + 1}: $e');
           errors.add('Row ${rowIndex + 1}: ${e.toString()}');
           failCount++;
         }
       }
 
+      print('🎉 Import complete: $successCount success, $failCount failed');
       return {
         'success': true,
         'successCount': successCount,
         'failCount': failCount,
         'errors': errors,
+        'message': '$successCount customers imported successfully${failCount > 0 ? ', $failCount failed' : ''}',
       };
     } catch (e) {
-      return {'success': false, 'message': 'Error: ${e.toString()}'};
+      print('💥 Fatal error: $e');
+      return {'success': false, 'message': 'Error processing Excel: ${e.toString()}'};
     }
   }
 
-  /// Import Products from Excel
-  static Future<Map<String, dynamic>> importProducts(String uid) async {
+  /// Import Customers from Excel (legacy method - picks file and processes)
+  static Future<Map<String, dynamic>> importCustomers(String uid) async {
     try {
-      // Pick Excel file - Show all files so user can see Excel files
+      // Pick Excel file - Allow all file types to ensure .xlsx files are visible
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         allowMultiple: false,
+        allowedExtensions: null,
         withData: true,
         dialogTitle: 'Select Excel File (.xlsx, .xls)',
       );
@@ -226,6 +346,17 @@ class ExcelImportService {
 
       // Read Excel file
       final bytes = result.files.first.bytes ?? await File(result.files.first.path!).readAsBytes();
+
+      // Use the new processing method
+      return await processCustomersExcel(bytes, uid);
+    } catch (e) {
+      return {'success': false, 'message': 'Error: ${e.toString()}'};
+    }
+  }
+
+  /// Process Product Excel bytes - call this after picking the file
+  static Future<Map<String, dynamic>> processProductsExcel(Uint8List bytes, String uid) async {
+    try {
       final excel = Excel.decodeBytes(bytes);
 
       int successCount = 0;
@@ -242,9 +373,8 @@ class ExcelImportService {
 
       // Skip header row, start from row 1 (index 1)
       // Template columns (0-indexed):
-      // 0: Category, 1: Item Name*, 2: Product Code, 3: Price, 4: Initial Stock,
-      // 5: Low Stock Alert, 6: Measuring Unit, 7: Total Cost Price, 8: MRP,
-      // 9: Tax Type (GST/VAT), 10: Tax %, 11: Item Location, 12: Expiry Date (dd-MM-yyyy)
+      // 0: Product Code/Barcode*, 1: Product Name*, 2: MRP*, 3: Sale Price*, 4: Purchase Price,
+      // 5: Quantity, 6: Unit*, 7: Category, 8: GST%, 9: HSN Code
       // * = Required field
       for (int rowIndex = 1; rowIndex < table.rows.length; rowIndex++) {
         try {
@@ -255,116 +385,66 @@ class ExcelImportService {
             continue;
           }
 
-          // Extract data based on template columns:
-          // A: Category, B: Item Name, C: Product code, D: Price, E: Initial Stock,
-          // F: Low Stock Alert, G: Measuring Unit, H: Total Cost Price, I: MRP,
-          // J: Tax Type, K: Tax %, L: Item Location, M: Expiry Date
-
-          final category = row.length > 0 ? row[0]?.value?.toString().trim() ?? 'General' : 'General';
-          final itemName = row.length > 1 ? row[1]?.value?.toString().trim() ?? '' : '';
-          final productCode = row.length > 2 ? row[2]?.value?.toString().trim() ?? '' : '';
-          final priceStr = row.length > 3 ? row[3]?.value?.toString().trim() ?? '0' : '0';
-          final stockStr = row.length > 4 ? row[4]?.value?.toString().trim() ?? '0' : '0';
-          final lowStockStr = row.length > 5 ? row[5]?.value?.toString().trim() ?? '0' : '0';
-          final unit = row.length > 6 ? row[6]?.value?.toString().trim() ?? 'Piece' : 'Piece';
-          final costPriceStr = row.length > 7 ? row[7]?.value?.toString().trim() ?? '0' : '0';
-          final mrpStr = row.length > 8 ? row[8]?.value?.toString().trim() ?? '0' : '0';
-          final taxType = row.length > 9 ? row[9]?.value?.toString().trim() ?? 'vat' : 'vat';
-          final taxPercentageStr = row.length > 10 ? row[10]?.value?.toString().trim() ?? '0' : '0';
-          final location = row.length > 11 ? row[11]?.value?.toString().trim() ?? '' : '';
-          final expiryDateStr = row.length > 12 ? row[12]?.value?.toString().trim() ?? '' : '';
+          // Extract data based on template columns
+          final barcode = row.length > 0 ? row[0]?.value?.toString().trim() ?? '' : '';
+          final name = row.length > 1 ? row[1]?.value?.toString().trim() ?? '' : '';
+          final mrpStr = row.length > 2 ? row[2]?.value?.toString().trim() ?? '0' : '0';
+          final salePriceStr = row.length > 3 ? row[3]?.value?.toString().trim() ?? '0' : '0';
+          final purchasePriceStr = row.length > 4 ? row[4]?.value?.toString().trim() ?? '0' : '0';
+          final quantityStr = row.length > 5 ? row[5]?.value?.toString().trim() ?? '0' : '0';
+          final unit = row.length > 6 ? row[6]?.value?.toString().trim() ?? 'PCS' : 'PCS';
+          final category = row.length > 7 ? row[7]?.value?.toString().trim() ?? '' : '';
+          final gstStr = row.length > 8 ? row[8]?.value?.toString().trim() ?? '0' : '0';
+          final hsnCode = row.length > 9 ? row[9]?.value?.toString().trim() ?? '' : '';
 
           // Validate required fields
-          if (itemName.isEmpty) {
-            errors.add('Row ${rowIndex + 1}: Product name is required');
+          if (name.isEmpty || barcode.isEmpty) {
+            errors.add('Row ${rowIndex + 1}: Product Name and Barcode are required');
             failCount++;
             continue;
           }
 
           // Parse numeric values
-          final price = double.tryParse(priceStr) ?? 0.0;
-          final stock = double.tryParse(stockStr) ?? 0.0;
-          final lowStock = double.tryParse(lowStockStr) ?? 0.0;
-          final costPrice = double.tryParse(costPriceStr) ?? 0.0;
           final mrp = double.tryParse(mrpStr) ?? 0.0;
-          final taxPercentage = double.tryParse(taxPercentageStr) ?? 0.0;
+          final salePrice = double.tryParse(salePriceStr) ?? 0.0;
+          final purchasePrice = double.tryParse(purchasePriceStr) ?? 0.0;
+          final quantity = double.tryParse(quantityStr) ?? 0.0;
+          final gst = double.tryParse(gstStr) ?? 0.0;
 
-          // Parse expiry date - Support multiple formats: dd-MM-yyyy, dd/MM/yyyy, yyyy-MM-dd
-          DateTime? expiryDate;
-          if (expiryDateStr.isNotEmpty) {
-            try {
-              // Remove any extra spaces
-              final cleanDateStr = expiryDateStr.trim();
-
-              // Try dd-MM-yyyy or dd/MM/yyyy format first
-              if (cleanDateStr.contains('-') || cleanDateStr.contains('/')) {
-                final separator = cleanDateStr.contains('-') ? '-' : '/';
-                final parts = cleanDateStr.split(separator);
-
-                if (parts.length == 3) {
-                  // Check if first part is likely a day (1-31) - then it's dd-MM-yyyy
-                  final firstNum = int.tryParse(parts[0]);
-                  if (firstNum != null && firstNum <= 31) {
-                    // dd-MM-yyyy format
-                    expiryDate = DateTime(
-                      int.parse(parts[2]), // year
-                      int.parse(parts[1]), // month
-                      int.parse(parts[0]), // day
-                    );
-                  } else {
-                    // yyyy-MM-dd format
-                    expiryDate = DateTime(
-                      int.parse(parts[0]), // year
-                      int.parse(parts[1]), // month
-                      int.parse(parts[2]), // day
-                    );
-                  }
-                }
-              } else {
-                // Try parsing as a number (Excel date serial number)
-                final serialNumber = int.tryParse(cleanDateStr);
-                if (serialNumber != null) {
-                  // Excel date: number of days since 1899-12-30
-                  expiryDate = DateTime(1899, 12, 30).add(Duration(days: serialNumber));
-                }
-              }
-            } catch (e) {
-              // Add to errors but don't fail the import
-              errors.add('Row ${rowIndex + 1}: Invalid date format "$expiryDateStr" - product imported without expiry date');
-            }
+          if (mrp <= 0 || salePrice <= 0) {
+            errors.add('Row ${rowIndex + 1}: MRP and Sale Price must be greater than 0');
+            failCount++;
+            continue;
           }
 
-          // Add product to Firestore
+          // Check if product already exists
+          final existingProduct = await FirestoreService().getDocument('products', barcode);
+
+          if (existingProduct.exists) {
+            errors.add('Row ${rowIndex + 1}: Product with barcode $barcode already exists');
+            failCount++;
+            continue;
+          }
+
+          // Prepare product data
           final productData = {
-            'itemName': itemName,
-            'category': category,
-            'productCode': productCode.isNotEmpty ? productCode : '${DateTime.now().millisecondsSinceEpoch}',
-            'price': price,
-            'currentStock': stock,
-            'lowStockAlert': lowStock,
-            'stockUnit': unit,
-            'costPrice': costPrice,
+            'name': name,
+            'barcode': barcode,
             'mrp': mrp,
-            'location': location,
-            'stockEnabled': true,
+            'salePrice': salePrice,
+            'purchasePrice': purchasePrice,
+            'quantity': quantity,
+            'unit': unit.toUpperCase(),
+            'category': category.isEmpty ? 'General' : category,
+            'gst': gst,
+            'hsnCode': hsnCode.isEmpty ? null : hsnCode,
             'createdAt': FieldValue.serverTimestamp(),
-            'updatedAt': FieldValue.serverTimestamp(),
             'uid': uid,
           };
 
-          // Add tax information if provided
-          if (taxPercentage > 0) {
-            productData['taxType'] = taxType.toLowerCase() == 'gst' ? 'Price is without Tax' : 'Price includes Tax';
-            productData['taxPercentage'] = taxPercentage;
-            productData['taxName'] = taxType.toUpperCase();
-          }
+          // Add product to Firestore
+          await FirestoreService().setDocument('products', barcode, productData);
 
-          // Add expiry date if provided
-          if (expiryDate != null) {
-            productData['expiryDate'] = expiryDate.toIso8601String();
-          }
-
-          await FirestoreService().addDocument('Products', productData);
           successCount++;
         } catch (e) {
           errors.add('Row ${rowIndex + 1}: ${e.toString()}');
@@ -377,7 +457,34 @@ class ExcelImportService {
         'successCount': successCount,
         'failCount': failCount,
         'errors': errors,
+        'message': '$successCount products imported successfully${failCount > 0 ? ', $failCount failed' : ''}',
       };
+    } catch (e) {
+      return {'success': false, 'message': 'Error processing Excel: ${e.toString()}'};
+    }
+  }
+
+  /// Import Products from Excel (legacy method - picks file and processes)
+  static Future<Map<String, dynamic>> importProducts(String uid) async {
+    try {
+      // Pick Excel file
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+        allowedExtensions: null,
+        withData: true,
+        dialogTitle: 'Select Excel File (.xlsx, .xls)',
+      );
+
+      if (result == null) {
+        return {'success': false, 'message': 'No file selected'};
+      }
+
+      // Read Excel file
+      final bytes = result.files.first.bytes ?? await File(result.files.first.path!).readAsBytes();
+
+      // Use the new processing method
+      return await processProductsExcel(bytes, uid);
     } catch (e) {
       return {'success': false, 'message': 'Error: ${e.toString()}'};
     }
