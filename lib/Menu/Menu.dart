@@ -991,19 +991,74 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                       final list = _processList(snapshot.data!, limit);
                       if (list.isEmpty) return _buildEmpty();
 
-                      return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: list.length,
-                      separatorBuilder: (c, i) => const SizedBox(height: 10),
-                      itemBuilder: (c, i) => _buildBillCard(list[i]),
-                    );
-                  },
-                );
-              },
+                      // Group bills by date
+                      Map<String, List<QueryDocumentSnapshot>> groupedByDate = {};
+                      for (var doc in list) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final timestamp = data['timestamp'] as Timestamp?;
+                        if (timestamp != null) {
+                          final dateKey = DateFormat('dd MMM yyyy').format(timestamp.toDate());
+                          groupedByDate.putIfAbsent(dateKey, () => []).add(doc);
+                        }
+                      }
+
+                      // Build list with date separators
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: groupedByDate.length * 2 + groupedByDate.values.fold(0, (sum, list) => sum + list.length),
+                        itemBuilder: (c, index) {
+                          int currentIndex = 0;
+                          for (var entry in groupedByDate.entries) {
+                            // Date header
+                            if (index == currentIndex) {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 12, top: currentIndex == 0 ? 0 : 16),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      '${entry.value.length} ${entry.value.length == 1 ? 'Bill' : 'Bills'}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: kPrimaryColor,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'on ${entry.key}',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            currentIndex++;
+
+                            // Bills for this date
+                            for (int i = 0; i < entry.value.length; i++) {
+                              if (index == currentIndex) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _buildBillCard(entry.value[i]),
+                                );
+                              }
+                              currentIndex++;
+                            }
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -5036,6 +5091,114 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
+  Future<void> _downloadCustomersList() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: kPrimaryColor),
+        ),
+      );
+
+      // Fetch all data in parallel for better performance
+      final customersStream = await FirestoreService().getCollectionStream('customers');
+      final salesCollection = await FirestoreService().getStoreCollection('sales');
+      final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
+
+      // Get all data at once
+      final results = await Future.wait([
+        customersStream.first,
+        salesCollection.get(),
+        creditNotesCollection.where('status', isEqualTo: 'Available').get(),
+      ]);
+
+      final customersSnapshot = results[0] as QuerySnapshot;
+      final allSales = results[1] as QuerySnapshot;
+      final allCredits = results[2] as QuerySnapshot;
+
+      if (customersSnapshot.docs.isEmpty) {
+        if (mounted) Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No customers found'), backgroundColor: Colors.orange),
+        );
+        return;
+      }
+
+      // Create lookup maps for fast access
+      Map<String, double> salesByPhone = {};
+      Map<String, double> creditByPhone = {};
+
+      // Process all sales at once
+      for (var sale in allSales.docs) {
+        final data = sale.data() as Map<String, dynamic>;
+        final phone = data['customerPhone']?.toString() ?? '';
+        final total = (data['total'] ?? 0.0).toDouble();
+        if (phone.isNotEmpty) {
+          salesByPhone[phone] = (salesByPhone[phone] ?? 0.0) + total;
+        }
+      }
+
+      // Process all credits at once
+      for (var credit in allCredits.docs) {
+        final data = credit.data() as Map<String, dynamic>;
+        final phone = data['customerPhone']?.toString() ?? '';
+        final amount = (data['amount'] ?? 0.0).toDouble();
+        final paid = (data['paidAmount'] ?? 0.0).toDouble();
+        if (phone.isNotEmpty) {
+          creditByPhone[phone] = (creditByPhone[phone] ?? 0.0) + (amount - paid);
+        }
+      }
+
+      // Prepare data for PDF
+      List<List<String>> rows = [];
+      double totalSales = 0.0;
+      double totalCredit = 0.0;
+
+      // Build rows quickly using lookup maps
+      for (var doc in customersSnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final name = data['name']?.toString() ?? 'N/A';
+        final phone = data['phone']?.toString() ?? 'N/A';
+        final email = data['email']?.toString() ?? '';
+
+        final customerSales = salesByPhone[phone] ?? 0.0;
+        final customerCredit = creditByPhone[phone] ?? 0.0;
+
+        totalSales += customerSales;
+        totalCredit += customerCredit;
+
+        rows.add([
+          name,
+          phone,
+          '${customerSales.toStringAsFixed(2)}',
+          '${customerCredit.toStringAsFixed(2)}',
+        ]);
+      }
+
+      if (mounted) Navigator.pop(context); // Close loading dialog
+
+      // Generate PDF using ReportPdfGenerator
+      await ReportPdfGenerator.generateAndDownloadPdf(
+        context: context,
+        reportTitle: 'Customers List',
+        headers: ['Name', 'Phone', 'Total Sales', 'Credit Due'],
+        rows: rows,
+        additionalSummary: {
+          'Total Customers': customersSnapshot.docs.length.toString(),
+          'Total Sales': '₹${totalSales.toStringAsFixed(2)}',
+          'Total Credit Due': '₹${totalCredit.toStringAsFixed(2)}',
+        },
+      );
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}'), backgroundColor: kErrorColor),
+      );
+    }
+  }
+
 
   void _showSortMenu() {
     showModalBottomSheet(
@@ -5104,6 +5267,14 @@ class _CustomersPageState extends State<CustomersPage> {
             icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
             onPressed: widget.onBack,
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.download_rounded, color: kWhite, size: 22),
+              onPressed: _downloadCustomersList,
+              tooltip: 'Download Customers List',
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: Column(
         children: [

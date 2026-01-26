@@ -159,7 +159,7 @@ class LanguageProvider extends ChangeNotifier {
       'business_phone': 'Business Phone',
       'business_location': 'Business Location',
       'business_email': 'Business Email',
-      'gstin': 'GSTIN',
+      'gstin': 'Tax No',
       'choose_language': 'Choose Language',
       'theme': 'Theme',
       'printer_setup': 'Printer Setup',

@@ -135,3 +135,5 @@ flutter:
     - assets/Start_Billing.png
     - assets/View_Report.png
     - assets/Splash_Screen.png
+    - excel/Customer Templete.xlsx
+    - excel/Product Templete.xlsx

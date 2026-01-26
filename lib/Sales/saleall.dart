@@ -1101,7 +1101,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                         ),
                         if (isFavorite)
                           const Icon(
-                            Icons.favorite_rounded,
+                            Icons.favorite_outline_rounded,
                             color: kPrimaryColor,
                             size: 13,
                           ),

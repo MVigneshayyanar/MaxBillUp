@@ -194,6 +194,18 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       return name.contains(_searchQuery) || type.contains(_searchQuery);
                     }).toList();
 
+                    // Sort by date (newest first)
+                    expenses.sort((a, b) {
+                      final dataA = a.data() as Map<String, dynamic>;
+                      final dataB = b.data() as Map<String, dynamic>;
+                      final tsA = dataA['timestamp'] as Timestamp?;
+                      final tsB = dataB['timestamp'] as Timestamp?;
+                      if (tsA == null && tsB == null) return 0;
+                      if (tsA == null) return 1;
+                      if (tsB == null) return -1;
+                      return tsB.compareTo(tsA); // Newest first
+                    });
+
                     if (expenses.isEmpty) return _buildNoResults();
 
                     return ListView.separated(
@@ -248,7 +260,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${data['referenceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 12)),
+                    // Removed expense reference number as per requirement
                     Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
                   ],
                 ),
@@ -322,11 +334,13 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   String _paymentMode = 'Cash';
   bool _isLoading = false;
   List<String> _expenseTypes = [];
+  List<String> _expenseNameSuggestions = [];
 
   @override
   void initState() {
     super.initState();
     _loadExpenseTypes();
+    _loadExpenseNameSuggestions();
   }
 
   Future<void> _loadExpenseTypes() async {
@@ -339,6 +353,20 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         });
       }
     } catch (e) { debugPrint(e.toString()); }
+  }
+
+  Future<void> _loadExpenseNameSuggestions() async {
+    try {
+      final col = await FirestoreService().getStoreCollection('expenseNames');
+      final snap = await col.orderBy('usageCount', descending: true).limit(50).get();
+      if (mounted) {
+        setState(() {
+          _expenseNameSuggestions = snap.docs.map((doc) => doc['name'].toString()).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading expense names: $e');
+    }
   }
 
   @override
@@ -435,12 +463,12 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     } catch (e) { debugPrint(e.toString()); }
   }
 
-  Future<List<String>> _getExpenseNameSuggestions(String query) async {
-    try {
-      final col = await FirestoreService().getStoreCollection('expenseNames');
-      final snap = await col.orderBy('usageCount', descending: true).limit(10).get();
-      return snap.docs.map((doc) => doc['name'].toString()).where((n) => n.toLowerCase().contains(query.toLowerCase())).toList();
-    } catch (e) { return []; }
+  List<String> _filterExpenseNameSuggestions(String query) {
+    if (query.isEmpty) return _expenseNameSuggestions.take(10).toList();
+    return _expenseNameSuggestions
+        .where((n) => n.toLowerCase().contains(query.toLowerCase()))
+        .take(10)
+        .toList();
   }
 
   @override
@@ -531,14 +559,93 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
   Widget _buildAutocompleteExpenseName() {
     return Autocomplete<String>(
-      optionsBuilder: (v) => v.text.isEmpty ? const Iterable<String>.empty() : _getExpenseNameSuggestions(v.text),
-      onSelected: (s) => _expenseNameController.text = s,
-      fieldViewBuilder: (ctx, ctrl, focus, onSub) {
-        if (ctrl.text.isEmpty && _expenseNameController.text.isNotEmpty) ctrl.text = _expenseNameController.text;
-        ctrl.addListener(() => _expenseNameController.text = ctrl.text);
-        return _buildModernField(ctrl, "Expense Name *", Icons.shopping_basket_rounded, isMandatory: true);
+      optionsBuilder: (textEditingValue) {
+        return _filterExpenseNameSuggestions(textEditingValue.text);
       },
-      optionsViewBuilder: (ctx, onSel, options) => Align(alignment: Alignment.topLeft, child: Material(elevation: 4, borderRadius: BorderRadius.circular(12), child: Container(width: MediaQuery.of(context).size.width - 40, constraints: const BoxConstraints(maxHeight: 200), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: ListView.separated(padding: EdgeInsets.zero, shrinkWrap: true, itemCount: options.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) => ListTile(dense: true, leading: const Icon(Icons.history_rounded, size: 18, color: kPrimaryColor), title: Text(options.elementAt(i), style: const TextStyle(fontWeight: FontWeight.w600)), onTap: () => onSel(options.elementAt(i))))))),
+      onSelected: (selectedString) {
+        _expenseNameController.text = selectedString;
+      },
+      fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+        if (textEditingController.text.isEmpty && _expenseNameController.text.isNotEmpty) {
+          textEditingController.text = _expenseNameController.text;
+        }
+        textEditingController.addListener(() {
+          _expenseNameController.text = textEditingController.text;
+        });
+
+        return ValueListenableBuilder(
+          valueListenable: textEditingController,
+          builder: (context, value, child) {
+            bool filled = textEditingController.text.isNotEmpty;
+            return TextFormField(
+              controller: textEditingController,
+              focusNode: focusNode,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+              decoration: InputDecoration(
+                labelText: "Expense Name *",
+                prefixIcon: Icon(Icons.shopping_basket_rounded, color: filled ? kPrimaryColor : kBlack54, size: 20),
+                filled: true,
+                fillColor: kWhite,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kErrorColor)
+                ),
+              ),
+              validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+              onFieldSubmitted: (value) => onFieldSubmitted(),
+            );
+          },
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: MediaQuery.of(context).size.width - 40,
+              constraints: const BoxConstraints(maxHeight: 250),
+              decoration: BoxDecoration(
+                color: kWhite,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: kGrey200),
+              ),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shrinkWrap: true,
+                itemCount: options.length,
+                separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey200),
+                itemBuilder: (context, index) {
+                  final option = options.elementAt(index);
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(Icons.history_rounded, size: 18, color: kPrimaryColor),
+                    title: Text(
+                      option,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: kBlack87,
+                      ),
+                    ),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

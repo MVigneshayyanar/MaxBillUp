@@ -4,10 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as excel_pkg;
-import 'dart:io';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/services/excel_import_service.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = kPrimaryColor;
@@ -283,39 +281,324 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   }
 
   Future<void> _importFromExcel() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['xlsx', 'xls']);
-      if (result != null) {
-        File file = File(result.files.single.path!);
-        var bytes = file.readAsBytesSync();
-        var excel = excel_pkg.Excel.decodeBytes(bytes);
-        int imported = 0; int skipped = 0;
-        for (var table in excel.tables.keys) {
-          var sheet = excel.tables[table]!;
-          for (var rowIndex = 1; rowIndex < sheet.maxRows; rowIndex++) {
-            var row = sheet.rows[rowIndex];
-            if (row.length < 2) continue;
-            final name = row[0]?.value?.toString().trim() ?? '';
-            final phone = row[1]?.value?.toString().trim() ?? '';
-            final gstin = row.length > 2 ? row[2]?.value?.toString().trim() ?? '' : '';
-            final address = row.length > 3 ? row[3]?.value?.toString().trim() ?? '' : '';
-            final lastDue = row.length > 4 ? double.tryParse(row[4]?.value?.toString() ?? '0') ?? 0.0 : 0.0;
-            if (name.isEmpty || phone.isEmpty) { skipped++; continue; }
-            final customersCollection = await FirestoreService().getStoreCollection('customers');
-            final existing = await customersCollection.doc(phone).get();
-            if (existing.exists) { skipped++; continue; }
-            await customersCollection.doc(phone).set({
-              'name': name, 'phone': phone, 'gstin': gstin.isEmpty ? null : gstin, 'address': address.isEmpty ? null : address,
-              'balance': lastDue, 'totalSales': 0.0, 'createdAt': FieldValue.serverTimestamp(),
-            });
-            imported++;
-          }
-        }
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Imported: $imported, Skipped: $skipped'), backgroundColor: _successColor, behavior: SnackBarBehavior.floating));
-      }
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating));
-    }
+    _showImportExcelDialog();
+  }
+
+  void _showImportExcelDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.upload_file_rounded,
+                  color: kPrimaryColor,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'Import Customers',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: kBlack87,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Description
+              const Text(
+                'Download the template, fill it with customer data, and upload it back.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: kBlack54,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+
+              // Download Template Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    final result = await ExcelImportService.downloadCustomerTemplate();
+                    if (mounted) {
+                      if (result != null && !result.startsWith('Error') && !result.toLowerCase().contains('denied')) {
+                        // Show success dialog similar to Report PDF
+                        showDialog(
+                          context: context,
+                          builder: (BuildContext dialogContext) {
+                            final fileName = result.split(RegExp(r'[/\\]')).last;
+                            return AlertDialog(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              backgroundColor: Colors.white,
+                              title: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [kGoogleGreen, kGoogleGreen.withOpacity(0.7)],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: kGoogleGreen.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Text(
+                                      'Success!',
+                                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Customer template has been downloaded to Downloads/MAXmybill folder',
+                                    style: TextStyle(fontSize: 14, color: kBlack54, height: 1.4),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [Colors.blue.shade50, Colors.blue.shade100],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.blue.shade200),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: kPrimaryColor,
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(Icons.description, color: Colors.white, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                fileName,
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black87,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 2,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Excel Template',
+                                                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: kGoogleGreen.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
+                                    ),
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.folder_outlined, color: kGoogleGreen, size: 18),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            'Check Downloads/MAXmybill folder',
+                                            style: TextStyle(fontSize: 14, color: kGoogleGreen, fontWeight: FontWeight.w600),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  ),
+                                  child: const Text('Close', style: TextStyle(color: kBlack54, fontSize: 14)),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result ?? 'Failed to download template'),
+                            backgroundColor: kErrorColor,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 20),
+                  label: const Text(
+                    'DOWNLOAD TEMPLATE',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kPrimaryColor,
+                    side: const BorderSide(color: kPrimaryColor, width: 2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Upload Excel Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(context);
+                    // Show loading
+                    showDialog(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (context) => const Center(
+                        child: CircularProgressIndicator(color: kPrimaryColor),
+                      ),
+                    );
+
+                    final result = await ExcelImportService.importCustomers(widget.uid);
+
+                    if (mounted) Navigator.pop(context); // Close loading
+
+                    if (result['success']) {
+                      final successCount = result['successCount'] ?? 0;
+                      final failCount = result['failCount'] ?? 0;
+                      final errors = result['errors'] as List<String>? ?? [];
+
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          title: const Text('Import Complete', style: TextStyle(fontWeight: FontWeight.w900)),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('✅ Successfully imported: $successCount'),
+                              if (failCount > 0) Text('❌ Failed: $failCount'),
+                              if (errors.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                const Text('Errors:', style: TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                ...errors.take(5).map((e) => Text('• $e', style: const TextStyle(fontSize: 12))),
+                                if (errors.length > 5) Text('... and ${errors.length - 5} more'),
+                              ],
+                            ],
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('OK'),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(result['message'] ?? 'Import failed'),
+                            backgroundColor: kErrorColor,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.upload_rounded, size: 20),
+                  label: const Text(
+                    'UPLOAD EXCEL',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: kWhite,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Cancel Button
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: kBlack54,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDeleteCustomer(BuildContext context) async {
@@ -419,6 +702,11 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             tooltip: 'Delete Customer',
           ),
         ] : [
+          IconButton(
+            icon: const Icon(Icons.file_upload_outlined, color: Colors.white, size: 22),
+            onPressed: () => _showImportExcelDialog(),
+            tooltip: 'Import from Excel',
+          ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
             elevation: 0,
@@ -496,8 +784,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         const SizedBox(height: 16),
                         _buildModernTextField(
                           controller: _gstinController,
-                          label: 'GSTIN',
-                          hint: 'Enter GSTIN',
+                          label: 'Tax No',
+                          hint: 'Enter Tax No',
                           icon: Icons.receipt_long_rounded,
                         ),
                         const SizedBox(height: 16),

@@ -10,6 +10,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/services/cart_service.dart';
+import 'package:maxbillup/services/referral_service.dart';
 
 class NewSalePage extends StatefulWidget {
   final String uid;
@@ -94,6 +95,9 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
           _selectedCustomerGST = cartService.customerGST;
         });
       }
+
+      // Check and show referral popup if needed
+      _checkAndShowReferralPopup();
     });
 
     if (widget.savedOrderData != null) {
@@ -104,6 +108,21 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
     // Listen to saved ordecount
     _listenToSavedOrdersCount();
+
+    // Track app launch for referral tracking
+    ReferralService.trackAppLaunch();
+  }
+
+  Future<void> _checkAndShowReferralPopup() async {
+    // Wait a bit for the page to fully load
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    final shouldShow = await ReferralService.shouldShowReferral();
+    if (shouldShow && mounted) {
+      await ReferralService.showReferralDialog(context);
+    }
   }
 
   @override
