@@ -124,7 +124,7 @@ class ExcelImportService {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         allowMultiple: false,
-        allowedExtensions: nul,
+        allowedExtensions: null,
         withData: true,
         dialogTitle: 'Select Excel File (.xlsx, .xls)',
       );
