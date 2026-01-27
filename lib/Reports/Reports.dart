@@ -232,7 +232,7 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildSectionLabel(context.tr('sales_transactions')),
           ],
           if (isFeatureAvailable('salesReport'))
-            _buildReportTile(context.tr('sales_report'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history'),
+            _buildReportTile(context.tr('Sales Record'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history'),
           if (isFeatureAvailable('itemSalesReport'))
             _buildReportTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product'),
           if (isFeatureAvailable('topCustomer'))
@@ -355,7 +355,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87),
                       ),
                       if (subtitle != null) ...[
                         const SizedBox(height: 2),

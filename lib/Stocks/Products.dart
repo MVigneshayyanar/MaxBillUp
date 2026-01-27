@@ -520,7 +520,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 Navigator.pop(context);
                 _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
               }),
-              _buildActionTile(Icons.delete_forever_rounded, 'Remove Product', kErrorColor, () {
+              _buildActionTile(Icons.delete_forever_rounded, 'Delete Product', kErrorColor, () {
                 Navigator.pop(context);
                 _showDeleteConfirmDialog(context, productDoc);
               }),
@@ -612,7 +612,7 @@ class _ProductsPageState extends State<ProductsPage> {
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Remove Product?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
+        title: const Text('Delete Product?', style: TextStyle(color: kBlack87, fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text('Are you sure you want to delete "${data['itemName']}"? This action is permanent.', style: const TextStyle(color: kBlack54, fontSize: 14)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),

@@ -218,12 +218,16 @@ class ExcelImportService {
           final lastDue = double.tryParse(lastDueStr) ?? 0.0;
           final rating = int.tryParse(ratingStr) ?? 0;
 
-          // Parse date of birth - Support multiple formats: dd-MM-yyyy, dd/MM/yyyy, yyyy-MM-dd
+          // Parse date of birth - Support multiple formats: dd-MM-yyyy, dd/MM/yyyy, yyyy-MM-dd, ISO 8601
           DateTime? dob;
           if (dobStr.isNotEmpty) {
             try {
               final cleanDateStr = dobStr.trim();
-              if (cleanDateStr.contains('-') || cleanDateStr.contains('/')) {
+
+              // Check for ISO 8601 format (e.g., 2000-02-12T00:00:00.000Z)
+              if (cleanDateStr.contains('T')) {
+                dob = DateTime.parse(cleanDateStr);
+              } else if (cleanDateStr.contains('-') || cleanDateStr.contains('/')) {
                 final separator = cleanDateStr.contains('-') ? '-' : '/';
                 final parts = cleanDateStr.split(separator);
                 if (parts.length == 3) {
@@ -252,7 +256,8 @@ class ExcelImportService {
                 }
               }
             } catch (e) {
-              errors.add('Row ${rowIndex + 1}: Invalid date format "$dobStr" - customer imported without DOB');
+              // Silently skip invalid dates - customer will be imported without DOB
+              print('⚠️ Could not parse date: $dobStr - customer will be imported without DOB');
             }
           }
 
@@ -278,6 +283,7 @@ class ExcelImportService {
             'totalSales': 0,
             'createdAt': FieldValue.serverTimestamp(),
             'uid': uid,
+            'isActive': true,
           };
 
           // Add DOB if provided
@@ -286,8 +292,16 @@ class ExcelImportService {
           }
 
           // Add customer to Firestore
-          await FirestoreService().setDocument('customers', phone, customerData);
-          print('✅ Customer added: $name');
+          print('📝 Saving customer: $name with phone: $phone');
+          try {
+            await FirestoreService().setDocument('customers', phone, customerData);
+            print('✅ Customer saved successfully: $name');
+          } catch (saveError) {
+            print('❌ Error saving customer $name: $saveError');
+            errors.add('Row ${rowIndex + 1}: Failed to save - ${saveError.toString()}');
+            failCount++;
+            continue;
+          }
 
           // If there's a last due amount, create credit entry
           if (lastDue > 0) {
@@ -373,9 +387,10 @@ class ExcelImportService {
 
       // Skip header row, start from row 1 (index 1)
       // Template columns (0-indexed):
-      // 0: Product Code/Barcode*, 1: Product Name*, 2: MRP*, 3: Sale Price*, 4: Purchase Price,
-      // 5: Quantity, 6: Unit*, 7: Category, 8: GST%, 9: HSN Code
-      // * = Required field
+      // 0: Category, 1: Item Name*, 2: Product code, 3: Price, 4: Initial Stock,
+      // 5: Low Stock Alert, 6: Measuring Unit, 7: Total Cost Price, 8: MRP,
+      // 9: Tax Type, 10: Tax %, 11: Item Location, 12: Expiry Date
+      // * = Required field (Only Item Name is required)
       for (int rowIndex = 1; rowIndex < table.rows.length; rowIndex++) {
         try {
           final row = table.rows[rowIndex];
@@ -385,40 +400,78 @@ class ExcelImportService {
             continue;
           }
 
-          // Extract data based on template columns
-          final barcode = row.length > 0 ? row[0]?.value?.toString().trim() ?? '' : '';
+          // Extract data based on actual template columns
+          final category = row.length > 0 ? row[0]?.value?.toString().trim() ?? '' : '';
           final name = row.length > 1 ? row[1]?.value?.toString().trim() ?? '' : '';
-          final mrpStr = row.length > 2 ? row[2]?.value?.toString().trim() ?? '0' : '0';
-          final salePriceStr = row.length > 3 ? row[3]?.value?.toString().trim() ?? '0' : '0';
-          final purchasePriceStr = row.length > 4 ? row[4]?.value?.toString().trim() ?? '0' : '0';
-          final quantityStr = row.length > 5 ? row[5]?.value?.toString().trim() ?? '0' : '0';
-          final unit = row.length > 6 ? row[6]?.value?.toString().trim() ?? 'PCS' : 'PCS';
-          final category = row.length > 7 ? row[7]?.value?.toString().trim() ?? '' : '';
-          final gstStr = row.length > 8 ? row[8]?.value?.toString().trim() ?? '0' : '0';
-          final hsnCode = row.length > 9 ? row[9]?.value?.toString().trim() ?? '' : '';
+          String barcode = row.length > 2 ? row[2]?.value?.toString().trim() ?? '' : '';
+          final priceStr = row.length > 3 ? row[3]?.value?.toString().trim() ?? '0' : '0';
+          final quantityStr = row.length > 4 ? row[4]?.value?.toString().trim() ?? '0' : '0';
+          final lowStockAlertStr = row.length > 5 ? row[5]?.value?.toString().trim() ?? '0' : '0';
+          final unit = row.length > 6 ? row[6]?.value?.toString().trim() ?? 'Piece' : 'Piece';
+          final costPriceStr = row.length > 7 ? row[7]?.value?.toString().trim() ?? '0' : '0';
+          final mrpStr = row.length > 8 ? row[8]?.value?.toString().trim() ?? '0' : '0';
+          // Column 9 is "Tax Type" but it's actually the TAX NAME (VAT, GST, etc.)
+          final taxNameFromExcel = row.length > 9 ? row[9]?.value?.toString().trim() ?? '' : '';
+          final gstStr = row.length > 10 ? row[10]?.value?.toString().trim() ?? '0' : '0';
+          final location = row.length > 11 ? row[11]?.value?.toString().trim() ?? '' : '';
+          final expiryDateStr = row.length > 12 ? row[12]?.value?.toString().trim() ?? '' : '';
 
-          // Validate required fields
-          if (name.isEmpty || barcode.isEmpty) {
-            errors.add('Row ${rowIndex + 1}: Product Name and Barcode are required');
+          // Validate required fields - ONLY Item Name is required
+          if (name.isEmpty) {
+            errors.add('Row ${rowIndex + 1}: Item Name is required');
             failCount++;
             continue;
           }
 
-          // Parse numeric values
+          // Generate barcode if not provided (using timestamp + row index for uniqueness)
+          if (barcode.isEmpty) {
+            barcode = 'PRD${DateTime.now().millisecondsSinceEpoch}${rowIndex}';
+          }
+
+          // Parse numeric values (all can be 0 or empty)
+          final price = double.tryParse(priceStr) ?? 0.0;
+          final costPrice = double.tryParse(costPriceStr) ?? 0.0;
           final mrp = double.tryParse(mrpStr) ?? 0.0;
-          final salePrice = double.tryParse(salePriceStr) ?? 0.0;
-          final purchasePrice = double.tryParse(purchasePriceStr) ?? 0.0;
           final quantity = double.tryParse(quantityStr) ?? 0.0;
+          final lowStockAlert = double.tryParse(lowStockAlertStr) ?? 0.0;
           final gst = double.tryParse(gstStr) ?? 0.0;
 
-          if (mrp <= 0 || salePrice <= 0) {
-            errors.add('Row ${rowIndex + 1}: MRP and Sale Price must be greater than 0');
-            failCount++;
-            continue;
+          // Parse expiry date if provided
+          DateTime? expiryDate;
+          if (expiryDateStr.isNotEmpty) {
+            try {
+              // Check for ISO 8601 format
+              if (expiryDateStr.contains('T')) {
+                expiryDate = DateTime.parse(expiryDateStr);
+              } else if (expiryDateStr.contains('-') || expiryDateStr.contains('/')) {
+                final separator = expiryDateStr.contains('-') ? '-' : '/';
+                final parts = expiryDateStr.split(separator);
+                if (parts.length == 3) {
+                  final firstNum = int.tryParse(parts[0]);
+                  if (firstNum != null && firstNum <= 31) {
+                    // dd-MM-yyyy format
+                    expiryDate = DateTime(
+                      int.parse(parts[2]),
+                      int.parse(parts[1]),
+                      int.parse(parts[0]),
+                    );
+                  } else {
+                    // yyyy-MM-dd format
+                    expiryDate = DateTime(
+                      int.parse(parts[0]),
+                      int.parse(parts[1]),
+                      int.parse(parts[2]),
+                    );
+                  }
+                }
+              }
+            } catch (e) {
+              print('⚠️ Could not parse expiry date: $expiryDateStr');
+            }
           }
 
           // Check if product already exists
-          final existingProduct = await FirestoreService().getDocument('products', barcode);
+          final existingProduct = await FirestoreService().getDocument('Products', barcode);
 
           if (existingProduct.exists) {
             errors.add('Row ${rowIndex + 1}: Product with barcode $barcode already exists');
@@ -426,32 +479,81 @@ class ExcelImportService {
             continue;
           }
 
-          // Prepare product data
+          // Determine tax name from Excel column 9 (Tax Type column is actually tax name like VAT, GST)
+          // Valid tax names: 'VAT', 'GST', 'CGST', 'SGST', 'IGST', 'Excise Tax', 'Zero Rated', 'Exempt'
+          String? taxName;
+          if (taxNameFromExcel.isNotEmpty) {
+            // Use the tax name from Excel (VAT, GST, etc.)
+            taxName = taxNameFromExcel.toUpperCase();
+            // Normalize common variations
+            if (taxName == 'VALUE ADDED TAX') taxName = 'VAT';
+            if (taxName == 'GOODS AND SERVICES TAX') taxName = 'GST';
+          } else if (gst > 0) {
+            // Default to GST if tax percentage is provided but no name
+            taxName = 'GST';
+          }
+
+          // Determine tax type/treatment - default to 'Price is without Tax' for taxable products
+          String? taxType;
+          if (gst > 0) {
+            taxType = 'Price is without Tax'; // Default for products with tax
+          } else if (taxName != null && (taxName.contains('EXEMPT') || taxName.contains('ZERO'))) {
+            taxType = 'Exempt Tax';
+          }
+
+          // Prepare product data - field names must match manual product creation
           final productData = {
-            'name': name,
+            'itemName': name,
             'barcode': barcode,
+            'productCode': barcode,
             'mrp': mrp,
-            'salePrice': salePrice,
-            'purchasePrice': purchasePrice,
+            'price': price,
+            'salePrice': price,
+            'costPrice': costPrice,
+            'purchasePrice': costPrice,
+            'currentStock': quantity,
             'quantity': quantity,
+            'stockEnabled': quantity > 0,
             'unit': unit.toUpperCase(),
+            'stockUnit': unit.isEmpty ? 'Piece' : unit,
             'category': category.isEmpty ? 'General' : category,
             'gst': gst,
-            'hsnCode': hsnCode.isEmpty ? null : hsnCode,
+            'taxId': null, // No linked tax ID for imported products
+            'taxPercentage': gst,
+            'taxName': taxName,
+            'taxType': taxType,
+            'hsn': '',
+            'hsnCode': null,
             'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
             'uid': uid,
+            'isFavorite': false,
+            'isActive': true,
+            'lowStockAlert': lowStockAlert,
+            'lowStockAlertType': 'Count', // Valid values: 'Count' or 'Percentage'
+            'location': location,
+            'expiryDate': expiryDate?.toIso8601String(),
           };
 
           // Add product to Firestore
-          await FirestoreService().setDocument('products', barcode, productData);
-
-          successCount++;
+          print('📝 Saving product: $name with barcode: $barcode');
+          try {
+            await FirestoreService().setDocument('Products', barcode, productData);
+            print('✅ Product saved successfully: $name');
+            successCount++;
+          } catch (saveError) {
+            print('❌ Error saving product $name: $saveError');
+            errors.add('Row ${rowIndex + 1}: Failed to save - ${saveError.toString()}');
+            failCount++;
+          }
         } catch (e) {
+          print('❌ Error processing row ${rowIndex + 1}: $e');
           errors.add('Row ${rowIndex + 1}: ${e.toString()}');
           failCount++;
         }
       }
 
+      print('🎉 Product import complete: $successCount success, $failCount failed');
       return {
         'success': true,
         'successCount': successCount,
@@ -460,6 +562,7 @@ class ExcelImportService {
         'message': '$successCount products imported successfully${failCount > 0 ? ', $failCount failed' : ''}',
       };
     } catch (e) {
+      print('💥 Fatal error in product import: $e');
       return {'success': false, 'message': 'Error processing Excel: ${e.toString()}'};
     }
   }

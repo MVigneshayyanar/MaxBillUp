@@ -285,9 +285,14 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   }
 
   void _showImportExcelDialog() {
+    // IMPORTANT: Capture State's context BEFORE showing any dialog
+    final stateContext = context;
+    final stateNavigator = Navigator.of(context, rootNavigator: true);
+    final stateScaffoldMessenger = ScaffoldMessenger.of(context);
+
     showDialog(
-      context: context,
-      builder: (context) => Dialog(
+      context: stateContext,
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           padding: const EdgeInsets.all(24),
@@ -343,13 +348,13 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     if (!mounted) return;
 
                     // Close the import dialog
-                    Navigator.pop(context);
+                    Navigator.pop(dialogContext);
 
                     if (result != null && !result.startsWith('Error') && !result.toLowerCase().contains('denied')) {
-                      // Show success dialog similar to Report PDF
+                      // Show success dialog using STATE context
                       showDialog(
-                        context: context,
-                        builder: (BuildContext dialogContext) {
+                        context: stateContext,
+                        builder: (BuildContext successDialogContext) {
                           final fileName = result.split(RegExp(r'[/\\]')).last;
                             return AlertDialog(
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -461,7 +466,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                               ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(dialogContext),
+                                  onPressed: () => Navigator.pop(successDialogContext),
                                   style: TextButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                                   ),
@@ -472,7 +477,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           },
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        stateScaffoldMessenger.showSnackBar(
                           SnackBar(
                             content: Text(result ?? 'Failed to download template'),
                             backgroundColor: kErrorColor,
@@ -505,103 +510,116 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
+                  icon: const Icon(Icons.upload_rounded, size: 20),
+                  label: const Text(
+                    'UPLOAD EXCEL',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    foregroundColor: kWhite,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                   onPressed: () async {
-                    bool isLoadingDialogOpen = false; // Track loading dialog state
-
                     try {
-                      Navigator.pop(context); // Close import dialog
-
-                      // First, pick the Excel file (no loading dialog yet)
+                      // First, pick the Excel file (BEFORE closing import dialog)
                       print('📂 Opening file picker...');
                       final fileBytes = await ExcelImportService.pickExcelFile();
                       print('📂 File picked: ${fileBytes != null ? '${fileBytes.length} bytes' : 'null (cancelled)'}');
 
-                      // If user cancelled file picker, just return
+                      // If user cancelled file picker, just return (import dialog stays open)
                       if (fileBytes == null) {
                         print('📂 User cancelled file selection');
                         return;
                       }
 
+                      // Now close the import dialog since we have a file
+                      if (!mounted) return;
+                      Navigator.pop(dialogContext); // Close import dialog using dialog's context
+
                       // File was selected, now show loading dialog
-                      if (!mounted) {
-                        print('⚠️ Widget not mounted after file selection');
-                        return;
-                      }
+                      if (!mounted) return;
 
                       print('⏳ Showing loading dialog...');
-                      isLoadingDialogOpen = true;
 
-                    showDialog(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (loadingContext) => PopScope(
-                        canPop: false,
-                        child: Dialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          backgroundColor: Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(28),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: kPrimaryColor.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
+                      // Use mounted check with fresh context reference
+                      if (!mounted) return;
+
+                      showDialog(
+                        context: context, // Use fresh context from mounted widget
+                        barrierDismissible: false,
+                        builder: (loadingContext) => PopScope(
+                          canPop: false,
+                          child: Dialog(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            backgroundColor: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(28),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: kPrimaryColor.withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.upload_file_rounded,
+                                      color: kPrimaryColor,
+                                      size: 32,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.upload_file_rounded,
-                                    color: kPrimaryColor,
-                                    size: 32,
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    'Importing Customers',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: kBlack87,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 24),
-                                const Text(
-                                  'Importing Customers',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: kBlack87,
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    'Processing your Excel file...',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  'Processing your Excel file...',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.grey.shade600,
+                                  const SizedBox(height: 24),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: const LinearProgressIndicator(
+                                      backgroundColor: kGrey200,
+                                      valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
+                                      minHeight: 6,
+                                    ),
                                   ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 24),
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: const LinearProgressIndicator(
-                                    backgroundColor: kGrey200,
-                                    valueColor: AlwaysStoppedAnimation<Color>(kPrimaryColor),
-                                    minHeight: 6,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
+                      );
 
-                    try {
                       // Process the Excel file bytes
                       print('🔄 Processing Excel file...');
                       final result = await ExcelImportService.processCustomersExcel(fileBytes, widget.uid);
                       print('✅ Result: ${result['success']}, Success: ${result['successCount']}, Failed: ${result['failCount']}');
 
                       // Close loading dialog
-                      if (mounted && isLoadingDialogOpen) {
-                        isLoadingDialogOpen = false;
-                        Navigator.of(context).pop();
-                        print('❌ Loading dialog closed');
-                      }
+                      if (!mounted) return;
+                      Navigator.of(context).pop();
+                      print('❌ Loading dialog closed');
 
                       if (!mounted) return;
 
@@ -611,10 +629,11 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         final errors = result['errors'] as List<String>? ?? [];
 
                         // Show success message
+                        if (!mounted) return;
                         showDialog(
                           context: context,
                           barrierDismissible: false,
-                          builder: (context) => AlertDialog(
+                          builder: (successDialogContext) => AlertDialog(
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                             backgroundColor: Colors.white,
                             title: Row(
@@ -730,8 +749,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  Navigator.pop(context); // Close dialog
-                                  Navigator.pop(context); // Go back to previous page
+                                  Navigator.pop(successDialogContext); // Close success dialog
                                 },
                                 style: TextButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -750,24 +768,26 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           ),
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(result['message'] ?? 'Import failed'),
-                            backgroundColor: kErrorColor,
-                          ),
-                        );
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(result['message'] ?? 'Import failed'),
+                              backgroundColor: kErrorColor,
+                            ),
+                          );
+                        }
                       }
                     } catch (e, stackTrace) {
-                      // Close loading dialog on error
-                      print('❌ Error during import: $e');
+                      // Catch any error in the flow
+                      print('💥 Error in customer import: $e');
                       print('Stack trace: $stackTrace');
 
-                      if (mounted && isLoadingDialogOpen) {
-                        isLoadingDialogOpen = false;
-                        Navigator.of(context).pop();
-                      }
-
+                      // Try to close loading dialog if it's open
                       if (mounted) {
+                        try {
+                          Navigator.of(context).pop();
+                        } catch (_) {}
+
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text('Error during import: ${e.toString()}'),
@@ -777,47 +797,14 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         );
                       }
                     }
-                    } catch (outerError, stackTrace) {
-                      // Catch any error in the entire flow (file picking, dialog, etc)
-                      print('💥 OUTER CATCH - Fatal error: $outerError');
-                      print('Stack trace: $stackTrace');
-
-                      if (mounted) {
-                        // Try to show error to user
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Fatal error: ${outerError.toString()}'),
-                            backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 5),
-                          ),
-                        );
-                      }
-                    }
                   },
-                  icon: const Icon(Icons.upload_rounded, size: 20),
-                  label: const Text(
-                    'UPLOAD EXCEL',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    foregroundColor: kWhite,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
                 ),
               ),
               const SizedBox(height: 12),
 
               // Cancel Button
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(dialogContext),
                 child: const Text(
                   'Cancel',
                   style: TextStyle(
