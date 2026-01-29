@@ -104,11 +104,12 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
               ),
               child: const Center(
                 child: Text(
-                  'DEFAULT',
+                  'Default',
                   style: TextStyle(
                     color: kWhite,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
+                    fontFamily: 'Lato',
                   ),
                 ),
               ),
@@ -146,6 +147,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                           color: kBlack87,
+                          fontFamily: 'NotoSans',
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -154,6 +156,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
                         style: TextStyle(
                           fontSize: 12,
                           color: kBlack54,
+                          fontFamily: 'Lato',
                         ),
                       ),
                     ],
@@ -221,11 +224,12 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
                   elevation: 0,
                 ),
                 child: const Text(
-                  'SAVE PERMISSIONS',
+                  'Save Permissions',
                   style: TextStyle(
                     color: kWhite,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.5,
+                    fontFamily: 'Lato',
                   ),
                 ),
               ),
@@ -256,12 +260,13 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                category.toUpperCase(),
+                category,
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   color: kPrimaryColor,
                   letterSpacing: 1,
+                  fontFamily: 'NotoSans',
                 ),
               ),
             ],
@@ -309,6 +314,7 @@ class _PermissionEditorPageState extends State<PermissionEditorPage> {
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: kBlack87,
+            fontFamily: 'Lato',
           ),
         ),
         value: value,

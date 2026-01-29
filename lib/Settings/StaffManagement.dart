@@ -468,6 +468,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     });
   }
 
+
   Widget _info(String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 8), child: Row(children: [Text("$l: ", style: const TextStyle(fontSize: 12,fontWeight: FontWeight.bold, color: kBlack54)), Text(v, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87))]));
 
   void _showDeleteConfirmation(BuildContext context, String staffId, String name) {
@@ -608,12 +609,12 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: kWhite,
-          title: const Text('Edit Staff Details', style: TextStyle(fontWeight: FontWeight.w800)),
+          title: const Text('Edit Staff Details', style: TextStyle(fontWeight: FontWeight.w800, fontFamily: 'NotoSans')),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            _buildSectionLabel("IDENTITY"),
+            _buildSectionLabel("Identity"),
             _buildDialogField(nameC, 'Full Name', Icons.person),
             const SizedBox(height: 16),
-            _buildSectionLabel("ROLE"),
+            _buildSectionLabel("Role"),
             _buildDialogDropdown(role, (v) => setDialogState(() => role = v!))
           ]),
           actions: [
@@ -621,7 +622,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text("CANCEL", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))
+              child: const Text("Cancel", style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54, fontFamily: 'Lato'))
             ),
             ElevatedButton(
               onPressed: () async {
@@ -631,7 +632,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
                 if(mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0),
-              child: const Text("UPDATE", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold))
+              child: const Text("Update", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontFamily: 'Lato'))
             ),
           ],
         )
@@ -665,10 +666,10 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
     return {'quotation': true, 'billHistory': true, 'creditNotes': isAdmin, 'customerManagement': true, 'expenses': isAdmin, 'creditDetails': isAdmin, 'staffManagement': isAdmin, 'analytics': isAdmin, 'daybook': isAdmin, 'salesSummary': isAdmin, 'salesReport': isAdmin, 'itemSalesReport': isAdmin, 'topCustomer': isAdmin, 'stockReport': isAdmin, 'lowStockProduct': isAdmin, 'topProducts': isAdmin, 'topCategory': isAdmin, 'expensesReport': isAdmin, 'taxReport': isAdmin, 'hsnReport': isAdmin, 'staffSalesReport': isAdmin, 'addProduct': isAdmin, 'addCategory': isAdmin};
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_outline_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack87))]));
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.people_outline_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No staff members yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54, fontFamily: 'Lato'))]));
 
-  Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 8, left: 4), child: Text(text, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5))));
+  Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 8, left: 4), child: Text(text, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5, fontFamily: 'NotoSans'))));
 
   Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, bool isPassword = false}) {
     return ValueListenableBuilder(
@@ -679,7 +680,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
           child: TextField(
             controller: ctrl, keyboardType: type, obscureText: isPassword,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
             decoration: InputDecoration(hintText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
           ),
         );

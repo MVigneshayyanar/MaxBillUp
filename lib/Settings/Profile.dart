@@ -214,7 +214,7 @@ class _SettingsPageState extends State<SettingsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: Text(context.tr('settings'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        title: Text(context.tr('settings'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18, fontFamily: 'NotoSans')),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
@@ -270,7 +270,7 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: "Choose your preferred language",
           ),
           const SizedBox(height: 32),
-          const Center(child: Text('VERSION 1.0.0', style: TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1))),
+          const Center(child: Text('Version 1.0.0', style: TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: 'Lato'))),
           const SizedBox(height: 16),
           _buildLogoutButton(),
           const SizedBox(height: 40),
@@ -362,9 +362,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87, fontFamily: 'NotoSans'), maxLines: 1, overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 4),
-                    Text(email, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
+                    Text(email, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600, fontFamily: 'Lato')),
                     const SizedBox(height: 10),
                     // Plan badge - clickable to go to subscription page
                     GestureDetector(
@@ -381,11 +381,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.2)),
                                 ),
-                                child: Text(plan.toUpperCase(), style: TextStyle(fontSize: 9, color: isPremium ? kGoogleGreen : kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                                child: Text(plan.toUpperCase(), style: TextStyle(fontSize: 9, color: isPremium ? kGoogleGreen : kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5, fontFamily: 'Lato')),
                               ),
                               if (!isPremium) ...[
                                 const SizedBox(width: 12),
-                                const Text('UPGRADE NOW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5)),
+                                const Text('Upgrade Now', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5, fontFamily: 'Lato')),
                               ]
                             ],
                           ),
@@ -404,11 +404,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                     fontSize: 10,
                                     color: isExpiringSoon ? kErrorColor : kBlack54,
                                     fontWeight: isExpiringSoon ? FontWeight.w700 : FontWeight.w500,
+                                    fontFamily: 'Lato',
                                   ),
                                 ),
                                 if (isExpiringSoon) ...[
                                   const SizedBox(width: 6),
-                                  const Text('RENEW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                                  const Text('Renew', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor, fontFamily: 'Lato')),
                                 ],
                               ],
                             ),
@@ -446,8 +447,8 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
           child: Icon(icon, color: color, size: 22),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
-        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)) : null,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87, fontFamily: 'NotoSans')),
+        subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500, fontFamily: 'Lato')) : null,
         trailing: const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
       ),
     );
@@ -468,14 +469,14 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text("SIGN OUT", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 1.0)),
+        child: const Text("Sign Out", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 1.0, fontFamily: 'Lato')),
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) => Padding(
     padding: const EdgeInsets.only(bottom: 12, left: 4),
-    child: Text(title.toUpperCase(), style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+    child: Text(title, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontFamily: 'NotoSans')),
   );
 }
 
@@ -953,7 +954,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-          title: const Text("Business Profile", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
+          title: const Text("Business Profile", style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'NotoSans')),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => widget.onBack()),
@@ -1008,14 +1009,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           ),
           label: Text(
             _fieldEditStates.values.any((v) => v) ? 'SAVE' : 'EDIT',
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontFamily: 'Lato'),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0))));
+  Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0, fontFamily: 'NotoSans'))));
 
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? fieldKey, bool showEditIcon = true}) {
     final hasValue = ctrl.text.isNotEmpty;
@@ -1032,7 +1033,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         enabled: isFieldEnabled,
         readOnly: isReadOnly,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
@@ -1041,7 +1042,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
           disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontFamily: 'Lato'),
         ),
         validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
       ),
@@ -1063,18 +1064,18 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         enabled: isFieldEnabled,
         readOnly: isReadOnly,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: kGrey400, fontWeight: FontWeight.w400),
+          hintStyle: const TextStyle(fontSize: 12, color: kGrey400, fontWeight: FontWeight.w400, fontFamily: 'Lato'),
           prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
           filled: true,
           fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
           disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontFamily: 'Lato'),
         ),
         validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
       ),
