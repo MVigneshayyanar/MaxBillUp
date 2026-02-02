@@ -493,12 +493,12 @@ class ExcelImportService {
             taxName = 'GST';
           }
 
-          // Determine tax type/treatment - default to 'Price is without Tax' for taxable products
+          // Determine tax type/treatment - default to 'Add Tax at Billing' for taxable products
           String? taxType;
           if (gst > 0) {
-            taxType = 'Price is without Tax'; // Default for products with tax
+            taxType = 'Add Tax at Billing'; // Default for products with tax
           } else if (taxName != null && (taxName.contains('EXEMPT') || taxName.contains('ZERO'))) {
-            taxType = 'Exempt Tax';
+            taxType = 'Exempt from Tax';
           }
 
           // Prepare product data - field names must match manual product creation

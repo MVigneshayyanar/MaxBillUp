@@ -8,7 +8,6 @@ import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:async';
@@ -22,10 +21,10 @@ import 'package:maxbillup/Auth/SubscriptionPlanPage.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
-import 'package:maxbillup/utils/language_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/Settings/TaxSettings.dart' as TaxSettingsNew;
+import 'package:maxbillup/Settings/StaffManagement.dart' hide kPrimaryColor, kErrorColor;
 
 // ==========================================DF
 // 1. MAIN SETTINGS PAGE
@@ -180,14 +179,20 @@ class _SettingsPageState extends State<SettingsPage> {
           initialStoreData: _storeData,
           initialUserData: _userData,
         );
+      case 'UserManagement':
+        return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: _goBack);
       case 'ReceiptSettings':
         return ReceiptSettingsPage(onBack: _goBack, onNavigate: _navigateTo, uid: widget.uid, userEmail: widget.userEmail);
+      case 'BillPrintSettings':
+        return BillPrintSettingsPage(onBack: _goBack);
       case 'ReceiptCustomization':
         return ReceiptCustomizationPage(onBack: _goBack);
       case 'TaxSettings':
         return TaxSettingsNew.TaxSettingsPage(uid: widget.uid, onBack: _goBack);
       case 'PrinterSetup':
         return PrinterSetupPage(onBack: _goBack);
+      case 'GeneralSettings':
+        return GeneralSettingsPage(onBack: _goBack, onNavigate: _navigateTo);
       case 'FeatureSettings':
         return FeatureSettingsPage(onBack: _goBack);
       case 'Language':
@@ -227,47 +232,58 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           _buildProfileCard(),
           const SizedBox(height: 24),
-          _buildSectionTitle("App Config"),
-          // Business Details - only visible if admin or has editBusinessProfile permission
+          _buildSectionTitle("App config"),
+          // 1. Business Profile - only visible if admin or has editBusinessProfile permission
           if (_isAdmin || _hasPermission('editBusinessProfile'))
             _buildModernTile(
-              title: context.tr('business_details'),
+              title: "Business Profile",
               icon: Icons.store_mall_directory_rounded,
               color: const Color(0xFF1976D2),
               onTap: () => _navigateTo('BusinessDetails'),
-              subtitle: "Manage business profile & currency",
+              subtitle: "Manage business profile & details",
             ),
-          // Receipt Customization - only visible if admin or has receiptCustomization permission
-          if (_isAdmin || _hasPermission('receiptCustomization'))
+          // 2. User Management (Staff Management moved here)
+          if (_isAdmin || _hasPermission('staffManagement'))
             _buildModernTile(
-              title: context.tr('receipt_customization'),
-              icon: Icons.receipt_long_rounded,
-              color: const Color(0xFFFF9800),
-              onTap: () => _navigateTo('ReceiptCustomization'),
-              subtitle: "Invoice templates & format",
+              title: "User Management",
+              icon: Icons.people_rounded,
+              color: const Color(0xFF607D8B),
+              onTap: () => _navigateTo('UserManagement'),
+              subtitle: "Manage staff & permissions",
             ),
-          // Tax Settings - only visible if admin or has taxSettings permission
+          // 3. Tax Settings - only visible if admin or has taxSettings permission
           if (_isAdmin || _hasPermission('taxSettings'))
             _buildModernTile(
-              title: context.tr('tax_settings'),
+              title: "Tax Setting",
               icon: Icons.percent_rounded,
               color: const Color(0xFF43A047),
               onTap: () => _navigateTo('TaxSettings'),
               subtitle: "GST, VAT & local tax compliance",
             ),
+          // 4. Bill & Print Settings - only visible if admin or has receiptCustomization permission
+          if (_isAdmin || _hasPermission('receiptCustomization'))
+            _buildModernTile(
+              title: "Bill & Print Setting",
+              icon: Icons.receipt_long_rounded,
+              color: const Color(0xFFFF9800),
+              onTap: () => _navigateTo('BillPrintSettings'),
+              subtitle: "Invoice templates & format",
+            ),
+          // 5. Printer Setup
           _buildModernTile(
-            title: context.tr('printer_setup'),
+            title: "Printer Setup",
             icon: Icons.print_rounded,
             color: const Color(0xFF9C27B0),
             onTap: () => _navigateTo('PrinterSetup'),
             subtitle: "Setup Bluetooth thermal printers",
           ),
+          // 6. General Settings (Language included)
           _buildModernTile(
-            title: context.tr('language'),
-            icon: Icons.language_rounded,
+            title: "General Setting",
+            icon: Icons.settings_rounded,
             color: const Color(0xFF12008C),
-            onTap: () => _navigateTo('Language'),
-            subtitle: "Choose your preferred language",
+            onTap: () => _navigateTo('GeneralSettings'),
+            subtitle: "Language",//, theme & preferences
           ),
           const SizedBox(height: 32),
           const Center(child: Text('Version 1.0.0', style: TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1, fontFamily: 'Lato'))),
@@ -350,7 +366,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   width: 72, height: 72,
                   decoration: BoxDecoration(
                     color: kGreyBg,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: kGrey200, width: 2),
                     image: logoUrl.isNotEmpty ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) : null,
                   ),
@@ -506,21 +522,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
   final _taxTypeCtrl = TextEditingController(), _taxNumberCtrl = TextEditingController();
   final _licenseTypeCtrl = TextEditingController(), _licenseNumberCtrl = TextEditingController();
-  final _locationFocusNode = FocusNode();
-  bool _editing = false, _loading = false, _fetching = true, _uploadingImage = false;
+  bool _loading = false, _fetching = true, _uploadingImage = false;
+  bool _hasChanges = false;
 
-  // Individual field edit states
-  Map<String, bool> _fieldEditStates = {
-    'businessName': false,
-    'location': false,
-    'taxType': false,
-    'taxNumber': false,
-    'licenseType': false,
-    'licenseNumber': false,
-    'currency': false,
-    'ownerName': false,
-    'phoneNumber': false,
-  };
+  // Original values to track changes
+  Map<String, String> _originalValues = {};
 
   String? _logoUrl;
   File? _selectedImage;
@@ -727,26 +733,57 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   @override
-  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); _locationFocusNode.dispose(); super.dispose(); }
+  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); super.dispose(); }
 
+  void _storeOriginalValues() {
+    _originalValues = {
+      'businessName': _nameCtrl.text,
+      'businessPhone': _phoneCtrl.text,
+      'businessLocation': _locCtrl.text,
+      'ownerName': _ownerCtrl.text,
+      'taxType': _taxTypeCtrl.text,
+      'taxNumber': _taxNumberCtrl.text,
+      'licenseType': _licenseTypeCtrl.text,
+      'licenseNumber': _licenseNumberCtrl.text,
+      'currency': _selectedCurrency,
+    };
+  }
 
-  /// Handle FAB press - enables all fields or saves all edited fields
-  // dart
-  // Add/replace these members inside `_BusinessDetailsPageState`
+  void _checkForChanges() {
+    final currentValues = {
+      'businessName': _nameCtrl.text,
+      'businessPhone': _phoneCtrl.text,
+      'businessLocation': _locCtrl.text,
+      'ownerName': _ownerCtrl.text,
+      'taxType': _taxTypeCtrl.text,
+      'taxNumber': _taxNumberCtrl.text,
+      'licenseType': _licenseTypeCtrl.text,
+      'licenseNumber': _licenseNumberCtrl.text,
+      'currency': _selectedCurrency,
+    };
 
-  void _handleFabPress() {
-    final bool isAnyFieldEditing = _fieldEditStates.values.any((v) => v == true);
-
-    if (isAnyFieldEditing) {
-      // User clicked "Save"
-      _saveAllFields();
-    } else {
-      // Enable editing for all editable fields
-      setState(() {
-        _editing = true;
-        _fieldEditStates.updateAll((key, value) => true);
-      });
+    bool changed = false;
+    for (final key in currentValues.keys) {
+      if (currentValues[key] != _originalValues[key]) {
+        changed = true;
+        break;
+      }
     }
+
+    if (changed != _hasChanges) {
+      setState(() => _hasChanges = changed);
+    }
+  }
+
+  void _setupChangeListeners() {
+    _nameCtrl.addListener(_checkForChanges);
+    _phoneCtrl.addListener(_checkForChanges);
+    _locCtrl.addListener(_checkForChanges);
+    _ownerCtrl.addListener(_checkForChanges);
+    _taxTypeCtrl.addListener(_checkForChanges);
+    _taxNumberCtrl.addListener(_checkForChanges);
+    _licenseTypeCtrl.addListener(_checkForChanges);
+    _licenseNumberCtrl.addListener(_checkForChanges);
   }
 
   Future<void> _saveAllFields() async {
@@ -782,11 +819,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       await FirebaseFirestore.instance.collection('store').doc(storeId).set(updateData, SetOptions(merge: true));
       await FirestoreService().notifyStoreDataChanged();
 
-      // Disable all edit states on success
+      // Reset change tracking on success
       if (mounted) {
+        _storeOriginalValues();
         setState(() {
-          _editing = false;
-          _fieldEditStates.updateAll((key, value) => false);
+          _hasChanges = false;
         });
       }
 
@@ -798,8 +835,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       if (mounted) setState(() => _loading = false);
     }
   }
-
-  // Replace / ensure the Scaffold's floatingActionButton uses this snippet:
 
 
   Future<void> _loadData() async {
@@ -856,6 +891,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           setState(() => _emailCtrl.text = uData['email'] ?? '');
         }
       }
+      // Store original values after loading and setup change listeners
+      _storeOriginalValues();
+      _setupChangeListeners();
     } catch (e) { debugPrint(e.toString()); }
   }
 
@@ -910,44 +948,12 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     finally { if (mounted) setState(() => _uploadingImage = false); }
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
-    try {
-      final storeId = await FirestoreService().getCurrentStoreId();
-      if (storeId != null) {
-        // Combine tax type and number into single field
-        final taxType = '${_taxTypeCtrl.text.trim()} ${_taxNumberCtrl.text.trim()}'.trim();
-        // Combine license type and number into single field
-        final licenseNumber = '${_licenseTypeCtrl.text.trim()} ${_licenseNumberCtrl.text.trim()}'.trim();
-
-        await FirebaseFirestore.instance.collection('store').doc(storeId).set({
-          'businessName': _nameCtrl.text.trim(),
-          'businessPhone': _phoneCtrl.text.trim(),
-          'email': _emailCtrl.text.trim(),
-          'taxType': taxType,
-          'gstin': taxType,
-          'licenseNumber': licenseNumber,
-          'currency': _selectedCurrency,
-          'businessLocation': _locCtrl.text.trim(),
-          'ownerName': _ownerCtrl.text.trim(),
-          'updatedAt': FieldValue.serverTimestamp()
-        }, SetOptions(merge: true));
-        await FirestoreService().notifyStoreDataChanged();
-        if (mounted) setState(() => _editing = false);
-      }
-    } catch (e) { debugPrint(e.toString()); }
-    finally { if (mounted) setState(() => _loading = false); }
-  }
 
   @override
   Widget build(BuildContext context) {
-    // Check if any field is in edit mode
-    final bool isAnyFieldEditing = _fieldEditStates.values.any((isEditing) => isEditing == true);
-
     return PopScope(
       canPop: false,
-      onPopInvoked: (bool didPop) { if (!didPop) { widget.onBack(); } },
+      onPopInvokedWithResult: (bool didPop, dynamic result) { if (!didPop) { widget.onBack(); } },
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
@@ -959,392 +965,586 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => widget.onBack()),
         ),
-        body: _fetching ? const Center(child: CircularProgressIndicator()) : SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                Center(child: Stack(children: [
-                  Container(
-                    width: 110, height: 110,
-                    decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, border: Border.all(color: kGrey200, width: 2)),
-                    child: ClipOval(
-                      child: _selectedImage != null
-                          ? Image.file(_selectedImage!, fit: BoxFit.cover)
-                          : _logoUrl != null && _logoUrl!.isNotEmpty
-                          ? Image.network(_logoUrl!, fit: BoxFit.cover, key: ValueKey(_logoUrl))
-                          : const Icon(Icons.add_business_rounded, size: 40, color: kGrey400),
-                    ),
+        body: _fetching ? const Center(child: CircularProgressIndicator()) : Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      Center(child: Stack(children: [
+                        Container(
+                          width: 110, height: 110,
+                          decoration: BoxDecoration(
+                            color: kWhite,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: kGrey200, width: 2),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: _selectedImage != null
+                                ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                                : _logoUrl != null && _logoUrl!.isNotEmpty
+                                ? Image.network(_logoUrl!, fit: BoxFit.cover, key: ValueKey(_logoUrl))
+                                : const Icon(Icons.add_business_rounded, size: 40, color: kGrey400),
+                          ),
+                        ),
+                        Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _uploadingImage ? null : _pickImage, child: Container(width: 34, height: 34, decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(8), border: Border.all(color: kWhite, width: 2)), child: _uploadingImage ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)))),
+                      ])),
+                      const SizedBox(height: 24),
+                      _buildSectionLabel("IDENTITY & TAX"),
+                      _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, isMandatory: true),
+                      _buildLocationField(),
+                      _buildModernFieldWithHint("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "VAT, GST, Sales Tax"),
+                      _buildModernFieldWithHint("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number"),
+                      _buildModernFieldWithHint("License Type", _licenseTypeCtrl, Icons.badge_rounded, hint: "Business License, Trade License"),
+                      _buildModernFieldWithHint("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number"),
+                      _buildCurrencyField(),
+                      const SizedBox(height: 24),
+                      _buildSectionLabel("CONTACT & OWNERSHIP"),
+                      _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded),
+                      _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone),
+                      _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false),
+                      const SizedBox(height: 20),
+                    ],
                   ),
-                  Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _uploadingImage ? null : _pickImage, child: Container(width: 34, height: 34, decoration: BoxDecoration(color: kPrimaryColor, shape: BoxShape.circle, border: Border.all(color: kWhite, width: 2)), child: _uploadingImage ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)))),
-                ])),
-                const SizedBox(height: 24),
-                _buildSectionLabel("IDENTITY & TAX"),
-                _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, isMandatory: true, fieldKey: 'businessName'),
-                _buildLocationField(),
-                _buildModernFieldWithHint("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "VAT, GST, Sales Tax", fieldKey: 'taxType'),
-                _buildModernFieldWithHint("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number", fieldKey: 'taxNumber'),
-                _buildModernFieldWithHint("License Type", _licenseTypeCtrl, Icons.badge_rounded, hint: "Business License, Trade License", fieldKey: 'licenseType'),
-                _buildModernFieldWithHint("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number", fieldKey: 'licenseNumber'),
-                _buildCurrencyField(),
-                const SizedBox(height: 24),
-                _buildSectionLabel("CONTACT & OWNERSHIP"),
-                _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded, fieldKey: 'ownerName'),
-                _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, fieldKey: 'phoneNumber'),
-                _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false, showEditIcon: false),
-                const SizedBox(height: 80), // Extra padding for FAB
-              ],
+                ),
+              ),
             ),
-          ),
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _handleFabPress,
-          backgroundColor: kPrimaryColor,
-          icon: Icon(
-            _fieldEditStates.values.any((v) => v)
-                ? Icons.save_rounded
-                : Icons.edit_rounded,
-            color: kWhite,
-          ),
-          label: Text(
-            _fieldEditStates.values.any((v) => v) ? 'SAVE' : 'EDIT',
-            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontFamily: 'Lato'),
-          ),
+            // Bottom Update Button - only show when there are changes
+            if (_hasChanges)
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.only(
+                  left: 16,
+                  right: 16,
+                  top: 16,
+                  bottom: 16 + MediaQuery.of(context).padding.bottom,
+                ),
+                decoration: BoxDecoration(
+                  color: kWhite,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(25),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: ElevatedButton(
+                  onPressed: _loading ? null : _saveAllFields,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _loading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: kWhite, strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Update',
+                          style: TextStyle(
+                            color: kWhite,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'NotoSans',
+                          ),
+                        ),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0, fontFamily: 'NotoSans'))));
+  Widget _buildSectionLabel(String title) => Padding(
+    padding: const EdgeInsets.only(bottom: 12, left: 4),
+    child: Text(title, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+  );
 
-  Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? fieldKey, bool showEditIcon = true}) {
-    final hasValue = ctrl.text.isNotEmpty;
-    final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
-
-    // Use enabled parameter for fields that should never be editable (like email)
-    final isFieldEnabled = enabled;
-    final isReadOnly = !isEditing || !enabled;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isMandatory ? const Color(0xFF6B78D8) : kGrey200),
+      ),
       child: TextFormField(
         controller: ctrl,
-        enabled: isFieldEnabled,
-        readOnly: isReadOnly,
+        enabled: enabled,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
-          filled: true,
-          fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontFamily: 'Lato'),
+          labelStyle: TextStyle(color: enabled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         ),
-        validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
+        validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+        onChanged: (_) => _checkForChanges(),
       ),
     );
   }
 
-  Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint, String? fieldKey, bool showEditIcon = true}) {
-    final hasValue = ctrl.text.isNotEmpty;
-    final isEditing = fieldKey != null && (_fieldEditStates[fieldKey] ?? false);
-
-    // Use enabled parameter for fields that should never be editable
-    final isFieldEnabled = enabled;
-    final isReadOnly = !isEditing || !enabled;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isMandatory ? const Color(0xFF6B78D8) : kGrey200),
+      ),
       child: TextFormField(
         controller: ctrl,
-        enabled: isFieldEnabled,
-        readOnly: isReadOnly,
+        enabled: enabled,
         keyboardType: type,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 12, color: kGrey400, fontWeight: FontWeight.w400, fontFamily: 'Lato'),
-          prefixIcon: Icon(icon, color: !isReadOnly ? kPrimaryColor : kGrey400, size: 18),
-          filled: true,
-          fillColor: !isReadOnly ? kWhite : kGreyBg.withOpacity(0.5),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-          floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontFamily: 'Lato'),
+          hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
+          labelStyle: TextStyle(color: enabled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54, size: 20),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         ),
-        validator: (v) => (isMandatory && (v == null || v.isEmpty)) ? "$label is required" : null,
-      ),
-    );
-  }
-
-  Widget _buildDualFieldRow(String label1, TextEditingController ctrl1, String label2, TextEditingController ctrl2, IconData icon) {
-    final hasValue1 = ctrl1.text.isNotEmpty;
-    final hasValue2 = ctrl2.text.isNotEmpty;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          // Type field (smaller, with icon)
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              controller: ctrl1,
-              enabled: _editing,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-              decoration: InputDecoration(
-                labelText: label1,
-                prefixIcon: Icon(icon, color: _editing ? kPrimaryColor : kGrey400, size: 18),
-                filled: true,
-                fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue1 ? kPrimaryColor : kGrey200, width: hasValue1 ? 1.5 : 1)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-                disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue1 ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-                floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Number field (larger, no icon)
-          Expanded(
-            flex: 3,
-            child: TextFormField(
-              controller: ctrl2,
-              enabled: _editing,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-              decoration: InputDecoration(
-                labelText: label2,
-                filled: true,
-                fillColor: _editing ? kWhite : kGreyBg.withOpacity(0.5),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue2 ? kPrimaryColor : kGrey200, width: hasValue2 ? 1.5 : 1)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-                disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasValue2 ? kPrimaryColor.withOpacity(0.5) : kGrey200)),
-                floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
+        validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+        onChanged: (_) => _checkForChanges(),
       ),
     );
   }
 
   Widget _buildLocationField() {
-    final hasValue = _locCtrl.text.isNotEmpty;
-    final isEditing = _fieldEditStates['location'] ?? false;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: TextField(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: TextFormField(
         controller: _locCtrl,
-        focusNode: _locationFocusNode,
-        readOnly: !isEditing,
-        decoration: InputDecoration(
-          labelText: "Location",
-          prefixIcon: Icon(
-            Icons.location_on_rounded,
-            color: isEditing ? kPrimaryColor : kGrey400,
-            size: 18,
-          ),
-          filled: true,
-          fillColor: isEditing ? kWhite : kGreyBg.withOpacity(0.5),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-              color: kPrimaryColor,
-              width: 1.5,
-            ),
-          ),
-          disabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasValue ? kPrimaryColor.withOpacity(0.5) : kGrey200),
-          ),
-          floatingLabelStyle: const TextStyle(
-            color: kPrimaryColor,
-            fontWeight: FontWeight.w800,
-          ),
+        keyboardType: TextInputType.streetAddress,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+        maxLines: 2,
+        minLines: 1,
+        decoration: const InputDecoration(
+          labelText: "Address",
+          labelStyle: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+          prefixIcon: Icon(Icons.location_on_rounded, color: kPrimaryColor, size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         ),
+        onChanged: (_) => _checkForChanges(),
       ),
     );
   }
 
-
   Widget _buildCurrencyField() {
-    final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
-    final hasValue = _selectedCurrency.isNotEmpty;
-    final isEditing = _fieldEditStates['currency'] ?? false;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        onTap: isEditing ? _showCurrencyPicker : null,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isEditing ? kWhite : kGreyBg.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1)
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.currency_exchange_rounded, color: isEditing ? kPrimaryColor : kGrey400, size: 18),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("Business Currency", style: TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w800)),
-                    Text("${sel['symbol']} ${sel['code']} - ${sel['name']}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87))
-                  ]
-                )
-              ),
-            ],
-          ),
+    final selectedCurrencyData = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[3]);
+    return GestureDetector(
+      onTap: _showCurrencyPicker,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kGrey200),
+        ),
+        child: ListTile(
+          leading: const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 20),
+          title: const Text("Currency", style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans')),
+          subtitle: Text("${selectedCurrencyData['symbol']} ${selectedCurrencyData['name']}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato')),
+          trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: kBlack54, size: 24),
         ),
       ),
     );
   }
 
   void _showCurrencyPicker() {
-    String searchQuery = ''; // Declare outside to persist across rebuilds
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final filteredCurrencies = _currencies.where((currency) {
-              if (searchQuery.isEmpty) return true;
-              final query = searchQuery.toLowerCase();
-              return currency['code']!.toLowerCase().contains(query) ||
-                     currency['name']!.toLowerCase().contains(query) ||
-                     currency['symbol']!.toLowerCase().contains(query);
-            }).toList();
-
-            return Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
-                const SizedBox(height: 16),
-                // Search Bar
-                TextField(
-                  autofocus: false,
-                  decoration: InputDecoration(
-                    hintText: 'Search currency code, name or symbol...',
-                    hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
-                    prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
-                    filled: true,
-                    fillColor: kGreyBg,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Container(
+        height: 400,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(height: 16),
+            const Text("Select Currency", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, fontFamily: 'NotoSans')),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _currencies.length,
+                itemBuilder: (context, index) {
+                  final currency = _currencies[index];
+                  final isSelected = _selectedCurrency == currency['code'];
+                  return ListTile(
+                    leading: Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10)),
+                      child: Center(child: Text(currency['symbol']!, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: isSelected ? kPrimaryColor : kBlack54))),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  onChanged: (value) {
-                    setModalState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Results count
-                if (searchQuery.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${filteredCurrencies.length} ${filteredCurrencies.length == 1 ? 'currency' : 'currencies'} found',
-                        style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                // Currency List
-                Expanded(
-                  child: filteredCurrencies.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.search_off, size: 48, color: kGrey400),
-                              SizedBox(height: 12),
-                              Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
-                            ],
-                          ),
-                        )
-                      : ListView.separated(
-                          itemCount: filteredCurrencies.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (ctx, i) {
-                            final currency = filteredCurrencies[i];
-                            final isSelected = _selectedCurrency == currency['code'];
-                            return ListTile(
-                              onTap: () {
-                                setState(() => _selectedCurrency = currency['code']!);
-                                Navigator.pop(context);
-                              },
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  currency['symbol']!,
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSelected ? kPrimaryColor : kBlack87,
-                                  ),
-                                ),
-                              ),
-                              title: Text(
-                                currency['name']!,
-                                style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                                  color: isSelected ? kPrimaryColor : kBlack87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                currency['code']!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isSelected ? kPrimaryColor : kBlack54,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              trailing: isSelected
-                                  ? const Icon(Icons.check_circle, color: kPrimaryColor, size: 24)
-                                  : null,
-                            );
-                          },
-                        ),
-                ),
-              ],
+                    title: Text(currency['name']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'Lato')),
+                    subtitle: Text(currency['code']!, style: const TextStyle(color: kBlack54, fontSize: 12)),
+                    trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor) : null,
+                    onTap: () {
+                      setState(() => _selectedCurrency = currency['code']!);
+                      _checkForChanges();
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
             ),
-            );
-          },
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
 
 // ==========================================
-// 3. PRINTER SETUP PAGE
+// BILL & PRINT SETTINGS PAGE
+// ==========================================
+class BillPrintSettingsPage extends StatefulWidget {
+  final VoidCallback onBack;
+  const BillPrintSettingsPage({super.key, required this.onBack});
+  @override
+  State<BillPrintSettingsPage> createState() => _BillPrintSettingsPageState();
+}
+
+class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> {
+  bool _isThermalPrinter = true;
+  String _thermalPageSize = '58mm';
+  String _regularPageSize = 'A4';
+  int _numberOfCopies = 1;
+  bool _showHeader = true;
+  bool _showLogo = true;
+  bool _showCustomerInfo = true;
+  bool _showItemTable = true;
+  bool _showTotalItemQuantity = true;
+  bool _showTaxDetails = true;
+  bool _showYouSaved = true;
+  bool _showDescription = false;
+  bool _showDelivery = false;
+  String _saleInvoiceText = 'Thank you for your purchase!';
+  bool _showSignature = false;
+  String _estimationText = '';
+  String _deliveryChallanText = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isThermalPrinter = prefs.getBool('is_thermal_printer') ?? true;
+      _thermalPageSize = prefs.getString('thermal_page_size') ?? '58mm';
+      _regularPageSize = prefs.getString('regular_page_size') ?? 'A4';
+      _numberOfCopies = prefs.getInt('number_of_copies') ?? 1;
+      _showHeader = prefs.getBool('show_header') ?? true;
+      _showLogo = prefs.getBool('show_logo') ?? true;
+      _showCustomerInfo = prefs.getBool('show_customer_info') ?? true;
+      _showItemTable = prefs.getBool('show_item_table') ?? true;
+      _showTotalItemQuantity = prefs.getBool('show_total_item_quantity') ?? true;
+      _showTaxDetails = prefs.getBool('show_tax_details') ?? true;
+      _showYouSaved = prefs.getBool('show_you_saved') ?? true;
+      _showDescription = prefs.getBool('show_description') ?? false;
+      _showDelivery = prefs.getBool('show_delivery') ?? false;
+      _saleInvoiceText = prefs.getString('sale_invoice_text') ?? 'Thank you for your purchase!';
+      _showSignature = prefs.getBool('show_signature') ?? false;
+      _estimationText = prefs.getString('estimation_text') ?? '';
+      _deliveryChallanText = prefs.getString('delivery_challan_text') ?? '';
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_thermal_printer', _isThermalPrinter);
+    await prefs.setString('thermal_page_size', _thermalPageSize);
+    await prefs.setString('regular_page_size', _regularPageSize);
+    await prefs.setInt('number_of_copies', _numberOfCopies);
+    await prefs.setBool('show_header', _showHeader);
+    await prefs.setBool('show_logo', _showLogo);
+    await prefs.setBool('show_customer_info', _showCustomerInfo);
+    await prefs.setBool('show_item_table', _showItemTable);
+    await prefs.setBool('show_total_item_quantity', _showTotalItemQuantity);
+    await prefs.setBool('show_tax_details', _showTaxDetails);
+    await prefs.setBool('show_you_saved', _showYouSaved);
+    await prefs.setBool('show_description', _showDescription);
+    await prefs.setBool('show_delivery', _showDelivery);
+    await prefs.setString('sale_invoice_text', _saleInvoiceText);
+    await prefs.setBool('show_signature', _showSignature);
+    await prefs.setString('estimation_text', _estimationText);
+    await prefs.setString('delivery_challan_text', _deliveryChallanText);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) { if (!didPop) widget.onBack(); },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+          title: const Text('Bill & Print Settings', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildSectionLabel('PRINTER TYPE'),
+            Container(
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+              child: ListTile(
+                leading: Icon(_isThermalPrinter ? Icons.print_rounded : Icons.picture_as_pdf_rounded, color: kPrimaryColor),
+                title: Text(_isThermalPrinter ? 'Thermal Printer' : 'Regular Printer', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+                subtitle: Text(_isThermalPrinter ? 'Small paper print for POS printers' : 'Full-page invoice for print or sharing', style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
+                trailing: Switch.adaptive(value: _isThermalPrinter, onChanged: (v) { setState(() => _isThermalPrinter = v); _saveSettings(); }, activeColor: kPrimaryColor),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_isThermalPrinter) ..._buildThermalSettings() else ..._buildRegularSettings(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildThermalSettings() {
+    return [
+      _buildSectionLabel('THERMAL PRINTER SETTINGS'),
+      Container(
+        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+            const SizedBox(height: 8),
+            Row(children: [
+              _buildPageSizeOption('2 inch (58mm)', '58mm', _thermalPageSize == '58mm'),
+              const SizedBox(width: 12),
+              _buildPageSizeOption('3 inch (80mm)', '80mm', _thermalPageSize == '80mm'),
+            ]),
+            const SizedBox(height: 16),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+              Row(children: [
+                IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _numberOfCopies > 1 ? () { setState(() => _numberOfCopies--); _saveSettings(); } : null),
+                Text('$_numberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _numberOfCopies++); _saveSettings(); }),
+              ]),
+            ]),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      _buildSectionLabel('IDENTITY & BRANDING'),
+      _SettingsGroup(children: [
+        _SwitchTile('Show Header', _showHeader, (v) { setState(() => _showHeader = v); _saveSettings(); }),
+        _SwitchTile('Show Logo', _showLogo, (v) { setState(() => _showLogo = v); _saveSettings(); }),
+        _SwitchTile('Show Customer Information', _showCustomerInfo, (v) { setState(() => _showCustomerInfo = v); _saveSettings(); }),
+        _SwitchTile('Show Item Table', _showItemTable, (v) { setState(() => _showItemTable = v); _saveSettings(); }, showDivider: false),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionLabel('TOTALS & TAXES'),
+      _SettingsGroup(children: [
+        _SwitchTile('Total Item Quantity', _showTotalItemQuantity, (v) { setState(() => _showTotalItemQuantity = v); _saveSettings(); }),
+        _SwitchTile('Tax Details', _showTaxDetails, (v) { setState(() => _showTaxDetails = v); _saveSettings(); }),
+        _SwitchTile('You Saved', _showYouSaved, (v) { setState(() => _showYouSaved = v); _saveSettings(); }),
+        _SwitchTile('Description / Notes', _showDescription, (v) { setState(() => _showDescription = v); _saveSettings(); }),
+        _SwitchTile('Delivery', _showDelivery, (v) { setState(() => _showDelivery = v); _saveSettings(); }, showDivider: false),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionLabel('FOOTER'),
+      _buildTextFieldSection('Sale Invoice Text', _saleInvoiceText, (v) { _saleInvoiceText = v; _saveSettings(); }),
+    ];
+  }
+
+  List<Widget> _buildRegularSettings() {
+    return [
+      _buildSectionLabel('PRINTER SETTINGS'),
+      Container(
+        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+            const SizedBox(height: 8),
+            Row(children: [
+              _buildPageSizeOption('A4 (210×297mm)', 'A4', _regularPageSize == 'A4'),
+              const SizedBox(width: 12),
+              _buildPageSizeOption('A5 (148×210mm)', 'A5', _regularPageSize == 'A5'),
+            ]),
+            const SizedBox(height: 16),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+              Row(children: [
+                IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _numberOfCopies > 1 ? () { setState(() => _numberOfCopies--); _saveSettings(); } : null),
+                Text('$_numberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _numberOfCopies++); _saveSettings(); }),
+              ]),
+            ]),
+          ],
+        ),
+      ),
+      const SizedBox(height: 16),
+      _buildSectionLabel('IDENTITY & BRANDING'),
+      _SettingsGroup(children: [
+        _SwitchTile('Show Header', _showHeader, (v) { setState(() => _showHeader = v); _saveSettings(); }),
+        _SwitchTile('Show Logo', _showLogo, (v) { setState(() => _showLogo = v); _saveSettings(); }),
+        _SwitchTile('Show Customer Information', _showCustomerInfo, (v) { setState(() => _showCustomerInfo = v); _saveSettings(); }),
+        _SwitchTile('Show Item Table', _showItemTable, (v) { setState(() => _showItemTable = v); _saveSettings(); }, showDivider: false),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionLabel('TOTALS & TAXES'),
+      _SettingsGroup(children: [
+        _SwitchTile('Total Item Quantity', _showTotalItemQuantity, (v) { setState(() => _showTotalItemQuantity = v); _saveSettings(); }),
+        _SwitchTile('Tax Details', _showTaxDetails, (v) { setState(() => _showTaxDetails = v); _saveSettings(); }),
+        _SwitchTile('You Saved', _showYouSaved, (v) { setState(() => _showYouSaved = v); _saveSettings(); }),
+        _SwitchTile('Add Note / Bill Notes', _showDescription, (v) { setState(() => _showDescription = v); _saveSettings(); }),
+        _SwitchTile('Delivery', _showDelivery, (v) { setState(() => _showDelivery = v); _saveSettings(); }, showDivider: false),
+      ]),
+      const SizedBox(height: 16),
+      _buildSectionLabel('FOOTER'),
+      _SettingsGroup(children: [_SwitchTile('Print Signature', _showSignature, (v) { setState(() => _showSignature = v); _saveSettings(); }, showDivider: false)]),
+      const SizedBox(height: 16),
+      _buildTextFieldSection('Sale Invoice Text', _saleInvoiceText, (v) { _saleInvoiceText = v; _saveSettings(); }),
+      const SizedBox(height: 12),
+      _buildTextFieldSection('Estimation/Quotation Text', _estimationText, (v) { _estimationText = v; _saveSettings(); }),
+      const SizedBox(height: 12),
+      _buildTextFieldSection('Delivery Challan Text', _deliveryChallanText, (v) { _deliveryChallanText = v; _saveSettings(); }),
+    ];
+  }
+
+  Widget _buildPageSizeOption(String label, String value, bool isSelected) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () { setState(() { if (_isThermalPrinter) _thermalPageSize = value; else _regularPageSize = value; }); _saveSettings(); },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: isSelected ? kPrimaryColor : kGrey200)),
+          child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54, fontFamily: 'Lato')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextFieldSection(String label, String value, Function(String) onChanged) {
+    final controller = TextEditingController(text: value);
+    return Container(
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+        const SizedBox(height: 8),
+        TextField(controller: controller, onChanged: onChanged, maxLines: 2, style: const TextStyle(fontSize: 14, fontFamily: 'Lato'),
+          decoration: InputDecoration(hintText: 'Enter $label', hintStyle: const TextStyle(color: kGrey400, fontSize: 12), filled: true, fillColor: kGreyBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+      ]),
+    );
+  }
+
+  Widget _buildSectionLabel(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontFamily: 'NotoSans')));
+}
+
+// ==========================================
+// GENERAL SETTINGS PAGE
+// ==========================================
+class GeneralSettingsPage extends StatefulWidget {
+  final VoidCallback onBack;
+  final Function(String) onNavigate;
+  const GeneralSettingsPage({super.key, required this.onBack, required this.onNavigate});
+  @override
+  State<GeneralSettingsPage> createState() => _GeneralSettingsPageState();
+}
+
+class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
+  String _selectedLanguage = 'English';
+  bool _darkMode = false;
+  bool _notificationsEnabled = true;
+
+  @override
+  void initState() { super.initState(); _loadSettings(); }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLanguage = prefs.getString('selected_language') ?? 'English';
+      _darkMode = prefs.getBool('dark_mode') ?? false;
+      _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', _selectedLanguage);
+    await prefs.setBool('dark_mode', _darkMode);
+    await prefs.setBool('notifications_enabled', _notificationsEnabled);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) { if (!didPop) widget.onBack(); },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+          title: const Text('General Settings', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+        ),
+        body: ListView(padding: const EdgeInsets.all(16), children: [
+          _buildSectionLabel('LANGUAGE'),
+          Container(
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            child: ListTile(
+              leading: const Icon(Icons.language_rounded, color: kPrimaryColor),
+              title: const Text('Language', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+              subtitle: Text(_selectedLanguage, style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+              onTap: () => widget.onNavigate('Language'),
+            ),
+          ),
+          // const SizedBox(height: 16),
+          // _buildSectionLabel('APPEARANCE'),
+          // _SettingsGroup(children: [_SwitchTile('Dark Mode', _darkMode, (v) { setState(() => _darkMode = v); _saveSettings(); }, showDivider: false)]),
+          // const SizedBox(height: 16),
+          // _buildSectionLabel('NOTIFICATIONS'),
+          // _SettingsGroup(children: [_SwitchTile('Push Notifications', _notificationsEnabled, (v) { setState(() => _notificationsEnabled = v); _saveSettings(); }, showDivider: false)]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontFamily: 'NotoSans')));
+}
+
+// ==========================================
+// PRINTER SETUP PAGE
 // ==========================================
 class PrinterSetupPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -1404,7 +1604,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text("Printer Setup", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
+        ),title: const Text("Printer Setup", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1495,7 +1695,7 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
 }
 
 // ==========================================
-// 4. FEATURE SETTINGS PAGE
+// FEATURE SETTINGS PAGE
 // ==========================================
 class FeatureSettingsPage extends StatefulWidget {
   final VoidCallback onBack;
@@ -1940,7 +2140,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             decoration: BoxDecoration(
               color: sel ? col : kWhite,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: sel ? col : kGrey200, width: 1.5),
+              border: Border.all(color: sel ? col : kGrey200, width: sel ? 1.5 : 1),
               boxShadow: sel ? [BoxShadow(color: col.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 4))] : [],
             ),
             child: Column(
@@ -2128,7 +2328,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
-      child: TextField(
+      child: TextFormField(
         controller: ctrl,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack87),
         decoration: InputDecoration(
@@ -2170,45 +2370,114 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     );
   }
 }
-class LanguagePage extends StatelessWidget {
+
+// ==========================================
+// LANGUAGE PAGE
+// ==========================================
+
+class LanguagePage extends StatefulWidget {
   final VoidCallback onBack;
   const LanguagePage({super.key, required this.onBack});
 
   @override
+  State<LanguagePage> createState() => _LanguagePageState();
+}
+
+class _LanguagePageState extends State<LanguagePage> {
+  String _selectedLanguage = 'English';
+
+  // Languages ordered as requested:
+  // 1. English (default)
+  // 2-3. International languages
+  // Tamil and Hindi at bottom
+  final List<Map<String, String>> _languages = [
+    {'code': 'en', 'name': 'English', 'nativeName': 'English'},
+    {'code': 'ar', 'name': 'Arabic', 'nativeName': 'العربية'},
+    {'code': 'es', 'name': 'Spanish', 'nativeName': 'Español'},
+    {'code': 'fr', 'name': 'French', 'nativeName': 'Français'},
+    {'code': 'de', 'name': 'German', 'nativeName': 'Deutsch'},
+    {'code': 'zh', 'name': 'Chinese', 'nativeName': '中文'},
+    {'code': 'ja', 'name': 'Japanese', 'nativeName': '日本語'},
+    {'code': 'ko', 'name': 'Korean', 'nativeName': '한국어'},
+    {'code': 'ru', 'name': 'Russian', 'nativeName': 'Русский'},
+    {'code': 'pt', 'name': 'Portuguese', 'nativeName': 'Português'},
+    {'code': 'ta', 'name': 'Tamil', 'nativeName': 'தமிழ்'},
+    {'code': 'hi', 'name': 'Hindi', 'nativeName': 'हिन्दी'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguage();
+  }
+
+  Future<void> _loadLanguage() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _selectedLanguage = prefs.getString('selected_language') ?? 'English';
+    });
+  }
+
+  Future<void> _saveLanguage(String language) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('selected_language', language);
+    setState(() => _selectedLanguage = language);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<LanguageProvider>(context);
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text("Select Language", style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), centerTitle: true, backgroundColor: kPrimaryColor, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)),
-      body: Column(
+        ),
+        title: const Text('Language', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            width: double.infinity, padding: const EdgeInsets.all(16), margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: kOrange.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: kOrange.withOpacity(0.2))),
-            child: Row(children: [const Icon(Icons.info_outline_rounded, color: kOrange, size: 20), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [Text('English is fully supported', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kOrange)), Text('Localized support for other languages is in progress.', style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500))]))]),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12, left: 4),
+            child: Text('Select language', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
           ),
-          Expanded(
-            child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: provider.languages.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (ctx, i) {
-                  String code = provider.languages.keys.elementAt(i);
-                  bool sel = provider.currentLanguageCode == code;
-                  bool soon = code != 'en';
-                  return Container(
-                    decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: sel ? kPrimaryColor : kGrey200, width: sel ? 1.5 : 1)),
-                    child: ListTile(
-                      onTap: soon ? null : () => provider.changeLanguage(code),
-                      leading: CircleAvatar(backgroundColor: kGreyBg, child: Text(code.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBlack54))),
-                      title: Row(children: [Text(provider.languages[code]!['name']!, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)), if (soon) Container(margin: const EdgeInsets.only(left: 10), padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(6)), child: const Text("SOON", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBlack54)))]),
-                      trailing: sel ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor) : (soon ? const Icon(Icons.lock_clock_rounded, size: 16, color: kGrey400) : null),
+          Container(
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kGrey200),
+            ),
+            child: Column(
+              children: _languages.asMap().entries.map((entry) {
+                final index = entry.key;
+                final lang = entry.value;
+                final isSelected = _selectedLanguage == lang['name'];
+                return Column(
+                  children: [
+                    ListTile(
+                      onTap: () => _saveLanguage(lang['name']!),
+                      leading: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Center(
+                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54)),
+                        ),
+                      ),
+                      title: Text(lang['name']!, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isSelected ? kPrimaryColor : kBlack87)),
+                      subtitle: Text(lang['nativeName']!, style: TextStyle(fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54, fontFamily: 'Lato')),
+                      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
                     ),
-                  );
-                }
+                    if (index < _languages.length - 1) const Divider(height: 1, indent: 60, color: kGrey100),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -2217,28 +2486,456 @@ class LanguagePage extends StatelessWidget {
   }
 }
 
-class _SettingsGroup extends StatelessWidget { final List<Widget> children; const _SettingsGroup({required this.children}); @override Widget build(BuildContext context) => Container(decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)), child: Column(children: children)); }
-class _SettingsTile extends StatelessWidget {
-  final IconData? icon; final String title; final String? subtitle; final VoidCallback onTap; final bool showDivider;
-  const _SettingsTile({this.icon, required this.title, required this.onTap, this.showDivider = true, this.subtitle});
-  @override Widget build(BuildContext context) => Column(children: [ListTile(leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kBlack87, size: 20)), title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700)), subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)) : null, trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400), onTap: onTap), if (showDivider) const Divider(height: 1, indent: 60, color: kGrey100)]);
-}
-class _SwitchTile extends StatelessWidget {
-  final String title; final bool value; final Function(bool) onChanged; final bool showDivider; final String? subtitle; final bool enabled;
-  const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true, this.subtitle, this.enabled = true});
-  @override Widget build(BuildContext context) => Column(children: [Padding(padding: const EdgeInsets.all(16), child: Row(children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)), if (subtitle != null) Text(subtitle!, style: const TextStyle(fontSize: 11, color: kOrange, fontWeight: FontWeight.w800))])), CupertinoSwitch(value: value, onChanged: enabled ? onChanged : null, activeColor: kPrimaryColor)])), if (showDivider) const Divider(height: 1, indent: 16, color: kGrey100)]);
+// ==========================================
+// THEME PAGE
+// ==========================================
+
+class ThemePage extends StatefulWidget {
+  final VoidCallback onBack;
+  const ThemePage({super.key, required this.onBack});
+
+  @override
+  State<ThemePage> createState() => _ThemePageState();
 }
 
+class _ThemePageState extends State<ThemePage> {
+  String _selectedTheme = 'Light';
 
-class ThemePage extends StatelessWidget { final VoidCallback onBack; const ThemePage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Theme", onBack); }
-class HelpPage extends StatelessWidget { final VoidCallback onBack; final Function(String) onNavigate; const HelpPage({super.key, required this.onBack, required this.onNavigate}); @override Widget build(BuildContext context) => _SimplePage("Help & Support", onBack); }
-class FAQsPage extends StatelessWidget { final VoidCallback onBack; const FAQsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Frequently Asked Questions", onBack); }
-class UpcomingFeaturesPage extends StatelessWidget { final VoidCallback onBack; const UpcomingFeaturesPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("New Features", onBack); }
-class VideoTutorialsPage extends StatelessWidget { final VoidCallback onBack; const VideoTutorialsPage({super.key, required this.onBack}); @override Widget build(BuildContext context) => _SimplePage("Tutorial Videos", onBack); }
-class _SimplePage extends StatelessWidget {
-  final String title; final VoidCallback onBack; const _SimplePage(this.title, this.onBack);
-  @override Widget build(BuildContext context) => Scaffold(backgroundColor: kGreyBg, appBar: AppBar(
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: Text(title, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)), backgroundColor: kPrimaryColor, centerTitle: true, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack)), body: Center(child: Text("$title Content Loading...", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))));
+        ),
+        title: const Text('Theme', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12, left: 4),
+            child: Text('Appearance', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kGrey200),
+            ),
+            child: Column(
+              children: [
+                _buildThemeTile('Light', Icons.light_mode_rounded, Colors.orange),
+                const Divider(height: 1, indent: 60, color: kGrey100),
+                _buildThemeTile('Dark', Icons.dark_mode_rounded, Colors.indigo),
+                const Divider(height: 1, indent: 60, color: kGrey100),
+                _buildThemeTile('System', Icons.settings_brightness_rounded, Colors.grey),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: kPrimaryColor.withAlpha(13),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kPrimaryColor.withAlpha(51)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.info_outline_rounded, color: kPrimaryColor, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Dark mode support coming soon!', style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Lato')),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildThemeTile(String theme, IconData icon, Color color) {
+    final isSelected = _selectedTheme == theme;
+    return ListTile(
+      onTap: () => setState(() => _selectedTheme = theme),
+      leading: Container(
+        width: 40, height: 40,
+        decoration: BoxDecoration(
+          color: color.withAlpha(25),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+      title: Text(theme, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isSelected ? kPrimaryColor : kBlack87)),
+      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
+    );
+  }
+}
+
+// ==========================================
+// HELP PAGE
+// ==========================================
+
+class HelpPage extends StatelessWidget {
+  final VoidCallback onBack;
+  final Function(String) onNavigate;
+  const HelpPage({super.key, required this.onBack, required this.onNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        title: const Text('Help & Support', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12, left: 4),
+            child: Text('Resources', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kGrey200),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.blue.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.help_center_rounded, color: Colors.blue, size: 20),
+                  ),
+                  title: const Text('FAQs', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                  subtitle: const Text('Frequently asked questions', style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                  onTap: () => onNavigate('FAQs'),
+                ),
+                const Divider(height: 1, indent: 60, color: kGrey100),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.red.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.play_circle_rounded, color: Colors.red, size: 20),
+                  ),
+                  title: const Text('Video Tutorials', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                  subtitle: const Text('Learn with step-by-step videos', style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                  onTap: () => onNavigate('VideoTutorials'),
+                ),
+                const Divider(height: 1, indent: 60, color: kGrey100),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.purple.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.upcoming_rounded, color: Colors.purple, size: 20),
+                  ),
+                  title: const Text('Upcoming Features', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                  subtitle: const Text('What\'s coming next', style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                  onTap: () => onNavigate('UpcomingFeatures'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12, left: 4),
+            child: Text('Contact Us', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: kGrey200),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.green.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.email_rounded, color: Colors.green, size: 20),
+                  ),
+                  title: const Text('Email Support', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                  subtitle: const Text('support@maxbillup.com', style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                ),
+                const Divider(height: 1, indent: 60, color: kGrey100),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.teal.withAlpha(25), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.chat_rounded, color: Colors.teal, size: 20),
+                  ),
+                  title: const Text('Live Chat', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                  subtitle: const Text('Chat with our team', style: TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500, fontFamily: 'Lato')),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// FAQs PAGE
+// ==========================================
+
+class FAQsPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const FAQsPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        title: const Text('FAQs', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildFAQItem('How do I add products?', 'Go to Inventory > Add Product. Fill in the product details like name, price, and stock quantity.'),
+          _buildFAQItem('How do I print receipts?', 'Connect a Bluetooth thermal printer in Settings > Printer Setup. Then enable auto-print in the same settings.'),
+          _buildFAQItem('How do I import products from Excel?', 'Go to Inventory > Import. Download the template, fill in your products, and upload the Excel file.'),
+          _buildFAQItem('How do I view sales reports?', 'Navigate to Reports from the bottom menu to see daily, weekly, and monthly sales summaries.'),
+          _buildFAQItem('How do I manage staff permissions?', 'Go to Settings > User Management. Add staff members and configure their access permissions.'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFAQItem(String question, String answer) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: ExpansionTile(
+        title: Text(question, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          Text(answer, style: const TextStyle(fontSize: 13, color: kBlack54, fontFamily: 'Lato', height: 1.5)),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// UPCOMING FEATURES PAGE
+// ==========================================
+
+class UpcomingFeaturesPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const UpcomingFeaturesPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        title: const Text('Upcoming Features', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildFeatureItem('Dark Mode', 'Coming Soon', Icons.dark_mode_rounded, Colors.indigo),
+          _buildFeatureItem('Multi-Store Support', 'Q2 2026', Icons.store_rounded, Colors.blue),
+          _buildFeatureItem('Advanced Analytics', 'Q2 2026', Icons.analytics_rounded, Colors.green),
+          _buildFeatureItem('E-commerce Integration', 'Q3 2026', Icons.shopping_cart_rounded, Colors.orange),
+          _buildFeatureItem('Supplier Management', 'Q3 2026', Icons.local_shipping_rounded, Colors.purple),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureItem(String title, String timeline, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withAlpha(25),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(timeline, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, fontFamily: 'Lato')),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// VIDEO TUTORIALS PAGE
+// ==========================================
+
+class VideoTutorialsPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const VideoTutorialsPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        title: const Text('Video Tutorials', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _buildVideoItem('Getting Started', '5 min', Icons.play_circle_filled_rounded),
+          _buildVideoItem('Adding Products', '3 min', Icons.play_circle_filled_rounded),
+          _buildVideoItem('Making Sales', '4 min', Icons.play_circle_filled_rounded),
+          _buildVideoItem('Printer Setup', '2 min', Icons.play_circle_filled_rounded),
+          _buildVideoItem('Reports & Analytics', '6 min', Icons.play_circle_filled_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideoItem(String title, String duration, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(12),
+        leading: Container(
+          width: 80, height: 50,
+          decoration: BoxDecoration(
+            color: Colors.red.withAlpha(25),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.play_circle_filled_rounded, color: Colors.red, size: 32),
+        ),
+        title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+        subtitle: Text(duration, style: const TextStyle(fontSize: 11, color: kBlack54, fontFamily: 'Lato')),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// HELPER WIDGETS
+// ==========================================
+
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kGrey200),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _SwitchTile extends StatelessWidget {
+  final String title;
+  final bool value;
+  final Function(bool) onChanged;
+  final bool showDivider;
+
+  const _SwitchTile(this.title, this.value, this.onChanged, {this.showDivider = true});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'))),
+              Switch.adaptive(
+                value: value,
+                onChanged: onChanged,
+                activeColor: kPrimaryColor,
+              ),
+            ],
+          ),
+        ),
+        if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16, color: kGrey100),
+      ],
+    );
+  }
 }

@@ -228,7 +228,7 @@ class _QuotationPageState extends State<QuotationPage> {
 
       // Calculate subtotal (without tax) and total with tax
       final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
-        if (item.taxType == 'Price includes Tax') {
+        if (item.taxType == 'Tax Included in Price' || item.taxType == 'Price includes Tax') {
           return sum + (item.basePrice * item.quantity);
         } else {
           return sum + item.total;
@@ -639,7 +639,7 @@ class _QuotationPageState extends State<QuotationPage> {
 
     // Calculate subtotal (without tax) and total with tax
     final subtotalAmount = widget.cartItems.fold(0.0, (sum, item) {
-      if (item.taxType == 'Price includes Tax') {
+      if (item.taxType == 'Tax Included in Price' || item.taxType == 'Price includes Tax') {
         return sum + (item.basePrice * item.quantity);
       } else {
         return sum + item.total;

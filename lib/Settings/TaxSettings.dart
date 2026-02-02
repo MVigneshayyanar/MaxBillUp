@@ -20,14 +20,14 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 
   // Localized and expanded tax categories for UAE (Dubai) and global use
   String _selectedTaxName = 'VAT';
-  final List<String> _taxNames = ['VAT', 'GST', 'CGST', 'SGST', 'IGST', 'Excise Tax', 'Zero Rated', 'Exempt'];
+  final List<String> _taxNames = ['VAT', 'Sales Tax', 'GST', 'CGST', 'SGST', 'IGST', 'Service Tax'];
 
-  String _defaultTaxType = 'Price is without Tax';
+  String _defaultTaxType = 'Add Tax at Billing';
   final List<String> _taxTypes = [
-    'Price includes Tax',
-    'Price is without Tax',
-    'Zero Rated Tax',
-    'Exempt Tax',
+    'Tax Included in Price',
+    'Add Tax at Billing',
+    'No Tax Applied',
+    'Exempt from Tax',
   ];
 
   @override
@@ -51,7 +51,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       if (doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>?;
         setState(() {
-          _defaultTaxType = data?['defaultTaxType'] ?? 'Price is without Tax';
+          _defaultTaxType = data?['defaultTaxType'] ?? 'Add Tax at Billing';
         });
       }
     } catch (e) {
@@ -147,7 +147,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('New tax category', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+        title: const Text('Add New Tax', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, fontFamily: 'NotoSans')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -155,20 +155,20 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
               decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: TextField(
                 controller: nameController,
-                textCapitalization: TextCapitalization.characters,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-                decoration: const InputDecoration(hintText: 'e.g. CUSTOMS DUTY', prefixIcon: Icon(Icons.label_important_rounded, size: 20), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)),
+                textCapitalization: TextCapitalization.words,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Lato'),
+                decoration: const InputDecoration(hintText: 'e.g. Customs Duty', prefixIcon: Icon(Icons.label_important_rounded, size: 20), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54))),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.bold, color: kBlack54, fontFamily: 'Lato'))),
           ElevatedButton(
             onPressed: () {
               if (nameController.text.trim().isNotEmpty) {
                 setState(() {
-                  final n = nameController.text.trim().toUpperCase();
+                  final n = nameController.text.trim();
                   if (!_taxNames.contains(n)) _taxNames.add(n);
                   _selectedTaxName = n;
                 });
@@ -176,7 +176,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-            child: const Text('Create', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+            child: const Text('Add Tax', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontFamily: 'Lato')),
           ),
         ],
       ),
@@ -274,7 +274,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-          title: Text(context.tr('tax_settings').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5)),
+          title: const Text('Tax Setting', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5, fontFamily: 'NotoSans')),
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,
@@ -324,8 +324,8 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     child: OutlinedButton.icon(
                       onPressed: _showCreateTaxNameDialog,
                       icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text("NEW TYPE"),
-                      style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      label: const Text("Add New Tax", style: TextStyle(fontFamily: 'Lato')),
+                      style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -333,7 +333,7 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                     child: ElevatedButton(
                       onPressed: _addNewTax,
                       style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      child: const Text('Add rate', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite)),
+                      child: const Text('Add Tax', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontFamily: 'Lato')),
                     ),
                   ),
                 ],
@@ -414,23 +414,21 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSectionLabel("Tax Calculation Method"),
+        _buildSectionLabel("Default Quick Billing Taxation"),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Default strategy', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1)),
-              const SizedBox(height: 12),
-              _buildDialogDropdown(null, _defaultTaxType, _taxTypes, (v) => setState(() => _defaultTaxType = v!)),
+              ..._taxTypes.map((type) => _buildTaxTypeRadio(type)),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _saveDefaultTaxType,
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text('Save preferences', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
+                  child: const Text('Save Preferences', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5, fontFamily: 'Lato')),
                 ),
               ),
             ],
@@ -440,6 +438,50 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         _buildSectionLabel("Active Quick Billing Tax"),
         _buildQuickBillTaxToggles(),
       ],
+    );
+  }
+
+  Widget _buildTaxTypeRadio(String type) {
+    final isSelected = _defaultTaxType == type;
+    return InkWell(
+      onTap: () => setState(() => _defaultTaxType = type),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: isSelected ? kPrimaryColor : kGrey300, width: 2),
+              ),
+              child: isSelected
+                  ? Center(
+                      child: Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: kPrimaryColor,
+                        ),
+                      ),
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Text(
+              type,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? kBlack87 : kBlack54,
+                fontFamily: 'Lato',
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

@@ -6,11 +6,9 @@ class LanguageProvider extends ChangeNotifier {
 
   String get currentLanguageCode => _currentLanguageCode;
 
-  // Language configurations
+  // Language configurations - International languages first, regional (Hindi/Tamil) at bottom
   final Map<String, Map<String, String>> _languages = {
     'en': {'name': 'English', 'native': 'English'},
-    'ta': {'name': 'தமிழ்', 'native': 'Tamil'},
-    'hi': {'name': 'हिंदी', 'native': 'Hindi'},
     'zh': {'name': '中文', 'native': 'Chinese'},
     'es': {'name': 'Español', 'native': 'Spanish'},
     'fr': {'name': 'Français', 'native': 'French'},
@@ -18,6 +16,8 @@ class LanguageProvider extends ChangeNotifier {
     'ru': {'name': 'Русский', 'native': 'Russian'},
     'pt': {'name': 'Português', 'native': 'Portuguese'},
     'de': {'name': 'Deutsch', 'native': 'German'},
+    'hi': {'name': 'हिंदी', 'native': 'Hindi'},
+    'ta': {'name': 'தமிழ்', 'native': 'Tamil'},
   };
 
 
@@ -147,10 +147,10 @@ class LanguageProvider extends ChangeNotifier {
       'add_tax': 'Add Tax',
       'tax_name': 'Tax Name',
       'tax_percentage': 'Tax %',
-      'price_includes_tax': 'Price includes Tax',
-      'price_without_tax': 'Price is without Tax',
-      'zero_rated_tax': 'Zero Rated Tax',
-      'exempt_tax': 'Exempt Tax',
+      'price_includes_tax': 'Tax Included in Price',
+      'price_without_tax': 'Add Tax at Billing',
+      'zero_rated_tax': 'No Tax Applied',
+      'exempt_tax': 'Exempt from Tax',
 
       // Settings
       'profile': 'Profile',

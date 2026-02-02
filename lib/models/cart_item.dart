@@ -7,7 +7,7 @@ class CartItem {
   // Tax information
   final String? taxName;
   final double? taxPercentage;
-  final String? taxType; // 'Price includes Tax', 'Price is without Tax', etc.
+  final String? taxType; // 'Tax Included in Price', 'Add Tax at Billing', 'No Tax Applied', 'Exempt from Tax'
 
   CartItem({
     required this.productId,
@@ -25,18 +25,18 @@ class CartItem {
   double get taxAmount {
     if (taxPercentage == null || taxPercentage == 0) return 0.0;
 
-    if (taxType == 'Price includes Tax') {
+    if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
       // Tax is already included in price, extract it
       // price = basePrice + tax
       // price = basePrice * (1 + taxRate)
       // taxAmount = price - (price / (1 + taxRate))
       final taxRate = taxPercentage! / 100;
       return (price * quantity) - ((price * quantity) / (1 + taxRate));
-    } else if (taxType == 'Price is without Tax') {
+    } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
       // Tax needs to be added to price
       return (price * quantity) * (taxPercentage! / 100);
     } else {
-      // Zero Rated Tax or Exempt Tax
+      // No Tax Applied or Exempt from Tax
       return 0.0;
     }
   }
@@ -45,7 +45,7 @@ class CartItem {
   double get basePrice {
     if (taxPercentage == null || taxPercentage == 0) return price;
 
-    if (taxType == 'Price includes Tax') {
+    if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
       // Extract base price from tax-inclusive price
       final taxRate = taxPercentage! / 100;
       return price / (1 + taxRate);
@@ -57,29 +57,29 @@ class CartItem {
 
   // Get per-unit price including tax
   double get priceWithTax {
-    if (taxType == 'Price includes Tax') {
+    if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
       // Tax already included in price
       return price;
-    } else if (taxType == 'Price is without Tax') {
+    } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
       // Add tax to price
       final taxRate = taxPercentage ?? 0;
       return price * (1 + (taxRate / 100));
     } else {
-      // Zero Rated or Exempt
+      // No Tax Applied or Exempt from Tax
       return price;
     }
   }
 
   // Get total including tax
   double get totalWithTax {
-    if (taxType == 'Price includes Tax') {
+    if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
       // Tax already included in price
       return total;
-    } else if (taxType == 'Price is without Tax') {
+    } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
       // Add tax to total
       return total + taxAmount;
     } else {
-      // Zero Rated or Exempt
+      // No Tax Applied or Exempt from Tax
       return total;
     }
   }

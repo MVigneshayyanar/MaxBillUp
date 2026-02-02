@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
-import 'package:google_places_flutter/google_places_flutter.dart';
 import 'package:maxbillup/Colors.dart';
 
 class BusinessDetailsPage extends StatefulWidget {
@@ -30,6 +29,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _businessNameCtrl = TextEditingController();
   final _businessPhoneCtrl = TextEditingController();
   final _ownerPhoneCtrl = TextEditingController();
+  final _personalPhoneCtrl = TextEditingController();
   final _taxTypeCtrl = TextEditingController();
   final _taxNumberCtrl = TextEditingController();
   final _licenseTypeCtrl = TextEditingController();
@@ -39,8 +39,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _businessLocationFocusNode = FocusNode();
 
   bool _loading = false;
-  String _selectedCurrency = 'USD';
   bool _showAdvancedDetails = false;
+  bool _sameAsBusinessNumber = false;
+  String _selectedCurrency = 'USD';
 
   final List<Map<String, String>> _currencies = [
     // Popular currencies first
@@ -200,6 +201,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     if (widget.displayName != null && widget.displayName!.isNotEmpty) {
       _ownerNameCtrl.text = widget.displayName!;
     }
+
+    // Listen to business phone changes to sync with personal phone when checkbox is checked
+    _businessPhoneCtrl.addListener(() {
+      if (_sameAsBusinessNumber && mounted) {
+        _personalPhoneCtrl.text = _businessPhoneCtrl.text;
+      }
+    });
   }
 
   @override
@@ -207,6 +215,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _businessNameCtrl.dispose();
     _businessPhoneCtrl.dispose();
     _ownerPhoneCtrl.dispose();
+    _personalPhoneCtrl.dispose();
     _taxTypeCtrl.dispose();
     _taxNumberCtrl.dispose();
     _licenseTypeCtrl.dispose();
@@ -262,6 +271,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         'storeId': storeId,
         'businessName': _businessNameCtrl.text.trim(),
         'businessPhone': _businessPhoneCtrl.text.trim(),
+        'personalPhone': _personalPhoneCtrl.text.trim(),
         'businessLocation': _businessLocationCtrl.text.trim(),
         'gstin':taxType,
         'taxType': taxType,
@@ -316,7 +326,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: Text("BUSINESS PROFILE",
+        title: Text("Business Profile",
             style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -335,23 +345,28 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    _buildSectionLabel("IDENTITY & CONTACT (REQUIRED)"),
+                    _buildSectionLabel("Business Details"),
                     _buildModernField("Business Name", _businessNameCtrl, Icons.store_rounded, isMandatory: true),
                     _buildModernField("Owner Name", _ownerNameCtrl, Icons.person_rounded, isMandatory: true),
-                    Row(
-                      children: [
-                        // Personal phone is mandatory as a primary contact
-                        Expanded(child: _buildModernField("Personal Phone", _ownerPhoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 501 234 567")),
-                        const SizedBox(width: 12),
-                        // Business phone is NOT mandatory but stays in Basic Details
-                        Expanded(child: _buildModernField("Business Phone", _businessPhoneCtrl, Icons.call_rounded, type: TextInputType.phone, isMandatory: false, hint: "Optional")),
-                      ],
-                    ),
+                    _buildModernField("Business Phone", _businessPhoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 501 234 567"),
+                    _buildPersonalPhoneField(),
                     _buildModernField("Email Address", TextEditingController(text: widget.email), Icons.email_rounded, enabled: false),
                     _buildCurrencyField(isMandatory: true),
-
                     const SizedBox(height: 24),
-                    _buildAdvancedDetailsDropdown(),
+                    _buildAdvancedDetailsToggle(),
+                    if (_showAdvancedDetails) ...[
+                      const SizedBox(height: 16),
+                      _buildSectionLabel("Address (Optional)"),
+                      _buildLocationField(),
+                      const SizedBox(height: 24),
+                      _buildSectionLabel("Taxation (Optional)"),
+                      _buildOptionalField("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "e.g. VAT, GST, Sales Tax"),
+                      _buildOptionalField("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number"),
+                      const SizedBox(height: 24),
+                      _buildSectionLabel("Additional License (Optional)"),
+                      _buildOptionalField("License Type", _licenseTypeCtrl, Icons.badge_rounded, hint: "e.g. Trade License, FSSAI, F&B"),
+                      _buildOptionalField("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number"),
+                    ],
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -370,79 +385,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       child: Padding(
         padding: const EdgeInsets.only(bottom: 12, left: 4),
         child: Text(
-          text.toUpperCase(),
+          text,
           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0),
         ),
-      ),
-    );
-  }
-
-  Widget _buildAdvancedDetailsDropdown() {
-    return Container(
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kGrey200),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.tune_rounded, color: kPrimaryColor, size: 18),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      "ADVANCED DETAILS (OPTIONAL)",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5),
-                    ),
-                  ),
-                  Icon(
-                    _showAdvancedDetails ? Icons.expand_less_rounded : Icons.expand_more_rounded,
-                    color: kGrey400,
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_showAdvancedDetails) ...[
-            const Divider(height: 1, color: kGrey100),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildLocationField(),
-                  _buildDualFieldRow(
-                    "Tax Type",
-                    _taxTypeCtrl,
-                    "Tax Number",
-                    _taxNumberCtrl,
-                    Icons.receipt_long_rounded,
-                    hint1: "e.g. VAT, GST",
-                    hint2: "e.g. 100XXXXXXXXXXXX",
-                  ),
-                  _buildDualFieldRow(
-                    "License Type",
-                    _licenseTypeCtrl,
-                    "License Number",
-                    _licenseNumberCtrl,
-                    Icons.badge_rounded,
-                    hint1: "e.g. FSSAI",
-                    hint2: "e.g. 12345678XXXX",
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -479,11 +424,17 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               fillColor: enabled ? kWhite : kGreyBg,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+                borderSide: BorderSide(
+                  color: isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kPrimaryColor : kGrey200),
+                  width: isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                borderSide: BorderSide(
+                  color: isMandatory ? const Color(0xFF6B78D8) : kPrimaryColor,
+                  width: 2.0,
+                ),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -493,7 +444,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kErrorColor),
               ),
-              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor, width: 2.0),
+              ),
+              floatingLabelStyle: TextStyle(
+                color: isMandatory ? const Color(0xFF6B78D8) : kPrimaryColor,
+                fontWeight: FontWeight.w900,
+              ),
             ),
             validator: (v) {
               if (isMandatory && (v == null || v.trim().isEmpty)) return "$label is required";
@@ -508,82 +466,202 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     );
   }
 
-  Widget _buildDualFieldRow(
-    String label1,
-    TextEditingController ctrl1,
-    String label2,
-    TextEditingController ctrl2,
-    IconData icon, {
-    String? hint1,
-    String? hint2,
-  }) {
+  Widget _buildOptionalField(
+      String label,
+      TextEditingController ctrl,
+      IconData icon, {
+        bool enabled = true,
+        TextInputType type = TextInputType.text,
+        String? hint,
+      }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Row(
-        children: [
-          // Type field (smaller, with icon)
-          Expanded(
-            flex: 3,
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: ctrl1,
-              builder: (context, value, child) {
-                final bool isFilled = value.text.isNotEmpty;
-                return TextFormField(
-                  controller: ctrl1,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-                  decoration: InputDecoration(
-                    labelText: label1,
-                    hintText: hint1,
-                    hintStyle: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.normal),
-                    prefixIcon: Icon(icon, color: isFilled ? kPrimaryColor : kBlack54, size: 18),
-                    filled: true,
-                    fillColor: kWhite,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: ctrl,
+        builder: (context, value, child) {
+          final bool isFilled = value.text.isNotEmpty;
+          return TextFormField(
+            controller: ctrl,
+            enabled: enabled,
+            keyboardType: type,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              hintStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w400),
+              prefixIcon: Icon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              filled: true,
+              fillColor: enabled ? kWhite : kGreyBg,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: kGrey200,
+                  width: 1.0,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kGrey200),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor, width: 2.0),
+              ),
+              floatingLabelStyle: const TextStyle(
+                color: kPrimaryColor,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildPersonalPhoneField() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: _personalPhoneCtrl,
+            builder: (context, value, child) {
+              final bool isFilled = value.text.isNotEmpty;
+              return TextFormField(
+                controller: _personalPhoneCtrl,
+                enabled: !_sameAsBusinessNumber,
+                keyboardType: TextInputType.phone,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))],
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+                decoration: InputDecoration(
+                  labelText: "Personal Phone",
+                  hintText: "e.g. +971 501 234 567",
+                  hintStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w400),
+                  prefixIcon: Icon(
+                    Icons.phone_rounded,
+                    color: _sameAsBusinessNumber ? kGrey400 : (isFilled ? kPrimaryColor : kBlack54),
+                    size: 18,
                   ),
-                );
-              },
+                  filled: true,
+                  fillColor: _sameAsBusinessNumber ? kGreyBg : kWhite,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: kGrey200, width: 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  disabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kGrey200),
+                  ),
+                  floatingLabelStyle: const TextStyle(
+                    color: kPrimaryColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        InkWell(
+          onTap: () {
+            setState(() {
+              _sameAsBusinessNumber = !_sameAsBusinessNumber;
+              if (_sameAsBusinessNumber) {
+                _personalPhoneCtrl.text = _businessPhoneCtrl.text;
+              }
+            });
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: _sameAsBusinessNumber ? kPrimaryColor : kGrey400,
+                      width: 2,
+                    ),
+                    color: _sameAsBusinessNumber ? kPrimaryColor : Colors.transparent,
+                  ),
+                  child: _sameAsBusinessNumber
+                      ? const Icon(Icons.check, color: kWhite, size: 14)
+                      : null,
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text(
+                    "Use Business Phone as Personal Number",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: kBlack87,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          // Number field (larger, no icon)
-          Expanded(
-            flex: 3,
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: ctrl2,
-              builder: (context, value, child) {
-                final bool isFilled = value.text.isNotEmpty;
-                return TextFormField(
-                  controller: ctrl2,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-                  decoration: InputDecoration(
-                    labelText: label2,
-                    hintText: hint2,
-                    hintStyle: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.normal),
-                    filled: true,
-                    fillColor: kWhite,
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                    ),
-                    floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
-                  ),
-                );
-              },
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _buildAdvancedDetailsToggle() {
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _showAdvancedDetails = !_showAdvancedDetails;
+        });
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kGrey200, width: 1.0),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _showAdvancedDetails ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+              color: kPrimaryColor,
+              size: 24,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _showAdvancedDetails ? "Hide Advanced Details" : "Show Advanced Details (Optional)",
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: kPrimaryColor,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ),
+            if (_showAdvancedDetails)
+              const Icon(Icons.expand_less_rounded, color: kBlack54, size: 20)
+            else
+              const Icon(Icons.expand_more_rounded, color: kBlack54, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -595,11 +673,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         valueListenable: _businessLocationCtrl,
         builder: (context, value, child) {
           final bool isFilled = value.text.isNotEmpty;
-          return TextField(
+          return TextFormField(
             controller: _businessLocationCtrl,
-            focusNode: _businessLocationFocusNode,
+            keyboardType: TextInputType.streetAddress,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            maxLines: 3,
+            minLines: 1,
             decoration: InputDecoration(
-              labelText: "Business Address",
+              labelText: "Address",
               hintText: "Enter full business address",
               hintStyle: const TextStyle(
                 color: kBlack54,
@@ -615,7 +696,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               fillColor: kWhite,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+                borderSide: BorderSide(
+                  color: isFilled ? kPrimaryColor : kGrey200,
+                  width: isFilled ? 1.5 : 1.0,
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -660,7 +744,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      "BUSINESS CURRENCY ${isMandatory ? '*' : ''}",
+                      "Business Currency ${isMandatory ? '*' : ''}",
                       style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                     const SizedBox(height: 2),
@@ -702,7 +786,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                const Text("SELECT CURRENCY", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+                const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
                 const SizedBox(height: 20),
                 // Search Bar
                 TextField(
@@ -767,7 +851,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg,
+                                  color: isSelected ? kPrimaryColor.withValues(alpha: 0.1) : kGreyBg,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Center(
@@ -834,7 +918,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             child: _loading
                 ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kWhite))
                 : Text(
-              "COMPLETE REGISTRATION",
+              "Complete Registration",
               style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
             ),
           ),

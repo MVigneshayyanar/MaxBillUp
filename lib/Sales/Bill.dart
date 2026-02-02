@@ -348,8 +348,8 @@ class _BillPageState extends State<BillPage> {
     }
 
     // Tax type
-    String selectedTaxType = item.taxType ?? 'Price is without Tax';
-    final taxTypes = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
+    String selectedTaxType = item.taxType ?? 'Add Tax at Billing';
+    final taxTypes = ['Tax Included in Price', 'Add Tax at Billing', 'No Tax Applied', 'Exempt from Tax'];
 
     await showDialog(
       context: context,
@@ -565,7 +565,7 @@ class _BillPageState extends State<BillPage> {
                                         onTap: () {
                                           setDialogState(() {
                                             selectedTaxId = tax['id'];
-                                            selectedTaxType = 'Price is without Tax'; // Default tax type
+                                            selectedTaxType = 'Add Tax at Billing'; // Default tax type
                                           });
                                           Navigator.pop(ctx);
                                         },

@@ -56,7 +56,7 @@ class _AddProductPageState extends State<AddProductPage> {
   bool _isLoading = false;
 
   // Tax State
-  String _selectedTaxType = 'Price is without Tax';
+  String _selectedTaxType = 'Add Tax at Billing';
   List<Map<String, dynamic>> _fetchedTaxes = [];
   String? _selectedTaxId;
   double _currentTaxPercentage = 0.0;
@@ -1244,7 +1244,7 @@ class _AddProductPageState extends State<AddProductPage> {
   }
 
   Widget _buildTaxTypeSelector() {
-    final items = ['Price includes Tax', 'Price is without Tax', 'Exempt Tax'];
+    final items = ['Tax Included in Price', 'Add Tax at Billing', 'No Tax Applied', 'Exempt from Tax'];
     return _wrapDropdown(
       "Tax Treatment",
       DropdownButton<String>(
@@ -1404,13 +1404,34 @@ class _AddProductPageState extends State<AddProductPage> {
     _locationController.text = d['location'] ?? '';
     _selectedCategory = d['category'];
     _stockEnabled = d['stockEnabled'] ?? true;
-    _selectedStockUnit = d['stockUnit'];
 
-    // Validate taxType - must be one of the valid values
-    final loadedTaxType = d['taxType']?.toString() ?? 'Price is without Tax';
-    _selectedTaxType = ['Price includes Tax', 'Price is without Tax', 'Exempt Tax'].contains(loadedTaxType)
-        ? loadedTaxType
-        : 'Price is without Tax';
+    // Validate stockUnit - must be one of the valid values
+    final defaultUnits = ['Piece', 'Kg', 'Liter', 'Box', 'Nos', 'Meter', 'Feet', 'Gram', 'ML'];
+    final loadedStockUnit = d['stockUnit']?.toString() ?? 'Piece';
+    _selectedStockUnit = defaultUnits.contains(loadedStockUnit) ? loadedStockUnit : 'Piece';
+
+    // Validate taxType - must be one of the valid values (support both old and new naming)
+    final loadedTaxType = d['taxType']?.toString() ?? 'Add Tax at Billing';
+    final validTaxTypes = [
+      'Tax Included in Price', 'Add Tax at Billing', 'No Tax Applied', 'Exempt from Tax',
+      'Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax' // Legacy support
+    ];
+    if (validTaxTypes.contains(loadedTaxType)) {
+      // Map old names to new names
+      if (loadedTaxType == 'Price includes Tax') {
+        _selectedTaxType = 'Tax Included in Price';
+      } else if (loadedTaxType == 'Price is without Tax') {
+        _selectedTaxType = 'Add Tax at Billing';
+      } else if (loadedTaxType == 'Zero Rated Tax') {
+        _selectedTaxType = 'No Tax Applied';
+      } else if (loadedTaxType == 'Exempt Tax') {
+        _selectedTaxType = 'Exempt from Tax';
+      } else {
+        _selectedTaxType = loadedTaxType;
+      }
+    } else {
+      _selectedTaxType = 'Add Tax at Billing';
+    }
 
     // Validate lowStockAlertType - must be 'Count' or 'Percentage'
     final loadedAlertType = d['lowStockAlertType']?.toString() ?? 'Count';

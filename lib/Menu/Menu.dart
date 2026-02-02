@@ -1403,11 +1403,11 @@ class SalesDetailPage extends StatelessWidget {
       double itemBaseAmount = itemTotal;
 
       if (taxPercentage > 0 && taxType != null) {
-        if (taxType == 'Price includes Tax') {
+        if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
           // Tax is included in price, extract it
           itemBaseAmount = itemTotal / (1 + taxPercentage / 100);
           itemTax = itemTotal - itemBaseAmount;
-        } else if (taxType == 'Price is without Tax') {
+        } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
           // Tax needs to be added
           itemTax = itemTotal * (taxPercentage / 100);
         }
@@ -2089,10 +2089,10 @@ class SalesDetailPage extends StatelessWidget {
 
     // Calculate based on taxType if we have percentage but no amount
     if (taxVal == 0 && taxPerc > 0 && taxType != null) {
-      if (taxType == 'Price includes Tax') {
+      if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
         final baseAmount = itemSubtotal / (1 + taxPerc / 100);
         taxVal = itemSubtotal - baseAmount;
-      } else if (taxType == 'Price is without Tax') {
+      } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
         taxVal = itemSubtotal * (taxPerc / 100);
       }
       debugPrint('   ✅ Calculated tax from type: $taxVal');
@@ -5852,10 +5852,10 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         final taxType = item['taxType'] as String?;
         if (taxPercentage > 0) {
           final itemTotal = price * qty;
-          if (taxType == 'Price includes Tax') {
+          if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
             final taxRate = taxPercentage / 100;
             totalTax += itemTotal - (itemTotal / (1 + taxRate));
-          } else if (taxType == 'Price is without Tax') {
+          } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
             totalTax += itemTotal * (taxPercentage / 100);
           }
         }
@@ -6195,15 +6195,15 @@ class _EditBillPageState extends State<EditBillPage> {
     if (taxPercentage == 0) return sum;
 
     final itemTotal = price * qty;
-    if (taxType == 'Price includes Tax') {
+    if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
       // Tax is already included in price, extract it
       final taxRate = taxPercentage / 100;
       return sum + (itemTotal - (itemTotal / (1 + taxRate)));
-    } else if (taxType == 'Price is without Tax') {
+    } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
       // Tax needs to be added to price
       return sum + (itemTotal * (taxPercentage / 100));
     } else {
-      // Zero Rated Tax or Exempt Tax
+      // No Tax Applied or Exempt from Tax
       return sum;
     }
   });
@@ -6225,10 +6225,10 @@ class _EditBillPageState extends State<EditBillPage> {
       final itemTotal = price * qty;
       double taxAmount = 0;
 
-      if (taxType == 'Price includes Tax') {
+      if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
         final taxRate = taxPercentage / 100;
         taxAmount = itemTotal - (itemTotal / (1 + taxRate));
-      } else if (taxType == 'Price is without Tax') {
+      } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
         taxAmount = itemTotal * (taxPercentage / 100);
       }
 
@@ -6509,10 +6509,10 @@ class _EditBillPageState extends State<EditBillPage> {
                       final taxType = item['taxType'] as String?;
                       final itemTotal = rate * qty;
                       double taxAmount = 0;
-                      if (taxType == 'Price includes Tax') {
+                      if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
                         final taxRate = taxPercentage / 100;
                         taxAmount = itemTotal - (itemTotal / (1 + taxRate));
-                      } else if (taxType == 'Price is without Tax') {
+                      } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
                         taxAmount = itemTotal * (taxPercentage / 100);
                       }
                       return Text(
@@ -6706,8 +6706,8 @@ class _EditBillPageState extends State<EditBillPage> {
     }
 
     // Tax type
-    String selectedTaxType = item['taxType'] ?? 'Price is without Tax';
-    final taxTypes = ['Price includes Tax', 'Price is without Tax', 'Zero Rated Tax', 'Exempt Tax'];
+    String selectedTaxType = item['taxType'] ?? 'Add Tax at Billing';
+    final taxTypes = ['Tax Included in Price', 'Add Tax at Billing', 'No Tax Applied', 'Exempt from Tax'];
 
     await showDialog(
       context: context,
@@ -6980,10 +6980,10 @@ class _EditBillPageState extends State<EditBillPage> {
                                 // Recalculate tax amount based on new price and quantity
                                 if (taxPercentage != null && taxPercentage > 0) {
                                   final itemTotal = newPrice * newQty;
-                                  if (taxType == 'Price includes Tax') {
+                                  if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
                                     final taxRate = taxPercentage / 100;
                                     taxAmount = itemTotal - (itemTotal / (1 + taxRate));
-                                  } else if (taxType == 'Price is without Tax') {
+                                  } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
                                     taxAmount = itemTotal * (taxPercentage / 100);
                                   }
                                 }
@@ -7247,10 +7247,10 @@ class _EditBillPageState extends State<EditBillPage> {
                         final taxType = p['taxType'] as String?;
                         double taxAmount = 0.0;
                         if (taxPercentage > 0) {
-                          if (taxType == 'Price includes Tax') {
+                          if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
                             final taxRate = taxPercentage / 100;
                             taxAmount = price - (price / (1 + taxRate));
-                          } else if (taxType == 'Price is without Tax') {
+                          } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
                             taxAmount = price * (taxPercentage / 100);
                           }
                         }
