@@ -23,6 +23,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<Stream<QuerySnapshot>> _expensesStreamFuture;
+  String _currencySymbol = 'Rs ';
 
   @override
   void initState() {
@@ -33,6 +34,37 @@ class _ExpensesPageState extends State<ExpensesPage> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -284,7 +316,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                         ],
                       ),
                     ),
-                    Text("${amount.toStringAsFixed(2)}",
+                    Text("$_currencySymbol${amount.toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kErrorColor)),
                   ],
                 ),
@@ -788,3 +820,4 @@ class ExpenseDetailsPage extends StatelessWidget {
 
   Widget _buildRow(IconData i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 }
+

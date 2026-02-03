@@ -77,6 +77,7 @@ class _BillPageState extends State<BillPage> {
   String _businessLocation = 'Location';
   String _businessPhone = '';
   String _staffName = 'Staff';
+  String _currencySymbol = 'Rs '; // Default currency
   StreamSubscription? _storeSub;
 
   @override
@@ -125,6 +126,7 @@ class _BillPageState extends State<BillPage> {
           _businessName = data['businessName'] ?? 'Business';
           _businessLocation = data['location'] ?? data['businessLocation'] ?? 'Location';
           _businessPhone = data['businessPhone'] ?? '';
+          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
         });
       }
     });
@@ -139,9 +141,29 @@ class _BillPageState extends State<BillPage> {
           _businessName = data['businessName'] ?? 'Business';
           _businessLocation = data['location'] ?? data['businessLocation'] ?? 'Location';
           _businessPhone = data['businessPhone'] ?? '';
+          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
         });
       }
     });
+  }
+
+  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -818,7 +840,7 @@ class _BillPageState extends State<BillPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Customer Default: ${_customerDefaultDiscount.toStringAsFixed(1)}% (₹${customerDiscountAmount.toStringAsFixed(2)})',
+                            'Customer Default: ${_customerDefaultDiscount.toStringAsFixed(1)}% ($_currencySymbol${customerDiscountAmount.toStringAsFixed(2)})',
                             style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kGoogleGreen),
                           ),
                         ),
@@ -1220,11 +1242,11 @@ class _BillPageState extends State<BillPage> {
 
                 const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(height: 1, color: kGrey100)),
 
-                // Total Net Payable
+                // Total Amount Payable
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Total Net', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+                    const Text('Total Amount', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
                     Text(AmountFormatter.format(finalAmount), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                   ],
                 ),
@@ -1572,20 +1594,39 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _completeSale() async {
     if (widget.paymentMode == 'Credit' && widget.customerPhone == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit'))); return; }
     if (widget.paymentMode != 'Credit' && _cashReceived < widget.totalAmount - 0.01) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient'), backgroundColor: Colors.red)); return; }
+
+    // Generate invoice number first (quick operation)
+    final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+
+    // Calculate tax data (no async needed)
+    final Map<String, double> taxMap = {};
+    for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
+    final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+    final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+    // Navigate immediately - don't wait for Firebase
+    if (mounted) {
+      Navigator.popUntil(context, (route) => route.isFirst);
+      Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
+          uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
+          items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
+          subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
+          cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
+          creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
+          customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
+    }
+
+    // Fire-and-forget: Run all Firebase operations in background
+    _saveDataInBackground(invoiceNumber, taxList, totalTax);
+  }
+
+  /// Saves all data to Firebase in background without blocking UI
+  Future<void> _saveDataInBackground(String invoiceNumber, List<Map<String, dynamic>> taxList, double totalTax) async {
     try {
-      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-      final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
-
-      final Map<String, double> taxMap = {};
-      for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
-      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
-      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
-
       final baseSaleData = {
         'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0,
-        // Add partial payment tracking for Credit mode
         if (widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount) ...{
           'cashReceived_partial': _cashReceived,
           'creditIssued_partial': widget.totalAmount - _cashReceived,
@@ -1593,34 +1634,42 @@ class _PaymentPageState extends State<PaymentPage> {
         'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
-      if (widget.paymentMode == 'Credit') await _updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber, _creditDueDate);
+      // Run all operations in parallel
+      final futures = <Future>[];
 
-      // Update customer totalSales for ALL payment types when customer is linked
+      // Save/update sale document
+      if (widget.unsettledSaleId != null) {
+        futures.add(FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()}));
+      } else {
+        futures.add(FirestoreService().addDocument('sales', baseSaleData));
+        futures.add(_updateProductStock());
+      }
+
+      // Customer-related updates
+      if (widget.paymentMode == 'Credit') {
+        futures.add(_updateCustomerCredit(widget.customerPhone!, widget.totalAmount - _cashReceived, invoiceNumber, _creditDueDate));
+      }
       if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
-        await _updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount);
-        await _addPaymentLogEntry(widget.customerPhone!, widget.customerName, widget.totalAmount, widget.paymentMode, invoiceNumber);
+        futures.add(_updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount));
+        futures.add(_addPaymentLogEntry(widget.customerPhone!, widget.customerName, widget.totalAmount, widget.paymentMode, invoiceNumber));
       }
 
-      if (widget.unsettledSaleId != null) await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
-      else { await FirestoreService().addDocument('sales', baseSaleData); await _updateProductStock(); }
-      if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed);
+      // Cleanup operations
+      if (widget.savedOrderId != null) {
+        futures.add(FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!));
+      }
+      if (widget.selectedCreditNotes.isNotEmpty) {
+        futures.add(_markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed));
+      }
       if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
-        await FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
+        futures.add(FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()}));
       }
 
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        Navigator.popUntil(context, (route) => route.isFirst);
-        Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
-            uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
-            items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
-            cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
-            creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
-            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
-      }
-    } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
+      // Wait for all operations to complete
+      await Future.wait(futures);
+    } catch (e) {
+      debugPrint('Background save error: $e');
+    }
   }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber, DateTime? creditDueDate) async {
@@ -1960,10 +2009,31 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   double get _totalPaid => _cashAmount + _onlineAmount + _creditAmount;
   double get _dueAmount => widget.totalAmount - _totalPaid;
   DateTime? _creditDueDate;
+  String _currencySymbol = 'Rs '; // Default currency
+
+  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _cashController.addListener(() {
       setState(() {
         _cashAmount = double.tryParse(_cashController.text) ?? 0.0;
@@ -1981,6 +2051,20 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         _creditAmount = double.tryParse(_creditController.text) ?? 0.0;
       });
     });
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      final store = await FirestoreService().getCurrentStoreDoc();
+      if (store != null && store.exists && mounted) {
+        final data = store.data() as Map<String, dynamic>;
+        setState(() {
+          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
+    }
   }
 
   void _updateCreditAmount() {
@@ -2141,7 +2225,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     if (totalPaid > 0) {
       String method = '';
       if (cashAmount > 0 && onlineAmount > 0) {
-        method = 'Cash (₹${cashAmount.toStringAsFixed(0)}) + Online (₹${onlineAmount.toStringAsFixed(0)})';
+        method = 'Cash ($_currencySymbol${cashAmount.toStringAsFixed(0)}) + Online ($_currencySymbol${onlineAmount.toStringAsFixed(0)})';
       } else if (cashAmount > 0) {
         method = 'Cash';
       } else {
@@ -2234,7 +2318,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                     const Icon(Icons.check_circle_outline_rounded, color: kGoogleGreen, size: 20),
                     const SizedBox(width: 8),
                     const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('₹${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kGoogleGreen)),
+                    Text('$_currencySymbol${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kGoogleGreen)),
                   ],
                 ),
               ),
@@ -2284,7 +2368,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(20),
-          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text('SETTLE BILL - ₹${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 15)))),
+          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text('SETTLE BILL - $_currencySymbol${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 15)))),
         ),
       ),
     );

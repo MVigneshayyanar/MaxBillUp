@@ -29,6 +29,7 @@ class _CategoryPageState extends State<CategoryPage> {
   String _sortBy = 'name';
   bool _sortAscending = true;
   String _filterType = 'all'; // all, empty, nonEmpty
+  String _currencySymbol = 'Rs ';
 
   late String _uid;
   String? _userEmail;
@@ -59,6 +60,37 @@ class _CategoryPageState extends State<CategoryPage> {
     _loadPermissions();
     _initCategoryStream();
     _initProductCollection();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   /// FAST FETCH: Initialize the stream once in initState to hit the
@@ -673,14 +705,46 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
   CollectionReference? _productsRef;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _currencySymbol = 'Rs ';
 
   @override
   void initState() {
     super.initState();
     _initProductCollection();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text.toLowerCase());
     });
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   Future<void> _initProductCollection() async {
@@ -799,7 +863,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis),
-            Text("Rs ${price.toStringAsFixed(2)}", style: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w900)),
+            Text("$_currencySymbol${price.toStringAsFixed(2)}", style: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w900)),
           ])),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -895,3 +959,5 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
     );
   }
 }
+
+

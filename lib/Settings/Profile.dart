@@ -1224,73 +1224,133 @@ class BillPrintSettingsPage extends StatefulWidget {
   State<BillPrintSettingsPage> createState() => _BillPrintSettingsPageState();
 }
 
-class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> {
-  bool _isThermalPrinter = true;
+class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  // Thermal Printer Settings
   String _thermalPageSize = '58mm';
-  String _regularPageSize = 'A4';
-  int _numberOfCopies = 1;
-  bool _showHeader = true;
-  bool _showLogo = true;
-  bool _showCustomerInfo = true;
-  bool _showItemTable = true;
-  bool _showTotalItemQuantity = true;
-  bool _showTaxDetails = true;
-  bool _showYouSaved = true;
-  bool _showDescription = false;
-  bool _showDelivery = false;
-  String _saleInvoiceText = 'Thank you for your purchase!';
-  bool _showSignature = false;
-  String _estimationText = '';
-  String _deliveryChallanText = '';
+  int _thermalNumberOfCopies = 1;
+  bool _thermalShowHeader = true;
+  bool _thermalShowLogo = true;
+  bool _thermalShowCustomerInfo = true;
+  bool _thermalShowItemTable = true;
+  bool _thermalShowTotalItemQuantity = true;
+  bool _thermalShowTaxDetails = true;
+  bool _thermalShowYouSaved = true;
+  bool _thermalShowDescription = false;
+  bool _thermalShowDelivery = false;
+  String _thermalSaleInvoiceText = 'Thank you for your purchase!';
+  bool _thermalShowTaxColumnInTable = false; // Tax column removed by default for thermal
+
+  // A4 Printer Settings
+  int _a4NumberOfCopies = 1;
+  bool _a4ShowHeader = true;
+  bool _a4ShowLogo = true;
+  bool _a4ShowCustomerInfo = true;
+  bool _a4ShowItemTable = true;
+  bool _a4ShowTotalItemQuantity = true;
+  bool _a4ShowTaxDetails = true;
+  bool _a4ShowYouSaved = true;
+  bool _a4ShowDescription = false;
+  bool _a4ShowDelivery = false;
+  String _a4SaleInvoiceText = 'Thank you for your purchase!';
+  bool _a4ShowSignature = false;
+  String _a4EstimationText = '';
+  String _a4DeliveryChallanText = '';
+  bool _a4ShowTaxColumnInTable = true;
+  String _a4ColorTheme = 'blue'; // Color theme for A4
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadSettings();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isThermalPrinter = prefs.getBool('is_thermal_printer') ?? true;
+      // Thermal settings
       _thermalPageSize = prefs.getString('thermal_page_size') ?? '58mm';
-      _regularPageSize = prefs.getString('regular_page_size') ?? 'A4';
-      _numberOfCopies = prefs.getInt('number_of_copies') ?? 1;
-      _showHeader = prefs.getBool('show_header') ?? true;
-      _showLogo = prefs.getBool('show_logo') ?? true;
-      _showCustomerInfo = prefs.getBool('show_customer_info') ?? true;
-      _showItemTable = prefs.getBool('show_item_table') ?? true;
-      _showTotalItemQuantity = prefs.getBool('show_total_item_quantity') ?? true;
-      _showTaxDetails = prefs.getBool('show_tax_details') ?? true;
-      _showYouSaved = prefs.getBool('show_you_saved') ?? true;
-      _showDescription = prefs.getBool('show_description') ?? false;
-      _showDelivery = prefs.getBool('show_delivery') ?? false;
-      _saleInvoiceText = prefs.getString('sale_invoice_text') ?? 'Thank you for your purchase!';
-      _showSignature = prefs.getBool('show_signature') ?? false;
-      _estimationText = prefs.getString('estimation_text') ?? '';
-      _deliveryChallanText = prefs.getString('delivery_challan_text') ?? '';
+      _thermalNumberOfCopies = prefs.getInt('thermal_number_of_copies') ?? 1;
+      _thermalShowHeader = prefs.getBool('thermal_show_header') ?? true;
+      _thermalShowLogo = prefs.getBool('thermal_show_logo') ?? true;
+      _thermalShowCustomerInfo = prefs.getBool('thermal_show_customer_info') ?? true;
+      _thermalShowItemTable = prefs.getBool('thermal_show_item_table') ?? true;
+      _thermalShowTotalItemQuantity = prefs.getBool('thermal_show_total_item_quantity') ?? true;
+      _thermalShowTaxDetails = prefs.getBool('thermal_show_tax_details') ?? true;
+      _thermalShowYouSaved = prefs.getBool('thermal_show_you_saved') ?? true;
+      _thermalShowDescription = prefs.getBool('thermal_show_description') ?? false;
+      _thermalShowDelivery = prefs.getBool('thermal_show_delivery') ?? false;
+      _thermalSaleInvoiceText = prefs.getString('thermal_sale_invoice_text') ?? 'Thank you for your purchase!';
+      _thermalShowTaxColumnInTable = prefs.getBool('thermal_show_tax_column') ?? false;
+
+      // A4 settings
+      _a4NumberOfCopies = prefs.getInt('a4_number_of_copies') ?? 1;
+      _a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
+      _a4ShowLogo = prefs.getBool('a4_show_logo') ?? true;
+      _a4ShowCustomerInfo = prefs.getBool('a4_show_customer_info') ?? true;
+      _a4ShowItemTable = prefs.getBool('a4_show_item_table') ?? true;
+      _a4ShowTotalItemQuantity = prefs.getBool('a4_show_total_item_quantity') ?? true;
+      _a4ShowTaxDetails = prefs.getBool('a4_show_tax_details') ?? true;
+      _a4ShowYouSaved = prefs.getBool('a4_show_you_saved') ?? true;
+      _a4ShowDescription = prefs.getBool('a4_show_description') ?? false;
+      _a4ShowDelivery = prefs.getBool('a4_show_delivery') ?? false;
+      _a4SaleInvoiceText = prefs.getString('a4_sale_invoice_text') ?? 'Thank you for your purchase!';
+      _a4ShowSignature = prefs.getBool('a4_show_signature') ?? false;
+      _a4EstimationText = prefs.getString('a4_estimation_text') ?? '';
+      _a4DeliveryChallanText = prefs.getString('a4_delivery_challan_text') ?? '';
+      _a4ShowTaxColumnInTable = prefs.getBool('a4_show_tax_column') ?? true;
+      _a4ColorTheme = prefs.getString('a4_color_theme') ?? 'blue';
     });
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_thermal_printer', _isThermalPrinter);
+    // Thermal settings
     await prefs.setString('thermal_page_size', _thermalPageSize);
-    await prefs.setString('regular_page_size', _regularPageSize);
-    await prefs.setInt('number_of_copies', _numberOfCopies);
-    await prefs.setBool('show_header', _showHeader);
-    await prefs.setBool('show_logo', _showLogo);
-    await prefs.setBool('show_customer_info', _showCustomerInfo);
-    await prefs.setBool('show_item_table', _showItemTable);
-    await prefs.setBool('show_total_item_quantity', _showTotalItemQuantity);
-    await prefs.setBool('show_tax_details', _showTaxDetails);
-    await prefs.setBool('show_you_saved', _showYouSaved);
-    await prefs.setBool('show_description', _showDescription);
-    await prefs.setBool('show_delivery', _showDelivery);
-    await prefs.setString('sale_invoice_text', _saleInvoiceText);
-    await prefs.setBool('show_signature', _showSignature);
-    await prefs.setString('estimation_text', _estimationText);
-    await prefs.setString('delivery_challan_text', _deliveryChallanText);
+    await prefs.setInt('thermal_number_of_copies', _thermalNumberOfCopies);
+    await prefs.setBool('thermal_show_header', _thermalShowHeader);
+    await prefs.setBool('thermal_show_logo', _thermalShowLogo);
+    await prefs.setBool('thermal_show_customer_info', _thermalShowCustomerInfo);
+    await prefs.setBool('thermal_show_item_table', _thermalShowItemTable);
+    await prefs.setBool('thermal_show_total_item_quantity', _thermalShowTotalItemQuantity);
+    await prefs.setBool('thermal_show_tax_details', _thermalShowTaxDetails);
+    await prefs.setBool('thermal_show_you_saved', _thermalShowYouSaved);
+    await prefs.setBool('thermal_show_description', _thermalShowDescription);
+    await prefs.setBool('thermal_show_delivery', _thermalShowDelivery);
+    await prefs.setString('thermal_sale_invoice_text', _thermalSaleInvoiceText);
+    await prefs.setBool('thermal_show_tax_column', _thermalShowTaxColumnInTable);
+
+    // A4 settings
+    await prefs.setInt('a4_number_of_copies', _a4NumberOfCopies);
+    await prefs.setBool('a4_show_header', _a4ShowHeader);
+    await prefs.setBool('a4_show_logo', _a4ShowLogo);
+    await prefs.setBool('a4_show_customer_info', _a4ShowCustomerInfo);
+    await prefs.setBool('a4_show_item_table', _a4ShowItemTable);
+    await prefs.setBool('a4_show_total_item_quantity', _a4ShowTotalItemQuantity);
+    await prefs.setBool('a4_show_tax_details', _a4ShowTaxDetails);
+    await prefs.setBool('a4_show_you_saved', _a4ShowYouSaved);
+    await prefs.setBool('a4_show_description', _a4ShowDescription);
+    await prefs.setBool('a4_show_delivery', _a4ShowDelivery);
+    await prefs.setString('a4_sale_invoice_text', _a4SaleInvoiceText);
+    await prefs.setBool('a4_show_signature', _a4ShowSignature);
+    await prefs.setString('a4_estimation_text', _a4EstimationText);
+    await prefs.setString('a4_delivery_challan_text', _a4DeliveryChallanText);
+    await prefs.setBool('a4_show_tax_column', _a4ShowTaxColumnInTable);
+
+    // Also save for invoice page compatibility
+    await prefs.setBool('receipt_show_logo', _tabController.index == 0 ? _thermalShowLogo : _a4ShowLogo);
+    await prefs.setBool('receipt_show_customer_details', _tabController.index == 0 ? _thermalShowCustomerInfo : _a4ShowCustomerInfo);
+    await prefs.setBool('receipt_show_total_items', _tabController.index == 0 ? _thermalShowTotalItemQuantity : _a4ShowTotalItemQuantity);
+    await prefs.setBool('receipt_show_save_amount', _tabController.index == 0 ? _thermalShowYouSaved : _a4ShowYouSaved);
+    await prefs.setString('receipt_footer_description', _tabController.index == 0 ? _thermalSaleInvoiceText : _a4SaleInvoiceText);
   }
 
   @override
@@ -1307,140 +1367,225 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: kWhite,
+            indicatorWeight: 3,
+            labelColor: kWhite,
+            unselectedLabelColor: kWhite.withAlpha(150),
+            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, fontFamily: 'NotoSans'),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, fontFamily: 'NotoSans'),
+            tabs: const [
+              Tab(icon: Icon(Icons.print_rounded, size: 18), text: 'Thermal'),
+              Tab(icon: Icon(Icons.picture_as_pdf_rounded, size: 18), text: 'A4 / Pdf'),
+            ],
+          ),
         ),
-        body: ListView(
-          padding: const EdgeInsets.all(16),
+        body: TabBarView(
+          controller: _tabController,
           children: [
-            _buildSectionLabel('PRINTER TYPE'),
-            Container(
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-              child: ListTile(
-                leading: Icon(_isThermalPrinter ? Icons.print_rounded : Icons.picture_as_pdf_rounded, color: kPrimaryColor),
-                title: Text(_isThermalPrinter ? 'Thermal Printer' : 'Regular Printer', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-                subtitle: Text(_isThermalPrinter ? 'Small paper print for POS printers' : 'Full-page invoice for print or sharing', style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
-                trailing: Switch.adaptive(value: _isThermalPrinter, onChanged: (v) { setState(() => _isThermalPrinter = v); _saveSettings(); }, activeColor: kPrimaryColor),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_isThermalPrinter) ..._buildThermalSettings() else ..._buildRegularSettings(),
+            _buildThermalTab(),
+            _buildA4Tab(),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildThermalSettings() {
-    return [
-      _buildSectionLabel('THERMAL PRINTER SETTINGS'),
-      Container(
-        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-            const SizedBox(height: 8),
-            Row(children: [
-              _buildPageSizeOption('2 inch (58mm)', '58mm', _thermalPageSize == '58mm'),
-              const SizedBox(width: 12),
-              _buildPageSizeOption('3 inch (80mm)', '80mm', _thermalPageSize == '80mm'),
-            ]),
-            const SizedBox(height: 16),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+  Widget _buildThermalTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildInfoCard('Thermal Receipt', 'Small paper print for POS printers', Icons.print_rounded),
+        const SizedBox(height: 16),
+        _buildSectionLabel('PRINTER SETTINGS'),
+        Container(
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+              const SizedBox(height: 8),
               Row(children: [
-                IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _numberOfCopies > 1 ? () { setState(() => _numberOfCopies--); _saveSettings(); } : null),
-                Text('$_numberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _numberOfCopies++); _saveSettings(); }),
+                _buildPageSizeOption('2 inch (58mm)', '58mm', _thermalPageSize == '58mm', true),
+                const SizedBox(width: 12),
+                _buildPageSizeOption('3 inch (80mm)', '80mm', _thermalPageSize == '80mm', true),
               ]),
-            ]),
-          ],
+              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+                Row(children: [
+                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () { setState(() => _thermalNumberOfCopies--); _saveSettings(); } : null),
+                  Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _thermalNumberOfCopies++); _saveSettings(); }),
+                ]),
+              ]),
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _buildSectionLabel('IDENTITY & BRANDING'),
-      _SettingsGroup(children: [
-        _SwitchTile('Show Header', _showHeader, (v) { setState(() => _showHeader = v); _saveSettings(); }),
-        _SwitchTile('Show Logo', _showLogo, (v) { setState(() => _showLogo = v); _saveSettings(); }),
-        _SwitchTile('Show Customer Information', _showCustomerInfo, (v) { setState(() => _showCustomerInfo = v); _saveSettings(); }),
-        _SwitchTile('Show Item Table', _showItemTable, (v) { setState(() => _showItemTable = v); _saveSettings(); }, showDivider: false),
-      ]),
-      const SizedBox(height: 16),
-      _buildSectionLabel('TOTALS & TAXES'),
-      _SettingsGroup(children: [
-        _SwitchTile('Total Item Quantity', _showTotalItemQuantity, (v) { setState(() => _showTotalItemQuantity = v); _saveSettings(); }),
-        _SwitchTile('Tax Details', _showTaxDetails, (v) { setState(() => _showTaxDetails = v); _saveSettings(); }),
-        _SwitchTile('You Saved', _showYouSaved, (v) { setState(() => _showYouSaved = v); _saveSettings(); }),
-        _SwitchTile('Description / Notes', _showDescription, (v) { setState(() => _showDescription = v); _saveSettings(); }),
-        _SwitchTile('Delivery', _showDelivery, (v) { setState(() => _showDelivery = v); _saveSettings(); }, showDivider: false),
-      ]),
-      const SizedBox(height: 16),
-      _buildSectionLabel('FOOTER'),
-      _buildTextFieldSection('Sale Invoice Text', _saleInvoiceText, (v) { _saleInvoiceText = v; _saveSettings(); }),
-    ];
+        const SizedBox(height: 16),
+        _buildSectionLabel('IDENTITY & BRANDING'),
+        _SettingsGroup(children: [
+          _SwitchTile('Show Header', _thermalShowHeader, (v) { setState(() => _thermalShowHeader = v); _saveSettings(); }),
+          _SwitchTile('Show Logo', _thermalShowLogo, (v) { setState(() => _thermalShowLogo = v); _saveSettings(); }),
+          _SwitchTile('Show Customer Information', _thermalShowCustomerInfo, (v) { setState(() => _thermalShowCustomerInfo = v); _saveSettings(); }),
+          _SwitchTile('Show Item Table', _thermalShowItemTable, (v) { setState(() => _thermalShowItemTable = v); _saveSettings(); }, showDivider: false),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionLabel('TOTALS & TAXES'),
+        _SettingsGroup(children: [
+          _SwitchTile('Total Item Quantity', _thermalShowTotalItemQuantity, (v) { setState(() => _thermalShowTotalItemQuantity = v); _saveSettings(); }),
+          _SwitchTile('Tax Details', _thermalShowTaxDetails, (v) { setState(() => _thermalShowTaxDetails = v); _saveSettings(); }),
+          _SwitchTile('You Saved', _thermalShowYouSaved, (v) { setState(() => _thermalShowYouSaved = v); _saveSettings(); }),
+          _SwitchTile('Description / Notes', _thermalShowDescription, (v) { setState(() => _thermalShowDescription = v); _saveSettings(); }),
+          _SwitchTile('Delivery', _thermalShowDelivery, (v) { setState(() => _thermalShowDelivery = v); _saveSettings(); }, showDivider: false),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionLabel('FOOTER'),
+        _buildTextFieldSection('Sale Invoice Text', _thermalSaleInvoiceText, (v) { _thermalSaleInvoiceText = v; _saveSettings(); }),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
-  List<Widget> _buildRegularSettings() {
-    return [
-      _buildSectionLabel('PRINTER SETTINGS'),
-      Container(
-        decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-            const SizedBox(height: 8),
-            Row(children: [
-              _buildPageSizeOption('A4 (210×297mm)', 'A4', _regularPageSize == 'A4'),
-              const SizedBox(width: 12),
-              _buildPageSizeOption('A5 (148×210mm)', 'A5', _regularPageSize == 'A5'),
-            ]),
-            const SizedBox(height: 16),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
-              Row(children: [
-                IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _numberOfCopies > 1 ? () { setState(() => _numberOfCopies--); _saveSettings(); } : null),
-                Text('$_numberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _numberOfCopies++); _saveSettings(); }),
-              ]),
-            ]),
-          ],
+  Widget _buildA4Tab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildInfoCard('A4 / Pdf Invoice', 'Full-page invoice for print or sharing', Icons.picture_as_pdf_rounded),
+        const SizedBox(height: 16),
+        // Color Theme Selector
+        _buildSectionLabel('COLOR THEME'),
+        Container(
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Invoice Color', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildColorOption('blue', const Color(0xFF4455DF)),
+                  _buildColorOption('black', const Color(0xFF212121)),
+                  _buildColorOption('green', const Color(0xFF2E7D32)),
+                  _buildColorOption('purple', const Color(0xFF7B1FA2)),
+                  _buildColorOption('red', const Color(0xFFC62828)),
+                  _buildColorOption('orange', const Color(0xFFE65100)),
+                  _buildColorOption('teal', const Color(0xFF00695C)),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-      const SizedBox(height: 16),
-      _buildSectionLabel('IDENTITY & BRANDING'),
-      _SettingsGroup(children: [
-        _SwitchTile('Show Header', _showHeader, (v) { setState(() => _showHeader = v); _saveSettings(); }),
-        _SwitchTile('Show Logo', _showLogo, (v) { setState(() => _showLogo = v); _saveSettings(); }),
-        _SwitchTile('Show Customer Information', _showCustomerInfo, (v) { setState(() => _showCustomerInfo = v); _saveSettings(); }),
-        _SwitchTile('Show Item Table', _showItemTable, (v) { setState(() => _showItemTable = v); _saveSettings(); }, showDivider: false),
-      ]),
-      const SizedBox(height: 16),
-      _buildSectionLabel('TOTALS & TAXES'),
-      _SettingsGroup(children: [
-        _SwitchTile('Total Item Quantity', _showTotalItemQuantity, (v) { setState(() => _showTotalItemQuantity = v); _saveSettings(); }),
-        _SwitchTile('Tax Details', _showTaxDetails, (v) { setState(() => _showTaxDetails = v); _saveSettings(); }),
-        _SwitchTile('You Saved', _showYouSaved, (v) { setState(() => _showYouSaved = v); _saveSettings(); }),
-        _SwitchTile('Add Note / Bill Notes', _showDescription, (v) { setState(() => _showDescription = v); _saveSettings(); }),
-        _SwitchTile('Delivery', _showDelivery, (v) { setState(() => _showDelivery = v); _saveSettings(); }, showDivider: false),
-      ]),
-      const SizedBox(height: 16),
-      _buildSectionLabel('FOOTER'),
-      _SettingsGroup(children: [_SwitchTile('Print Signature', _showSignature, (v) { setState(() => _showSignature = v); _saveSettings(); }, showDivider: false)]),
-      const SizedBox(height: 16),
-      _buildTextFieldSection('Sale Invoice Text', _saleInvoiceText, (v) { _saleInvoiceText = v; _saveSettings(); }),
-      const SizedBox(height: 12),
-      _buildTextFieldSection('Estimation/Quotation Text', _estimationText, (v) { _estimationText = v; _saveSettings(); }),
-      const SizedBox(height: 12),
-      _buildTextFieldSection('Delivery Challan Text', _deliveryChallanText, (v) { _deliveryChallanText = v; _saveSettings(); }),
-    ];
+        const SizedBox(height: 16),
+        _buildSectionLabel('PRINTER SETTINGS'),
+        Container(
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(color: kPrimaryColor.withAlpha(25), borderRadius: BorderRadius.circular(10), border: Border.all(color: kPrimaryColor)),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.description_rounded, color: kPrimaryColor, size: 18),
+                    const SizedBox(width: 8),
+                    const Text('A4 (210×297mm)', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: kPrimaryColor, fontFamily: 'Lato')),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+                Row(children: [
+                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () { setState(() => _a4NumberOfCopies--); _saveSettings(); } : null),
+                  Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _a4NumberOfCopies++); _saveSettings(); }),
+                ]),
+              ]),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSectionLabel('IDENTITY & BRANDING'),
+        _SettingsGroup(children: [
+          _SwitchTile('Show Header', _a4ShowHeader, (v) { setState(() => _a4ShowHeader = v); _saveSettings(); }),
+          _SwitchTile('Show Logo', _a4ShowLogo, (v) { setState(() => _a4ShowLogo = v); _saveSettings(); }),
+          _SwitchTile('Show Customer Information', _a4ShowCustomerInfo, (v) { setState(() => _a4ShowCustomerInfo = v); _saveSettings(); }),
+          _SwitchTile('Show Item Table', _a4ShowItemTable, (v) { setState(() => _a4ShowItemTable = v); _saveSettings(); }),
+          _SwitchTile('Show Tax Column in Table', _a4ShowTaxColumnInTable, (v) { setState(() => _a4ShowTaxColumnInTable = v); _saveSettings(); }, showDivider: false),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionLabel('TOTALS & TAXES'),
+        _SettingsGroup(children: [
+          _SwitchTile('Total Item Quantity', _a4ShowTotalItemQuantity, (v) { setState(() => _a4ShowTotalItemQuantity = v); _saveSettings(); }),
+          _SwitchTile('Tax Details', _a4ShowTaxDetails, (v) { setState(() => _a4ShowTaxDetails = v); _saveSettings(); }),
+          _SwitchTile('You Saved', _a4ShowYouSaved, (v) { setState(() => _a4ShowYouSaved = v); _saveSettings(); }),
+          _SwitchTile('Add Note / Bill Notes', _a4ShowDescription, (v) { setState(() => _a4ShowDescription = v); _saveSettings(); }),
+          _SwitchTile('Delivery', _a4ShowDelivery, (v) { setState(() => _a4ShowDelivery = v); _saveSettings(); }, showDivider: false),
+        ]),
+        const SizedBox(height: 16),
+        _buildSectionLabel('FOOTER'),
+        _SettingsGroup(children: [_SwitchTile('Print Signature', _a4ShowSignature, (v) { setState(() => _a4ShowSignature = v); _saveSettings(); }, showDivider: false)]),
+        const SizedBox(height: 16),
+        _buildTextFieldSection('Sale Invoice Text', _a4SaleInvoiceText, (v) { _a4SaleInvoiceText = v; _saveSettings(); }),
+        const SizedBox(height: 12),
+        _buildTextFieldSection('Estimation / Quotation Text', _a4EstimationText, (v) { _a4EstimationText = v; _saveSettings(); }),
+        const SizedBox(height: 12),
+        _buildTextFieldSection('Delivery Challan Text', _a4DeliveryChallanText, (v) { _a4DeliveryChallanText = v; _saveSettings(); }),
+        const SizedBox(height: 24),
+      ],
+    );
   }
 
-  Widget _buildPageSizeOption(String label, String value, bool isSelected) {
+  Widget _buildInfoCard(String title, String subtitle, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kPrimaryColor.withAlpha(15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kPrimaryColor.withAlpha(50)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: kPrimaryColor.withAlpha(25), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: kPrimaryColor, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans', color: kBlack87)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: kBlack54, fontFamily: 'Lato')),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPageSizeOption(String label, String value, bool isSelected, bool isThermal) {
     return Expanded(
       child: GestureDetector(
-        onTap: () { setState(() { if (_isThermalPrinter) _thermalPageSize = value; else _regularPageSize = value; }); _saveSettings(); },
+        onTap: () {
+          setState(() {
+            if (isThermal) _thermalPageSize = value;
+          });
+          _saveSettings();
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
           decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withAlpha(25) : kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: isSelected ? kPrimaryColor : kGrey200)),
@@ -1461,6 +1606,27 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> {
         TextField(controller: controller, onChanged: onChanged, maxLines: 2, style: const TextStyle(fontSize: 14, fontFamily: 'Lato'),
           decoration: InputDecoration(hintText: 'Enter $label', hintStyle: const TextStyle(color: kGrey400, fontSize: 12), filled: true, fillColor: kGreyBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
       ]),
+    );
+  }
+
+  Widget _buildColorOption(String theme, Color color) {
+    final isSelected = _a4ColorTheme == theme;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _a4ColorTheme = theme);
+        _saveSettings();
+      },
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color,
+          shape: BoxShape.circle,
+          border: Border.all(color: isSelected ? kWhite : Colors.transparent, width: 3),
+          boxShadow: isSelected ? [BoxShadow(color: color.withAlpha(100), blurRadius: 8, spreadRadius: 2)] : null,
+        ),
+        child: isSelected ? const Icon(Icons.check, color: kWhite, size: 18) : null,
+      ),
     );
   }
 

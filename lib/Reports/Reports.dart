@@ -264,7 +264,7 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('taxReport'))
             _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance'),
           //if (isFeatureAvailable('taxReport'))
-           // _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF1565C0), 'GSTReport', subtitle: 'GST on sales & purchases'),
+           // _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF4455DF), 'GSTReport', subtitle: 'GST on sales & purchases'),
           const SizedBox(height: 40),
         ],
       ),
@@ -4476,7 +4476,7 @@ class FullSalesHistoryPage extends StatelessWidget {
       reportTitle: 'Executive Sales Audit Log',
       headers: ['Invoice', 'Date', 'Customer Name', 'Mode', 'Amount'],
       rows: rows,
-      summaryTitle: 'Total Net Settlement',
+      summaryTitle: 'Total Amount Settlement',
       summaryValue: "${totalSales.toStringAsFixed(2)}",
       additionalSummary: {
         'Invoices Closed': '${filteredDocs.length}',

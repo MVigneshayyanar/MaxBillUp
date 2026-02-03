@@ -59,6 +59,7 @@ class _MenuPageState extends State<MenuPage> {
   String _email = "";
   String _role = "staff";
   String? _logoUrl;
+  String _currencySymbol = 'Rs ';
   Map<String, dynamic> _permissions = {};
 
   // Slider State
@@ -143,10 +144,30 @@ class _MenuPageState extends State<MenuPage> {
         if (data != null) {
           setState(() {
             _logoUrl = data['logoUrl'] as String?;
+            _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
           });
         }
       }
     });
+  }
+
+  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   void _loadPermissions() async {
@@ -850,15 +871,49 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   String _selectedDateFilter = 'All Time';
   DateTimeRange? _customDateRange;
 
+  // Currency
+  String _currencySymbol = 'Rs ';
+
   @override
   void initState() {
     super.initState();
     _initializeCombinedStream();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase().trim();
       });
     });
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -1166,7 +1221,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   Expanded(
                     child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
                   ),
-                  Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                  Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                 ]),
                 const Divider(height: 20, color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -2192,7 +2247,7 @@ class SalesDetailPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Final Total Payable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-                Text('${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                Text('Rs ${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
               ],
             ),
             const SizedBox(height: 12),
@@ -2380,15 +2435,47 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _filterStatus = 'All';
+  String _currencySymbol = 'Rs ';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -2568,7 +2655,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       child: Text(data['customerName'] ?? 'Guest',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
                     ),
-                    Text("${amount.toStringAsFixed(2)}",
+                    Text("$_currencySymbol${amount.toStringAsFixed(2)}",
                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                   ],
                 ),
@@ -2691,7 +2778,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('Total credit value', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
-                      Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
                     const SizedBox(height: 24),
                     const Text('Returned items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
@@ -2735,9 +2822,40 @@ class CustomerLedgerPage extends StatefulWidget {
 
 class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   List<LedgerEntry> _entries = []; bool _loading = true;
+  String _currencySymbol = 'Rs ';
 
   @override
-  void initState() { super.initState(); _loadLedger(); }
+  void initState() { super.initState(); _loadLedger(); _loadCurrency(); }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
 
   Future<void> _loadLedger() async {
     final sales = await FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: widget.customerId).get());
@@ -2827,7 +2945,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-          Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
         ]),
       ),
     );
@@ -2929,6 +3047,35 @@ class _ReceiveCreditPage extends StatefulWidget {
 class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   final TextEditingController _amountController = TextEditingController();
   double _amt = 0.0;
+  String _currencySymbol = 'Rs ';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'MYR': 'RM ', 'PHP': '₱ ', 'PKR': 'Rs ', 'AED': 'AED ',
+      'SAR': 'SR ', 'BDT': '৳ ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'IDR': 'Rp ', 'THB': '฿ ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2948,7 +3095,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 const Text("Credit due", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
-                Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
+                Text("$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
               ]),
             ),
             const SizedBox(height: 32),
@@ -3094,7 +3241,7 @@ class CreditNoteDetailPage extends StatelessWidget {
           const SizedBox(height: 20),
           const Text("Refund amount", style: TextStyle(color: Colors.white70,fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 4),
-          Text("${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
+          Text("Rs ${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
         ],
       ),
     );
@@ -3460,7 +3607,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
               const SizedBox(height: 4),
-              Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+              Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
             ],
           ),
           Container(
@@ -3544,7 +3691,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Balance due', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('Rs ${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("Settle", kGoogleGreen),
@@ -3610,7 +3757,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Pending amount', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("RECORD", kGoogleGreen),
@@ -3656,7 +3803,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Due amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
-                    Text('${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -4128,6 +4275,46 @@ class CustomerCreditDetailsPage extends StatefulWidget {
 }
 
 class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
+  String _currencySymbol = 'Rs ';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      final store = await FirestoreService().getCurrentStoreDoc();
+      if (store != null && store.exists && mounted) {
+        final data = store.data() as Map<String, dynamic>;
+        setState(() {
+          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
+
   @override
   Widget build(BuildContext context) {
     final customerName = (widget.customerData['name'] ?? 'Customer').toString();
@@ -4202,7 +4389,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                     children: [
                       const Text('TOTAL OUTSTANDING', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
                       const SizedBox(height: 8),
-                      Text('₹${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
+                      Text('Rs ${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -4438,7 +4625,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       children: [
                         const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         const SizedBox(height: 4),
-                        Text('₹${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     Container(
@@ -4486,7 +4673,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Bill amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('₹${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -4562,7 +4749,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('₹${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('Rs ${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -5187,8 +5374,8 @@ class _CustomersPageState extends State<CustomersPage> {
         rows: rows,
         additionalSummary: {
           'Total Customers': customersSnapshot.docs.length.toString(),
-          'Total Sales': '₹${totalSales.toStringAsFixed(2)}',
-          'Total Credit Due': '₹${totalCredit.toStringAsFixed(2)}',
+          'Total Sales': 'Rs ${totalSales.toStringAsFixed(2)}',
+          'Total Credit Due': 'Rs ${totalCredit.toStringAsFixed(2)}',
         },
       );
     } catch (e) {
@@ -6145,10 +6332,12 @@ class _EditBillPageState extends State<EditBillPage> {
   List<Map<String, dynamic>> _selectedCreditNotes = [];
   double _creditNotesAmount = 0.0;
   bool _isSaving = false;
+  String _currencySymbol = 'Rs ';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _discountController = TextEditingController(
       text: (widget.invoiceData['discount'] ?? 0).toString(),
     );
@@ -6166,6 +6355,28 @@ class _EditBillPageState extends State<EditBillPage> {
       _selectedCreditNotes = selectedNotes.map((n) => Map<String, dynamic>.from(n)).toList();
       _creditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + ((cn['amount'] ?? 0) as num).toDouble());
     }
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'MYR': 'RM ', 'PHP': '₱ ', 'PKR': 'Rs ', 'AED': 'AED ',
+      'SAR': 'SR ', 'BDT': '৳ ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'IDR': 'Rp ', 'THB': '฿ ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -6582,7 +6793,7 @@ class _EditBillPageState extends State<EditBillPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Total net payable', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
+                const Text('Total Amount payable', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
                 Text('${finalTotal.toStringAsFixed(2)}',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kHeaderColor)),
               ],
@@ -7055,10 +7266,10 @@ class _EditBillPageState extends State<EditBillPage> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             autofocus: true,
             style: const TextStyle(fontWeight: FontWeight.w700),
-            decoration: const InputDecoration(
-              prefixText: 'Rs ',
+            decoration: InputDecoration(
+              prefixText: _currencySymbol,
               border: InputBorder.none,
-              contentPadding: EdgeInsets.all(16),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
         ),

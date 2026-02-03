@@ -22,18 +22,36 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<Stream<QuerySnapshot>> _purchasesStreamFuture;
+  String _currencySymbol = 'Rs ';
 
   @override
   void initState() {
     super.initState();
     _purchasesStreamFuture = FirestoreService().getCollectionStream('stockPurchases');
     _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
+    _loadCurrency();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+      });
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': 'USD ', 'EUR': 'EUR ', 'GBP': 'GBP ', 'JPY': 'JPY ', 'CNY': 'CNY ',
+      'AUD': 'AUD ', 'CAD': 'CAD ', 'CHF': 'CHF ', 'HKD': 'HKD ', 'SGD': 'SGD ',
+      'MYR': 'MYR ', 'PHP': 'PHP ', 'PKR': 'PKR ', 'AED': 'AED ', 'SAR': 'SAR ',
+      'LKR': 'Rs ', 'NPR': 'Rs ', 'BDT': 'BDT ',
+    };
+    return currencyShortForms[code] ?? '$code ';
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -221,7 +239,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                       child: Text(data['supplierName'] ?? 'Unknown Supplier',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ),
-                    Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                    Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                   ],
                 ),
                 const Divider(height: 24, color: kGrey100),
