@@ -263,7 +263,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // 4. Bill & Print Settings - only visible if admin or has receiptCustomization permission
           if (_isAdmin || _hasPermission('receiptCustomization'))
             _buildModernTile(
-              title: "Bill & Print Setting",
+              title: "Bill Receipt Setting",
               icon: Icons.receipt_long_rounded,
               color: const Color(0xFFFF9800),
               onTap: () => _navigateTo('BillPrintSettings'),
@@ -524,6 +524,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _licenseTypeCtrl = TextEditingController(), _licenseNumberCtrl = TextEditingController();
   bool _loading = false, _fetching = true, _uploadingImage = false;
   bool _hasChanges = false;
+  bool _isPremium = false;
 
   // Original values to track changes
   Map<String, String> _originalValues = {};
@@ -877,6 +878,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           _locCtrl.text = data['businessLocation'] ?? '';
           _ownerCtrl.text = data['ownerName'] ?? '';
           _logoUrl = data['logoUrl'];
+          // Check premium status
+          final plan = data['plan'] ?? 'free';
+          _isPremium = plan.toString().toLowerCase() != 'free' && plan.toString().toLowerCase() != 'starter';
           // Load email from store, fallback to user email
           if (data['email'] != null && data['email'].toString().isNotEmpty) {
             _emailCtrl.text = data['email'];
@@ -948,6 +952,80 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     finally { if (mounted) setState(() => _uploadingImage = false); }
   }
 
+  void _showPremiumRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: kOrange.withAlpha(25), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.workspace_premium_rounded, color: kOrange, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('Premium Feature', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, fontFamily: 'NotoSans')),
+          ],
+        ),
+        content: const Text('Upgrade to Premium to customize your business logo.', style: TextStyle(color: kBlack54, fontFamily: 'Lato')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Later', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))),
+          ElevatedButton(
+            onPressed: () { Navigator.pop(ctx); /* Navigate to upgrade page */ },
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text('Upgrade', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRemoveLogoDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Remove Logo?', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, fontFamily: 'NotoSans')),
+        content: const Text('Are you sure you want to remove your business logo?', style: TextStyle(color: kBlack54, fontFamily: 'Lato')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _removeLogo();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text('Remove', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeLogo() async {
+    setState(() => _uploadingImage = true);
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) throw Exception('Identity Error');
+      // Remove from Firestore
+      await FirebaseFirestore.instance.collection('store').doc(storeId).update({'logoUrl': FieldValue.delete()});
+      // Try to delete from Storage
+      try {
+        final storageRef = FirebaseStorage.instance.ref().child('store_logos').child('$storeId.jpg');
+        await storageRef.delete();
+      } catch (_) {}
+      await FirestoreService().notifyStoreDataChanged();
+      if (mounted) setState(() { _logoUrl = null; _selectedImage = null; });
+      CommonWidgets.showSnackBar(context, 'Logo removed successfully', bgColor: kGoogleGreen);
+    } catch (e) {
+      debugPrint(e.toString());
+      CommonWidgets.showSnackBar(context, 'Error removing logo', bgColor: kErrorColor);
+    } finally {
+      if (mounted) setState(() => _uploadingImage = false);
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -991,7 +1069,72 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                                 : const Icon(Icons.add_business_rounded, size: 40, color: kGrey400),
                           ),
                         ),
-                        Positioned(bottom: 0, right: 0, child: GestureDetector(onTap: _uploadingImage ? null : _pickImage, child: Container(width: 34, height: 34, decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(8), border: Border.all(color: kWhite, width: 2)), child: _uploadingImage ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2)) : const Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)))),
+                        // Edit/Add button with premium restriction
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: _uploadingImage ? null : () {
+                              if (!_isPremium) {
+                                _showPremiumRequiredDialog();
+                              } else {
+                                _pickImage();
+                              }
+                            },
+                            child: Container(
+                              width: 34, height: 34,
+                              decoration: BoxDecoration(
+                                color: _isPremium ? kPrimaryColor : kGrey400,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: kWhite, width: 2),
+                              ),
+                              child: _uploadingImage
+                                  ? const Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator(color: kWhite, strokeWidth: 2))
+                                  : Stack(
+                                      children: [
+                                        const Center(child: Icon(Icons.camera_alt_rounded, color: kWhite, size: 16)),
+                                        if (!_isPremium)
+                                          Positioned(
+                                            top: 0,
+                                            right: 0,
+                                            child: Container(
+                                              width: 14, height: 14,
+                                              decoration: BoxDecoration(
+                                                color: kOrange,
+                                                borderRadius: BorderRadius.circular(7),
+                                              ),
+                                              child: const Icon(Icons.workspace_premium_rounded, color: kWhite, size: 10),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                        // Remove button - only show if there's a logo and user is premium
+                        if ((_logoUrl != null && _logoUrl!.isNotEmpty) || _selectedImage != null)
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: _uploadingImage ? null : () {
+                                if (!_isPremium) {
+                                  _showPremiumRequiredDialog();
+                                } else {
+                                  _showRemoveLogoDialog();
+                                }
+                              },
+                              child: Container(
+                                width: 24, height: 24,
+                                decoration: BoxDecoration(
+                                  color: kErrorColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: kWhite, width: 2),
+                                ),
+                                child: const Icon(Icons.close_rounded, color: kWhite, size: 12),
+                              ),
+                            ),
+                          ),
                       ])),
                       const SizedBox(height: 24),
                       _buildSectionLabel("IDENTITY & TAX"),
@@ -1069,82 +1212,141 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   );
 
   Widget _buildModernField(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isMandatory ? const Color(0xFF6B78D8) : kGrey200),
-      ),
-      child: TextFormField(
-        controller: ctrl,
-        enabled: enabled,
-        keyboardType: type,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: TextStyle(color: enabled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54, size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        ),
-        validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
-        onChanged: (_) => _checkForChanges(),
-      ),
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool isFilled = value.text.isNotEmpty;
+        // For mandatory: always blue. For non-mandatory: grey when empty, kBlack54 when filled
+        final Color borderColor = isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kBlack54 : kGrey200);
+        final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
+        final Color labelColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        final Color iconColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: ctrl,
+            enabled: enabled,
+            keyboardType: type,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+            decoration: InputDecoration(
+              labelText: label,
+              labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              prefixIcon: Icon(icon, color: iconColor, size: 20),
+              filled: true,
+              fillColor: kWhite,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, width: 1.5),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: kErrorColor),
+              ),
+              floatingLabelStyle: TextStyle(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, fontWeight: FontWeight.w800),
+            ),
+            validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+            onChanged: (_) => _checkForChanges(),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildModernFieldWithHint(String label, TextEditingController ctrl, IconData icon, {bool enabled = true, TextInputType type = TextInputType.text, bool isMandatory = false, String? hint}) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isMandatory ? const Color(0xFF6B78D8) : kGrey200),
-      ),
-      child: TextFormField(
-        controller: ctrl,
-        enabled: enabled,
-        keyboardType: type,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
-          labelStyle: TextStyle(color: enabled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-          prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54, size: 20),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        ),
-        validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
-        onChanged: (_) => _checkForChanges(),
-      ),
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool isFilled = value.text.isNotEmpty;
+        // For mandatory: always blue. For non-mandatory: grey when empty, kBlack54 when filled
+        final Color borderColor = isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kBlack54 : kGrey200);
+        final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
+        final Color labelColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        final Color iconColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: ctrl,
+            enabled: enabled,
+            keyboardType: type,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+            decoration: InputDecoration(
+              labelText: label,
+              hintText: hint,
+              hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
+              labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              prefixIcon: Icon(icon, color: iconColor, size: 20),
+              filled: true,
+              fillColor: kWhite,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, width: 1.5),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: kErrorColor),
+              ),
+              floatingLabelStyle: TextStyle(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, fontWeight: FontWeight.w800),
+            ),
+            validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
+            onChanged: (_) => _checkForChanges(),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildLocationField() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kGrey200),
-      ),
-      child: TextFormField(
-        controller: _locCtrl,
-        keyboardType: TextInputType.streetAddress,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
-        maxLines: 2,
-        minLines: 1,
-        decoration: const InputDecoration(
-          labelText: "Address",
-          labelStyle: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
-          prefixIcon: Icon(Icons.location_on_rounded, color: kPrimaryColor, size: 20),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        ),
-        onChanged: (_) => _checkForChanges(),
-      ),
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _locCtrl,
+      builder: (context, value, _) {
+        final bool isFilled = value.text.isNotEmpty;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: _locCtrl,
+            keyboardType: TextInputType.streetAddress,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+            maxLines: 2,
+            minLines: 1,
+            decoration: InputDecoration(
+              labelText: "Address",
+              labelStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              prefixIcon: const Icon(Icons.location_on_rounded, color: kBlack54, size: 20),
+              filled: true,
+              fillColor: kWhite,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: kBlack54, width: 1.5),
+              ),
+              floatingLabelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w800),
+            ),
+            onChanged: (_) => _checkForChanges(),
+          ),
+        );
+      },
     );
   }
 
@@ -1157,7 +1359,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         decoration: BoxDecoration(
           color: kWhite,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: kGrey200),
+          border: Border.all(color: kBlack54),
         ),
         child: ListTile(
           leading: const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 20),
@@ -1344,6 +1546,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     await prefs.setString('a4_estimation_text', _a4EstimationText);
     await prefs.setString('a4_delivery_challan_text', _a4DeliveryChallanText);
     await prefs.setBool('a4_show_tax_column', _a4ShowTaxColumnInTable);
+    await prefs.setString('a4_color_theme', _a4ColorTheme);
 
     // Also save for invoice page compatibility
     await prefs.setBool('receipt_show_logo', _tabController.index == 0 ? _thermalShowLogo : _a4ShowLogo);
@@ -1367,22 +1570,42 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           elevation: 0,
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: kWhite,
-            indicatorWeight: 3,
-            labelColor: kWhite,
-            unselectedLabelColor: kWhite.withAlpha(150),
-            labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, fontFamily: 'NotoSans'),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13, fontFamily: 'NotoSans'),
-            tabs: const [
-              Tab(icon: Icon(Icons.print_rounded, size: 18), text: 'Thermal'),
-              Tab(icon: Icon(Icons.picture_as_pdf_rounded, size: 18), text: 'A4 / Pdf'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(64),
+            child: Container(
+              color: kWhite,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: kGreyBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: kGrey200),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: kPrimaryColor,
+                  ),
+                  dividerColor: Colors.transparent,
+                  labelColor: kWhite,
+                  unselectedLabelColor: kBlack54,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                  tabs: const [
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 16), SizedBox(width: 8), Text('THERMAL')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.picture_as_pdf_rounded, size: 16), SizedBox(width: 8), Text('A4 / PDF')])),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         body: TabBarView(
           controller: _tabController,
+
           children: [
             _buildThermalTab(),
             _buildA4Tab(),
@@ -1402,27 +1625,14 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         Container(
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-              const SizedBox(height: 8),
-              Row(children: [
-                _buildPageSizeOption('2 inch (58mm)', '58mm', _thermalPageSize == '58mm', true),
-                const SizedBox(width: 12),
-                _buildPageSizeOption('3 inch (80mm)', '80mm', _thermalPageSize == '80mm', true),
-              ]),
-              const SizedBox(height: 16),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
-                Row(children: [
-                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () { setState(() => _thermalNumberOfCopies--); _saveSettings(); } : null),
-                  Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _thermalNumberOfCopies++); _saveSettings(); }),
-                ]),
-              ]),
-            ],
-          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+            Row(children: [
+              IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () { setState(() => _thermalNumberOfCopies--); _saveSettings(); } : null),
+              Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _thermalNumberOfCopies++); _saveSettings(); }),
+            ]),
+          ]),
         ),
         const SizedBox(height: 16),
         _buildSectionLabel('IDENTITY & BRANDING'),
@@ -1485,34 +1695,14 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         Container(
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Page Size', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                decoration: BoxDecoration(color: kPrimaryColor.withAlpha(25), borderRadius: BorderRadius.circular(10), border: Border.all(color: kPrimaryColor)),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.description_rounded, color: kPrimaryColor, size: 18),
-                    const SizedBox(width: 8),
-                    const Text('A4 (210×297mm)', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: kPrimaryColor, fontFamily: 'Lato')),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
-                Row(children: [
-                  IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () { setState(() => _a4NumberOfCopies--); _saveSettings(); } : null),
-                  Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _a4NumberOfCopies++); _saveSettings(); }),
-                ]),
-              ]),
-            ],
-          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+            Row(children: [
+              IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () { setState(() => _a4NumberOfCopies--); _saveSettings(); } : null),
+              Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _a4NumberOfCopies++); _saveSettings(); }),
+            ]),
+          ]),
         ),
         const SizedBox(height: 16),
         _buildSectionLabel('IDENTITY & BRANDING'),
@@ -2622,10 +2812,12 @@ class _LanguagePageState extends State<LanguagePage> {
                 final index = entry.key;
                 final lang = entry.value;
                 final isSelected = _selectedLanguage == lang['name'];
+                final isEnglish = lang['code'] == 'en';
+                final isComingSoon = !isEnglish;
                 return Column(
                   children: [
                     ListTile(
-                      onTap: () => _saveLanguage(lang['name']!),
+                      onTap: isComingSoon ? null : () => _saveLanguage(lang['name']!),
                       leading: Container(
                         width: 40, height: 40,
                         decoration: BoxDecoration(
@@ -2633,11 +2825,23 @@ class _LanguagePageState extends State<LanguagePage> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
-                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54)),
+                          child: Text(lang['code']!.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack54))),
                         ),
                       ),
-                      title: Text(lang['name']!, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isSelected ? kPrimaryColor : kBlack87)),
-                      subtitle: Text(lang['nativeName']!, style: TextStyle(fontSize: 12, color: isSelected ? kPrimaryColor : kBlack54, fontFamily: 'Lato')),
+                      title: Row(
+                        children: [
+                          Text(lang['name']!, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack87))),
+                          if (isComingSoon) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: kOrange.withAlpha(25), borderRadius: BorderRadius.circular(4)),
+                              child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kOrange)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      subtitle: Text(lang['nativeName']!, style: TextStyle(fontSize: 12, color: isComingSoon ? kGrey400 : (isSelected ? kPrimaryColor : kBlack54), fontFamily: 'Lato')),
                       trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
                     ),
                     if (index < _languages.length - 1) const Divider(height: 1, indent: 60, color: kGrey100),

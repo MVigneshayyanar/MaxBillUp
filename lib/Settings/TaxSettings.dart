@@ -279,17 +279,37 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           elevation: 0,
           centerTitle: true,
           leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: widget.onBack),
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: kWhite,
-            indicatorWeight: 4,
-            labelColor: kWhite,
-            unselectedLabelColor: kWhite.withOpacity(0.7),
-            labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
-            tabs: const [
-              Tab(text: 'TAX RATES'),
-              Tab(text: 'QUICK BILLING TAX')
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(64),
+            child: Container(
+              color: kWhite,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Container(
+                height: 48,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: kGreyBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: kGrey200),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    color: kPrimaryColor,
+                  ),
+                  dividerColor: Colors.transparent,
+                  labelColor: kWhite,
+                  unselectedLabelColor: kBlack54,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                  tabs: const [
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.percent_rounded, size: 16), SizedBox(width: 8), Text('TAX RATES')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.flash_on_rounded, size: 16), SizedBox(width: 8), Text('QUICK BILLING')])),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         body: TabBarView(
@@ -306,37 +326,60 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       children: [
         _buildSectionLabel("Create New Tax Category"),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(flex: 3, child: _buildDialogDropdown("Category", _selectedTaxName, _taxNames, (v) => setState(() => _selectedTaxName = v!))),
-                  const SizedBox(width: 12),
-                  Expanded(flex: 2, child: _buildFlatField("Rate (%)", _taxPercentController, TextInputType.number)),
-                ],
+              // Tax Type Dropdown
+              _wrapDropdown(
+                "Tax Type",
+                DropdownButton<String>(
+                  value: _taxNames.contains(_selectedTaxName) ? _selectedTaxName : _taxNames.first,
+                  isExpanded: true,
+                  isDense: true,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: kPrimaryColor),
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+                  items: _taxNames.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) => setState(() => _selectedTaxName = v!),
+                ),
+                onAdd: _showCreateTaxNameDialog,
               ),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _showCreateTaxNameDialog,
-                      icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text("Add New Tax", style: TextStyle(fontFamily: 'Lato')),
-                      style: OutlinedButton.styleFrom(foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                    ),
+              // Tax Rate Field
+              TextFormField(
+                controller: _taxPercentController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'),
+                decoration: InputDecoration(
+                  labelText: "Tax Rate (%)",
+                  hintText: "e.g. 5, 12, 18",
+                  prefixIcon: const Icon(Icons.percent_rounded, color: kBlack54, size: 20),
+                  filled: true,
+                  fillColor: kWhite,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kGrey200),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _addNewTax,
-                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                      child: const Text('Add Tax', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontFamily: 'Lato')),
-                    ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
                   ),
-                ],
+                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // Add Button - Full Width
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _addNewTax,
+                  icon: const Icon(Icons.add_rounded, size: 20, color: kWhite),
+                  label: const Text('ADD TAX CATEGORY', style: TextStyle(fontWeight: FontWeight.w900, color: kWhite, fontSize: 13, letterSpacing: 0.5, fontFamily: 'Lato')),
+                  style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                ),
               ),
             ],
           ),
@@ -345,6 +388,23 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
         _buildSectionLabel("Active Tax Categories"),
         _buildLiveTaxList(),
       ],
+    );
+  }
+
+  Widget _wrapDropdown(String label, Widget child, {VoidCallback? onAdd}) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
+        filled: true,
+        fillColor: kWhite,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        suffixIcon: onAdd != null ? IconButton(icon: const Icon(Icons.add_circle_outline_rounded, color: kPrimaryColor, size: 22), onPressed: onAdd) : null,
+        floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+      ),
+      child: DropdownButtonHideUnderline(child: child),
     );
   }
 
@@ -534,9 +594,6 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
 
   Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')));
 
-  Widget _buildFlatField(String label, TextEditingController ctrl, TextInputType type) => Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kGrey200)), child: TextField(controller: ctrl, keyboardType: type, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'), decoration: InputDecoration(hintText: label, border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12))));
-
-  Widget _buildDialogDropdown(String? label, String current, List<String> items, Function(String?) onSel) => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(10), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: items.contains(current) ? current : (items.isNotEmpty ? items.first : null), isExpanded: true, items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, fontFamily: 'Lato')))).toList(), onChanged: onSel)));
 
   Widget _buildEmptyState(String msg) => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const SizedBox(height: 32), Icon(Icons.receipt_long_outlined, size: 48, color: kGrey300), const SizedBox(height: 16), Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontFamily: 'Lato'))]));
 }

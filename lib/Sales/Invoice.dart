@@ -19,6 +19,8 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
@@ -192,11 +194,15 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   bool _a4ShowSignature = false;
   String _a4ColorTheme = 'blue'; // Color theme for A4: blue, black, green, purple, red
 
-  // Preview mode: true = thermal, false = A4/PDF
-  bool _isThermalPreview = true;
+  // Preview mode TabController
+  late TabController _previewTabController;
 
   // Template selection
   InvoiceTemplate _selectedTemplate = InvoiceTemplate.classic;
+
+  // PDF Fonts for currency symbol support
+  pw.Font? _pdfFontRegular;
+  pw.Font? _pdfFontBold;
 
   // Stream subscription for store data changes
   StreamSubscription<Map<String, dynamic>>? _storeDataSubscription;
@@ -214,6 +220,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     _loadStoreData();
     _loadReceiptSettings();
     _loadTemplatePreference();
+    _loadPdfFonts();
+
+    // Initialize preview tab controller
+    _previewTabController = TabController(length: 2, vsync: this);
 
     // Initialize celebration animation
     _celebrationController = AnimationController(
@@ -255,6 +265,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   void dispose() {
     _storeDataSubscription?.cancel();
     _celebrationController.dispose();
+    _previewTabController.dispose();
     super.dispose();
   }
 
@@ -572,6 +583,17 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     }
   }
 
+  Future<void> _loadPdfFonts() async {
+    try {
+      final fontRegular = await rootBundle.load('fonts/NotoSans-Regular.ttf');
+      final fontBold = await rootBundle.load('fonts/NotoSans-Bold.ttf');
+      _pdfFontRegular = pw.Font.ttf(fontRegular);
+      _pdfFontBold = pw.Font.ttf(fontBold);
+    } catch (e) {
+      debugPrint('Error loading PDF fonts: $e');
+    }
+  }
+
   Future<void> _loadReceiptSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -694,24 +716,25 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     final templateColors = _getTemplateColors(_selectedTemplate);
 
     return Scaffold(
-      backgroundColor: templateColors['bg'],
+      backgroundColor: kGreyBg,
       appBar: AppBar(
-        backgroundColor: templateColors['bg'],
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         title: Text(
-          widget.isQuotation
-              ? 'QUOTATION DETAILS'
-              : context.tr('invoice details').toUpperCase(),
-          style: TextStyle(
-            color: templateColors['primary'],
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
-            letterSpacing: 1.0,
+          widget.isQuotation ? 'Quotation Details' : 'Invoice Details',
+          style: const TextStyle(
+            color: kWhite,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            fontFamily: 'NotoSans',
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.close_rounded, color: templateColors['primary']),
+          icon: const Icon(Icons.close_rounded, color: kWhite, size: 18),
           onPressed: () => Navigator.pushAndRemoveUntil(
             context,
             CupertinoPageRoute(builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail)),
@@ -720,83 +743,62 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings_outlined, color: templateColors['primary']),
+            icon: const Icon(Icons.settings_outlined, color: kWhite, size: 20),
             onPressed: _showInvoiceSettings,
           )
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(64),
+          child: Container(
+            color: kWhite,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Container(
+              height: 48,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: kGreyBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: kGrey200),
+              ),
+              child: TabBar(
+                controller: _previewTabController,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: kPrimaryColor,
+                ),
+                dividerColor: Colors.transparent,
+                labelColor: kWhite,
+                unselectedLabelColor: kBlack54,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                tabs: const [
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 16), SizedBox(width: 8), Text('THERMAL')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.picture_as_pdf_rounded, size: 16), SizedBox(width: 8), Text('A4 / PDF')])),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
           _isLoading
-              ? Center(child: CircularProgressIndicator(color: templateColors['primary']))
-              : Column(
-            children: [
-              // Preview mode toggle
-              Container(
-                margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: kGrey100,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+              ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+              : TabBarView(
+                  controller: _previewTabController,
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isThermalPreview = true),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _isThermalPreview ? kWhite : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: _isThermalPreview ? [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 4, offset: const Offset(0, 2))] : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.receipt_long_rounded, size: 16, color: _isThermalPreview ? kPrimaryColor : kBlack54),
-                              const SizedBox(width: 6),
-                              Text('Thermal', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: _isThermalPreview ? kPrimaryColor : kBlack54)),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // Thermal Preview Tab
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                      child: _buildThermalPreview(),
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _isThermalPreview = false),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: !_isThermalPreview ? kWhite : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
-                            boxShadow: !_isThermalPreview ? [BoxShadow(color: Colors.black.withAlpha(15), blurRadius: 4, offset: const Offset(0, 2))] : null,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.picture_as_pdf_rounded, size: 16, color: !_isThermalPreview ? kPrimaryColor : kBlack54),
-                              const SizedBox(width: 6),
-                              Text('A4 / Pdf', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: !_isThermalPreview ? kPrimaryColor : kBlack54)),
-                            ],
-                          ),
-                        ),
-                      ),
+                    // A4/PDF Preview Tab
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                      child: _buildA4Preview(templateColors),
                     ),
                   ],
                 ),
-              ),
-              // Invoice preview
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
-                  child: _isThermalPreview
-                      ? _buildThermalPreview()
-                      : _buildA4Preview(templateColors),
-                ),
-              ),
-            ],
-          ),
           // Celebration confetti overlay
           if (_showCelebration)
             AnimatedBuilder(
@@ -1917,12 +1919,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
               textAlign: TextAlign.center,
             ),
 
-            const SizedBox(height: 8),
-            const Text(
-              '*** Thank You ***',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              textAlign: TextAlign.center,
-            ),
+
           ],
         ),
       ),
@@ -3026,6 +3023,19 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // ========== HEADER SECTION ==========
       bytes.addAll([esc, 0x61, 0x01]); // Center align
 
+      // Print Logo if enabled and available
+      if (_thermalShowLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty) {
+        try {
+          final logoBytes = await _getLogoBytes(businessLogoUrl!, printerWidth == '80mm' ? 200 : 150);
+          if (logoBytes != null && logoBytes.isNotEmpty) {
+            bytes.addAll(logoBytes);
+            bytes.add(lf);
+          }
+        } catch (e) {
+          debugPrint('Error printing logo: $e');
+        }
+      }
+
       // Business Name (Bold, Large)
       bytes.addAll([esc, 0x21, 0x30]); // Double height + width + bold
       bytes.addAll(utf8.encode(_truncateText(businessName.toUpperCase(), lineWidth ~/ 2)));
@@ -3105,25 +3115,43 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
       if (lineWidth >= 48) {
         // 80mm printer - more space
-        nameWidth = 16;
-        qtyWidth = 4;
-        rateWidth = 8;
-        taxWidth = 6;
-        totalWidth = 10;
+        if (_thermalShowTaxColumn) {
+          nameWidth = 16;
+          qtyWidth = 4;
+          rateWidth = 8;
+          taxWidth = 6;
+          totalWidth = 10;
+        } else {
+          nameWidth = 20;
+          qtyWidth = 6;
+          rateWidth = 10;
+          taxWidth = 0;
+          totalWidth = 12;
+        }
       } else {
         // 58mm printer - compact
-        nameWidth = 10;
-        qtyWidth = 3;
-        rateWidth = 6;
-        taxWidth = 4;
-        totalWidth = 7;
+        if (_thermalShowTaxColumn) {
+          nameWidth = 10;
+          qtyWidth = 3;
+          rateWidth = 6;
+          taxWidth = 4;
+          totalWidth = 7;
+        } else {
+          nameWidth = 12;
+          qtyWidth = 4;
+          rateWidth = 8;
+          taxWidth = 0;
+          totalWidth = 8;
+        }
       }
 
       // Build header based on what's shown
       String header = 'ITEM'.padRight(nameWidth);
-      header += 'QTY  '.padRight(qtyWidth);
+      header += 'QTY'.padRight(qtyWidth);
       header += 'RATE'.padRight(rateWidth);
-      header += 'TAX'.padRight(taxWidth);
+      if (_thermalShowTaxColumn) {
+        header += 'TAX'.padRight(taxWidth);
+      }
       header += 'TOTAL'.padLeft(totalWidth);
 
       bytes.addAll([esc, 0x21, 0x08]); // Bold
@@ -3157,7 +3185,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         final qtyStr = qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(2);
         itemLine += qtyStr.padRight(qtyWidth);
         itemLine += _formatPrice(rate, rateWidth - 1).padRight(rateWidth);
-        itemLine += '${taxPercent.toInt()}%'.padRight(taxWidth);
+        if (_thermalShowTaxColumn) {
+          itemLine += '${taxPercent.toInt()}%'.padRight(taxWidth);
+        }
         itemLine += _formatPrice(total, totalWidth).padLeft(totalWidth);
 
         bytes.addAll(utf8.encode(itemLine));
@@ -3296,6 +3326,84 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     return priceStr.length > maxWidth ? priceStr.substring(0, maxWidth) : priceStr;
   }
 
+  // Helper: Get logo bytes for thermal printer (ESC/POS format)
+  Future<List<int>?> _getLogoBytes(String imageUrl, int maxWidth) async {
+    try {
+      // Download image
+      final response = await HttpClient().getUrl(Uri.parse(imageUrl));
+      final httpResponse = await response.close();
+      final bytes = await httpResponse.fold<List<int>>([], (prev, element) => prev..addAll(element));
+
+      // Decode image
+      final codec = await ui.instantiateImageCodec(Uint8List.fromList(bytes));
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+
+      // Create a picture recorder to draw the image
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // Calculate scaled dimensions maintaining aspect ratio
+      final aspectRatio = image.width / image.height;
+      final scaledWidth = maxWidth;
+      final scaledHeight = (maxWidth / aspectRatio).round();
+
+      // Draw image scaled
+      final srcRect = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+      final dstRect = Rect.fromLTWH(0, 0, scaledWidth.toDouble(), scaledHeight.toDouble());
+      canvas.drawImageRect(image, srcRect, dstRect, Paint());
+
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(scaledWidth, scaledHeight);
+      final byteData = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      if (byteData == null) return null;
+
+      final pixels = byteData.buffer.asUint8List();
+
+      // Convert to monochrome bitmap for ESC/POS
+      // ESC/POS GS v 0 command for raster bit image
+      final widthBytes = (scaledWidth + 7) ~/ 8;
+      final imageData = <int>[];
+
+      // GS v 0 m xL xH yL yH d1...dk
+      imageData.addAll([0x1D, 0x76, 0x30, 0x00]); // GS v 0 (normal mode)
+      imageData.addAll([widthBytes & 0xFF, (widthBytes >> 8) & 0xFF]); // xL xH (width in bytes)
+      imageData.addAll([scaledHeight & 0xFF, (scaledHeight >> 8) & 0xFF]); // yL yH (height in dots)
+
+      // Convert pixels to monochrome
+      for (int y = 0; y < scaledHeight; y++) {
+        for (int xByte = 0; xByte < widthBytes; xByte++) {
+          int byte = 0;
+          for (int bit = 0; bit < 8; bit++) {
+            final x = xByte * 8 + bit;
+            if (x < scaledWidth) {
+              final pixelIndex = (y * scaledWidth + x) * 4;
+              if (pixelIndex + 3 < pixels.length) {
+                final r = pixels[pixelIndex];
+                final g = pixels[pixelIndex + 1];
+                final b = pixels[pixelIndex + 2];
+                final a = pixels[pixelIndex + 3];
+                // Convert to grayscale and threshold
+                final gray = (0.299 * r + 0.587 * g + 0.114 * b).round();
+                // If pixel is dark (and not transparent), set bit
+                if (gray < 128 && a > 128) {
+                  byte |= (0x80 >> bit);
+                }
+              }
+            }
+          }
+          imageData.add(byte);
+        }
+      }
+
+      return imageData;
+    } catch (e) {
+      debugPrint('Error converting logo for thermal printer: $e');
+      return null;
+    }
+  }
+
   Future<void> _handleShare(BuildContext context) async {
     try {
       showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
@@ -3308,6 +3416,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       pdf.addPage(pw.Page(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(40),
+        theme: pw.ThemeData.withFont(base: _pdfFontRegular, bold: _pdfFontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
