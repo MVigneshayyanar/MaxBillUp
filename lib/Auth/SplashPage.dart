@@ -2,12 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'LoginPage.dart';
 import 'BusinessDetailsPage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +14,10 @@ import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Admin/Home.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/services/in_app_update_service.dart';
+
+// Mobile-only imports - these will be tree-shaken on web
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -31,14 +33,13 @@ class _SplashPageState extends State<SplashPage>
     super.initState();
     debugPrint('Splash screen started at: ${DateTime.now()}');
 
-    // Check for in-app updates (Android only)
-    InAppUpdateService.checkForUpdate();
+    // Check for in-app updates (Android only, skip on web)
+    if (!kIsWeb) {
+      InAppUpdateService.checkForUpdate();
+    }
 
-    // Removed automatic permission requests - will be requested lazily when needed
-    // _requestBluetoothPermissions(); // Only request when user tries to use Bluetooth printer
-
-    // Navigate after 2 seconds
-    Timer(const Duration(seconds: 5), () {
+    // Navigate after 2 seconds (reduced from 5 for better UX on web)
+    Timer(Duration(seconds: kIsWeb ? 2 : 5), () {
       debugPrint('Splash screen ended at: ${DateTime.now()}');
       if (!mounted) return;
       _navigateToNextScreen();
@@ -133,6 +134,12 @@ class _SplashPageState extends State<SplashPage>
   /// Request Bluetooth and location permissions for printer connectivity
   /// This is now a public static method that can be called when needed
   static Future<bool> requestBluetoothPermissions() async {
+    // Skip on web - Bluetooth not supported
+    if (kIsWeb) {
+      debugPrint('⚠️ Bluetooth not supported on web');
+      return false;
+    }
+
     try {
       // Request Bluetooth permissions (Android 12+)
       final bluetoothStatus = await Permission.bluetooth.request();

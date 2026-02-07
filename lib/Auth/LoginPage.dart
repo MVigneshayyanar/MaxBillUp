@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -18,6 +19,11 @@ import 'package:maxbillup/Admin/Home.dart';
 
 // --- UI CONSTANTS ---
 import 'package:maxbillup/Colors.dart';
+
+// Web Client ID for Google Sign In
+// Get this from: https://console.cloud.google.com/ > APIs & Services > Credentials > OAuth 2.0 Client IDs (Web client)
+// Format: XXXXXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+const String _webClientId = '490905109908-6mbuv8jbcucq3vqanptqa7vp0q3is1tp.apps.googleusercontent.com';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -207,7 +213,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _googleLogin() async {
     setState(() => _loading = true);
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      // Use clientId for web platform
+      final GoogleSignIn googleSignIn = kIsWeb
+          ? GoogleSignIn(clientId: _webClientId)
+          : GoogleSignIn();
       await googleSignIn.signOut();
       final GoogleSignInAccount? gUser = await googleSignIn.signIn();
       if (gUser == null) {

@@ -1371,297 +1371,433 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   // ==========================================
   Map<String, Color> _getA4ThemeColors() {
     switch (_a4ColorTheme) {
-      case 'black':
-        return {'primary': const Color(0xFF212121), 'accent': const Color(0xFF424242), 'light': const Color(0xFFF5F5F5)};
+      case 'gold':
+        return {'primary': const Color(0xFFC9A441), 'accent': const Color(0xFFD4B856), 'light': const Color(0xFFFDF8E8)};
+      case 'lavender':
+        return {'primary': const Color(0xFF9A96D8), 'accent': const Color(0xFFB0ACE5), 'light': const Color(0xFFF3F2FC)};
       case 'green':
-        return {'primary': const Color(0xFF2E7D32), 'accent': const Color(0xFF4CAF50), 'light': const Color(0xFFE8F5E9)};
-      case 'purple':
-        return {'primary': const Color(0xFF7B1FA2), 'accent': const Color(0xFF9C27B0), 'light': const Color(0xFFF3E5F5)};
-      case 'red':
-        return {'primary': const Color(0xFFC62828), 'accent': const Color(0xFFE53935), 'light': const Color(0xFFFFEBEE)};
-      case 'orange':
-        return {'primary': const Color(0xFFE65100), 'accent': const Color(0xFFFF9800), 'light': const Color(0xFFFFF3E0)};
-      case 'teal':
-        return {'primary': const Color(0xFF00695C), 'accent': const Color(0xFF009688), 'light': const Color(0xFFE0F2F1)};
+        return {'primary': const Color(0xFF1CB466), 'accent': const Color(0xFF2ECC7A), 'light': const Color(0xFFE6F9EF)};
+      case 'brown':
+        return {'primary': const Color(0xFFAF4700), 'accent': const Color(0xFFC55A15), 'light': const Color(0xFFFEF3E8)};
       case 'blue':
+        return {'primary': const Color(0xFF6488E0), 'accent': const Color(0xFF7A9AEB), 'light': const Color(0xFFEEF3FC)};
+      case 'peach':
+        return {'primary': const Color(0xFFFAA774), 'accent': const Color(0xFFFBB88A), 'light': const Color(0xFFFFF5EE)};
+      case 'red':
+        return {'primary': const Color(0xFFDB4747), 'accent': const Color(0xFFE56060), 'light': const Color(0xFFFDECEC)};
+      case 'purple':
+        return {'primary': const Color(0xFF7A1FA2), 'accent': const Color(0xFF9333B5), 'light': const Color(0xFFF5E8F9)};
+      case 'orange':
+        return {'primary': const Color(0xFFF45715), 'accent': const Color(0xFFF76E35), 'light': const Color(0xFFFEEDE6)};
+      case 'pink':
+        return {'primary': const Color(0xFFE2A9F1), 'accent': const Color(0xFFEBBCF6), 'light': const Color(0xFFFCF3FE)};
+      case 'copper':
+        return {'primary': const Color(0xFFB36A22), 'accent': const Color(0xFFC47F3A), 'light': const Color(0xFFFBF2E8)};
+      case 'black':
+        return {'primary': const Color(0xFF000000), 'accent': const Color(0xFF333333), 'light': const Color(0xFFF5F5F5)};
+      case 'olive':
+        return {'primary': const Color(0xFF9B9B6E), 'accent': const Color(0xFFADAD85), 'light': const Color(0xFFF6F6F0)};
+      case 'navy':
+        return {'primary': const Color(0xFF2F6798), 'accent': const Color(0xFF4279AA), 'light': const Color(0xFFEAF1F7)};
+      case 'grey':
+        return {'primary': const Color(0xFF737373), 'accent': const Color(0xFF8A8A8A), 'light': const Color(0xFFF2F2F2)};
+      case 'forest':
+        return {'primary': const Color(0xFF4F6F1F), 'accent': const Color(0xFF628535), 'light': const Color(0xFFEFF3E7)};
       default:
-        return {'primary': const Color(0xFF4455DF), 'accent': const Color(0xFF2196F3), 'light': const Color(0xFFE3F2FD)};
+        return {'primary': const Color(0xFF6488E0), 'accent': const Color(0xFF7A9AEB), 'light': const Color(0xFFEEF3FC)};
     }
   }
 
   // ==========================================
-  // A4 PREVIEW WRAPPER
+  // A4 PREVIEW WRAPPER - Full Size Preview (matches PDF output)
   // ==========================================
   Widget _buildA4Preview(Map<String, Color> templateColors) {
     final a4Colors = _getA4ThemeColors();
+    final themeColor = a4Colors['primary']!;
+    final lightColor = a4Colors['light'] ?? themeColor.withAlpha(25);
     final currency = _currencySymbol;
     final dateStr = DateFormat('dd/MM/yyyy').format(widget.dateTime);
 
-    // A4 Preview - Use LayoutBuilder to get proper constraints
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate A4 dimensions based on available width
-        final a4Width = constraints.maxWidth;
-        final a4Height = a4Width * (297 / 210); // A4 aspect ratio
+    return Center(
+      child: Container(
+        width: double.infinity,
+        constraints: const BoxConstraints(maxWidth: 500),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(25),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Colored Header Band (matches PDF)
+            if (_a4ShowHeader)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                decoration: BoxDecoration(
+                  color: themeColor,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Logo
+                    if (_a4ShowLogo)
+                      Container(
+                        width: 50,
+                        height: 50,
+                        margin: const EdgeInsets.only(right: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  businessLogoUrl!,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Center(
+                                    child: Text(
+                                      businessName.isNotEmpty ? businessName.substring(0, 1).toUpperCase() : 'B',
+                                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: themeColor),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : Center(
+                                child: Text(
+                                  businessName.isNotEmpty ? businessName.substring(0, 1).toUpperCase() : 'B',
+                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: themeColor),
+                                ),
+                              ),
+                      ),
+                    // Business Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            businessName,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+                          ),
+                          if (_showLocation && businessLocation.isNotEmpty)
+                            Text(
+                              businessLocation,
+                              style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
+                            ),
+                          if (_showPhone && businessPhone.isNotEmpty)
+                            Text(
+                              'Tel: $businessPhone',
+                              style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
+                            ),
+                          if (_showEmail && businessEmail != null && businessEmail!.isNotEmpty)
+                            Text(
+                              'Email: $businessEmail',
+                              style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(200)),
+                            ),
+                          if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty)
+                            Text(
+                              'GSTIN: $businessGSTIN',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                            ),
+                        ],
+                      ),
+                    ),
+                    // Invoice Info
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE',
+                            style: TextStyle(color: themeColor, fontSize: 12, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '#${widget.invoiceNumber}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                        Text(
+                          dateStr,
+                          style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(180)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
-        return Container(
-          width: a4Width,
-          height: a4Height > 600 ? 600 : a4Height, // Cap height to prevent overflow
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withAlpha(30), blurRadius: 20, offset: const Offset(0, 8)),
-            ],
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Section
-                if (_a4ShowHeader) ...[
+            // Content area
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Customer Section
+                  if (_a4ShowCustomerInfo && widget.customerName != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: lightColor,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Bill To: ',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: themeColor),
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.customerName!,
+                              style: const TextStyle(fontSize: 13, color: kBlack87),
+                            ),
+                          ),
+                          if (widget.customerPhone != null)
+                            Text(
+                              ' | ${widget.customerPhone}',
+                              style: const TextStyle(fontSize: 12, color: kBlack54),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Items Table
+                  if (_a4ShowItemTable) ...[
+                    // Table Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: themeColor,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: Text('Item', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text('Qty', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Text('Rate', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+                          ),
+                          if (_a4ShowTaxColumn)
+                            Expanded(
+                              flex: 2,
+                              child: Text('Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.center),
+                            ),
+                          Expanded(
+                            flex: 3,
+                            child: Text('Total', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white), textAlign: TextAlign.right),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Table Body - All items
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: kGrey200),
+                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(6)),
+                      ),
+                      child: Column(
+                        children: widget.items.map((item) {
+                          final name = (item['name'] ?? 'Item') as String;
+                          final qty = item['quantity'] ?? 1;
+                          final rate = (item['rate'] ?? item['price'] ?? 0.0);
+                          final total = (item['total'] ?? (rate * qty));
+                          final taxPerc = (item['taxPercentage'] ?? 0);
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              border: Border(bottom: BorderSide(color: kGrey200, width: 0.5)),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: Text(
+                                    name,
+                                    style: const TextStyle(fontSize: 12, color: kBlack87),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                Expanded(
+                                  flex: 2,
+                                  child: Text('$qty', style: const TextStyle(fontSize: 12, color: kBlack87), textAlign: TextAlign.center),
+                                ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Text('${rate is double ? rate.toStringAsFixed(0) : rate}', style: const TextStyle(fontSize: 12, color: kBlack87), textAlign: TextAlign.center),
+                                ),
+                                if (_a4ShowTaxColumn)
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text('$taxPerc%', style: const TextStyle(fontSize: 12, color: kBlack87), textAlign: TextAlign.center),
+                                  ),
+                                Expanded(
+                                  flex: 3,
+                                  child: Text('${total is double ? total.toStringAsFixed(2) : total}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87), textAlign: TextAlign.right),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Totals Section
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Logo
-                      if (_a4ShowLogo)
-                        Container(
-                          width: 60,
-                          height: 60,
-                          margin: const EdgeInsets.only(right: 16),
-                          decoration: BoxDecoration(
-                            color: a4Colors['light'],
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: a4Colors['primary']!.withAlpha(50)),
-                          ),
-                          child: businessLogoUrl != null && businessLogoUrl!.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(businessLogoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(Icons.store_rounded, color: a4Colors['primary'], size: 28)),
-                                )
-                              : Icon(Icons.store_rounded, color: a4Colors['primary'], size: 28),
-                        ),
-                      // Business Info
+                      // You Saved / Notes / Item count
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(businessName, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: a4Colors['primary'])),
-                            if (_showLocation && businessLocation.isNotEmpty)
-                              Text(businessLocation, style: const TextStyle(fontSize: 10, color: kBlack54)),
-                            if (_showPhone && businessPhone.isNotEmpty)
-                              Text('Tel: $businessPhone', style: const TextStyle(fontSize: 10, color: kBlack54)),
-                            if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty)
-                              Text('GSTIN: $businessGSTIN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: a4Colors['primary'])),
-                          ],
-                        ),
-                      ),
-                      // Invoice Info
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: a4Colors['primary'], borderRadius: BorderRadius.circular(4)),
-                            child: Text(widget.isQuotation ? 'QUOTATION' : 'INVOICE', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                          ),
-                          const SizedBox(height: 4),
-                          Text('#${widget.invoiceNumber}', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: a4Colors['primary'])),
-                          Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54)),
-                        ],
-                      ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Divider(color: a4Colors['primary']!.withAlpha(50), thickness: 1),
-                        const SizedBox(height: 12),
-                      ],
-
-                      // Customer Section
-                      if (_a4ShowCustomerInfo && widget.customerName != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(color: a4Colors['light'], borderRadius: BorderRadius.circular(8)),
-                          child: Row(
-                            children: [
-                              Icon(Icons.person_rounded, color: a4Colors['primary'], size: 20),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(widget.customerName!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                                    if (widget.customerPhone != null)
-                                      Text(widget.customerPhone!, style: const TextStyle(fontSize: 10, color: kBlack54)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Items Table
-                      if (_a4ShowItemTable) ...[
-                        Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: a4Colors['primary']!.withAlpha(30)),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              // Table Header
+                            if (_a4ShowYouSaved && widget.discount > 0)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                padding: const EdgeInsets.all(10),
+                                margin: const EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
-                                  color: a4Colors['primary'],
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
+                                  color: kGoogleGreen.withAlpha(25),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Expanded(flex: 5, child: Text('Item', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700))),
-                                    const Expanded(flex: 2, child: Text('Qty', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-                                    const Expanded(flex: 3, child: Text('Rate', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-                                    if (_a4ShowTaxColumn) ...[
-                                      const Expanded(flex: 2, child: Text('Tax', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-                                    ],
-                                    const Expanded(flex: 3, child: Text('Total', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
-                                  ],
+                                child: Text(
+                                  '🎉 You Saved $currency${widget.discount.toStringAsFixed(2)}!',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kGoogleGreen),
                                 ),
                               ),
-                              // Table Rows
-                              ...widget.items.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final item = entry.value;
-                                final isEven = index.isEven;
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isEven ? Colors.white : a4Colors['light']!.withAlpha(100),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(flex: 5, child: Text(item['name'] ?? '', style: const TextStyle(fontSize: 10), maxLines: 2, overflow: TextOverflow.ellipsis)),
-                                      Expanded(flex: 2, child: Text('${item['quantity']}', style: const TextStyle(fontSize: 10), textAlign: TextAlign.center)),
-                                      Expanded(flex: 3, child: Text('${(item['price'] ?? 0).toStringAsFixed(0)}', style: const TextStyle(fontSize: 10), textAlign: TextAlign.center)),
-                                      if (_a4ShowTaxColumn) ...[
-                                        Expanded(flex: 2, child: Text('${item['taxPercentage'] ?? 0}%', style: const TextStyle(fontSize: 10), textAlign: TextAlign.center)),
-                                      ],
-                                      Expanded(flex: 3, child: Text('${(item['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600), textAlign: TextAlign.right)),
-                                    ],
-                                  ),
-                                );
-                              }),
-                            ],
-                          ),
+                            if (_a4ShowTotalItemQuantity)
+                              Text(
+                                'Items: ${widget.items.length} | Qty: ${widget.items.fold<num>(0, (sum, item) => sum + ((item['quantity'] ?? 1) is int ? item['quantity'] : (item['quantity'] as num).toInt()))}',
+                                style: const TextStyle(fontSize: 11, color: kBlack54),
+                              ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Totals Section
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // You Saved / Notes
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (_a4ShowYouSaved && widget.discount > 0)
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(color: kGoogleGreen.withAlpha(20), borderRadius: BorderRadius.circular(8)),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.celebration_rounded, color: kGoogleGreen, size: 16),
-                                        const SizedBox(width: 6),
-                                        Text('You Saved $currency${widget.discount.toStringAsFixed(2)}!', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kGoogleGreen)),
-                                      ],
-                                    ),
-                                  ),
-                                if (_a4ShowTotalItemQuantity) ...[
-                                  const SizedBox(height: 8),
-                                  Text('Items: ${widget.items.length} | Qty: ${widget.items.fold<num>(0, (sum, item) => sum + ((item['quantity'] ?? 1) is int ? item['quantity'] : (item['quantity'] as num).toInt()))}', style: const TextStyle(fontSize: 10, color: kBlack54)),
-                                ],
-                              ],
-                            ),
-                          ),
-                          // Totals
-                          Container(
-                            width: 160,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: a4Colors['light'], borderRadius: BorderRadius.circular(8)),
-                            child: Column(
-                              children: [
-                                _buildA4TotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}', a4Colors),
-                                if (widget.discount > 0)
-                                  _buildA4TotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', a4Colors, isDiscount: true),
-                                if (_a4ShowTaxDetails && widget.taxes != null)
-                                  ...widget.taxes!.map((tax) => _buildA4TotalRow(tax['name'] ?? 'Tax', '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}', a4Colors)),
-                                const Divider(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('Total', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: a4Colors['primary'])),
-                                    Text('$currency${widget.total.toStringAsFixed(2)}', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: a4Colors['primary'])),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
-                      const SizedBox(height: 16),
-
-                      // Payment Mode
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            decoration: BoxDecoration(color: a4Colors['light'], borderRadius: BorderRadius.circular(6)),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.payment_rounded, size: 14, color: a4Colors['primary']),
-                                const SizedBox(width: 6),
-                                Text('Paid via ${widget.paymentMode}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: a4Colors['primary'])),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Footer
-                      Divider(color: a4Colors['primary']!.withAlpha(50)),
-                      const SizedBox(height: 8),
-                      Center(
-                        child: Text(_a4SaleInvoiceText, style: const TextStyle(fontSize: 10, color: kBlack54, fontStyle: FontStyle.italic), textAlign: TextAlign.center),
-                      ),
-                      if (_a4ShowSignature) ...[
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                      // Totals Box
+                      Container(
+                        width: 200,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: lightColor,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Column(
                           children: [
-                            Column(
+                            _buildA4PreviewTotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}'),
+                            if (widget.discount > 0)
+                              _buildA4PreviewTotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', isGreen: true),
+                            if (_a4ShowTaxDetails && widget.taxes != null)
+                              ...widget.taxes!.map((tax) => _buildA4PreviewTotalRow(
+                                    tax['name'] ?? 'Tax',
+                                    '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}',
+                                  )),
+                            const Divider(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(width: 100, height: 1, color: kBlack54),
-                                const SizedBox(height: 4),
-                                const Text('Authorized Signature', style: TextStyle(fontSize: 8, color: kBlack54)),
+                                Text('Total', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: themeColor)),
+                                Text('$currency${widget.total.toStringAsFixed(2)}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: themeColor)),
                               ],
                             ),
                           ],
                         ),
-                      ],
+                      ),
                     ],
                   ),
+                  const SizedBox(height: 16),
+
+                  // Payment Mode
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: lightColor,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Paid via ${widget.paymentMode}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: themeColor),
+                    ),
+                  ),
+
+                  // Signature (if enabled)
+                  if (_a4ShowSignature) ...[
+                    const SizedBox(height: 40),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Column(
+                          children: [
+                            Container(width: 120, height: 1, color: kBlack54),
+                            const SizedBox(height: 4),
+                            const Text('Authorized Signature', style: TextStyle(fontSize: 10, color: kBlack54)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // Footer Band
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: lightColor,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+              ),
+              child: Center(
+                child: Text(
+                  _a4SaleInvoiceText,
+                  style: TextStyle(fontSize: 12, color: themeColor, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
                 ),
-              );
-            },
-          );
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper for A4 Preview totals row
+  Widget _buildA4PreviewTotalRow(String label, String value, {bool isGreen = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: kBlack54)),
+          Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isGreen ? kGoogleGreen : kBlack87)),
+        ],
+      ),
+    );
   }
 
 
@@ -3114,13 +3250,13 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       int nameWidth, qtyWidth, rateWidth, taxWidth, totalWidth;
 
       if (lineWidth >= 48) {
-        // 80mm printer - more space
+        // 80mm printer - more space (48 chars total)
         if (_thermalShowTaxColumn) {
-          nameWidth = 16;
-          qtyWidth = 4;
+          nameWidth = 18;
+          qtyWidth = 5;
           rateWidth = 8;
-          taxWidth = 6;
-          totalWidth = 10;
+          taxWidth = 5;
+          totalWidth = 12;
         } else {
           nameWidth = 20;
           qtyWidth = 6;
@@ -3129,28 +3265,30 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           totalWidth = 12;
         }
       } else {
-        // 58mm printer - compact
+        // 58mm printer - compact (32 chars total)
         if (_thermalShowTaxColumn) {
           nameWidth = 10;
-          qtyWidth = 3;
+          qtyWidth = 4;
           rateWidth = 6;
           taxWidth = 4;
-          totalWidth = 7;
-        } else {
-          nameWidth = 12;
-          qtyWidth = 4;
-          rateWidth = 8;
-          taxWidth = 0;
           totalWidth = 8;
+        } else {
+          nameWidth = 11;
+          qtyWidth = 5;
+          rateWidth = 7;
+          taxWidth = 0;
+          totalWidth = 9;
         }
       }
 
-      // Build header based on what's shown
+      // Build header based on what's shown - match item column alignment
       String header = 'ITEM'.padRight(nameWidth);
-      header += 'QTY'.padRight(qtyWidth);
-      header += 'RATE'.padRight(rateWidth);
+      header += 'QTY'.padLeft(qtyWidth);
+      header += ' '; // Space separator
+      header += 'RATE'.padLeft(rateWidth - 1);
       if (_thermalShowTaxColumn) {
-        header += 'TAX'.padRight(taxWidth);
+        header += ' '; // Space separator
+        header += 'TAX'.padLeft(taxWidth - 1);
       }
       header += 'TOTAL'.padLeft(totalWidth);
 
@@ -3178,15 +3316,17 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         totalQty += qty;
         totalMRP += mrp * qty;
 
-        // Build single item line
+        // Build single item line with proper alignment
         String itemLine = '';
         itemLine += _truncateText(name, nameWidth - 1).padRight(nameWidth);
         // Show quantity with decimals if it's not a whole number
-        final qtyStr = qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(2);
-        itemLine += qtyStr.padRight(qtyWidth);
-        itemLine += _formatPrice(rate, rateWidth - 1).padRight(rateWidth);
+        final qtyStr = qty == qty.roundToDouble() ? qty.toInt().toString() : qty.toStringAsFixed(1);
+        itemLine += qtyStr.padLeft(qtyWidth);
+        itemLine += ' '; // Space separator
+        itemLine += _formatPrice(rate, rateWidth - 1).padLeft(rateWidth - 1);
         if (_thermalShowTaxColumn) {
-          itemLine += '${taxPercent.toInt()}%'.padRight(taxWidth);
+          itemLine += ' '; // Space separator
+          itemLine += '${taxPercent.toInt()}%'.padLeft(taxWidth - 1);
         }
         itemLine += _formatPrice(total, totalWidth).padLeft(totalWidth);
 
@@ -3415,198 +3555,215 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
       pdf.addPage(pw.Page(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(40),
+        margin: pw.EdgeInsets.zero,
         theme: pw.ThemeData.withFont(base: _pdfFontRegular, bold: _pdfFontBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              // Header Section
+              // Colored Header Band (like preview)
               if (_a4ShowHeader) ...[
-                pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    // Logo placeholder
-                    if (_a4ShowLogo)
-                      pw.Container(
-                        width: 50,
-                        height: 50,
-                        margin: const pw.EdgeInsets.only(right: 16),
-                        decoration: pw.BoxDecoration(
-                          color: a4Colors['light'],
-                          borderRadius: pw.BorderRadius.circular(8),
-                          border: pw.Border.all(color: a4Colors['primary']!),
+                pw.Container(
+                  width: double.infinity,
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                  decoration: pw.BoxDecoration(color: a4Colors['primary']),
+                  child: pw.Row(
+                    crossAxisAlignment: pw.CrossAxisAlignment.center,
+                    children: [
+                      // Logo placeholder
+                      if (_a4ShowLogo)
+                        pw.Container(
+                          width: 50,
+                          height: 50,
+                          margin: const pw.EdgeInsets.only(right: 16),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.white,
+                            borderRadius: pw.BorderRadius.circular(8),
+                          ),
+                          child: pw.Center(child: pw.Text(businessName.substring(0, 1).toUpperCase(), style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: a4Colors['primary']))),
                         ),
-                        child: pw.Center(child: pw.Text(businessName.substring(0, 1).toUpperCase(), style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: a4Colors['primary']))),
+                      // Business Info
+                      pw.Expanded(
+                        child: pw.Column(
+                          crossAxisAlignment: pw.CrossAxisAlignment.start,
+                          children: [
+                            pw.Text(businessName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                            if (_showLocation && businessLocation.isNotEmpty)
+                              pw.Text(businessLocation, style: pw.TextStyle(fontSize: 9, color: PdfColors.white.shade(0.8))),
+                            if (_showPhone && businessPhone.isNotEmpty)
+                              pw.Text('Tel: $businessPhone', style: pw.TextStyle(fontSize: 9, color: PdfColors.white.shade(0.8))),
+                            if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty)
+                              pw.Text('GSTIN: $businessGSTIN', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                          ],
+                        ),
                       ),
-                    // Business Info
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      // Invoice Info
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
                         children: [
-                          pw.Text(businessName, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-                          if (_showLocation && businessLocation.isNotEmpty)
-                            pw.Text(businessLocation, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-                          if (_showPhone && businessPhone.isNotEmpty)
-                            pw.Text('Tel: $businessPhone', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-                          if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty)
-                            pw.Text('GSTIN: $businessGSTIN', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
+                          pw.Container(
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: pw.BoxDecoration(color: PdfColors.white, borderRadius: pw.BorderRadius.circular(4)),
+                            child: pw.Text(widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE', style: pw.TextStyle(color: a4Colors['primary'], fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                          ),
+                          pw.SizedBox(height: 6),
+                          pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: PdfColors.white)),
+                          pw.Text(dateStr, style: pw.TextStyle(fontSize: 9, color: PdfColors.white.shade(0.7))),
                         ],
                       ),
-                    ),
-                    // Invoice Info
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: pw.BoxDecoration(color: a4Colors['primary'], borderRadius: pw.BorderRadius.circular(4)),
-                          child: pw.Text(widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE', style: const pw.TextStyle(color: PdfColors.white, fontSize: 11)),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-                        pw.Text(dateStr, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 16),
-                pw.Divider(color: a4Colors['primary'], thickness: 1),
-                pw.SizedBox(height: 12),
-              ],
-
-              // Customer Section
-              if (_a4ShowCustomerInfo && widget.customerName != null) ...[
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(6)),
-                  child: pw.Row(
-                    children: [
-                      pw.Text('Bill To: ', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-                      pw.Text(widget.customerName!, style: const pw.TextStyle(fontSize: 10)),
-                      if (widget.customerPhone != null) ...[
-                        pw.Text(' | ', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                        pw.Text(widget.customerPhone!, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-                      ],
                     ],
                   ),
                 ),
-                pw.SizedBox(height: 16),
+                pw.SizedBox(height: 20),
               ],
-
-              // Items Table
-              if (_a4ShowItemTable) ...[
-                pw.Table(
-                  border: pw.TableBorder.all(color: PdfColors.grey300),
-                  columnWidths: _a4ShowTaxColumn
-                      ? {0: const pw.FlexColumnWidth(5), 1: const pw.FlexColumnWidth(2), 2: const pw.FlexColumnWidth(3), 3: const pw.FlexColumnWidth(2), 4: const pw.FlexColumnWidth(3)}
-                      : {0: const pw.FlexColumnWidth(6), 1: const pw.FlexColumnWidth(2), 2: const pw.FlexColumnWidth(3), 3: const pw.FlexColumnWidth(3)},
+              // Content with padding
+              pw.Padding(
+                padding: const pw.EdgeInsets.symmetric(horizontal: 30),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    // Header Row
-                    pw.TableRow(
-                      decoration: pw.BoxDecoration(color: a4Colors['primary']),
-                      children: [
-                        _pdfHeaderCellWhite('Item'),
-                        _pdfHeaderCellWhite('Qty'),
-                        _pdfHeaderCellWhite('Rate'),
-                        if (_a4ShowTaxColumn) _pdfHeaderCellWhite('Tax'),
-                        _pdfHeaderCellWhite('Total', align: pw.TextAlign.right),
-                      ],
-                    ),
-                    // Data Rows
-                    ...widget.items.map((item) {
-                      return pw.TableRow(
-                        children: [
-                          _pdfDataCell(item['name'] ?? 'Item'),
-                          _pdfDataCell('${item['quantity']}', align: pw.TextAlign.center),
-                          _pdfDataCell('${(item['price'] ?? 0).toStringAsFixed(0)}', align: pw.TextAlign.center),
-                          if (_a4ShowTaxColumn) _pdfDataCell('${item['taxPercentage'] ?? 0}%', align: pw.TextAlign.center),
-                          _pdfDataCell('${(item['total'] ?? 0.0).toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
-                        ],
-                      );
-                    }),
-                  ],
-                ),
-                pw.SizedBox(height: 16),
-              ],
+                    // Customer Section
+                    if (_a4ShowCustomerInfo && widget.customerName != null) ...[
+                      pw.Container(
+                        padding: const pw.EdgeInsets.all(12),
+                        decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(6)),
+                        child: pw.Row(
+                          children: [
+                            pw.Text('Bill To: ', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
+                            pw.Text(widget.customerName!, style: const pw.TextStyle(fontSize: 10)),
+                            if (widget.customerPhone != null) ...[
+                              pw.Text(' | ', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                              pw.Text(widget.customerPhone!, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                            ],
+                          ],
+                        ),
+                      ),
+                      pw.SizedBox(height: 16),
+                    ],
 
-              // Totals Section
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  // You Saved / Notes
-                  pw.Expanded(
-                    child: pw.Column(
+                    // Items Table
+                    if (_a4ShowItemTable) ...[
+                      pw.Table(
+                        border: pw.TableBorder.all(color: PdfColors.grey300),
+                        columnWidths: _a4ShowTaxColumn
+                            ? {0: const pw.FlexColumnWidth(5), 1: const pw.FlexColumnWidth(2), 2: const pw.FlexColumnWidth(3), 3: const pw.FlexColumnWidth(2), 4: const pw.FlexColumnWidth(3)}
+                            : {0: const pw.FlexColumnWidth(6), 1: const pw.FlexColumnWidth(2), 2: const pw.FlexColumnWidth(3), 3: const pw.FlexColumnWidth(3)},
+                        children: [
+                          // Header Row
+                          pw.TableRow(
+                            decoration: pw.BoxDecoration(color: a4Colors['primary']),
+                            children: [
+                              _pdfHeaderCellWhite('Item'),
+                              _pdfHeaderCellWhite('Qty'),
+                              _pdfHeaderCellWhite('Rate'),
+                              if (_a4ShowTaxColumn) _pdfHeaderCellWhite('Tax'),
+                              _pdfHeaderCellWhite('Total', align: pw.TextAlign.right),
+                            ],
+                          ),
+                          // Data Rows
+                          ...widget.items.map((item) {
+                            return pw.TableRow(
+                              children: [
+                                _pdfDataCell(item['name'] ?? 'Item'),
+                                _pdfDataCell('${item['quantity']}', align: pw.TextAlign.center),
+                                _pdfDataCell('${(item['price'] ?? 0).toStringAsFixed(0)}', align: pw.TextAlign.center),
+                                if (_a4ShowTaxColumn) _pdfDataCell('${item['taxPercentage'] ?? 0}%', align: pw.TextAlign.center),
+                                _pdfDataCell('${(item['total'] ?? 0.0).toStringAsFixed(2)}', align: pw.TextAlign.right, isBold: true),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                      pw.SizedBox(height: 16),
+                    ],
+
+                    // Totals Section
+                    pw.Row(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        if (_a4ShowYouSaved && widget.discount > 0)
-                          pw.Container(
-                            padding: const pw.EdgeInsets.all(8),
-                            decoration: pw.BoxDecoration(color: PdfColors.green50, borderRadius: pw.BorderRadius.circular(4)),
-                            child: pw.Text('You Saved $currency${widget.discount.toStringAsFixed(2)}!', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                        // You Saved / Notes
+                        pw.Expanded(
+                          child: pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              if (_a4ShowYouSaved && widget.discount > 0)
+                                pw.Container(
+                                  padding: const pw.EdgeInsets.all(8),
+                                  decoration: pw.BoxDecoration(color: PdfColors.green50, borderRadius: pw.BorderRadius.circular(4)),
+                                  child: pw.Text('You Saved $currency${widget.discount.toStringAsFixed(2)}!', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: PdfColors.green700)),
+                                ),
+                              if (_a4ShowTotalItemQuantity) ...[
+                                pw.SizedBox(height: 8),
+                                pw.Text('Items: ${widget.items.length} | Qty: ${widget.items.fold<num>(0, (sum, item) => sum + ((item['quantity'] ?? 1) is int ? item['quantity'] : (item['quantity'] as num).toInt()))}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
+                              ],
+                            ],
                           ),
-                        if (_a4ShowTotalItemQuantity) ...[
-                          pw.SizedBox(height: 8),
-                          pw.Text('Items: ${widget.items.length} | Qty: ${widget.items.fold<num>(0, (sum, item) => sum + ((item['quantity'] ?? 1) is int ? item['quantity'] : (item['quantity'] as num).toInt()))}', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-                        ],
-                      ],
-                    ),
-                  ),
-                  // Totals
-                  pw.Container(
-                    width: 180,
-                    padding: const pw.EdgeInsets.all(12),
-                    decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(6)),
-                    child: pw.Column(
-                      children: [
-                        _pdfTotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}'),
-                        if (widget.discount > 0) _pdfTotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', isGreen: true),
-                        if (_a4ShowTaxDetails && widget.taxes != null)
-                          ...widget.taxes!.map((tax) => _pdfTotalRow(tax['name'] ?? 'Tax', '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}')),
-                        pw.Divider(height: 12),
-                        pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Text('Total', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-                            pw.Text('$currency${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-                          ],
+                        ),
+                        // Totals
+                        pw.Container(
+                          width: 180,
+                          padding: const pw.EdgeInsets.all(12),
+                          decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(6)),
+                          child: pw.Column(
+                            children: [
+                              _pdfTotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}'),
+                              if (widget.discount > 0) _pdfTotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', isGreen: true),
+                              if (_a4ShowTaxDetails && widget.taxes != null)
+                                ...widget.taxes!.map((tax) => _pdfTotalRow(tax['name'] ?? 'Tax', '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}')),
+                              pw.Divider(height: 12),
+                              pw.Row(
+                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                                children: [
+                                  pw.Text('Total', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
+                                  pw.Text('$currency${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 16),
+                    pw.SizedBox(height: 16),
 
-              // Payment Mode
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(4)),
-                child: pw.Text('Paid via ${widget.paymentMode}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
-              ),
-              pw.SizedBox(height: 20),
-
-              // Footer
-              pw.Divider(color: PdfColors.grey300),
-              pw.SizedBox(height: 8),
-              pw.Center(child: pw.Text(_a4SaleInvoiceText, style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600))),
-
-              // Signature
-              if (_a4ShowSignature) ...[
-                pw.SizedBox(height: 40),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.end,
-                  children: [
-                    pw.Column(
-                      children: [
-                        pw.Container(width: 120, height: 1, color: PdfColors.grey600),
-                        pw.SizedBox(height: 4),
-                        pw.Text('Authorized Signature', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-                      ],
+                    // Payment Mode
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: pw.BoxDecoration(color: a4Colors['light'], borderRadius: pw.BorderRadius.circular(4)),
+                      child: pw.Text('Paid via ${widget.paymentMode}', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: a4Colors['primary'])),
                     ),
+
+                    // Signature
+                    if (_a4ShowSignature) ...[
+                      pw.SizedBox(height: 40),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.end,
+                        children: [
+                          pw.Column(
+                            children: [
+                              pw.Container(width: 120, height: 1, color: PdfColors.grey600),
+                              pw.SizedBox(height: 4),
+                              pw.Text('Authorized Signature', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
-              ],
+              ),
+
+              // Spacer to push footer to bottom
+              pw.Spacer(),
+
+              // Colored Footer Band (like header)
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                decoration: pw.BoxDecoration(color: a4Colors['light']),
+                child: pw.Center(
+                  child: pw.Text(_a4SaleInvoiceText, style: pw.TextStyle(fontSize: 10, color: a4Colors['primary'], fontWeight: pw.FontWeight.bold)),
+                ),
+              ),
             ],
           );
         },
@@ -3626,21 +3783,40 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   // PDF Color Theme Helper
   Map<String, PdfColor> _getPdfThemeColors() {
     switch (_a4ColorTheme) {
-      case 'black':
-        return {'primary': PdfColors.grey800, 'accent': PdfColors.grey600, 'light': PdfColors.grey100};
+      case 'gold':
+        return {'primary': const PdfColor.fromInt(0xFFC9A441), 'accent': const PdfColor.fromInt(0xFFD4B856), 'light': const PdfColor.fromInt(0xFFFDF8E8)};
+      case 'lavender':
+        return {'primary': const PdfColor.fromInt(0xFF9A96D8), 'accent': const PdfColor.fromInt(0xFFB0ACE5), 'light': const PdfColor.fromInt(0xFFF3F2FC)};
       case 'green':
-        return {'primary': PdfColors.green700, 'accent': PdfColors.green500, 'light': PdfColors.green50};
-      case 'purple':
-        return {'primary': PdfColors.purple700, 'accent': PdfColors.purple500, 'light': PdfColors.purple50};
-      case 'red':
-        return {'primary': PdfColors.red700, 'accent': PdfColors.red500, 'light': PdfColors.red50};
-      case 'orange':
-        return {'primary': PdfColors.orange800, 'accent': PdfColors.orange600, 'light': PdfColors.orange50};
-      case 'teal':
-        return {'primary': PdfColors.teal700, 'accent': PdfColors.teal500, 'light': PdfColors.teal50};
+        return {'primary': const PdfColor.fromInt(0xFF1CB466), 'accent': const PdfColor.fromInt(0xFF2ECC7A), 'light': const PdfColor.fromInt(0xFFE6F9EF)};
+      case 'brown':
+        return {'primary': const PdfColor.fromInt(0xFFAF4700), 'accent': const PdfColor.fromInt(0xFFC55A15), 'light': const PdfColor.fromInt(0xFFFEF3E8)};
       case 'blue':
+        return {'primary': const PdfColor.fromInt(0xFF6488E0), 'accent': const PdfColor.fromInt(0xFF7A9AEB), 'light': const PdfColor.fromInt(0xFFEEF3FC)};
+      case 'peach':
+        return {'primary': const PdfColor.fromInt(0xFFFAA774), 'accent': const PdfColor.fromInt(0xFFFBB88A), 'light': const PdfColor.fromInt(0xFFFFF5EE)};
+      case 'red':
+        return {'primary': const PdfColor.fromInt(0xFFDB4747), 'accent': const PdfColor.fromInt(0xFFE56060), 'light': const PdfColor.fromInt(0xFFFDECEC)};
+      case 'purple':
+        return {'primary': const PdfColor.fromInt(0xFF7A1FA2), 'accent': const PdfColor.fromInt(0xFF9333B5), 'light': const PdfColor.fromInt(0xFFF5E8F9)};
+      case 'orange':
+        return {'primary': const PdfColor.fromInt(0xFFF45715), 'accent': const PdfColor.fromInt(0xFFF76E35), 'light': const PdfColor.fromInt(0xFFFEEDE6)};
+      case 'pink':
+        return {'primary': const PdfColor.fromInt(0xFFE2A9F1), 'accent': const PdfColor.fromInt(0xFFEBBCF6), 'light': const PdfColor.fromInt(0xFFFCF3FE)};
+      case 'copper':
+        return {'primary': const PdfColor.fromInt(0xFFB36A22), 'accent': const PdfColor.fromInt(0xFFC47F3A), 'light': const PdfColor.fromInt(0xFFFBF2E8)};
+      case 'black':
+        return {'primary': const PdfColor.fromInt(0xFF000000), 'accent': const PdfColor.fromInt(0xFF333333), 'light': const PdfColor.fromInt(0xFFF5F5F5)};
+      case 'olive':
+        return {'primary': const PdfColor.fromInt(0xFF9B9B6E), 'accent': const PdfColor.fromInt(0xFFADAD85), 'light': const PdfColor.fromInt(0xFFF6F6F0)};
+      case 'navy':
+        return {'primary': const PdfColor.fromInt(0xFF2F6798), 'accent': const PdfColor.fromInt(0xFF4279AA), 'light': const PdfColor.fromInt(0xFFEAF1F7)};
+      case 'grey':
+        return {'primary': const PdfColor.fromInt(0xFF737373), 'accent': const PdfColor.fromInt(0xFF8A8A8A), 'light': const PdfColor.fromInt(0xFFF2F2F2)};
+      case 'forest':
+        return {'primary': const PdfColor.fromInt(0xFF4F6F1F), 'accent': const PdfColor.fromInt(0xFF628535), 'light': const PdfColor.fromInt(0xFFEFF3E7)};
       default:
-        return {'primary': PdfColors.blue700, 'accent': PdfColors.blue500, 'light': PdfColors.blue50};
+        return {'primary': const PdfColor.fromInt(0xFF6488E0), 'accent': const PdfColor.fromInt(0xFF7A9AEB), 'light': const PdfColor.fromInt(0xFFEEF3FC)};
     }
   }
 

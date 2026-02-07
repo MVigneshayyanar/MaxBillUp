@@ -519,7 +519,7 @@ class BusinessDetailsPage extends StatefulWidget {
 
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController(), _phoneCtrl = TextEditingController(), _personalPhoneCtrl = TextEditingController(), _locCtrl = TextEditingController(), _emailCtrl = TextEditingController(), _ownerCtrl = TextEditingController();
   final _taxTypeCtrl = TextEditingController(), _taxNumberCtrl = TextEditingController();
   final _licenseTypeCtrl = TextEditingController(), _licenseNumberCtrl = TextEditingController();
   bool _loading = false, _fetching = true, _uploadingImage = false;
@@ -692,6 +692,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final data = widget.initialStoreData!;
       _nameCtrl.text = data['businessName'] ?? '';
       _phoneCtrl.text = data['businessPhone'] ?? '';
+      _personalPhoneCtrl.text = data['personalPhone'] ?? '';
 
       // Split taxType into type and number (format: "Type Number")
       final taxType = data['taxType'] ?? data['gstin'] ?? '';
@@ -734,12 +735,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   @override
-  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); super.dispose(); }
+  void dispose() { _nameCtrl.dispose(); _phoneCtrl.dispose(); _personalPhoneCtrl.dispose(); _taxTypeCtrl.dispose(); _taxNumberCtrl.dispose(); _licenseTypeCtrl.dispose(); _licenseNumberCtrl.dispose(); _locCtrl.dispose(); _emailCtrl.dispose(); _ownerCtrl.dispose(); super.dispose(); }
 
   void _storeOriginalValues() {
     _originalValues = {
       'businessName': _nameCtrl.text,
       'businessPhone': _phoneCtrl.text,
+      'personalPhone': _personalPhoneCtrl.text,
       'businessLocation': _locCtrl.text,
       'ownerName': _ownerCtrl.text,
       'taxType': _taxTypeCtrl.text,
@@ -754,6 +756,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     final currentValues = {
       'businessName': _nameCtrl.text,
       'businessPhone': _phoneCtrl.text,
+      'personalPhone': _personalPhoneCtrl.text,
       'businessLocation': _locCtrl.text,
       'ownerName': _ownerCtrl.text,
       'taxType': _taxTypeCtrl.text,
@@ -779,6 +782,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   void _setupChangeListeners() {
     _nameCtrl.addListener(_checkForChanges);
     _phoneCtrl.addListener(_checkForChanges);
+    _personalPhoneCtrl.addListener(_checkForChanges);
     _locCtrl.addListener(_checkForChanges);
     _ownerCtrl.addListener(_checkForChanges);
     _taxTypeCtrl.addListener(_checkForChanges);
@@ -804,6 +808,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final updateData = <String, dynamic>{
         'businessName': _nameCtrl.text.trim(),
         'businessPhone': _phoneCtrl.text.trim(),
+        'personalPhone': _personalPhoneCtrl.text.trim(),
         'businessLocation': _locCtrl.text.trim(),
         'ownerName': _ownerCtrl.text.trim(),
         'email': _emailCtrl.text.trim(),
@@ -847,6 +852,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         setState(() {
           _nameCtrl.text = data['businessName'] ?? '';
           _phoneCtrl.text = data['businessPhone'] ?? '';
+          _personalPhoneCtrl.text = data['personalPhone'] ?? '';
 
           // Split taxType into type and number (format: "Type Number")
           final taxType = data['taxType'] ?? data['gstin'] ?? '';
@@ -1137,8 +1143,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                           ),
                       ])),
                       const SizedBox(height: 24),
-                      _buildSectionLabel("IDENTITY & TAX"),
+                      _buildSectionLabel("Identity & Tax"),
                       _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, isMandatory: true),
+                      _buildModernField("Business Contact Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true),
                       _buildLocationField(),
                       _buildModernFieldWithHint("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "VAT, GST, Sales Tax"),
                       _buildModernFieldWithHint("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number"),
@@ -1146,9 +1153,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                       _buildModernFieldWithHint("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number"),
                       _buildCurrencyField(),
                       const SizedBox(height: 24),
-                      _buildSectionLabel("CONTACT & OWNERSHIP"),
+                      _buildSectionLabel("Contact & Ownership"),
                       _buildModernField("Owner Name", _ownerCtrl, Icons.person_rounded),
-                      _buildModernField("Phone Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone),
+                      _buildModernField("Personal Phone", _personalPhoneCtrl, Icons.phone_rounded, type: TextInputType.phone),
                       _buildModernField("Email Address", _emailCtrl, Icons.email_rounded, enabled: false),
                       const SizedBox(height: 20),
                     ],
@@ -1565,7 +1572,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         backgroundColor: kGreyBg,
         appBar: AppBar(
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
-          title: const Text('Bill & Print Settings', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+          title: const Text('Bill Receipt Settings', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,
@@ -1675,18 +1682,31 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
             children: [
               const Text('Invoice Color', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  _buildColorOption('blue', const Color(0xFF4455DF)),
-                  _buildColorOption('black', const Color(0xFF212121)),
-                  _buildColorOption('green', const Color(0xFF2E7D32)),
-                  _buildColorOption('purple', const Color(0xFF7B1FA2)),
-                  _buildColorOption('red', const Color(0xFFC62828)),
-                  _buildColorOption('orange', const Color(0xFFE65100)),
-                  _buildColorOption('teal', const Color(0xFF00695C)),
+                  _buildColorOption('gold', const Color(0xFFC9A441)),
+                  _buildColorOption('lavender', const Color(0xFF9A96D8)),
+                  _buildColorOption('green', const Color(0xFF1CB466)),
+                  _buildColorOption('brown', const Color(0xFFAF4700)),
+                  _buildColorOption('blue', const Color(0xFF6488E0)),
+                  _buildColorOption('peach', const Color(0xFFFAA774)),
+                  _buildColorOption('red', const Color(0xFFDB4747)),
+                  _buildColorOption('purple', const Color(0xFF7A1FA2)),
+                  _buildColorOption('orange', const Color(0xFFF45715)),
+                  _buildColorOption('pink', const Color(0xFFE2A9F1)),
+                  _buildColorOption('copper', const Color(0xFFB36A22)),
+                  _buildColorOption('black', const Color(0xFF000000)),
+                  _buildColorOption('olive', const Color(0xFF9B9B6E)),
+                  _buildColorOption('navy', const Color(0xFF2F6798)),
+                  _buildColorOption('grey', const Color(0xFF737373)),
+                  _buildColorOption('forest', const Color(0xFF4F6F1F)),
                 ],
               ),
+              const SizedBox(height: 16),
+              // A4 Preview
+              _buildA4Preview(_getThemeColor(_a4ColorTheme)),
             ],
           ),
         ),
@@ -1820,6 +1840,203 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     );
   }
 
+  Color _getThemeColor(String theme) {
+    switch (theme) {
+      case 'gold': return const Color(0xFFC9A441);
+      case 'lavender': return const Color(0xFF9A96D8);
+      case 'green': return const Color(0xFF1CB466);
+      case 'brown': return const Color(0xFFAF4700);
+      case 'blue': return const Color(0xFF6488E0);
+      case 'peach': return const Color(0xFFFAA774);
+      case 'red': return const Color(0xFFDB4747);
+      case 'purple': return const Color(0xFF7A1FA2);
+      case 'orange': return const Color(0xFFF45715);
+      case 'pink': return const Color(0xFFE2A9F1);
+      case 'copper': return const Color(0xFFB36A22);
+      case 'black': return const Color(0xFF000000);
+      case 'olive': return const Color(0xFF9B9B6E);
+      case 'navy': return const Color(0xFF2F6798);
+      case 'grey': return const Color(0xFF737373);
+      case 'forest': return const Color(0xFF4F6F1F);
+      default: return const Color(0xFF6488E0);
+    }
+  }
+
+  Widget _buildA4Preview(Color themeColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: kGreyBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kGrey200),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Preview', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack54, fontFamily: 'NotoSans')),
+          const SizedBox(height: 8),
+          // A4 Preview Card
+          AspectRatio(
+            aspectRatio: 210 / 297, // A4 ratio
+            child: Container(
+              decoration: BoxDecoration(
+                color: kWhite,
+                borderRadius: BorderRadius.circular(4),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2)),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Header with theme color
+                  Container(
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: themeColor,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: kWhite.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(height: 6, width: 50, decoration: BoxDecoration(color: kWhite.withOpacity(0.9), borderRadius: BorderRadius.circular(2))),
+                              const SizedBox(height: 3),
+                              Container(height: 4, width: 35, decoration: BoxDecoration(color: kWhite.withOpacity(0.6), borderRadius: BorderRadius.circular(2))),
+                            ],
+                          ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(height: 5, width: 28, decoration: BoxDecoration(color: kWhite.withOpacity(0.8), borderRadius: BorderRadius.circular(2))),
+                            const SizedBox(height: 3),
+                            Container(height: 4, width: 22, decoration: BoxDecoration(color: kWhite.withOpacity(0.5), borderRadius: BorderRadius.circular(2))),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content area
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Customer info
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(height: 4, width: 35, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
+                                    const SizedBox(height: 3),
+                                    Container(height: 3, width: 50, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Container(height: 4, width: 25, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(2))),
+                                  const SizedBox(height: 3),
+                                  Container(height: 3, width: 30, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          // Table header
+                          Container(
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: themeColor.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Row(
+                              children: [
+                                Expanded(flex: 3, child: Container(height: 3, decoration: BoxDecoration(color: themeColor.withOpacity(0.5), borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: themeColor.withOpacity(0.5), borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: themeColor.withOpacity(0.5), borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: themeColor.withOpacity(0.5), borderRadius: BorderRadius.circular(1)))),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Table rows
+                          ...List.generate(3, (index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Row(
+                              children: [
+                                Expanded(flex: 3, child: Container(height: 3, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(1)))),
+                                const SizedBox(width: 4),
+                                Expanded(child: Container(height: 3, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(1)))),
+                              ],
+                            ),
+                          )),
+                          const Spacer(),
+                          // Total section
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              border: Border(top: BorderSide(color: themeColor.withOpacity(0.3), width: 1)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                Container(height: 4, width: 20, decoration: BoxDecoration(color: kGrey300, borderRadius: BorderRadius.circular(1))),
+                                const SizedBox(width: 8),
+                                Container(height: 5, width: 25, decoration: BoxDecoration(color: themeColor, borderRadius: BorderRadius.circular(1))),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Footer
+                  Container(
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: themeColor.withOpacity(0.1),
+                      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
+                    ),
+                    child: Center(
+                      child: Container(height: 3, width: 40, decoration: BoxDecoration(color: themeColor.withOpacity(0.4), borderRadius: BorderRadius.circular(2))),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSectionLabel(String title) => Padding(padding: const EdgeInsets.only(bottom: 12, left: 4), child: Text(title, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5, fontFamily: 'NotoSans')));
 }
 
@@ -1885,12 +2102,35 @@ class _GeneralSettingsPageState extends State<GeneralSettingsPage> {
               onTap: () => widget.onNavigate('Language'),
             ),
           ),
-          // const SizedBox(height: 16),
-          // _buildSectionLabel('APPEARANCE'),
-          // _SettingsGroup(children: [_SwitchTile('Dark Mode', _darkMode, (v) { setState(() => _darkMode = v); _saveSettings(); }, showDivider: false)]),
-          // const SizedBox(height: 16),
-          // _buildSectionLabel('NOTIFICATIONS'),
-          // _SettingsGroup(children: [_SwitchTile('Push Notifications', _notificationsEnabled, (v) { setState(() => _notificationsEnabled = v); _saveSettings(); }, showDivider: false)]),
+          const SizedBox(height: 16),
+          _buildSectionLabel('APPEARANCE'),
+          Container(
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            child: ListTile(
+              leading: Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.purple.withAlpha(20),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.palette_rounded, color: Colors.purple, size: 22),
+              ),
+              title: Row(
+                children: [
+                  const Text('App Theme', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans', color: kGrey400)),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(color: kPrimaryColor.withAlpha(20), borderRadius: BorderRadius.circular(4)),
+                    child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kPrimaryColor)),
+                  ),
+                ],
+              ),
+              subtitle: const Text('Light, Dark, Modern', style: TextStyle(fontSize: 12, color: kGrey400, fontFamily: 'Lato')),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey300),
+              onTap: null,
+            ),
+          ),
         ]),
       ),
     );
@@ -2535,17 +2775,84 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 
   Widget _buildToggleItem(String label, bool val, Function(bool) fn) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack87)),
-          CupertinoSwitch(value: val, onChanged: fn, activeColor: kPrimaryColor),
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          _buildThumbSwitch(val, fn),
         ],
       ),
     );
   }
+
+  Widget _buildThumbSwitch(bool value, Function(bool) onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: SizedBox(
+        width: 52,
+        height: 32,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Track
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 46,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: value ? kPrimaryColor.withAlpha(120) : const Color(0xFFBDBDBD),
+              ),
+            ),
+            // Knob
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? kPrimaryColor : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildEditableNumberField(TextEditingController ctrl, String label, IconData icon, Color color, String liveValue) {
     return Container(
@@ -2744,21 +3051,24 @@ class _LanguagePageState extends State<LanguagePage> {
 
   // Languages ordered as requested:
   // 1. English (default)
-  // 2-3. International languages
-  // Tamil and Hindi at bottom
-  final List<Map<String, String>> _languages = [
-    {'code': 'en', 'name': 'English', 'nativeName': 'English'},
-    {'code': 'ar', 'name': 'Arabic', 'nativeName': 'العربية'},
-    {'code': 'es', 'name': 'Spanish', 'nativeName': 'Español'},
-    {'code': 'fr', 'name': 'French', 'nativeName': 'Français'},
-    {'code': 'de', 'name': 'German', 'nativeName': 'Deutsch'},
-    {'code': 'zh', 'name': 'Chinese', 'nativeName': '中文'},
-    {'code': 'ja', 'name': 'Japanese', 'nativeName': '日本語'},
-    {'code': 'ko', 'name': 'Korean', 'nativeName': '한국어'},
-    {'code': 'ru', 'name': 'Russian', 'nativeName': 'Русский'},
-    {'code': 'pt', 'name': 'Portuguese', 'nativeName': 'Português'},
-    {'code': 'ta', 'name': 'Tamil', 'nativeName': 'தமிழ்'},
-    {'code': 'hi', 'name': 'Hindi', 'nativeName': 'हिन्दी'},
+  // Languages list - English available, others coming soon
+  // International languages first, then Indian languages
+  final List<Map<String, dynamic>> _languages = [
+    {'code': 'en', 'name': 'English', 'nativeName': 'English', 'available': true},
+    {'code': 'ar', 'name': 'Arabic', 'nativeName': 'العربية', 'available': false},
+    {'code': 'es', 'name': 'Spanish', 'nativeName': 'Español', 'available': false},
+    {'code': 'fr', 'name': 'French', 'nativeName': 'Français', 'available': false},
+    {'code': 'de', 'name': 'German', 'nativeName': 'Deutsch', 'available': false},
+    {'code': 'zh', 'name': 'Chinese', 'nativeName': '中文', 'available': false},
+    {'code': 'ja', 'name': 'Japanese', 'nativeName': '日本語', 'available': false},
+    {'code': 'ko', 'name': 'Korean', 'nativeName': '한국어', 'available': false},
+    {'code': 'ru', 'name': 'Russian', 'nativeName': 'Русский', 'available': false},
+    {'code': 'pt', 'name': 'Portuguese', 'nativeName': 'Português', 'available': false},
+    {'code': 'hi', 'name': 'Hindi', 'nativeName': 'हिन्दी', 'available': false},
+    {'code': 'bn', 'name': 'Bengali', 'nativeName': 'বাংলা', 'available': false},
+    {'code': 'mr', 'name': 'Marathi', 'nativeName': 'मराठी', 'available': false},
+    {'code': 'te', 'name': 'Telugu', 'nativeName': 'తెలుగు', 'available': false},
+    {'code': 'ta', 'name': 'Tamil', 'nativeName': 'தமிழ்', 'available': false},
   ];
 
   @override
@@ -2812,8 +3122,8 @@ class _LanguagePageState extends State<LanguagePage> {
                 final index = entry.key;
                 final lang = entry.value;
                 final isSelected = _selectedLanguage == lang['name'];
-                final isEnglish = lang['code'] == 'en';
-                final isComingSoon = !isEnglish;
+                final isAvailable = lang['available'] == true;
+                final isComingSoon = !isAvailable;
                 return Column(
                   children: [
                     ListTile(
@@ -2835,8 +3145,8 @@ class _LanguagePageState extends State<LanguagePage> {
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: kOrange.withAlpha(25), borderRadius: BorderRadius.circular(4)),
-                              child: const Text('Coming Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kOrange)),
+                              decoration: BoxDecoration(color: kPrimaryColor.withAlpha(20), borderRadius: BorderRadius.circular(4)),
+                              child: const Text('Launching Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kPrimaryColor)),
                             ),
                           ],
                         ],
@@ -2871,6 +3181,12 @@ class ThemePage extends StatefulWidget {
 class _ThemePageState extends State<ThemePage> {
   String _selectedTheme = 'Light';
 
+  final List<Map<String, dynamic>> _themes = [
+    {'name': 'Light', 'icon': Icons.light_mode_rounded, 'color': Colors.orange, 'available': true},
+    {'name': 'Dark', 'icon': Icons.dark_mode_rounded, 'color': Colors.indigo, 'available': false},
+    {'name': 'Modern', 'icon': Icons.auto_awesome_rounded, 'color': Colors.purple, 'available': false},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2879,7 +3195,7 @@ class _ThemePageState extends State<ThemePage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: const Text('Theme', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
+        title: const Text('App Theme', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16, fontFamily: 'NotoSans')),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
@@ -2888,9 +3204,28 @@ class _ThemePageState extends State<ThemePage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // Launching Soon Banner
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: kPrimaryColor.withAlpha(15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kPrimaryColor.withAlpha(40)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.rocket_launch_rounded, color: kPrimaryColor, size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('App Theme will launch soon!', style: TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'NotoSans')),
+                ),
+              ],
+            ),
+          ),
           const Padding(
             padding: EdgeInsets.only(bottom: 12, left: 4),
-            child: Text('Appearance', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
+            child: Text('SELECT THEME', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5, fontFamily: 'NotoSans')),
           ),
           Container(
             decoration: BoxDecoration(
@@ -2899,52 +3234,54 @@ class _ThemePageState extends State<ThemePage> {
               border: Border.all(color: kGrey200),
             ),
             child: Column(
-              children: [
-                _buildThemeTile('Light', Icons.light_mode_rounded, Colors.orange),
-                const Divider(height: 1, indent: 60, color: kGrey100),
-                _buildThemeTile('Dark', Icons.dark_mode_rounded, Colors.indigo),
-                const Divider(height: 1, indent: 60, color: kGrey100),
-                _buildThemeTile('System', Icons.settings_brightness_rounded, Colors.grey),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: kPrimaryColor.withAlpha(13),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kPrimaryColor.withAlpha(51)),
-            ),
-            child: Row(
-              children: const [
-                Icon(Icons.info_outline_rounded, color: kPrimaryColor, size: 20),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text('Dark mode support coming soon!', style: TextStyle(color: kPrimaryColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'Lato')),
-                ),
-              ],
+              children: _themes.asMap().entries.map((entry) {
+                final index = entry.key;
+                final theme = entry.value;
+                final isSelected = _selectedTheme == theme['name'];
+                final isAvailable = theme['available'] == true;
+                return Column(
+                  children: [
+                    ListTile(
+                      onTap: isAvailable ? () => setState(() => _selectedTheme = theme['name']) : null,
+                      leading: Container(
+                        width: 40, height: 40,
+                        decoration: BoxDecoration(
+                          color: (theme['color'] as Color).withAlpha(isAvailable ? 25 : 15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(theme['icon'], color: isAvailable ? theme['color'] : kGrey400, size: 22),
+                      ),
+                      title: Row(
+                        children: [
+                          Text(
+                            theme['name'],
+                            style: TextStyle(
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                              fontSize: 14,
+                              fontFamily: 'NotoSans',
+                              color: isAvailable ? (isSelected ? kPrimaryColor : kBlack87) : kGrey400,
+                            ),
+                          ),
+                          if (!isAvailable) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: kPrimaryColor.withAlpha(20), borderRadius: BorderRadius.circular(4)),
+                              child: const Text('Launching Soon', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kPrimaryColor)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      trailing: isSelected && isAvailable ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
+                    ),
+                    if (index < _themes.length - 1) const Divider(height: 1, indent: 60, color: kGrey100),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildThemeTile(String theme, IconData icon, Color color) {
-    final isSelected = _selectedTheme == theme;
-    return ListTile(
-      onTap: () => setState(() => _selectedTheme = theme),
-      leading: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color: color.withAlpha(25),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(icon, color: color, size: 22),
-      ),
-      title: Text(theme, style: TextStyle(fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600, fontSize: 14, fontFamily: 'NotoSans', color: isSelected ? kPrimaryColor : kBlack87)),
-      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 22) : null,
     );
   }
 }
@@ -3296,16 +3633,59 @@ class _SwitchTile extends StatelessWidget {
           child: Row(
             children: [
               Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'))),
-              Switch.adaptive(
-                value: value,
-                onChanged: onChanged,
-                activeColor: kPrimaryColor,
-              ),
+              _buildThumbSwitch(),
             ],
           ),
         ),
         if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16, color: kGrey100),
       ],
+    );
+  }
+
+  Widget _buildThumbSwitch() {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: SizedBox(
+        width: 52,
+        height: 32,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Track
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 46,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: value ? kPrimaryColor.withAlpha(120) : const Color(0xFFBDBDBD),
+              ),
+            ),
+            // Knob
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? kPrimaryColor : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

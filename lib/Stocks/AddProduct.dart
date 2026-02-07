@@ -859,6 +859,51 @@ class _AddProductPageState extends State<AddProductPage> {
     );
   }
 
+  Widget _buildKnobSwitch(bool value, Function(bool) onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: SizedBox(
+        width: 52,
+        height: 32,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 46,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                color: value ? kPrimaryColor.withAlpha(120) : const Color(0xFFBDBDBD),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              left: value ? 22 : 2,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? kPrimaryColor : Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(50),
+                      blurRadius: 4,
+                      spreadRadius: 0.5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
@@ -994,11 +1039,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Track Stock", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: kBlack87)),
-                    Switch.adaptive(
-                        value: _stockEnabled,
-                        activeColor: kPrimaryColor,
-                        onChanged: (v) => setState(() => _stockEnabled = v)
-                    ),
+                    _buildKnobSwitch(_stockEnabled, (v) => setState(() => _stockEnabled = v)),
                   ],
                 ),
               ),

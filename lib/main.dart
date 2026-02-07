@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -21,8 +22,10 @@ import 'services/cart_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Configure keyboard optimizations early
-  KeyboardHelper.configureKeyboardOptimizations();
+  // Configure keyboard optimizations early (skip on web)
+  if (!kIsWeb) {
+    KeyboardHelper.configureKeyboardOptimizations();
+  }
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -30,8 +33,14 @@ void main() async {
   );
 
   // Initialize Hive for offline storage
-  final appDocumentDir = await getApplicationDocumentsDirectory();
-  await Hive.initFlutter(appDocumentDir.path);
+  if (kIsWeb) {
+    // For web, initialize Hive without path
+    await Hive.initFlutter();
+  } else {
+    // For mobile/desktop, use application documents directory
+    final appDocumentDir = await getApplicationDocumentsDirectory();
+    await Hive.initFlutter(appDocumentDir.path);
+  }
   Hive.registerAdapter(SaleAdapter());
 
   // Initialize SaleSyncService for offline sales syncing
