@@ -361,9 +361,15 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       final gstAmount = double.tryParse(_gstAmountController.text.trim()) ?? 0.0;
       final creditAmount = _paymentMode == 'Credit' ? _creditAmount : 0.0;
 
+      // Generate expense number with prefix
+      final prefix = await NumberGeneratorService.getExpensePrefix();
+      final number = await NumberGeneratorService.generateExpenseNumber();
+      final expenseNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+
       final expensesCollection = await FirestoreService().getStoreCollection('expenses');
 
       await expensesCollection.add({
+        'expenseNumber': expenseNumber,
         'name': _nameController.text.trim(),
         'title': _nameController.text.trim(), // For backward compatibility
         'billNumber': _billNumberController.text.trim(),

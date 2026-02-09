@@ -17,11 +17,25 @@ class PlanProvider extends ChangeNotifier {
 
   // Cache the current plan for instant access
   String _cachedPlan = PLAN_FREE;
+  String _rawPlan = PLAN_FREE; // Store the original plan from Firestore (before expiry check)
   DateTime? _cachedExpiryDate;
   bool _isInitialized = false;
 
   /// Get cached plan instantly (no async wait)
-  String get cachedPlan => _cachedPlan;
+  /// Returns 'Free' if the plan has expired
+  String get cachedPlan {
+    // Check if plan is expired
+    if (_rawPlan.toLowerCase() != 'free' && _rawPlan.toLowerCase() != 'starter') {
+      if (_cachedExpiryDate != null && DateTime.now().isAfter(_cachedExpiryDate!)) {
+        return PLAN_FREE; // Plan expired, return Free
+      }
+    }
+    return _cachedPlan;
+  }
+
+  /// Get the original plan name without expiry check (for displaying "last plan")
+  /// This returns the actual plan stored in Firestore, even if expired
+  String get originalPlan => _rawPlan;
 
   /// Get cached expiry date instantly (no async wait)
   DateTime? get cachedExpiryDate => _cachedExpiryDate;
@@ -66,6 +80,7 @@ class PlanProvider extends ChangeNotifier {
       final storeDoc = await FirestoreService().getCurrentStoreDoc();
       if (storeDoc == null || !storeDoc.exists) {
         _cachedPlan = PLAN_FREE;
+        _rawPlan = PLAN_FREE;
         _cachedExpiryDate = null;
         return;
       }
@@ -73,6 +88,7 @@ class PlanProvider extends ChangeNotifier {
       final data = storeDoc.data() as Map<String, dynamic>?;
       if (data == null) {
         _cachedPlan = PLAN_FREE;
+        _rawPlan = PLAN_FREE;
         _cachedExpiryDate = null;
         return;
       }
@@ -89,11 +105,16 @@ class PlanProvider extends ChangeNotifier {
         _cachedExpiryDate = null;
       }
 
-      // Get plan
+      // Get raw plan from Firestore (without expiry check)
+      final rawPlanValue = data['plan']?.toString();
+      _rawPlan = (rawPlanValue != null && rawPlanValue.trim().isNotEmpty) ? rawPlanValue.trim() : PLAN_FREE;
+
+      // Get plan (with expiry check applied)
       _cachedPlan = await getCurrentPlan();
     } catch (e) {
       debugPrint('Error fetching plan and expiry: $e');
       _cachedPlan = PLAN_FREE;
+      _rawPlan = PLAN_FREE;
       _cachedExpiryDate = null;
     }
   }
@@ -123,8 +144,11 @@ class PlanProvider extends ChangeNotifier {
         if (snapshot.exists) {
           final data = snapshot.data() as Map<String, dynamic>?;
           if (data != null) {
-            // Update plan
+            // Update raw plan (without expiry check)
             final newPlan = data['plan']?.toString() ?? PLAN_FREE;
+            _rawPlan = newPlan.isEmpty ? PLAN_FREE : newPlan;
+
+            // Update cached plan (with expiry check)
             if (newPlan != _cachedPlan) {
               debugPrint('📱 PlanProvider: Real-time update - Plan changed to $newPlan');
               _cachedPlan = newPlan.isEmpty ? PLAN_FREE : newPlan;

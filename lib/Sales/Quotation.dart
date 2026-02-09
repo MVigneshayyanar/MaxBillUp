@@ -213,8 +213,10 @@ class _QuotationPageState extends State<QuotationPage> {
       final storeData = storeDoc?.data() as Map<String, dynamic>?;
       final staffName = storeData?['ownerName'] ?? 'Staff';
 
-      // Generate quotation number using the service (respects custom starting number)
-      final quotationNumber = await NumberGeneratorService.generateQuotationNumber();
+      // Generate quotation number with prefix using the service
+      final prefix = await NumberGeneratorService.getQuotationPrefix();
+      final number = await NumberGeneratorService.generateQuotationNumber();
+      final quotationNumber = prefix.isNotEmpty ? '$prefix$number' : number;
 
       // Calculate tax information from cart items
       final Map<String, double> taxMap = {};

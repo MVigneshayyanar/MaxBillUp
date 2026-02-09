@@ -37,6 +37,7 @@ class CommonWidgets {
     String? customerName,
     String? savedOrderName,
     bool isQuotationMode = false,
+    String currencySymbol = 'Rs ',
   }) {
     if (isQuotationMode) return const SizedBox.shrink();
 
@@ -90,7 +91,7 @@ class CommonWidgets {
                     const Icon(Icons.receipt_long_rounded, color: kWhite, size: 18),
                     const SizedBox(width: 10),
                     Text(
-                      "${AmountFormatter.format(totalBill)}",
+                      "$currencySymbol${AmountFormatter.format(totalBill)}",
                       style: const TextStyle(color: kWhite, fontSize: 17, fontWeight: FontWeight.w900),
                     ),
                     const SizedBox(width: 8),

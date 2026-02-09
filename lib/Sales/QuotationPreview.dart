@@ -100,7 +100,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("QUOTATION ID", style: TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w700)), Text("QTN-${widget.quotationNumber}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 15))]),
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("QUOTATION ID", style: TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w700)), Text("${widget.quotationNumber}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 15))]),
                           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(6)), child: const Text("DRAFT", style: TextStyle(color: kGoogleGreen, fontSize: 9, fontWeight: FontWeight.w900))),
                         ],
                       ),

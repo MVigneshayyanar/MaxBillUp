@@ -63,6 +63,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   int _savedOrderCount = 0;
   String? _savedOrderName; // Track the saved order name
 
+
   @override
   void initState() {
     super.initState();
@@ -146,6 +147,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       // Handle error silently
     }
   }
+
 
   void _loadSavedOrderData(Map<String, dynamic> orderData) {
     // Extract order name from saved order data

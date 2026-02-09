@@ -24,29 +24,79 @@ class NumberGeneratorService {
     return _defaultStartNumber;
   }
 
+  /// Get custom prefix from store settings
+  static Future<String> _getCustomPrefix(String field) async {
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        if (data != null && data[field] != null) {
+          return data[field].toString();
+        }
+      }
+    } catch (e) {
+      print('❌ Error getting custom prefix for $field: $e');
+    }
+    return '';
+  }
+
+  /// Get invoice prefix
+  static Future<String> getInvoicePrefix() async {
+    return await _getCustomPrefix('invoicePrefix');
+  }
+
+  /// Get quotation prefix
+  static Future<String> getQuotationPrefix() async {
+    return await _getCustomPrefix('quotationPrefix');
+  }
+
+  /// Get purchase prefix
+  static Future<String> getPurchasePrefix() async {
+    return await _getCustomPrefix('purchasePrefix');
+  }
+
+  /// Get expense prefix
+  static Future<String> getExpensePrefix() async {
+    return await _getCustomPrefix('expensePrefix');
+  }
+
   /// Generate next invoice number by checking the last invoice in sales collection
   static Future<String> generateInvoiceNumber() async {
     try {
       final collection = await FirestoreService().getStoreCollection('sales');
 
-      // Get custom starting number from settings (this is the "next" number to use)
+      // Get custom starting number and prefix from settings
       final customStart = await _getCustomStartNumber('nextInvoiceNumber');
-      print('📝 Custom invoice start number from settings: $customStart');
+      final currentPrefix = await _getCustomPrefix('invoicePrefix');
+      print('📝 Custom invoice start number from settings: $customStart, prefix: $currentPrefix');
 
-      // Define a reasonable range - look for invoices from customStart to customStart + 10,000,000
-      // This prevents old invoice numbers (from a different sequence) from affecting the count
-      final rangeEnd = customStart + 10000000;
-
-      // Query for all invoices to find if any exist in the current sequence range
+      // Query for all invoices to find the highest number with matching prefix
       final query = await collection.get();
 
       int highestInRange = customStart - 1;
       for (var doc in query.docs) {
         final invoiceNum = doc['invoiceNumber']?.toString() ?? '';
-        final numValue = int.tryParse(invoiceNum) ?? 0;
-        // Only consider numbers within the current sequence range
-        if (numValue >= customStart && numValue < rangeEnd && numValue > highestInRange) {
-          highestInRange = numValue;
+
+        // Only consider invoices that match our current prefix
+        if (currentPrefix.isNotEmpty) {
+          if (!invoiceNum.toUpperCase().startsWith(currentPrefix.toUpperCase())) {
+            continue; // Skip invoices with different prefix
+          }
+          // Extract numeric part after the prefix
+          final numericPart = invoiceNum.substring(currentPrefix.length).replaceAll(RegExp(r'[^0-9]'), '');
+          final numValue = int.tryParse(numericPart) ?? 0;
+          if (numValue >= customStart && numValue > highestInRange) {
+            highestInRange = numValue;
+          }
+        } else {
+          // No prefix - only consider pure numeric invoice numbers
+          final numericPart = invoiceNum.replaceAll(RegExp(r'[^0-9]'), '');
+          if (numericPart == invoiceNum) { // Only if it was purely numeric
+            final numValue = int.tryParse(numericPart) ?? 0;
+            if (numValue >= customStart && numValue > highestInRange) {
+              highestInRange = numValue;
+            }
+          }
         }
       }
 
@@ -103,27 +153,39 @@ class NumberGeneratorService {
     try {
       final collection = await FirestoreService().getStoreCollection('quotations');
 
-      // Get custom starting number from settings (this is the "next" number to use)
+      // Get custom starting number and prefix from settings
       final customStart = await _getCustomStartNumber('nextQuotationNumber');
-      print('📝 Custom quotation start number from settings: $customStart');
+      final currentPrefix = await _getCustomPrefix('quotationPrefix');
+      print('📝 Custom quotation start number from settings: $customStart, prefix: $currentPrefix');
 
-      // Define a reasonable range - look for quotations from customStart to customStart + 10,000,000
-      final rangeEnd = customStart + 10000000;
-
-      // Query for all quotations to find if any exist in the current sequence range
+      // Query for all quotations to find the highest number with matching prefix
       final query = await collection.get();
 
       int highestInRange = customStart - 1;
       for (var doc in query.docs) {
         final quotationNum = doc['quotationNumber']?.toString() ?? '';
-        final numValue = int.tryParse(quotationNum) ?? 0;
-        // Only consider numbers within the current sequence range
-        if (numValue >= customStart && numValue < rangeEnd && numValue > highestInRange) {
-          highestInRange = numValue;
+
+        // Only consider quotations that match our current prefix
+        if (currentPrefix.isNotEmpty) {
+          if (!quotationNum.toUpperCase().startsWith(currentPrefix.toUpperCase())) {
+            continue;
+          }
+          final numericPart = quotationNum.substring(currentPrefix.length).replaceAll(RegExp(r'[^0-9]'), '');
+          final numValue = int.tryParse(numericPart) ?? 0;
+          if (numValue >= customStart && numValue > highestInRange) {
+            highestInRange = numValue;
+          }
+        } else {
+          final numericPart = quotationNum.replaceAll(RegExp(r'[^0-9]'), '');
+          if (numericPart == quotationNum) {
+            final numValue = int.tryParse(numericPart) ?? 0;
+            if (numValue >= customStart && numValue > highestInRange) {
+              highestInRange = numValue;
+            }
+          }
         }
       }
 
-      // Next number is either customStart or highest + 1
       int nextNumber;
       if (highestInRange < customStart) {
         nextNumber = customStart;
@@ -144,23 +206,44 @@ class NumberGeneratorService {
     try {
       final collection = await FirestoreService().getStoreCollection('expenses');
 
-      // Query for all expenses to find the highest number
+      // Get custom starting number and prefix from settings
+      final customStart = await _getCustomStartNumber('nextExpenseNumber');
+      final currentPrefix = await _getCustomPrefix('expensePrefix');
+
       final query = await collection.get();
 
-      int highestNumber = _defaultStartNumber - 1;
+      int highestInRange = customStart - 1;
       for (var doc in query.docs) {
         final expenseNum = doc['expenseNumber']?.toString() ?? '';
-        final numericPart = expenseNum.replaceAll(RegExp(r'[^0-9]'), '');
-        final numValue = int.tryParse(numericPart) ?? 0;
-        if (numValue > highestNumber) {
-          highestNumber = numValue;
+
+        if (currentPrefix.isNotEmpty) {
+          if (!expenseNum.toUpperCase().startsWith(currentPrefix.toUpperCase())) {
+            continue;
+          }
+          final numericPart = expenseNum.substring(currentPrefix.length).replaceAll(RegExp(r'[^0-9]'), '');
+          final numValue = int.tryParse(numericPart) ?? 0;
+          if (numValue >= customStart && numValue > highestInRange) {
+            highestInRange = numValue;
+          }
+        } else {
+          final numericPart = expenseNum.replaceAll(RegExp(r'[^0-9]'), '');
+          if (numericPart == expenseNum) {
+            final numValue = int.tryParse(numericPart) ?? 0;
+            if (numValue >= customStart && numValue > highestInRange) {
+              highestInRange = numValue;
+            }
+          }
         }
       }
 
-      // Next number is highest + 1 (minimum is _defaultStartNumber which is 100001)
-      final nextNumber = highestNumber + 1;
+      int nextNumber;
+      if (highestInRange < customStart) {
+        nextNumber = customStart;
+      } else {
+        nextNumber = highestInRange + 1;
+      }
 
-      print('📝 Highest expense number: $highestNumber, Next expense: $nextNumber');
+      print('📝 Custom start: $customStart, Highest in range: $highestInRange, Next expense: $nextNumber');
       return nextNumber.toString();
     } catch (e) {
       print('❌ Error generating expense number: $e');
@@ -173,23 +256,44 @@ class NumberGeneratorService {
     try {
       final collection = await FirestoreService().getStoreCollection('stockPurchases');
 
-      // Query for all purchases to find the highest number
+      // Get custom starting number and prefix from settings
+      final customStart = await _getCustomStartNumber('nextPurchaseNumber');
+      final currentPrefix = await _getCustomPrefix('purchasePrefix');
+
       final query = await collection.get();
 
-      int highestNumber = _defaultStartNumber - 1;
+      int highestInRange = customStart - 1;
       for (var doc in query.docs) {
         final purchaseNum = doc['purchaseNumber']?.toString() ?? '';
-        final numericPart = purchaseNum.replaceAll(RegExp(r'[^0-9]'), '');
-        final numValue = int.tryParse(numericPart) ?? 0;
-        if (numValue > highestNumber) {
-          highestNumber = numValue;
+
+        if (currentPrefix.isNotEmpty) {
+          if (!purchaseNum.toUpperCase().startsWith(currentPrefix.toUpperCase())) {
+            continue;
+          }
+          final numericPart = purchaseNum.substring(currentPrefix.length).replaceAll(RegExp(r'[^0-9]'), '');
+          final numValue = int.tryParse(numericPart) ?? 0;
+          if (numValue >= customStart && numValue > highestInRange) {
+            highestInRange = numValue;
+          }
+        } else {
+          final numericPart = purchaseNum.replaceAll(RegExp(r'[^0-9]'), '');
+          if (numericPart == purchaseNum) {
+            final numValue = int.tryParse(numericPart) ?? 0;
+            if (numValue >= customStart && numValue > highestInRange) {
+              highestInRange = numValue;
+            }
+          }
         }
       }
 
-      // Next number is highest + 1 (minimum is _defaultStartNumber which is 100001)
-      final nextNumber = highestNumber + 1;
+      int nextNumber;
+      if (highestInRange < customStart) {
+        nextNumber = customStart;
+      } else {
+        nextNumber = highestInRange + 1;
+      }
 
-      print('📝 Highest purchase number: $highestNumber, Next purchase: $nextNumber');
+      print('📝 Custom start: $customStart, Highest in range: $highestInRange, Next purchase: $nextNumber');
       return nextNumber.toString();
     } catch (e) {
       print('❌ Error generating purchase number: $e');

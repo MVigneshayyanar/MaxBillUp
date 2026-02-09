@@ -254,7 +254,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
             child: Column(
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text("QTN-${data['quotationNumber']}",
+                  Text("${data['quotationNumber']}",
                       style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
                   Text(
                       data['date'] != null

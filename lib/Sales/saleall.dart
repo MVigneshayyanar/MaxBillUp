@@ -82,6 +82,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
   String? _animatingProductId;
   int _animationCounter = 0;
 
+  // Currency symbol
+  String _currencySymbol = 'Rs ';
+
   @override
   void initState() {
     super.initState();
@@ -124,6 +127,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
 
+    // Load currency symbol from store settings
+    _loadCurrencySymbol();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         setState(() {
@@ -164,6 +170,38 @@ class _SaleAllPageState extends State<SaleAllPage> {
     }
   }
 
+
+  Future<void> _loadCurrencySymbol() async {
+    try {
+      final doc = await FirestoreService().getCurrentStoreDoc();
+      if (doc != null && doc.exists && mounted) {
+        final data = doc.data() as Map<String, dynamic>?;
+        setState(() {
+          _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
 
   Future<void> _initializeProductsStream() async {
     final stream = await FirestoreService().getCollectionStream('Products');
@@ -709,6 +747,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   }
                 },
                 totalBill: _total,
+                currencySymbol: _currencySymbol,
               ),
             ],
           ),
@@ -992,7 +1031,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     final lowStockAlert = (data['lowStockAlert'] ?? 0.0).toDouble();
 
     // Low stock color
-    const Color lowStockColor = Color(0xffCC8758);
+    const Color lowStockColor = kOrange;
 
     // Expiry check
     final expiryDateStr = data['expiryDate'] as String?;
@@ -1026,6 +1065,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
           onTap: () {
             if (isExpired) {
               _showExpiredProductDialog(name);
+              return;
+            }
+            if (isOutOfStock) {
+              _showOutOfStockDialog(name);
               return;
             }
             if (price > 0) {
@@ -1064,17 +1107,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isExpired
-                      ? kErrorColor.withOpacity(0.05)
-                      : isLowStock
-                          ? lowStockColor.withOpacity(0.05)
-                          : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
+                      ? kOrange.withOpacity(0.05)
+                      : isOutOfStock
+                          ? Colors.black.withOpacity(0.05)
+                          : isLowStock
+                              ? lowStockColor.withOpacity(0.05)
+                              : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isExpired
-                        ? kErrorColor.withOpacity(0.5)
-                        : isLowStock
-                            ? lowStockColor.withOpacity(0.5)
-                            : (isAnimating ? kGoogleGreen : kGrey200),
+                        ? kOrange.withOpacity(0.5)
+                        : isOutOfStock
+                            ? Colors.black.withOpacity(0.5)
+                            : isLowStock
+                                ? lowStockColor.withOpacity(0.5)
+                                : (isAnimating ? kGoogleGreen : kGrey200),
                     width: isAnimating ? 2 : 1,
                   ),
                 ),
@@ -1128,27 +1175,23 @@ class _SaleAllPageState extends State<SaleAllPage> {
                               ),
                               const SizedBox(height: 3),
                               Text(
-                                AmountFormatter.format(price),
+                                '$_currencySymbol${AmountFormatter.format(price)}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12,
                                   color: kPrimaryColor,
                                 ),
                               ),
-                              if (stockEnabled) ...[
+                              if (stockEnabled && !isOutOfStock) ...[
                                 const SizedBox(height: 2),
                                 Text(
-                                  isOutOfStock
-                                      ? 'OUT OF STOCK'
-                                      : '${AmountFormatter.format(stock)} $unit',
+                                  '${AmountFormatter.format(stock)} $unit',
                                   style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,
-                                    color: isOutOfStock
-                                        ? kErrorColor
-                                        : isLowStock
-                                            ? lowStockColor
-                                            : kGoogleGreen,
+                                    color: isLowStock
+                                        ? lowStockColor
+                                        : kGoogleGreen,
                                   ),
                                 ),
                               ],
@@ -1208,25 +1251,40 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   bottom: 4,
                   right: 4,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: lowStockColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: lowStockColor.withOpacity(0.3)),
+                      color: lowStockColor,
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox(width: 2),
-                        Text(
-                          'LOW STOCK',
-                          style: TextStyle(
-                            fontSize: 7,
-                            fontWeight: FontWeight.w900,
-                            color: lowStockColor,
-                          ),
-                        ),
-                      ],
+                    child: const Text(
+                      'LOW STOCK',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        color: kWhite,
+                      ),
+                    ),
+                  ),
+                ),
+
+              /// OUT OF STOCK badge - bottom right
+              if (isOutOfStock)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Text(
+                      'OUT OF STOCK',
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                        color: kWhite,
+                      ),
                     ),
                   ),
                 ),
@@ -1239,7 +1297,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: kErrorColor,
+                      color: kOrange,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
@@ -1271,10 +1329,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: kErrorColor.withOpacity(0.1),
+                color: kOrange.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_rounded, color: kErrorColor, size: 24),
+              child: const Icon(Icons.warning_rounded, color: kOrange, size: 24),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -1291,11 +1349,62 @@ class _SaleAllPageState extends State<SaleAllPage> {
           children: [
             Text(
               productName,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kPrimaryColor),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kOrange),
             ),
             const SizedBox(height: 12),
             const Text(
               'This product has expired and cannot be added to the cart. Please update the product details or remove it from inventory.',
+              style: TextStyle(color: kBlack54, fontSize: 14),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  void _showOutOfStockDialog(String productName) {
+    const Color outOfStockColor = Colors.black;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: outOfStockColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.remove_shopping_cart_rounded, color: outOfStockColor, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Out of Stock',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              productName,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: outOfStockColor),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'This product is currently out of stock and cannot be added to the cart. Please restock this item to continue selling.',
               style: TextStyle(color: kBlack54, fontSize: 14),
             ),
           ],

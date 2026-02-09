@@ -71,6 +71,7 @@ class _BillPageState extends State<BillPage> {
   String? _existingInvoiceNumber;
   String? _unsettledSaleId;
   final TextEditingController _notesController = TextEditingController();
+  bool _isFromQuotation = false; // Track if came from quotation
 
   // Fast-Fetch Variables
   String _businessName = 'Business';
@@ -94,8 +95,17 @@ class _BillPageState extends State<BillPage> {
     }
     _existingInvoiceNumber = widget.existingInvoiceNumber;
     _unsettledSaleId = widget.unsettledSaleId;
+    _isFromQuotation = widget.quotationId != null;
 
     _initFastFetch();
+
+    // Sync widget.cartItems to CartService (for when coming from QuotationDetail)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.cartItems.isNotEmpty && _isFromQuotation) {
+        final cartService = Provider.of<CartService>(context, listen: false);
+        cartService.updateCart(widget.cartItems);
+      }
+    });
   }
 
   Future<void> _fetchCustomerDefaultDiscount(String customerPhone) async {
@@ -195,6 +205,24 @@ class _BillPageState extends State<BillPage> {
   }
 
   void _proceedToPayment(String paymentMode) {
+    // Credit payment requires a customer to be selected
+    if (paymentMode == 'Credit' && (_selectedCustomerPhone == null || _selectedCustomerPhone!.isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please select a customer for Credit payment', style: TextStyle(fontWeight: FontWeight.w600)),
+          backgroundColor: kOrange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          action: SnackBarAction(
+            label: 'SELECT',
+            textColor: kWhite,
+            onPressed: _showCustomerDialog,
+          ),
+        ),
+      );
+      return;
+    }
+
     // Get current cart items from CartService
     final cartService = Provider.of<CartService>(context, listen: false);
     final cartItems = cartService.cartItems;
@@ -1004,16 +1032,31 @@ class _BillPageState extends State<BillPage> {
     final cartService = Provider.of<CartService>(context);
     final cartItems = cartService.cartItems;
 
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        backgroundColor: kPrimaryColor,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(context.tr('Bill Summary').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
-        actions: [IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: kWhite, size: 22), onPressed: _clearOrder)],
-      ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && _isFromQuotation) {
+          final cartService = Provider.of<CartService>(context, listen: false);
+          cartService.clearCart();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: kGreyBg,
+        appBar: AppBar(
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(context.tr('Bill Summary').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
+          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () {
+            // Clear cart when going back from quotation to prevent items persisting
+            if (_isFromQuotation) {
+              final cartService = Provider.of<CartService>(context, listen: false);
+              cartService.clearCart();
+            }
+            Navigator.pop(context);
+          }),
+          actions: [IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: kWhite, size: 22), onPressed: _clearOrder)],
+        ),
       body: Column(
         children: [
           _buildCustomerSection(),
@@ -1030,6 +1073,7 @@ class _BillPageState extends State<BillPage> {
             child: _buildBottomPanel(cartItems),
           ),
         ],
+      ),
       ),
     );
   }
@@ -1111,11 +1155,11 @@ class _BillPageState extends State<BillPage> {
                 Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis),
                 Row(
                   children: [
-                    Text('@ ${AmountFormatter.format(item.price)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
+                    Text('@ $_currencySymbol${AmountFormatter.format(item.price)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
                     if (item.taxAmount > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        '+${AmountFormatter.format(item.taxAmount)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
+                        '+$_currencySymbol${AmountFormatter.format(item.taxAmount)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
                         style: const TextStyle(
                           color: kBlack54,
                           fontSize: 8,
@@ -1129,7 +1173,7 @@ class _BillPageState extends State<BillPage> {
             ),
           ),
           const SizedBox(width: 8),
-          Text(AmountFormatter.format(item.totalWithTax), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
+          Text('$_currencySymbol${AmountFormatter.format(item.totalWithTax)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _showEditCartItemDialog(idx),
@@ -1208,13 +1252,13 @@ class _BillPageState extends State<BillPage> {
 
                 // Bill Summary Breakdown
                 // 1. Subtotal (Total with Tax)
-                _buildSummaryRow('Subtotal', AmountFormatter.format(subtotal)),
+                _buildSummaryRow('Subtotal', '$_currencySymbol${AmountFormatter.format(subtotal)}'),
 
                 // 2. Customer Discount (if available)
                 if (_customerDefaultDiscount > 0) ...[
                   _buildSummaryRow(
                     'Customer Discount (${AmountFormatter.format(_customerDefaultDiscount, maxDecimals: 1)}%)',
-                    '- ${AmountFormatter.format(customerDiscountAmount)}',
+                    '- $_currencySymbol${AmountFormatter.format(customerDiscountAmount)}',
                     color: kGoogleGreen,
                   ),
                   const SizedBox(height: 2),
@@ -1223,7 +1267,7 @@ class _BillPageState extends State<BillPage> {
                 // 3. Additional Discount (clickable to edit)
                 _buildSummaryRow(
                   _customerDefaultDiscount > 0 ? 'Additional Discount' : 'Discount',
-                  '- ${AmountFormatter.format(additionalDiscountAmount)}',
+                  '- $_currencySymbol${AmountFormatter.format(additionalDiscountAmount)}',
                   color: kGoogleGreen,
                   isClickable: true,
                   onTap: _showDiscountDialog,
@@ -1234,7 +1278,7 @@ class _BillPageState extends State<BillPage> {
                 if (hasCustomer)
                   _buildSummaryRow(
                     'Return Credit',
-                    '- ${AmountFormatter.format(actualCreditUsed)}',
+                    '- $_currencySymbol${AmountFormatter.format(actualCreditUsed)}',
                     color: kOrange,
                     isClickable: true,
                     onTap: _showCreditNotesDialog,
@@ -1247,14 +1291,13 @@ class _BillPageState extends State<BillPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total Amount', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
-                    Text(AmountFormatter.format(finalAmount), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    Text('$_currencySymbol${AmountFormatter.format(finalAmount)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                   ],
                 ),
                 const SizedBox(height: 12),
 
                 // Payment Buttons
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _buildPayIcon(Icons.payments_rounded, 'Cash', () => _proceedToPayment('Cash')),
                     _buildPayIcon(Icons.qr_code_scanner_rounded, 'Online', () => _proceedToPayment('Online')),
@@ -1291,21 +1334,42 @@ class _BillPageState extends State<BillPage> {
 
 
   Widget _buildPayIcon(IconData icon, String label, VoidCallback onTap) {
-    return Column(
-      children: [
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Container(
-            width: 56, height: 56,
-            decoration: BoxDecoration(
-                color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200, width: 1.5)),
-            child: Icon(icon, color: kPrimaryColor, size: 24),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            color: kPrimaryColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3), width: 1.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: kWhite, size: 20),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: kPrimaryColor,
+                  letterSpacing: 0.3,
+                ),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
-      ],
+      ),
     );
   }
 }
@@ -1595,8 +1659,15 @@ class _PaymentPageState extends State<PaymentPage> {
     if (widget.paymentMode == 'Credit' && widget.customerPhone == null) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit'))); return; }
     if (widget.paymentMode != 'Credit' && _cashReceived < widget.totalAmount - 0.01) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient'), backgroundColor: Colors.red)); return; }
 
-    // Generate invoice number first (quick operation)
-    final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+    // Generate invoice number with prefix
+    String invoiceNumber;
+    if (widget.existingInvoiceNumber != null) {
+      invoiceNumber = widget.existingInvoiceNumber!;
+    } else {
+      final prefix = await NumberGeneratorService.getInvoicePrefix();
+      final number = await NumberGeneratorService.generateInvoiceNumber();
+      invoiceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+    }
 
     // Calculate tax data (no async needed)
     final Map<String, double> taxMap = {};
@@ -2098,7 +2169,16 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
     try {
       showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-      final invoiceNumber = widget.existingInvoiceNumber ?? await NumberGeneratorService.generateInvoiceNumber();
+
+      // Generate invoice number with prefix
+      String invoiceNumber;
+      if (widget.existingInvoiceNumber != null) {
+        invoiceNumber = widget.existingInvoiceNumber!;
+      } else {
+        final prefix = await NumberGeneratorService.getInvoicePrefix();
+        final number = await NumberGeneratorService.generateInvoiceNumber();
+        invoiceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+      }
 
       final Map<String, double> taxMap = {};
       for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }

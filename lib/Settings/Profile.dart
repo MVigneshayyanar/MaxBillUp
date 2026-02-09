@@ -318,14 +318,22 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context, planProvider, child) {
         // Use cached plan for instant access - updates automatically when subscription changes
         final plan = planProvider.cachedPlan;
+        final originalPlan = planProvider.originalPlan;
         final isPremium = plan.toLowerCase() != 'free' && plan.toLowerCase() != 'starter';
         final expiryDate = planProvider.cachedExpiryDate;
         final isExpiringSoon = planProvider.isExpiringSoon;
         final daysUntilExpiry = planProvider.daysUntilExpiry;
 
+        // Check if plan is expired (originalPlan was premium but current plan is free due to expiry)
+        final isExpired = originalPlan.toLowerCase() != 'free' &&
+                         originalPlan.toLowerCase() != 'starter' &&
+                         plan.toLowerCase() == 'free' &&
+                         expiryDate != null &&
+                         DateTime.now().isAfter(expiryDate);
+
         // Format expiry date
         String? expiryText;
-        if (isPremium && expiryDate != null) {
+        if (expiryDate != null) {
           final day = expiryDate.day.toString().padLeft(2, '0');
           final month = _getMonthName(expiryDate.month);
           final year = expiryDate.year;
@@ -393,20 +401,44 @@ class _SettingsPageState extends State<SettingsPage> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.1),
+                                  color: (isExpired ? kErrorColor : (isPremium ? kGoogleGreen : kOrange)).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: (isPremium ? kGoogleGreen : kOrange).withOpacity(0.2)),
+                                  border: Border.all(color: (isExpired ? kErrorColor : (isPremium ? kGoogleGreen : kOrange)).withOpacity(0.2)),
                                 ),
-                                child: Text(plan.toUpperCase(), style: TextStyle(fontSize: 9, color: isPremium ? kGoogleGreen : kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5, fontFamily: 'Lato')),
+                                child: Text(
+                                  isExpired ? 'EXPIRED' : plan.toUpperCase(),
+                                  style: TextStyle(fontSize: 9, color: isExpired ? kErrorColor : (isPremium ? kGoogleGreen : kOrange), fontWeight: FontWeight.w900, letterSpacing: 0.5, fontFamily: 'Lato')
+                                ),
                               ),
-                              if (!isPremium) ...[
+                              if (isExpired) ...[
+                                const SizedBox(width: 8),
+                                Text('(was ${originalPlan})', style: const TextStyle(fontSize: 9, color: kBlack54, fontStyle: FontStyle.italic, fontFamily: 'Lato')),
+                              ],
+                              if (!isPremium || isExpired) ...[
                                 const SizedBox(width: 12),
-                                const Text('Upgrade Now', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5, fontFamily: 'Lato')),
+                                Text(isExpired ? 'Renew Now' : 'Upgrade Now', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5, fontFamily: 'Lato')),
                               ]
                             ],
                           ),
-                          // Expiry date - show if premium plan
-                          if (isPremium && expiryText != null) ...[
+                          // Expiry info
+                          if (isExpired && expiryText != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.warning_amber_rounded, size: 12, color: kErrorColor),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Expired on $expiryText',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: kErrorColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontFamily: 'Lato',
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else if (isPremium && expiryText != null) ...[
                             const SizedBox(height: 6),
                             Row(
                               children: [
@@ -1438,7 +1470,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
 
   // Thermal Printer Settings
   String _thermalPageSize = '58mm';
-  int _thermalNumberOfCopies = 1;
   bool _thermalShowHeader = true;
   bool _thermalShowLogo = true;
   bool _thermalShowCustomerInfo = true;
@@ -1452,7 +1483,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   bool _thermalShowTaxColumnInTable = false; // Tax column removed by default for thermal
 
   // A4 Printer Settings
-  int _a4NumberOfCopies = 1;
   bool _a4ShowHeader = true;
   bool _a4ShowLogo = true;
   bool _a4ShowCustomerInfo = true;
@@ -1469,16 +1499,45 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   bool _a4ShowTaxColumnInTable = true;
   String _a4ColorTheme = 'blue'; // Color theme for A4
 
+  // Document Numbering Settings
+  String _selectedDocType = 'Invoice';
+  final List<String> _docTypes = ['Invoice', 'Quotation/Estimation', 'Purchase', 'Expense'];
+
+  // Prefix and number controllers for each document type
+  final _invoicePrefixCtrl = TextEditingController();
+  final _invoiceNumberCtrl = TextEditingController();
+  final _quotationPrefixCtrl = TextEditingController();
+  final _quotationNumberCtrl = TextEditingController();
+  final _purchasePrefixCtrl = TextEditingController();
+  final _purchaseNumberCtrl = TextEditingController();
+  final _expensePrefixCtrl = TextEditingController();
+  final _expenseNumberCtrl = TextEditingController();
+
+  // Old series lists
+  List<Map<String, dynamic>> _oldInvoiceSeries = [];
+  List<Map<String, dynamic>> _oldQuotationSeries = [];
+  List<Map<String, dynamic>> _oldPurchaseSeries = [];
+  List<Map<String, dynamic>> _oldExpenseSeries = [];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadSettings();
+    _loadDocumentNumberSettings();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _invoicePrefixCtrl.dispose();
+    _invoiceNumberCtrl.dispose();
+    _quotationPrefixCtrl.dispose();
+    _quotationNumberCtrl.dispose();
+    _purchasePrefixCtrl.dispose();
+    _purchaseNumberCtrl.dispose();
+    _expensePrefixCtrl.dispose();
+    _expenseNumberCtrl.dispose();
     super.dispose();
   }
 
@@ -1487,7 +1546,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     setState(() {
       // Thermal settings
       _thermalPageSize = prefs.getString('thermal_page_size') ?? '58mm';
-      _thermalNumberOfCopies = prefs.getInt('thermal_number_of_copies') ?? 1;
       _thermalShowHeader = prefs.getBool('thermal_show_header') ?? true;
       _thermalShowLogo = prefs.getBool('thermal_show_logo') ?? true;
       _thermalShowCustomerInfo = prefs.getBool('thermal_show_customer_info') ?? true;
@@ -1501,7 +1559,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       _thermalShowTaxColumnInTable = prefs.getBool('thermal_show_tax_column') ?? false;
 
       // A4 settings
-      _a4NumberOfCopies = prefs.getInt('a4_number_of_copies') ?? 1;
       _a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
       _a4ShowLogo = prefs.getBool('a4_show_logo') ?? true;
       _a4ShowCustomerInfo = prefs.getBool('a4_show_customer_info') ?? true;
@@ -1520,11 +1577,45 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     });
   }
 
+  Future<void> _loadDocumentNumberSettings() async {
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        if (data != null) {
+          setState(() {
+            // Invoice
+            _invoicePrefixCtrl.text = data['invoicePrefix']?.toString() ?? '';
+            _invoiceNumberCtrl.text = (data['nextInvoiceNumber'] ?? 100001).toString();
+            _oldInvoiceSeries = List<Map<String, dynamic>>.from(data['oldInvoiceSeries'] ?? []);
+
+            // Quotation / Estimation (combined)
+            _quotationPrefixCtrl.text = data['quotationPrefix']?.toString() ?? '';
+            _quotationNumberCtrl.text = (data['nextQuotationNumber'] ?? 100001).toString();
+            _oldQuotationSeries = List<Map<String, dynamic>>.from(data['oldQuotationSeries'] ?? []);
+
+
+            // Purchase
+            _purchasePrefixCtrl.text = data['purchasePrefix']?.toString() ?? '';
+            _purchaseNumberCtrl.text = (data['nextPurchaseNumber'] ?? 100001).toString();
+            _oldPurchaseSeries = List<Map<String, dynamic>>.from(data['oldPurchaseSeries'] ?? []);
+
+            // Expense
+            _expensePrefixCtrl.text = data['expensePrefix']?.toString() ?? '';
+            _expenseNumberCtrl.text = (data['nextExpenseNumber'] ?? 100001).toString();
+            _oldExpenseSeries = List<Map<String, dynamic>>.from(data['oldExpenseSeries'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading document number settings: $e');
+    }
+  }
+
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
     // Thermal settings
     await prefs.setString('thermal_page_size', _thermalPageSize);
-    await prefs.setInt('thermal_number_of_copies', _thermalNumberOfCopies);
     await prefs.setBool('thermal_show_header', _thermalShowHeader);
     await prefs.setBool('thermal_show_logo', _thermalShowLogo);
     await prefs.setBool('thermal_show_customer_info', _thermalShowCustomerInfo);
@@ -1538,7 +1629,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     await prefs.setBool('thermal_show_tax_column', _thermalShowTaxColumnInTable);
 
     // A4 settings
-    await prefs.setInt('a4_number_of_copies', _a4NumberOfCopies);
     await prefs.setBool('a4_show_header', _a4ShowHeader);
     await prefs.setBool('a4_show_logo', _a4ShowLogo);
     await prefs.setBool('a4_show_customer_info', _a4ShowCustomerInfo);
@@ -1561,6 +1651,173 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     await prefs.setBool('receipt_show_total_items', _tabController.index == 0 ? _thermalShowTotalItemQuantity : _a4ShowTotalItemQuantity);
     await prefs.setBool('receipt_show_save_amount', _tabController.index == 0 ? _thermalShowYouSaved : _a4ShowYouSaved);
     await prefs.setString('receipt_footer_description', _tabController.index == 0 ? _thermalSaleInvoiceText : _a4SaleInvoiceText);
+  }
+
+  Future<void> _saveDocumentNumberSettings() async {
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId == null) return;
+
+      // Get current data to check for existing series
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      final currentData = storeDoc?.data() as Map<String, dynamic>? ?? {};
+
+      final updateData = <String, dynamic>{};
+      final newPrefix = _getActivePrefix().trim();
+      final newNumber = _getActiveNumber();
+
+      switch (_selectedDocType) {
+        case 'Invoice':
+          final currentPrefix = currentData['invoicePrefix']?.toString() ?? '';
+          final currentNumber = currentData['nextInvoiceNumber'] ?? 100001;
+
+          // Always save to history if the values are different from new values
+          if (currentPrefix != newPrefix || currentNumber != newNumber) {
+            final oldSeries = List<Map<String, dynamic>>.from(currentData['oldInvoiceSeries'] ?? []);
+            // Check if this series already exists in history
+            final existsInHistory = oldSeries.any((s) =>
+              (s['prefix']?.toString() ?? '') == (currentPrefix.isEmpty ? '--' : currentPrefix) &&
+              s['number'] == currentNumber);
+            if (!existsInHistory && (currentPrefix.isNotEmpty || currentNumber != 100001)) {
+              oldSeries.add({'prefix': currentPrefix.isEmpty ? '--' : currentPrefix, 'number': currentNumber});
+              updateData['oldInvoiceSeries'] = oldSeries;
+              // Update local state immediately
+              setState(() => _oldInvoiceSeries = oldSeries);
+            }
+          }
+          updateData['invoicePrefix'] = newPrefix;
+          updateData['nextInvoiceNumber'] = newNumber;
+          break;
+
+        case 'Quotation/Estimation':
+          final currentPrefix = currentData['quotationPrefix']?.toString() ?? '';
+          final currentNumber = currentData['nextQuotationNumber'] ?? 100001;
+
+          if (currentPrefix != newPrefix || currentNumber != newNumber) {
+            final oldSeries = List<Map<String, dynamic>>.from(currentData['oldQuotationSeries'] ?? []);
+            final existsInHistory = oldSeries.any((s) =>
+              (s['prefix']?.toString() ?? '') == (currentPrefix.isEmpty ? '--' : currentPrefix) &&
+              s['number'] == currentNumber);
+            if (!existsInHistory && (currentPrefix.isNotEmpty || currentNumber != 100001)) {
+              oldSeries.add({'prefix': currentPrefix.isEmpty ? '--' : currentPrefix, 'number': currentNumber});
+              updateData['oldQuotationSeries'] = oldSeries;
+              setState(() => _oldQuotationSeries = oldSeries);
+            }
+          }
+          updateData['quotationPrefix'] = newPrefix;
+          updateData['nextQuotationNumber'] = newNumber;
+          break;
+
+        case 'Purchase':
+          final currentPrefix = currentData['purchasePrefix']?.toString() ?? '';
+          final currentNumber = currentData['nextPurchaseNumber'] ?? 100001;
+
+          if (currentPrefix != newPrefix || currentNumber != newNumber) {
+            final oldSeries = List<Map<String, dynamic>>.from(currentData['oldPurchaseSeries'] ?? []);
+            final existsInHistory = oldSeries.any((s) =>
+              (s['prefix']?.toString() ?? '') == (currentPrefix.isEmpty ? '--' : currentPrefix) &&
+              s['number'] == currentNumber);
+            if (!existsInHistory && (currentPrefix.isNotEmpty || currentNumber != 100001)) {
+              oldSeries.add({'prefix': currentPrefix.isEmpty ? '--' : currentPrefix, 'number': currentNumber});
+              updateData['oldPurchaseSeries'] = oldSeries;
+              setState(() => _oldPurchaseSeries = oldSeries);
+            }
+          }
+          updateData['purchasePrefix'] = newPrefix;
+          updateData['nextPurchaseNumber'] = newNumber;
+          break;
+
+        case 'Expense':
+          final currentPrefix = currentData['expensePrefix']?.toString() ?? '';
+          final currentNumber = currentData['nextExpenseNumber'] ?? 100001;
+
+          if (currentPrefix != newPrefix || currentNumber != newNumber) {
+            final oldSeries = List<Map<String, dynamic>>.from(currentData['oldExpenseSeries'] ?? []);
+            final existsInHistory = oldSeries.any((s) =>
+              (s['prefix']?.toString() ?? '') == (currentPrefix.isEmpty ? '--' : currentPrefix) &&
+              s['number'] == currentNumber);
+            if (!existsInHistory && (currentPrefix.isNotEmpty || currentNumber != 100001)) {
+              oldSeries.add({'prefix': currentPrefix.isEmpty ? '--' : currentPrefix, 'number': currentNumber});
+              updateData['oldExpenseSeries'] = oldSeries;
+              setState(() => _oldExpenseSeries = oldSeries);
+            }
+          }
+          updateData['expensePrefix'] = newPrefix;
+          updateData['nextExpenseNumber'] = newNumber;
+          break;
+      }
+
+      await FirebaseFirestore.instance.collection('store').doc(storeId).update(updateData);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Document numbering updated!'), backgroundColor: kGoogleGreen, behavior: SnackBarBehavior.floating),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving document number settings: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: kErrorColor, behavior: SnackBarBehavior.floating),
+        );
+      }
+    }
+  }
+
+  String _getActivePrefix() {
+    switch (_selectedDocType) {
+      case 'Invoice': return _invoicePrefixCtrl.text;
+      case 'Quotation/Estimation': return _quotationPrefixCtrl.text;
+      case 'Purchase': return _purchasePrefixCtrl.text;
+      case 'Expense': return _expensePrefixCtrl.text;
+      default: return '';
+    }
+  }
+
+  int _getActiveNumber() {
+    switch (_selectedDocType) {
+      case 'Invoice': return int.tryParse(_invoiceNumberCtrl.text) ?? 100001;
+      case 'Quotation/Estimation': return int.tryParse(_quotationNumberCtrl.text) ?? 100001;
+      case 'Purchase': return int.tryParse(_purchaseNumberCtrl.text) ?? 100001;
+      case 'Expense': return int.tryParse(_expenseNumberCtrl.text) ?? 100001;
+      default: return 100001;
+    }
+  }
+
+  Future<void> _reuseSeries(String docType, Map<String, dynamic> series) async {
+    try {
+      final prefix = series['prefix']?.toString() ?? '';
+      final number = series['number'] ?? 100001;
+
+      switch (docType) {
+        case 'Invoice':
+          setState(() {
+            _invoicePrefixCtrl.text = prefix == '--' ? '' : prefix;
+            _invoiceNumberCtrl.text = number.toString();
+          });
+          break;
+        case 'Quotation/Estimation':
+          setState(() {
+            _quotationPrefixCtrl.text = prefix == '--' ? '' : prefix;
+            _quotationNumberCtrl.text = number.toString();
+          });
+          break;
+        case 'Purchase':
+          setState(() {
+            _purchasePrefixCtrl.text = prefix == '--' ? '' : prefix;
+            _purchaseNumberCtrl.text = number.toString();
+          });
+          break;
+        case 'Expense':
+          setState(() {
+            _expensePrefixCtrl.text = prefix == '--' ? '' : prefix;
+            _expenseNumberCtrl.text = number.toString();
+          });
+          break;
+      }
+    } catch (e) {
+      debugPrint('Error reusing series: $e');
+    }
   }
 
   @override
@@ -1600,10 +1857,11 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                   dividerColor: Colors.transparent,
                   labelColor: kWhite,
                   unselectedLabelColor: kBlack54,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.3),
                   tabs: const [
-                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 16), SizedBox(width: 8), Text('THERMAL')])),
-                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.picture_as_pdf_rounded, size: 16), SizedBox(width: 8), Text('A4 / PDF')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.print_rounded, size: 14), SizedBox(width: 4), Text('THERMAL')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.picture_as_pdf_rounded, size: 14), SizedBox(width: 4), Text('A4/PDF')])),
+                    Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.tag_rounded, size: 14), SizedBox(width: 4), Text('DOC NO.')])),
                   ],
                 ),
               ),
@@ -1616,6 +1874,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           children: [
             _buildThermalTab(),
             _buildA4Tab(),
+            _buildDocumentNumberingTab(),
           ],
         ),
       ),
@@ -1627,20 +1886,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       padding: const EdgeInsets.all(16),
       children: [
         _buildInfoCard('Thermal Receipt', 'Small paper print for POS printers', Icons.print_rounded),
-        const SizedBox(height: 16),
-        _buildSectionLabel('PRINTER SETTINGS'),
-        Container(
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-          padding: const EdgeInsets.all(16),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
-            Row(children: [
-              IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () { setState(() => _thermalNumberOfCopies--); _saveSettings(); } : null),
-              Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _thermalNumberOfCopies++); _saveSettings(); }),
-            ]),
-          ]),
-        ),
         const SizedBox(height: 16),
         _buildSectionLabel('IDENTITY & BRANDING'),
         _SettingsGroup(children: [
@@ -1711,20 +1956,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           ),
         ),
         const SizedBox(height: 16),
-        _buildSectionLabel('PRINTER SETTINGS'),
-        Container(
-          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
-          padding: const EdgeInsets.all(16),
-          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const Text('Number of copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
-            Row(children: [
-              IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () { setState(() => _a4NumberOfCopies--); _saveSettings(); } : null),
-              Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-              IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () { setState(() => _a4NumberOfCopies++); _saveSettings(); }),
-            ]),
-          ]),
-        ),
-        const SizedBox(height: 16),
         _buildSectionLabel('IDENTITY & BRANDING'),
         _SettingsGroup(children: [
           _SwitchTile('Show Header', _a4ShowHeader, (v) { setState(() => _a4ShowHeader = v); _saveSettings(); }),
@@ -1752,6 +1983,235 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         const SizedBox(height: 12),
         _buildTextFieldSection('Delivery Challan Text', _a4DeliveryChallanText, (v) { _a4DeliveryChallanText = v; _saveSettings(); }),
         const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildDocumentNumberingTab() {
+    // Get current prefix and number based on selected doc type
+    TextEditingController prefixCtrl;
+    TextEditingController numberCtrl;
+    List<Map<String, dynamic>> oldSeries;
+    String docLabel;
+    Color docColor;
+
+    switch (_selectedDocType) {
+      case 'Invoice':
+        prefixCtrl = _invoicePrefixCtrl;
+        numberCtrl = _invoiceNumberCtrl;
+        oldSeries = _oldInvoiceSeries;
+        docLabel = 'Invoice';
+        docColor = kPrimaryColor;
+        break;
+      case 'Quotation/Estimation':
+        prefixCtrl = _quotationPrefixCtrl;
+        numberCtrl = _quotationNumberCtrl;
+        oldSeries = _oldQuotationSeries;
+        docLabel = 'Quotation';
+        docColor = Colors.orange;
+        break;
+      case 'Purchase':
+        prefixCtrl = _purchasePrefixCtrl;
+        numberCtrl = _purchaseNumberCtrl;
+        oldSeries = _oldPurchaseSeries;
+        docLabel = 'Purchase';
+        docColor = Colors.purple;
+        break;
+      case 'Expense':
+        prefixCtrl = _expensePrefixCtrl;
+        numberCtrl = _expenseNumberCtrl;
+        oldSeries = _oldExpenseSeries;
+        docLabel = 'Expense';
+        docColor = Colors.teal;
+        break;
+      default:
+        prefixCtrl = _invoicePrefixCtrl;
+        numberCtrl = _invoiceNumberCtrl;
+        oldSeries = _oldInvoiceSeries;
+        docLabel = 'Invoice';
+        docColor = kPrimaryColor;
+    }
+
+    final previewPrefix = prefixCtrl.text.isEmpty ? '' : prefixCtrl.text;
+    final previewNumber = numberCtrl.text.isEmpty ? '100001' : numberCtrl.text;
+    final previewFull = previewPrefix.isEmpty ? previewNumber : '$previewPrefix$previewNumber';
+
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        // Document Type Chips (compact)
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _docTypes.map((type) {
+              final isSelected = _selectedDocType == type;
+              Color chipColor = type == 'Invoice' ? kPrimaryColor : type == 'Quotation/Estimation' ? Colors.orange : type == 'Purchase' ? Colors.purple : Colors.teal;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedDocType = type),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? chipColor : kWhite,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: chipColor, width: 1.5),
+                    ),
+                    child: Text(type == 'Quotation/Estimation' ? 'Quotation' : type, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: isSelected ? kWhite : chipColor)),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Preview Card (compact)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: docColor, borderRadius: BorderRadius.circular(12)),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Next $docLabel', style: TextStyle(fontSize: 11, color: kWhite.withAlpha(200))),
+                    const SizedBox(height: 2),
+                    Text(previewFull, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kWhite, letterSpacing: 0.5)),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(color: kWhite.withAlpha(40), borderRadius: BorderRadius.circular(8)),
+                child: Text('Preview', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kWhite.withAlpha(220))),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Input Fields (compact)
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Prefix', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: prefixCtrl,
+                          textCapitalization: TextCapitalization.characters,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                          decoration: InputDecoration(
+                            hintText: 'DD',
+                            hintStyle: const TextStyle(color: kGrey400, fontSize: 13),
+                            filled: true,
+                            fillColor: kGreyBg,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Starting Number', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                        const SizedBox(height: 4),
+                        TextField(
+                          controller: numberCtrl,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                          decoration: InputDecoration(
+                            hintText: '505',
+                            hintStyle: const TextStyle(color: kGrey400, fontSize: 13),
+                            filled: true,
+                            fillColor: kGreyBg,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saveDocumentNumberSettings,
+                  style: ElevatedButton.styleFrom(backgroundColor: docColor, foregroundColor: kWhite, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0),
+                  child: const Text('Save', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Old Series (compact)
+        if (oldSeries.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('History', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: docColor)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: docColor.withAlpha(20), borderRadius: BorderRadius.circular(10)),
+                      child: Text('${oldSeries.length}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: docColor)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...oldSeries.map((series) {
+                  final prefix = series['prefix']?.toString() ?? '--';
+                  final number = series['number']?.toString() ?? '--';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      children: [
+                        Text(prefix == '--' ? 'No Prefix' : prefix, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                        const SizedBox(width: 8),
+                        Text('• $number', style: const TextStyle(fontSize: 12, color: kBlack54)),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => _reuseSeries(_selectedDocType, series),
+                          child: Text('Reuse', style: TextStyle(color: docColor, fontWeight: FontWeight.w700, fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -2153,6 +2613,8 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
   List<BluetoothDevice> _bondedDevices = [];
   BluetoothDevice? _selectedDevice;
   String _printerWidth = '58mm';
+  int _thermalNumberOfCopies = 1;
+  int _a4NumberOfCopies = 1;
 
   @override void initState() { super.initState(); _loadSettings(); }
 
@@ -2161,6 +2623,8 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     setState(() {
       _enableAutoPrint = prefs.getBool('enable_auto_print') ?? true;
       _printerWidth = prefs.getString('printer_width') ?? '58mm';
+      _thermalNumberOfCopies = prefs.getInt('thermal_number_of_copies') ?? 1;
+      _a4NumberOfCopies = prefs.getInt('a4_number_of_copies') ?? 1;
     });
     final savedId = prefs.getString('selected_printer_id');
     if (savedId != null) {
@@ -2271,6 +2735,53 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
           const SizedBox(height: 12),
           _buildDeviceList(),
           const SizedBox(height: 24),
+
+          // Number of Copies Section
+          const Text("PRINT COPIES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
+            child: Column(
+              children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.print_rounded, color: kPrimaryColor, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Thermal Receipt Copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+                  ]),
+                  Row(children: [
+                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () async { setState(() => _thermalNumberOfCopies--); (await SharedPreferences.getInstance()).setInt('thermal_number_of_copies', _thermalNumberOfCopies); } : null),
+                    Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () async { setState(() => _thermalNumberOfCopies++); (await SharedPreferences.getInstance()).setInt('thermal_number_of_copies', _thermalNumberOfCopies); }),
+                  ]),
+                ]),
+                const Divider(height: 24),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.picture_as_pdf_rounded, color: Colors.orange, size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('A4 / PDF Copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
+                  ]),
+                  Row(children: [
+                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () async { setState(() => _a4NumberOfCopies--); (await SharedPreferences.getInstance()).setInt('a4_number_of_copies', _a4NumberOfCopies); } : null),
+                    Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () async { setState(() => _a4NumberOfCopies++); (await SharedPreferences.getInstance()).setInt('a4_number_of_copies', _a4NumberOfCopies); }),
+                  ]),
+                ]),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           _SettingsGroup(children: [_SwitchTile("Auto Print Receipt", _enableAutoPrint, (v) async { (await SharedPreferences.getInstance()).setBool('enable_auto_print', v); setState(() => _enableAutoPrint = v); }, showDivider: false)]),
         ],
       ),

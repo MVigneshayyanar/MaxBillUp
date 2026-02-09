@@ -19,6 +19,46 @@ class SavedOrdersPage extends StatefulWidget {
 }
 
 class _SavedOrdersPageState extends State<SavedOrdersPage> {
+  String _currencySymbol = 'Rs ';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrencySymbol();
+  }
+
+  Future<void> _loadCurrencySymbol() async {
+    try {
+      final doc = await FirestoreService().getCurrentStoreDoc();
+      if (doc != null && doc.exists && mounted) {
+        final data = doc.data() as Map<String, dynamic>?;
+        setState(() {
+          _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
+    }
+  }
+
+  String _getCurrencyShortForm(String code) {
+    const currencyShortForms = {
+      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
+      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
+      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
+      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
+      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
+      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
+      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
+      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
+      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
+      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
+      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
+      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
+    };
+    return currencyShortForms[code] ?? '$code ';
+  }
+
   void _loadOrder(String orderId, Map<String, dynamic> data) {
     // Ensure orderName is included in the data
     final orderData = Map<String, dynamic>.from(data);
@@ -241,7 +281,7 @@ class _SavedOrdersPageState extends State<SavedOrdersPage> {
                       children: [
                         const Text('ESTIMATED TOTAL', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         const SizedBox(height: 2),
-                        Text('${total.toStringAsFixed(2)}',
+                        Text('$_currencySymbol${total.toStringAsFixed(2)}',
                             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),

@@ -282,8 +282,9 @@ class _MenuPageState extends State<MenuPage> {
   }
 
   Widget _buildProfileHeader(BuildContext context, PlanProvider planProvider) {
+    final topPadding = MediaQuery.of(context).padding.top;
     return Container(
-      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top-10, left: 20, right: 20, bottom: 0),
+      padding: EdgeInsets.only(top: (topPadding > 10 ? topPadding - 10 : 0), left: 20, right: 20, bottom: 0),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,

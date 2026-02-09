@@ -62,7 +62,7 @@ class QuotationDetailPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeaderRow('QTN-$quotationNumber', isActive),
+                    _buildHeaderRow('$quotationNumber', isActive),
                     const SizedBox(height: 16), // Reduced gap
                     _buildDetailRow(Icons.person_rounded, 'Customer', customerName),
                     _buildDetailRow(Icons.badge_rounded, 'Created By', staffName),
