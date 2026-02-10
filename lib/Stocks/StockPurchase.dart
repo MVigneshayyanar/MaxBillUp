@@ -78,9 +78,9 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          ),
           title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
@@ -91,115 +91,115 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
           elevation: 0,
         ),
         body: Column(
-        children: [
-          // ENTERPRISE HEADER: DATE & NEW BUTTON
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => _selectDate(context),
-                    child: Container(
-                      height: 46,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: kPrimaryColor.withOpacity(0.04),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kGrey200),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
-                          const SizedBox(width: 12),
-                          Text(
-                            DateFormat('dd MMM yyyy').format(_selectedDate),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87),
-                          ),
-                        ],
+          children: [
+            // ENTERPRISE HEADER: DATE & NEW BUTTON
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => _selectDate(context),
+                      child: Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: kPrimaryColor.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kGrey200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
+                            const SizedBox(width: 12),
+                            Text(
+                              DateFormat('dd MMM yyyy').format(_selectedDate),
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(context, CupertinoPageRoute(builder: (_) => CreateStockPurchasePage(uid: widget.uid, onBack: () { Navigator.pop(context); setState(() {}); })));
-                  },
+                  const SizedBox(width: 12),
+                  InkWell(
+                    onTap: () {
+                      Navigator.push(context, CupertinoPageRoute(builder: (_) => CreateStockPurchasePage(uid: widget.uid, onBack: () { Navigator.pop(context); setState(() {}); })));
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      height: 46, width: 46,
+                      decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // SEARCH BAR
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
+              child: Container(
+                height: 46,
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.04),
                   borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    height: 46, width: 46,
-                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+                  border: Border.all(color: kGrey200),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+                  decoration: const InputDecoration(
+                    hintText: "Search supplier or invoice...",
+                    hintStyle: TextStyle(color: kBlack54, fontSize: 14),
+                    prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 7),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          // SEARCH BAR
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
-            child: Container(
-              height: 46,
-              decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: kGrey200),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
-                decoration: const InputDecoration(
-                  hintText: "Search supplier or invoice...",
-                  hintStyle: TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 7),
-                ),
               ),
             ),
-          ),
 
-          Expanded(
-            child: FutureBuilder<Stream<QuerySnapshot>>(
-              future: _purchasesStreamFuture,
-              builder: (context, futureSnapshot) {
-                if (futureSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                if (!futureSnapshot.hasData) return const Center(child: Text("Unable to load purchases"));
+            Expanded(
+              child: FutureBuilder<Stream<QuerySnapshot>>(
+                future: _purchasesStreamFuture,
+                builder: (context, futureSnapshot) {
+                  if (futureSnapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                  if (!futureSnapshot.hasData) return const Center(child: Text("Unable to load purchases"));
 
-                return StreamBuilder<QuerySnapshot>(
-                  stream: futureSnapshot.data!,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: futureSnapshot.data!,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return _buildEmptyState();
 
-                    final purchases = snapshot.data!.docs.where((doc) {
-                      final data = doc.data() as Map<String, dynamic>;
-                      final sName = (data['supplierName'] ?? '').toString().toLowerCase();
-                      final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
-                      return sName.contains(_searchQuery) || inv.contains(_searchQuery);
-                    }).toList();
+                      final purchases = snapshot.data!.docs.where((doc) {
+                        final data = doc.data() as Map<String, dynamic>;
+                        final sName = (data['supplierName'] ?? '').toString().toLowerCase();
+                        final inv = (data['invoiceNumber'] ?? '').toString().toLowerCase();
+                        return sName.contains(_searchQuery) || inv.contains(_searchQuery);
+                      }).toList();
 
-                    if (purchases.isEmpty) return _buildNoResults();
+                      if (purchases.isEmpty) return _buildNoResults();
 
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
-                      itemCount: purchases.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        return _buildPurchaseCard(context, purchases[index].id, purchases[index].data() as Map<String, dynamic>);
-                      },
-                    );
-                  },
-                );
-              },
+                      return ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: purchases.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          return _buildPurchaseCard(context, purchases[index].id, purchases[index].data() as Map<String, dynamic>);
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -361,7 +361,16 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       final tax = double.tryParse(_taxAmountController.text) ?? 0.0;
       final paid = double.tryParse(_paidAmountController.text) ?? (_paymentMode == 'Credit' ? 0.0 : amt);
       final credit = _paymentMode == 'Credit' ? _creditAmount : 0.0;
-      final inv = _invoiceNumberController.text.isEmpty ? 'INV${DateTime.now().millisecondsSinceEpoch}' : _invoiceNumberController.text;
+
+      // Use user-entered reference invoice number if provided, otherwise generate from settings
+      String inv;
+      if (_invoiceNumberController.text.trim().isNotEmpty) {
+        inv = _invoiceNumberController.text.trim();
+      } else {
+        final prefix = await NumberGeneratorService.getPurchasePrefix();
+        final number = await NumberGeneratorService.generatePurchaseNumber();
+        inv = '$prefix$number';
+      }
 
       await _addOrUpdateVendor(amt);
       await FirestoreService().addDocument('stockPurchases', {
@@ -393,9 +402,9 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+          ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
       body: Form(
         key: _formKey,
         child: Column(
@@ -415,7 +424,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   _buildSectionLabel("INVOICE DETAILS"),
                   _buildModernField(_totalAmountController, 'Total Amount *', Icons.payments_rounded, type: const TextInputType.numberWithOptions(decimal: true), isMandatory: true, onChanged: () => setState(() {})),
                   const SizedBox(height: 16),
-                  _buildModernField(_invoiceNumberController, 'Reference Invoice No', Icons.receipt_long_rounded),
+                  _buildModernField(_invoiceNumberController, 'Reference Invoice No (Optional)', Icons.receipt_long_rounded),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _buildDateSelector()),

@@ -360,6 +360,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   final TextEditingController _taxNumberController = TextEditingController();
   final TextEditingController _taxAmountController = TextEditingController();
   final TextEditingController _creditAmountController = TextEditingController();
+  final TextEditingController _referenceNumberController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
   String _selectedExpenseType = 'Select Expense Type';
@@ -409,6 +410,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     _taxNumberController.dispose();
     _taxAmountController.dispose();
     _creditAmountController.dispose();
+    _referenceNumberController.dispose();
     super.dispose();
   }
 
@@ -434,7 +436,17 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
     try {
       final amount = double.parse(_amountController.text);
-      final referenceNumber = 'EXP${DateTime.now().millisecondsSinceEpoch}';
+
+      // Use user-entered reference number if provided, otherwise generate from backend
+      String referenceNumber;
+      if (_referenceNumberController.text.trim().isNotEmpty) {
+        referenceNumber = _referenceNumberController.text.trim();
+      } else {
+        final prefix = await NumberGeneratorService.getExpensePrefix();
+        final number = await NumberGeneratorService.generateExpenseNumber();
+        referenceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+      }
+
       final expenseName = _expenseNameController.text.trim();
       final creditAmount = _paymentMode == 'Credit' ? (double.tryParse(_creditAmountController.text) ?? amount) : 0.0;
 
@@ -450,6 +462,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         'timestamp': Timestamp.fromDate(_selectedDate),
         'uid': widget.uid,
         'referenceNumber': referenceNumber,
+        'expenseNumber': referenceNumber,
       });
 
       await _saveExpenseName(expenseName);
@@ -529,6 +542,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   _buildAutocompleteExpenseName(),
                   const SizedBox(height: 16),
                   _buildModernField(_amountController, "Total Amount *", Icons.payments_rounded, type: TextInputType.number, isMandatory: true),
+                  const SizedBox(height: 16),
+                  _buildModernField(_referenceNumberController, "Reference Invoice No (Optional)", Icons.receipt_long_rounded),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _buildDateSelector()),

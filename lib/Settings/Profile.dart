@@ -1558,8 +1558,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       _thermalSaleInvoiceText = prefs.getString('thermal_sale_invoice_text') ?? 'Thank you for your purchase!';
       _thermalShowTaxColumnInTable = prefs.getBool('thermal_show_tax_column') ?? false;
 
-      // A4 settings
-      _a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
+      // A4 settin_a4ShowHeader = prefs.getBool('a4_show_header') ?? true;
       _a4ShowLogo = prefs.getBool('a4_show_logo') ?? true;
       _a4ShowCustomerInfo = prefs.getBool('a4_show_customer_info') ?? true;
       _a4ShowItemTable = prefs.getBool('a4_show_item_table') ?? true;

@@ -366,13 +366,18 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       final number = await NumberGeneratorService.generateExpenseNumber();
       final expenseNumber = prefix.isNotEmpty ? '$prefix$number' : number;
 
+      // Use user-entered bill number if provided, otherwise use the generated expense number
+      final billNumber = _billNumberController.text.trim().isNotEmpty
+          ? _billNumberController.text.trim()
+          : expenseNumber;
+
       final expensesCollection = await FirestoreService().getStoreCollection('expenses');
 
       await expensesCollection.add({
         'expenseNumber': expenseNumber,
         'name': _nameController.text.trim(),
         'title': _nameController.text.trim(), // For backward compatibility
-        'billNumber': _billNumberController.text.trim(),
+        'billNumber': billNumber,
         'category': _selectedCategory,
         'paymentMode': _paymentMode,
         'totalAmount': totalAmount,

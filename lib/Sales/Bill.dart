@@ -1334,39 +1334,67 @@ class _BillPageState extends State<BillPage> {
 
 
   Widget _buildPayIcon(IconData icon, String label, VoidCallback onTap) {
+    final bool isOrange = label == 'Online' || label == 'Credit';
+
+    // Define rich gradients based on your theme colors
+    final List<Color> gradientColors = isOrange
+        ? [kOrange, Color(0xFFFF9A5C)] // Lighten the orange slightly for the top
+        : [kPrimaryColor, kPrimaryColor.withBlue(255)]; // Adjust based on your primary hex
+
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          decoration: BoxDecoration(
-            color: kPrimaryColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3), width: 1.5),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: kWhite, size: 20),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(15),
+          child: Container(
+            height: 85, // Fixed height for uniformity
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradientColors,
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: kPrimaryColor,
-                  letterSpacing: 0.3,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: gradientColors[0].withOpacity(0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
-            ],
+              ],
+            ),
+            child: Stack(
+              children: [
+                // Subtle decorative circle in the corner
+                Positioned(
+                  right: -10,
+                  top: -10,
+                  child: CircleAvatar(
+                    radius: 25,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, color: Colors.white, size: 24),
+                      const SizedBox(height: 6),
+                      Text(
+                        label.toUpperCase(), // Uppercase for a more "UI Label" feel
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
