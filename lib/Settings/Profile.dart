@@ -1479,6 +1479,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   bool _thermalShowYouSaved = true;
   bool _thermalShowDescription = false;
   bool _thermalShowDelivery = false;
+  bool _thermalShowLicense = true;
   String _thermalSaleInvoiceText = 'Thank you for your purchase!';
   bool _thermalShowTaxColumnInTable = false; // Tax column removed by default for thermal
 
@@ -1492,6 +1493,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   bool _a4ShowYouSaved = true;
   bool _a4ShowDescription = false;
   bool _a4ShowDelivery = false;
+  bool _a4ShowLicense = true;
   String _a4SaleInvoiceText = 'Thank you for your purchase!';
   bool _a4ShowSignature = false;
   String _a4EstimationText = '';
@@ -1555,6 +1557,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       _thermalShowYouSaved = prefs.getBool('thermal_show_you_saved') ?? true;
       _thermalShowDescription = prefs.getBool('thermal_show_description') ?? false;
       _thermalShowDelivery = prefs.getBool('thermal_show_delivery') ?? false;
+      _thermalShowLicense = prefs.getBool('thermal_show_license') ?? true;
       _thermalSaleInvoiceText = prefs.getString('thermal_sale_invoice_text') ?? 'Thank you for your purchase!';
       _thermalShowTaxColumnInTable = prefs.getBool('thermal_show_tax_column') ?? false;
 
@@ -1567,6 +1570,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       _a4ShowYouSaved = prefs.getBool('a4_show_you_saved') ?? true;
       _a4ShowDescription = prefs.getBool('a4_show_description') ?? false;
       _a4ShowDelivery = prefs.getBool('a4_show_delivery') ?? false;
+      _a4ShowLicense = prefs.getBool('a4_show_license') ?? true;
       _a4SaleInvoiceText = prefs.getString('a4_sale_invoice_text') ?? 'Thank you for your purchase!';
       _a4ShowSignature = prefs.getBool('a4_show_signature') ?? false;
       _a4EstimationText = prefs.getString('a4_estimation_text') ?? '';
@@ -1624,6 +1628,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     await prefs.setBool('thermal_show_you_saved', _thermalShowYouSaved);
     await prefs.setBool('thermal_show_description', _thermalShowDescription);
     await prefs.setBool('thermal_show_delivery', _thermalShowDelivery);
+    await prefs.setBool('thermal_show_license', _thermalShowLicense);
     await prefs.setString('thermal_sale_invoice_text', _thermalSaleInvoiceText);
     await prefs.setBool('thermal_show_tax_column', _thermalShowTaxColumnInTable);
 
@@ -1637,6 +1642,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     await prefs.setBool('a4_show_you_saved', _a4ShowYouSaved);
     await prefs.setBool('a4_show_description', _a4ShowDescription);
     await prefs.setBool('a4_show_delivery', _a4ShowDelivery);
+    await prefs.setBool('a4_show_license', _a4ShowLicense);
     await prefs.setString('a4_sale_invoice_text', _a4SaleInvoiceText);
     await prefs.setBool('a4_show_signature', _a4ShowSignature);
     await prefs.setString('a4_estimation_text', _a4EstimationText);
@@ -1891,16 +1897,15 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           _SwitchTile('Show Header', _thermalShowHeader, (v) { setState(() => _thermalShowHeader = v); _saveSettings(); }),
           _SwitchTile('Show Logo', _thermalShowLogo, (v) { setState(() => _thermalShowLogo = v); _saveSettings(); }),
           _SwitchTile('Show Customer Information', _thermalShowCustomerInfo, (v) { setState(() => _thermalShowCustomerInfo = v); _saveSettings(); }),
-          _SwitchTile('Show Item Table', _thermalShowItemTable, (v) { setState(() => _thermalShowItemTable = v); _saveSettings(); }, showDivider: false),
+          _SwitchTile('Show Item Table', _thermalShowItemTable, (v) { setState(() => _thermalShowItemTable = v); _saveSettings(); }),
+          _SwitchTile('Show License Number', _thermalShowLicense, (v) { setState(() => _thermalShowLicense = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
         _buildSectionLabel('TOTALS & TAXES'),
         _SettingsGroup(children: [
           _SwitchTile('Total Item Quantity', _thermalShowTotalItemQuantity, (v) { setState(() => _thermalShowTotalItemQuantity = v); _saveSettings(); }),
           _SwitchTile('Tax Details', _thermalShowTaxDetails, (v) { setState(() => _thermalShowTaxDetails = v); _saveSettings(); }),
-          _SwitchTile('You Saved', _thermalShowYouSaved, (v) { setState(() => _thermalShowYouSaved = v); _saveSettings(); }),
-          _SwitchTile('Description / Notes', _thermalShowDescription, (v) { setState(() => _thermalShowDescription = v); _saveSettings(); }),
-          _SwitchTile('Delivery', _thermalShowDelivery, (v) { setState(() => _thermalShowDelivery = v); _saveSettings(); }, showDivider: false),
+          _SwitchTile('You Saved', _thermalShowYouSaved, (v) { setState(() => _thermalShowYouSaved = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
         _buildSectionLabel('FOOTER'),
@@ -1942,9 +1947,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                   _buildColorOption('pink', const Color(0xFFE2A9F1)),
                   _buildColorOption('copper', const Color(0xFFB36A22)),
                   _buildColorOption('black', const Color(0xFF000000)),
-                  _buildColorOption('olive', const Color(0xFF9B9B6E)),
                   _buildColorOption('navy', const Color(0xFF2F6798)),
-                  _buildColorOption('grey', const Color(0xFF737373)),
                   _buildColorOption('forest', const Color(0xFF4F6F1F)),
                 ],
               ),
@@ -1961,16 +1964,15 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           _SwitchTile('Show Logo', _a4ShowLogo, (v) { setState(() => _a4ShowLogo = v); _saveSettings(); }),
           _SwitchTile('Show Customer Information', _a4ShowCustomerInfo, (v) { setState(() => _a4ShowCustomerInfo = v); _saveSettings(); }),
           _SwitchTile('Show Item Table', _a4ShowItemTable, (v) { setState(() => _a4ShowItemTable = v); _saveSettings(); }),
-          _SwitchTile('Show Tax Column in Table', _a4ShowTaxColumnInTable, (v) { setState(() => _a4ShowTaxColumnInTable = v); _saveSettings(); }, showDivider: false),
+          _SwitchTile('Show Tax Column in Table', _a4ShowTaxColumnInTable, (v) { setState(() => _a4ShowTaxColumnInTable = v); _saveSettings(); }),
+          _SwitchTile('Show License Number', _a4ShowLicense, (v) { setState(() => _a4ShowLicense = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
         _buildSectionLabel('TOTALS & TAXES'),
         _SettingsGroup(children: [
           _SwitchTile('Total Item Quantity', _a4ShowTotalItemQuantity, (v) { setState(() => _a4ShowTotalItemQuantity = v); _saveSettings(); }),
           _SwitchTile('Tax Details', _a4ShowTaxDetails, (v) { setState(() => _a4ShowTaxDetails = v); _saveSettings(); }),
-          _SwitchTile('You Saved', _a4ShowYouSaved, (v) { setState(() => _a4ShowYouSaved = v); _saveSettings(); }),
-          _SwitchTile('Add Note / Bill Notes', _a4ShowDescription, (v) { setState(() => _a4ShowDescription = v); _saveSettings(); }),
-          _SwitchTile('Delivery', _a4ShowDelivery, (v) { setState(() => _a4ShowDelivery = v); _saveSettings(); }, showDivider: false),
+          _SwitchTile('You Saved', _a4ShowYouSaved, (v) { setState(() => _a4ShowYouSaved = v); _saveSettings(); }, showDivider: false),
         ]),
         const SizedBox(height: 16),
         _buildSectionLabel('FOOTER'),
@@ -1979,8 +1981,6 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         _buildTextFieldSection('Sale Invoice Text', _a4SaleInvoiceText, (v) { _a4SaleInvoiceText = v; _saveSettings(); }),
         const SizedBox(height: 12),
         _buildTextFieldSection('Estimation / Quotation Text', _a4EstimationText, (v) { _a4EstimationText = v; _saveSettings(); }),
-        const SizedBox(height: 12),
-        _buildTextFieldSection('Delivery Challan Text', _a4DeliveryChallanText, (v) { _a4DeliveryChallanText = v; _saveSettings(); }),
         const SizedBox(height: 24),
       ],
     );
@@ -2622,15 +2622,60 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
     setState(() {
       _enableAutoPrint = prefs.getBool('enable_auto_print') ?? true;
       _printerWidth = prefs.getString('printer_width') ?? '58mm';
-      _thermalNumberOfCopies = prefs.getInt('thermal_number_of_copies') ?? 1;
-      _a4NumberOfCopies = prefs.getInt('a4_number_of_copies') ?? 1;
     });
+
+    // Load number of copies from Firestore (backend)
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>?;
+        if (data != null && mounted) {
+          setState(() {
+            _thermalNumberOfCopies = data['thermalNumberOfCopies'] ?? 1;
+            _a4NumberOfCopies = data['a4NumberOfCopies'] ?? 1;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading print copies from Firestore: $e');
+    }
+
     final savedId = prefs.getString('selected_printer_id');
     if (savedId != null) {
       final devices = await FlutterBluePlus.bondedDevices;
       if (mounted) {
         try { setState(() => _selectedDevice = devices.firstWhere((d) => d.remoteId.toString() == savedId)); } catch (_) {}
       }
+    }
+  }
+
+  Future<void> _updateThermalCopies(int value) async {
+    setState(() => _thermalNumberOfCopies = value);
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId != null) {
+        await FirebaseFirestore.instance.collection('store').doc(storeId).set(
+          {'thermalNumberOfCopies': value},
+          SetOptions(merge: true),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving thermal copies: $e');
+    }
+  }
+
+  Future<void> _updateA4Copies(int value) async {
+    setState(() => _a4NumberOfCopies = value);
+    try {
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId != null) {
+        await FirebaseFirestore.instance.collection('store').doc(storeId).set(
+          {'a4NumberOfCopies': value},
+          SetOptions(merge: true),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving A4 copies: $e');
     }
   }
 
@@ -2754,9 +2799,9 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                     const Text('Thermal Receipt Copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
                   ]),
                   Row(children: [
-                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () async { setState(() => _thermalNumberOfCopies--); (await SharedPreferences.getInstance()).setInt('thermal_number_of_copies', _thermalNumberOfCopies); } : null),
+                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _thermalNumberOfCopies > 1 ? () => _updateThermalCopies(_thermalNumberOfCopies - 1) : null),
                     Text('$_thermalNumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () async { setState(() => _thermalNumberOfCopies++); (await SharedPreferences.getInstance()).setInt('thermal_number_of_copies', _thermalNumberOfCopies); }),
+                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () => _updateThermalCopies(_thermalNumberOfCopies + 1)),
                   ]),
                 ]),
                 const Divider(height: 24),
@@ -2771,9 +2816,9 @@ class _PrinterSetupPageState extends State<PrinterSetupPage> {
                     const Text('A4 / PDF Copies', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato')),
                   ]),
                   Row(children: [
-                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () async { setState(() => _a4NumberOfCopies--); (await SharedPreferences.getInstance()).setInt('a4_number_of_copies', _a4NumberOfCopies); } : null),
+                    IconButton(icon: const Icon(Icons.remove_circle_outline, color: kPrimaryColor), onPressed: _a4NumberOfCopies > 1 ? () => _updateA4Copies(_a4NumberOfCopies - 1) : null),
                     Text('$_a4NumberOfCopies', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () async { setState(() => _a4NumberOfCopies++); (await SharedPreferences.getInstance()).setInt('a4_number_of_copies', _a4NumberOfCopies); }),
+                    IconButton(icon: const Icon(Icons.add_circle_outline, color: kPrimaryColor), onPressed: () => _updateA4Copies(_a4NumberOfCopies + 1)),
                   ]),
                 ]),
               ],

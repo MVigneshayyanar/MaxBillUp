@@ -16,9 +16,7 @@ import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
-
 import '../utils/amount_formatter.dart';
-import 'components/common_widgets.dart';
 
 // ==========================================
 // 1. BILL PAGE (Main State Widget)
@@ -71,6 +69,7 @@ class _BillPageState extends State<BillPage> {
   String? _existingInvoiceNumber;
   String? _unsettledSaleId;
   final TextEditingController _notesController = TextEditingController();
+  final TextEditingController _deliveryAddressController = TextEditingController();
   bool _isFromQuotation = false; // Track if came from quotation
 
   // Fast-Fetch Variables
@@ -180,6 +179,7 @@ class _BillPageState extends State<BillPage> {
   void dispose() {
     _storeSub?.cancel();
     _notesController.dispose();
+    _deliveryAddressController.dispose();
     super.dispose();
   }
 
@@ -254,6 +254,7 @@ class _BillPageState extends State<BillPage> {
           discountAmount: totalDiscountAmount,
           creditNote: _creditNote,
           customNote: _notesController.text.trim(),
+          deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
           savedOrderId: widget.savedOrderId,
           selectedCreditNotes: _selectedCreditNotes,
           quotationId: widget.quotationId,
@@ -277,6 +278,7 @@ class _BillPageState extends State<BillPage> {
           discountAmount: totalDiscountAmount,
           creditNote: _creditNote,
           customNote: _notesController.text.trim(),
+          deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
           savedOrderId: widget.savedOrderId,
           selectedCreditNotes: _selectedCreditNotes,
           quotationId: widget.quotationId,
@@ -1228,7 +1230,7 @@ class _BillPageState extends State<BillPage> {
               children: [
                 // Notes Input Field
                 Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 8),
                   decoration: BoxDecoration(
                     color: kGreyBg,
                     borderRadius: BorderRadius.circular(12),
@@ -1241,9 +1243,33 @@ class _BillPageState extends State<BillPage> {
                     onSubmitted: (_) => FocusScope.of(context).unfocus(),
                     style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
-                      hintText: 'Add notes / description...',
+                      hintText: 'Add bill notes / description (Optional)..',
                       hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
                       prefixIcon: const Icon(Icons.note_alt_outlined, color: kBlack54, size: 20),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
+
+                // Delivery Address Input Field
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: kGreyBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: kGrey200),
+                  ),
+                  child: TextField(
+                    controller: _deliveryAddressController,
+                    maxLines: 2,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: 'Add Customer Note (optional)...',
+                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
+                      prefixIcon: const Icon(Icons.location_on_outlined, color: kBlack54, size: 20),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
@@ -1647,11 +1673,11 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
 // 3. PAYMENT PAGE
 // ==========================================
 class PaymentPage extends StatefulWidget {
-  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
+  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? deliveryAddress; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
 
-  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<PaymentPage> createState() => _PaymentPageState();
 }
 
@@ -1712,7 +1738,7 @@ class _PaymentPageState extends State<PaymentPage> {
           subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
           cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
           creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
-          customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
+          customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress)));
     }
 
     // Fire-and-forget: Run all Firebase operations in background
@@ -1730,7 +1756,7 @@ class _PaymentPageState extends State<PaymentPage> {
           'cashReceived_partial': _cashReceived,
           'creditIssued_partial': widget.totalAmount - _cashReceived,
         },
-        'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'deliveryAddress': widget.deliveryAddress, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
       // Run all operations in parallel
@@ -2089,11 +2115,11 @@ class _PaymentPageState extends State<PaymentPage> {
 // 4. SPLIT PAYMENT PAGE
 // ==========================================
 class SplitPaymentPage extends StatefulWidget {
-  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
+  final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? deliveryAddress; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
 
-  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
   @override State<SplitPaymentPage> createState() => _SplitPaymentPageState();
 }
 
@@ -2233,6 +2259,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'customerGST': widget.customerGST,
         'creditNote': widget.creditNote,
         'customNote': widget.customNote,
+        'deliveryAddress': widget.deliveryAddress,
         'date': DateTime.now().toIso8601String(),
         'staffId': widget.uid,
         'staffName': widget.staffName,
@@ -2271,7 +2298,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
             subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
             cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
-            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote)));
+            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }

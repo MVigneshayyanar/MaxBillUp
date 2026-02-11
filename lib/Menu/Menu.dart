@@ -2041,6 +2041,38 @@ class SalesDetailPage extends StatelessWidget {
                                       ),
                                     ),
 
+                                  // Display delivery address if available
+                                  if (data['deliveryAddress'] != null && (data['deliveryAddress'] as String).trim().isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 8, bottom: 4),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: kPrimaryColor.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Row(
+                                              children: [
+                                                Icon(Icons.location_on_outlined, size: 14, color: kPrimaryColor),
+                                                SizedBox(width: 6),
+                                                Text('Delivery Address', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              data['deliveryAddress'] as String,
+                                              style: const TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w500, height: 1.4),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+
                                   const Padding(padding: EdgeInsets.symmetric(vertical: 0), child: Divider(color: kGreyBg, thickness: 1)),
 
                                   // Table-formatted Item List
