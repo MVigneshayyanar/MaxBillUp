@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2F7CF6);
@@ -52,12 +53,14 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   List<String> _categories = ['General', 'Salary', 'EB Bill', 'Stock Purchase', 'Other'];
   String? _selectedVendor;
   List<Map<String, dynamic>> _vendors = [];
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
     _loadCategories();
     _loadVendors();
+    _loadCurrency();
     if (widget.isStockPurchase) {
       _selectedCategory = 'Stock Purchase';
     }
@@ -111,6 +114,18 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       }
     } catch (e) {
       debugPrint("Error loading vendors: $e");
+    }
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
+      });
     }
   }
 
@@ -692,7 +707,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                         ],
                       ),
                       Text(
-                        '${_creditAmount.toStringAsFixed(2)}',
+                        '$_currencySymbol${_creditAmount.toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 18,
                          fontWeight: FontWeight.bold,

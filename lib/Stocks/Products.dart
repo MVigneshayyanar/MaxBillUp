@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:intl/intl.dart';
 
@@ -69,7 +70,7 @@ class _ProductsPageState extends State<ProductsPage> {
       if (doc != null && doc.exists && mounted) {
         final data = doc.data() as Map<String, dynamic>?;
         setState(() {
-          _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
         });
       }
     } catch (e) {
@@ -77,23 +78,6 @@ class _ProductsPageState extends State<ProductsPage> {
     }
   }
 
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
-  }
 
   Future<void> _initProductsStream() async {
     try {

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/Sales/Saved.dart';
 import 'package:maxbillup/Sales/Quotation.dart';
@@ -11,6 +12,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class NewQuotationPage extends StatefulWidget {
   final String uid;
@@ -44,10 +46,12 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
   int _cartVersion = 0;
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _highlightController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -60,6 +64,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       parent: _highlightController!,
       curve: Curves.easeOut,
     ));
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(doc.data()?['currency']));
+    }
   }
 
   @override
@@ -545,7 +558,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       const Icon(Icons.description_rounded, color: kWhite, size: 20),
                       const SizedBox(width: 12),
                       Text(
-                        "Rs ${AmountFormatter.format(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0)}",
+                        "$_currencySymbol${AmountFormatter.format(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0)}",
                         style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(width: 10),

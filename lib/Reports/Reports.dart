@@ -17,6 +17,7 @@ import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 // ==========================================
 // MODERN DESIGN SYSTEM TOKENS
@@ -217,7 +218,7 @@ class _ReportsPageState extends State<ReportsPage> {
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
           if (isFeatureAvailable('analytics'))
-            _buildReportTile(context.tr('Business  Summary'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'Growth & data trends'),
+            _buildReportTile(context.tr('Business  Summary'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'MAX Plus & data trends'),
           _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues'),
@@ -1600,6 +1601,21 @@ class AnalyticsPage extends StatefulWidget {
 class _AnalyticsPageState extends State<AnalyticsPage> {
   String _selectedDuration = 'Last 7 Days or Last Week';
   final FirestoreService _firestoreService = FirestoreService();
+  String _currencySymbol = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
 
   int get _durationDays {
     switch (_selectedDuration) {
@@ -1638,14 +1654,14 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
 
   void _downloadPdf(BuildContext context) {
     final rows = [
-      ['Today Revenue', ' ${_todayRevenue.toStringAsFixed(2)}'],
-      ['Today Expense', ' ${_todayExpense.toStringAsFixed(2)}'],
-      ['Today Tax Collected', ' ${_todayTax.toStringAsFixed(2)}'],
-      ['Period Income', ' ${_periodIncome.toStringAsFixed(2)}'],
-      ['Period Expense', ' ${_periodExpense.toStringAsFixed(2)}'],
-      ['Cash Collection', ' ${_totalCash.toStringAsFixed(2)}'],
-      ['Online Collection', ' ${_totalOnline.toStringAsFixed(2)}'],
-      ['Total Refunds', ' ${_totalRefunds.toStringAsFixed(2)}'],
+      ['Today Revenue', '$_currencySymbol${_todayRevenue.toStringAsFixed(2)}'],
+      ['Today Expense', '$_currencySymbol${_todayExpense.toStringAsFixed(2)}'],
+      ['Today Tax Collected', '$_currencySymbol${_todayTax.toStringAsFixed(2)}'],
+      ['Period Income', '$_currencySymbol${_periodIncome.toStringAsFixed(2)}'],
+      ['Period Expense', '$_currencySymbol${_periodExpense.toStringAsFixed(2)}'],
+      ['Cash Collection', '$_currencySymbol${_totalCash.toStringAsFixed(2)}'],
+      ['Online Collection', '$_currencySymbol${_totalOnline.toStringAsFixed(2)}'],
+      ['Total Refunds', '$_currencySymbol${_totalRefunds.toStringAsFixed(2)}'],
     ];
 
     ReportPdfGenerator.generateAndDownloadPdf(
@@ -1654,11 +1670,11 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       headers: ['Metric', 'Amount'],
       rows: rows,
       summaryTitle: "Net Profit",
-      summaryValue: " ${(_periodIncome - _periodExpense).toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${(_periodIncome - _periodExpense).toStringAsFixed(2)}",
       additionalSummary: {
         'Period': _selectedDuration,
         'Total Bills': '$_todaySaleCount',
-        'Refunds': ' ${_totalRefunds.toStringAsFixed(2)}',
+        'Refunds': '$_currencySymbol${_totalRefunds.toStringAsFixed(2)}',
       },
     );
   }
@@ -1897,7 +1913,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
             children: [
               const Text("Today's Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
               const SizedBox(height: 2),
-              Text(" ${revenue.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
+              Text("$_currencySymbol${revenue.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
             ],
           ),
           Container(
@@ -2158,11 +2174,26 @@ class DayBookPage extends StatefulWidget {
 class _DayBookPageState extends State<DayBookPage> {
   final FirestoreService _firestoreService = FirestoreService();
   DateTime _selectedDate = DateTime.now();
+  String _currencySymbol = '';
 
   // Store data for PDF download
   List<DocumentSnapshot> _todayDocs = [];
   double _total = 0;
   // Transaction filter for the timeline: All, Cash, Online, Split, Credit
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
   String _txnFilter = 'All';
   final List<String> _txnFilterOptions = ['All', 'Cash', 'Online', 'Split', 'Credit'];
 
@@ -2199,7 +2230,7 @@ class _DayBookPageState extends State<DayBookPage> {
         timeStr,
         (data['customerName']?.toString() ?? 'Guest'),
         (data['paymentMode']?.toString() ?? 'Cash'),
-        "INR ${saleTotal.toStringAsFixed(2)}",
+        "$_currencySymbol${saleTotal.toStringAsFixed(2)}",
       ];
     }).toList();
 
@@ -2209,10 +2240,10 @@ class _DayBookPageState extends State<DayBookPage> {
       headers: ['Invoice', 'Time', 'Customer Name', 'Payment', 'Amount'],
       rows: rows,
       summaryTitle: "Total Settlement",
-      summaryValue: " ${_total.toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${_total.toStringAsFixed(2)}",
       additionalSummary: {
         'Total Invoices': '${_todayDocs.length}',
-        'Avg. Ticket Size': ' ${(_todayDocs.isNotEmpty ? _total / _todayDocs.length : 0).toStringAsFixed(2)}',
+        'Avg. Ticket Size': '$_currencySymbol${(_todayDocs.isNotEmpty ? _total / _todayDocs.length : 0).toStringAsFixed(2)}',
         'Status': 'Closed'
       },
     );
@@ -2555,7 +2586,7 @@ class _DayBookPageState extends State<DayBookPage> {
               children: [
                 const Text("Net Cashflow", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 2),
-                Text(" ${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
+                Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
               ],
             ),
           ),
@@ -2957,7 +2988,7 @@ class _DayBookPageState extends State<DayBookPage> {
                   style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.8),
                 ),
                 Text(
-                  ' ${saleTotal.toStringAsFixed(2)}',
+                  '$_currencySymbol${saleTotal.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -3183,7 +3214,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  '${netCashFlow.abs().toStringAsFixed(2)}',
+                  '$_currencySymbol${netCashFlow.abs().toStringAsFixed(2)}',
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
@@ -3927,7 +3958,7 @@ class _DayBookPageState extends State<DayBookPage> {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            '${(txn['total'] as double).toStringAsFixed(2)}',
+                            '$_currencySymbol${(txn['total'] as double).toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -3963,15 +3994,25 @@ class SalesSummaryPage extends StatefulWidget {
 class _SalesSummaryPageState extends State<SalesSummaryPage> {
   final FirestoreService _firestoreService = FirestoreService();
   DateFilterOption _selectedFilter = DateFilterOption.today;
+  String _currencySymbol = '';
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     final now = DateTime.now();
     _startDate = DateTime(now.year, now.month, now.day);
     _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
   }
 
   void _onDateChanged(DateFilterOption option, DateTime start, DateTime end) {
@@ -3995,15 +4036,15 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
 
   void _downloadPdf(BuildContext context) {
     final rows = [
-      ['Gross Sales', ' ${_grossSale.toStringAsFixed(2)}'],
-      ['Discount', ' ${_discount.toStringAsFixed(2)}'],
-      ['Net Sales', ' ${_netSale.toStringAsFixed(2)}'],
-      ['Product Cost', ' ${_productCost.toStringAsFixed(2)}'],
-      ['Cash', ' ${_cash.toStringAsFixed(2)}'],
-      ['Online', ' ${_online.toStringAsFixed(2)}'],
-      ['Credit Note/Refunds', ' ${_creditNote.toStringAsFixed(2)}'],
-      ['Credit', ' ${_credit.toStringAsFixed(2)}'],
-      ['Unsettled', ' ${_unsettled.toStringAsFixed(2)}'],
+      ['Gross Sales', '$_currencySymbol${_grossSale.toStringAsFixed(2)}'],
+      ['Discount', '$_currencySymbol${_discount.toStringAsFixed(2)}'],
+      ['Net Sales', '$_currencySymbol${_netSale.toStringAsFixed(2)}'],
+      ['Product Cost', '$_currencySymbol${_productCost.toStringAsFixed(2)}'],
+      ['Cash', '$_currencySymbol${_cash.toStringAsFixed(2)}'],
+      ['Online', '$_currencySymbol${_online.toStringAsFixed(2)}'],
+      ['Credit Note/Refunds', '$_currencySymbol${_creditNote.toStringAsFixed(2)}'],
+      ['Credit', '$_currencySymbol${_credit.toStringAsFixed(2)}'],
+      ['Unsettled', '$_currencySymbol${_unsettled.toStringAsFixed(2)}'],
     ];
 
     ReportPdfGenerator.generateAndDownloadPdf(
@@ -4012,11 +4053,11 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       headers: ['Metric', 'Amount'],
       rows: rows,
       summaryTitle: "Net Profit",
-      summaryValue: " ${(_netSale - _productCost).toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${(_netSale - _productCost).toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
         'Total Bills': '$_saleCount',
-        'Refunds': ' ${_refunds.toStringAsFixed(2)}',
+        'Refunds': '$_currencySymbol${_refunds.toStringAsFixed(2)}',
       },
     );
   }

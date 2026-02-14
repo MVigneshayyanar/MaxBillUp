@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/services/cart_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/Settings/Profile.dart';
@@ -138,7 +139,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   String? businessLogoUrl;
   String? businessLicenseNumber;
   String? businessLicenseTypeName; // License type name like "FSSAI", "Drug License", etc.
-  String _currencySymbol = 'Rs '; // Default to INR short form, will be loaded from store data
+  String _currencySymbol = ''; // Will be loaded from store data
 
   // Header Info Settings (shared for display)
   String _receiptHeader = 'INVOICE';
@@ -738,8 +739,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           }
 
           // Load currency and convert to symbol
-          final currencyCode = data['currency'] ?? 'INR';
-          _currencySymbol = _getCurrencySymbol(currencyCode);
+          final currencyCode = data['currency'] as String?;
+          _currencySymbol = CurrencyService.getSymbolWithSpace(currencyCode);
           _isLoading = false;
         });
         debugPrint('Invoice: Store data loaded - name=$businessName, logo=$businessLogoUrl, email=$businessEmail, gstin=$businessGSTIN, license=$businessLicenseNumber, location=$businessLocation, currency=$_currencySymbol');
@@ -752,24 +753,6 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     }
   }
 
-  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
-  String _getCurrencySymbol(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
-  }
 
 
   @override

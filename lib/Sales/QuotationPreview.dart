@@ -16,16 +16,18 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class QuotationPreviewPage extends StatefulWidget {
   final String uid; final String? userEmail; final String quotationNumber; final List<CartItem> items;
   final double subtotal; final double discount; final double total;
   final String? customerName; final String? customerPhone; final String? staffName; final String? quotationDocId;
+  final String currencySymbol;
 
   const QuotationPreviewPage({
     super.key, required this.uid, this.userEmail, required this.quotationNumber,
     required this.items, required this.subtotal, required this.discount, required this.total,
-    this.customerName, this.customerPhone, this.staffName, this.quotationDocId,
+    this.customerName, this.customerPhone, this.staffName, this.quotationDocId, this.currencySymbol = '',
   });
 
   @override
@@ -61,7 +63,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
           pw.Text("From: $businessName"),
           pw.Text("Client: ${widget.customerName ?? 'Guest'}"),
           pw.Divider(),
-          pw.Text("Total Payable: ${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+          pw.Text("Total Payable: ${widget.currencySymbol}${widget.total.toStringAsFixed(2)}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
         ]);
       }));
       final output = await getTemporaryDirectory();
@@ -122,7 +124,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                               itemBuilder: (c, i) => ListTile(
                                   dense: true,
                                   title: Text(widget.items[i].name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                                  trailing: Text("${widget.items[i].total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))
+                                  trailing: Text("${widget.currencySymbol}${widget.items[i].total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))
                               ),
                             ),
                           ),
@@ -130,7 +132,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
                           _summaryLine("Subtotal", widget.subtotal),
                           _summaryLine("Discounts", -widget.discount, color: kErrorColor),
                           const Divider(height: 24, thickness: 1.5, color: kGrey200),
-                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("ESTIMATED TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("ESTIMATED TOTAL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)), Text("${widget.currencySymbol}${widget.total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kGoogleGreen))]),
                         ],
                       ),
                     ),
@@ -147,7 +149,7 @@ class _QuotationPreviewPageState extends State<QuotationPreviewPage> {
 
   Widget _buildInfoSection(String label, String title, String subtitle) => Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)), const SizedBox(height: 4), Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)), Text(subtitle, style: const TextStyle(fontSize: 11, color: kBlack54))]))]);
 
-  Widget _summaryLine(String l, double v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)), Text("${v.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w700, color: color ?? kBlack87, fontSize: 13))]));
+  Widget _summaryLine(String l, double v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)), Text("${widget.currencySymbol}${v.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w700, color: color ?? kBlack87, fontSize: 13))]));
 
   Widget _buildBottomActions(BuildContext context) => Container(padding: const EdgeInsets.fromLTRB(16, 12, 16, 24), decoration: BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: Row(children: [Expanded(child: OutlinedButton.icon(onPressed: () => _handleShare(context), icon: const Icon(Icons.share_rounded, size: 16), label: const Text("SHARE"), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), side: const BorderSide(color: kPrimaryColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))))), const SizedBox(width: 10), Expanded(child: ElevatedButton(onPressed: () => Navigator.of(context).popUntil((r) => r.isFirst), style: ElevatedButton.styleFrom(backgroundColor: kGoogleGreen, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), child: const Text("DONE", style: TextStyle(fontWeight: FontWeight.w700))))]));
 }

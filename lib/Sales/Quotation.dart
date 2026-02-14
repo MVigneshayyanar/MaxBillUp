@@ -10,6 +10,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class QuotationPage extends StatefulWidget {
   final String uid;
@@ -53,6 +54,7 @@ class _QuotationPageState extends State<QuotationPage> {
   late List<TextEditingController> _itemDiscountControllers;
   late List<double> _itemDiscounts;
   late List<bool> _isItemDiscountPercentage;
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -61,6 +63,7 @@ class _QuotationPageState extends State<QuotationPage> {
     _selectedCustomerPhone = widget.customerPhone;
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
+    _loadCurrency();
 
     _itemDiscountControllers = List.generate(
       widget.cartItems.length,
@@ -68,6 +71,14 @@ class _QuotationPageState extends State<QuotationPage> {
     );
     _itemDiscounts = List.filled(widget.cartItems.length, 0.0);
     _isItemDiscountPercentage = List.filled(widget.cartItems.length, false);
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
   }
 
   @override
@@ -624,7 +635,7 @@ class _QuotationPageState extends State<QuotationPage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: 13)),
-        Text('${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
+        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: kBlack87)),
       ],
     );
   }
@@ -658,7 +669,7 @@ class _QuotationPageState extends State<QuotationPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Subtotal', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-            Text('${subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+            Text('$_currencySymbol${subtotalAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
           ]
         ),
         const SizedBox(height: 8),
@@ -669,7 +680,7 @@ class _QuotationPageState extends State<QuotationPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Tax', style: TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-              Text('${totalTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
+              Text('$_currencySymbol${totalTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87))
             ]
           ),
           const SizedBox(height: 8),
@@ -681,7 +692,7 @@ class _QuotationPageState extends State<QuotationPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Discount (${perc.toStringAsFixed(1)}%)', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack54, fontSize: 13)),
-              Text('- ${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
+              Text('- $_currencySymbol${_discountAmount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w700, color: kErrorColor, fontSize: 14))
             ]
           ),
           const SizedBox(height: 8),
@@ -694,7 +705,7 @@ class _QuotationPageState extends State<QuotationPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Net Total', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
-            Text('${finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))
+            Text('$_currencySymbol${finalTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20, color: kPrimaryColor))
           ]
         ),
       ],

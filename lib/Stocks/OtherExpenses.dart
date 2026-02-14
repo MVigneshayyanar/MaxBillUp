@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2F7CF6);
@@ -26,6 +27,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<Stream<QuerySnapshot>> _streamFuture;
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -36,6 +38,19 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      final data = doc.data();
+      setState(() {
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
+      });
+    }
   }
 
   @override
@@ -235,6 +250,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                                   builder: (context) => OtherExpenseDetailsPage(
                                     expenseId: expenses[index].id,
                                     expenseData: data,
+                                    currencySymbol: _currencySymbol,
                                   ),
                                 ),
                               );
@@ -265,7 +281,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                               ],
                             ),
                             trailing: Text(
-                              '${amount.toStringAsFixed(2)}',
+                              '$_currencySymbol${amount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 18,
                                fontWeight: FontWeight.bold,
@@ -518,8 +534,9 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
 class OtherExpenseDetailsPage extends StatelessWidget {
   final String expenseId;
   final Map<String, dynamic> expenseData;
+  final String currencySymbol;
 
-  const OtherExpenseDetailsPage({super.key, required this.expenseId, required this.expenseData});
+  const OtherExpenseDetailsPage({super.key, required this.expenseId, required this.expenseData, required this.currencySymbol});
 
   @override
   Widget build(BuildContext context) {
@@ -570,7 +587,7 @@ class OtherExpenseDetailsPage extends StatelessWidget {
                 children: [
                   const Text("Total Amount", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                   Text(
-                    "${(expenseData['amount'] ?? 0).toStringAsFixed(2)}",
+                    "$currencySymbol${(expenseData['amount'] ?? 0).toStringAsFixed(2)}",
                     style: const TextStyle(fontSize: 24,fontWeight: FontWeight.bold, color: _errorColor),
                   ),
                 ],

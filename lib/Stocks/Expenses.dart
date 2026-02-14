@@ -7,6 +7,7 @@ import 'package:maxbillup/Stocks/AddExpenseTypePopup.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class ExpensesPage extends StatefulWidget {
   final String uid;
@@ -23,7 +24,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<Stream<QuerySnapshot>> _expensesStreamFuture;
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -44,27 +45,9 @@ class _ExpensesPageState extends State<ExpensesPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -281,6 +264,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 builder: (context) => ExpenseDetailsPage(
                   expenseId: id,
                   expenseData: data,
+                  currencySymbol: _currencySymbol,
                 ),
               ),
             );
@@ -729,8 +713,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 class ExpenseDetailsPage extends StatelessWidget {
   final String expenseId;
   final Map<String, dynamic> expenseData;
+  final String currencySymbol;
 
-  const ExpenseDetailsPage({super.key, required this.expenseId, required this.expenseData});
+  const ExpenseDetailsPage({super.key, required this.expenseId, required this.expenseData, required this.currencySymbol});
 
   @override
   Widget build(BuildContext context) {
@@ -791,14 +776,14 @@ class ExpenseDetailsPage extends StatelessWidget {
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('TOTAL EXPENSE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
-                      Text('${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
+                      Text('$currencySymbol${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ]),
 
                     if (expenseData['taxAmount'] != null && expenseData['taxAmount'] != 0.0) ...[
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         const Text('Tax Amount Included', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
-                        Text('${expenseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
+                        Text('$currencySymbol${expenseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
                       ]),
                     ],
                   ],

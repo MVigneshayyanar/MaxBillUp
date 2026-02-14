@@ -206,7 +206,7 @@ class StoresTab extends StatelessWidget {
   }
 
   Widget _buildPlanBadge(String plan) {
-    bool isPremium = plan.toLowerCase() == 'pro' || plan.toLowerCase() == 'growth';
+    bool isPremium = plan.toLowerCase() == 'MAX Pro' || plan.toLowerCase() == 'MAX Plus';
     Color c = isPremium ? Colors.amber.shade800 : kBlack54;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -637,7 +637,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
             children: [
               const Text('Select new plan:', style: TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
-              ...['Free', 'Essential', 'Growth', 'Pro'].map((plan) => RadioListTile<String>(
+              ...['Free', 'MAX Lite', 'MAX Plus', 'MAX Pro'].map((plan) => RadioListTile<String>(
                 title: Text(plan, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 value: plan,
                 groupValue: selectedPlan,

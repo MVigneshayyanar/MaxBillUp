@@ -139,11 +139,11 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
 
       // Determine max staff based on plan
       int maxStaff = 0;
-      if (plan.contains('essential')) {
+      if (plan.contains('MAX Lite')) {
         maxStaff = 1;
-      } else if (plan.contains('growth')) {
+      } else if (plan.contains('MAX Plus')) {
         maxStaff = 3;
-      } else if (plan.contains('pro') || plan.contains('premium')) {
+      } else if (plan.contains('MAX Pro') || plan.contains('premium')) {
         maxStaff = 15;
       }
 

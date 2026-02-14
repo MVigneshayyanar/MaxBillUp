@@ -14,6 +14,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/cart_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import '../utils/amount_formatter.dart';
@@ -77,7 +78,7 @@ class _BillPageState extends State<BillPage> {
   String _businessLocation = 'Location';
   String _businessPhone = '';
   String _staffName = 'Staff';
-  String _currencySymbol = 'Rs '; // Default currency
+  String _currencySymbol = ''; // Will be loaded from CurrencyService
   StreamSubscription? _storeSub;
 
   @override
@@ -135,7 +136,7 @@ class _BillPageState extends State<BillPage> {
           _businessName = data['businessName'] ?? 'Business';
           _businessLocation = data['location'] ?? data['businessLocation'] ?? 'Location';
           _businessPhone = data['businessPhone'] ?? '';
-          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
         });
       }
     });
@@ -150,29 +151,10 @@ class _BillPageState extends State<BillPage> {
           _businessName = data['businessName'] ?? 'Business';
           _businessLocation = data['location'] ?? data['businessLocation'] ?? 'Location';
           _businessPhone = data['businessPhone'] ?? '';
-          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
         });
       }
     });
-  }
-
-  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -2136,25 +2118,6 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   DateTime? _creditDueDate;
   String _currencySymbol = 'Rs '; // Default currency
 
-  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
-  }
-
   @override
   void initState() {
     super.initState();
@@ -2184,7 +2147,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       if (store != null && store.exists && mounted) {
         final data = store.data() as Map<String, dynamic>;
         setState(() {
-          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
         });
       }
     } catch (e) {

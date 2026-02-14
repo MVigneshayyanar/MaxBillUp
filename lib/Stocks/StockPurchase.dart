@@ -6,6 +6,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class StockPurchasePage extends StatefulWidget {
   final String uid;
@@ -22,7 +23,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   late Future<Stream<QuerySnapshot>> _purchasesStreamFuture;
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -39,19 +40,9 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': 'USD ', 'EUR': 'EUR ', 'GBP': 'GBP ', 'JPY': 'JPY ', 'CNY': 'CNY ',
-      'AUD': 'AUD ', 'CAD': 'CAD ', 'CHF': 'CHF ', 'HKD': 'HKD ', 'SGD': 'SGD ',
-      'MYR': 'MYR ', 'PHP': 'PHP ', 'PKR': 'PKR ', 'AED': 'AED ', 'SAR': 'SAR ',
-      'LKR': 'Rs ', 'NPR': 'Rs ', 'BDT': 'BDT ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   Future<void> _selectDate(BuildContext context) async {
@@ -215,7 +206,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => StockPurchaseDetailsPage(purchaseId: id, purchaseData: data))),
+          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => StockPurchaseDetailsPage(purchaseId: id, purchaseData: data, currencySymbol: _currencySymbol))),
           child: Padding(
             padding: const EdgeInsets.all(14),
             child: Column(
@@ -282,6 +273,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
   bool _isLoading = false, _showAdvanced = false;
   List<Map<String, dynamic>> _vendors = [];
   String? _selectedVendorId;
+  String _currencySymbol = '';
 
   // Auto-calculated credit amount
   double get _creditAmount {
@@ -291,7 +283,16 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
   }
 
   @override
-  void initState() { super.initState(); _loadVendors(); }
+  void initState() { super.initState(); _loadVendors(); _loadCurrency(); }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(doc.data()?['currency']));
+    }
+  }
 
   @override
   void dispose() { _supplierNameController.dispose(); _supplierPhoneController.dispose(); _supplierGstinController.dispose(); _invoiceNumberController.dispose(); _totalAmountController.dispose(); _paidAmountController.dispose(); _taxAmountController.dispose(); _notesController.dispose(); super.dispose(); }
@@ -369,7 +370,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       } else {
         final prefix = await NumberGeneratorService.getPurchasePrefix();
         final number = await NumberGeneratorService.generatePurchaseNumber();
-        inv = '$prefix$number';
+        inv = prefix.isNotEmpty ? '$prefix$number' : number;
       }
 
       await _addOrUpdateVendor(amt);
@@ -453,7 +454,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                               Text('Credit Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                             ],
                           ),
-                          Text('${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
+                          Text('$_currencySymbol${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                         ],
                       ),
                     ),
@@ -531,8 +532,9 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 class StockPurchaseDetailsPage extends StatelessWidget {
   final String purchaseId;
   final Map<String, dynamic> purchaseData;
+  final String currencySymbol;
 
-  const StockPurchaseDetailsPage({super.key, required this.purchaseId, required this.purchaseData});
+  const StockPurchaseDetailsPage({super.key, required this.purchaseId, required this.purchaseData, required this.currencySymbol});
 
   @override
   Widget build(BuildContext context) {
@@ -591,14 +593,14 @@ class StockPurchaseDetailsPage extends StatelessWidget {
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('TOTAL PAYABLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54)),
-                      Text('${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text('$currencySymbol${total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
 
                     if (purchaseData['taxAmount'] != null) ...[
                       const SizedBox(height: 8),
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         const Text('Includes Tax (EST)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
-                        Text('${purchaseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
+                        Text('$currencySymbol${purchaseData['taxAmount']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kBlack87)),
                       ]),
                     ],
                   ],

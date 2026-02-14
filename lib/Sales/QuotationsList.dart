@@ -6,6 +6,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/services/currency_service.dart';
 import 'nq.dart'; // Import for NewQuotationPage
 
 class QuotationsListPage extends StatefulWidget {
@@ -32,15 +33,25 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   String _searchQuery = '';
   SortOption _currentSort = SortOption.dateNewest;
   FilterStatus _currentFilter = FilterStatus.all;
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
   }
 
   @override
@@ -247,7 +258,8 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                       uid: widget.uid,
                       userEmail: widget.userEmail,
                       quotationId: doc.id,
-                      quotationData: data))),
+                      quotationData: data,
+                      currencySymbol: _currencySymbol))),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -273,7 +285,7 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                   Expanded(
                       child: Text(data['customerName'] ?? 'Guest',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange))),
-                  Text("${total.toStringAsFixed(2)}",
+                  Text("$_currencySymbol${total.toStringAsFixed(2)}",
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
                 ]),
                 const Divider(height: 20, color: kGreyBg),

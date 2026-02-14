@@ -76,7 +76,7 @@ class PlanComparisonPage extends StatelessWidget {
             _buildHeaderCell('Free'),
             _buildHeaderCell('MAX Lite'),
             _buildHeaderCell('MAX Plus'),
-            _buildHeaderCell('MAX Pro'),
+            _buildHeaderCell('MAX MAX Pro'),
           ],
         ),
         // Feature Rows

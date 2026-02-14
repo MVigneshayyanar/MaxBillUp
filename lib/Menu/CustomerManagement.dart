@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Menu/AddCustomer.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -22,6 +23,21 @@ class CustomerDetailsPage extends StatefulWidget {
 }
 
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
+  String _currencySymbol = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
 
   // --- POPUPS (Professional Redesign) ---
 
@@ -509,7 +525,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Credit of ${amount.toStringAsFixed(0)} added successfully'),
+            content: Text('Credit of $_currencySymbol${amount.toStringAsFixed(0)} added successfully'),
             backgroundColor: kGoogleGreen,
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
@@ -642,7 +658,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildMenuItem(context, "View Bills", Icons.receipt_long_rounded),
+                      _buildMenuItem(context, "Bill History", Icons.receipt_long_rounded),
                       const SizedBox(height: 10),
                       _buildMenuItem(context, "Payment History", Icons.history_rounded),
                       const SizedBox(height: 10),
@@ -703,7 +719,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           children: [
             Text(lbl.toUpperCase(), style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
             const SizedBox(height: 6),
-            Text("${amt.toStringAsFixed(2)}", style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w900)),
+            Text("$_currencySymbol${amt.toStringAsFixed(2)}", style: TextStyle(color: color, fontSize: 15, fontWeight: FontWeight.w900)),
           ],
         ),
       ),
@@ -719,7 +735,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
         onTap: () {
-          if (title.contains("Bills")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
+          if (title=="Bill History") Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
           else Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
         },
@@ -763,6 +779,21 @@ class _ReceiveCreditPage extends StatefulWidget {
 class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   final TextEditingController _amountController = TextEditingController();
   double _amt = 0.0;
+  String _currencySymbol = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -782,7 +813,7 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
             decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text("Credit due", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack54)),
-              Text("${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
+              Text("$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kErrorColor)),
             ]),
           ),
           const SizedBox(height: 32),
@@ -830,9 +861,22 @@ class CustomerLedgerPage extends StatefulWidget {
 
 class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   List<LedgerEntry> _entries = []; bool _loading = true;
+  String _currencySymbol = '';
 
   @override
-  void initState() { super.initState(); _loadLedger(); }
+  void initState() {
+    super.initState();
+    _loadCurrency();
+    _loadLedger();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
 
   Future<void> _loadLedger() async {
     final sales = await FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: widget.customerId).get());
@@ -903,9 +947,9 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
               child: Row(children: [
                 Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
                 Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? "$_currencySymbol${e.debit.toStringAsFixed(0)}" : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.credit > 0 ? "$_currencySymbol${e.credit.toStringAsFixed(0)}" : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text("$_currencySymbol${e.balance.toStringAsFixed(0)}", textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
               ]),
             );
           },
@@ -923,7 +967,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-          Text("${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
         ]),
       ),
     );
@@ -943,7 +987,7 @@ class CustomerBillsPage extends StatelessWidget {
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text("Billing History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+        ),title: const Text("Bill History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
@@ -981,7 +1025,7 @@ class CustomerCreditsPage extends StatelessWidget {
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),title: const Text("Payment Log", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
+        ),title: const Text("Payment History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
       body: FutureBuilder<QuerySnapshot>(
         future: _fetchCredits(),
         builder: (context, snapshot) {

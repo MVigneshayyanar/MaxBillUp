@@ -24,7 +24,7 @@ class SubscriptionPlanPage extends StatefulWidget {
 
 class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   Razorpay? _razorpay;
-  String _selectedPlan = 'Growth';
+  String _selectedPlan = 'MAX Plus';
   int _selectedDuration = 1; // 1, 6, or 12 months
   bool _isPaymentInProgress = false;
 
@@ -51,7 +51,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       ],
     },
     {
-      'name': 'Essential',
+      'name': 'MAX Lite',
       'rank': 1,
       'price': {'1': 249, '6': 1299, '12': 1999},
       'icon': Icons.business_center_rounded,
@@ -71,7 +71,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       ],
     },
     {
-      'name': 'Growth',
+      'name': 'MAX Plus',
       'rank': 2,
       'price': {'1': 429, '6': 2299, '12': 3499},
       'icon': Icons.trending_up_rounded,
@@ -91,7 +91,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       ],
     },
     {
-      'name': 'Pro',
+      'name': 'MAX Pro',
       'rank': 3,
       'price': {'1': 529, '6': 2899, '12': 4299},
       'icon': Icons.workspace_premium_rounded,
@@ -111,9 +111,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void initState() {
     super.initState();
     _initializeRazorpay();
-    // Default to 'Growth' if current plan is Starter or Free
+    // Default to 'MAX Plus' if current plan is Starter or Free
     _selectedPlan = (widget.currentPlan.toLowerCase().contains('starter') || widget.currentPlan.toLowerCase().contains('free'))
-        ? 'Growth'
+        ? 'MAX Plus'
         : widget.currentPlan;
   }
 

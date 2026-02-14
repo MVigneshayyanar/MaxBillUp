@@ -225,7 +225,7 @@ I've been using MAXmybill for my business and it's amazing!
 
 Download now: www.maxmybill.com
 
-#MAXmybill #BusinessGrowth #Billing
+#MAXmybill #BusinessMAX Plus #Billing
 ''';
 
     await Share.share(message, subject: 'Check out MAXmybill!');

@@ -13,6 +13,7 @@ class QuotationDetailPage extends StatelessWidget {
   final String? userEmail;
   final String quotationId;
   final Map<String, dynamic> quotationData;
+  final String currencySymbol;
 
   const QuotationDetailPage({
     super.key,
@@ -20,6 +21,7 @@ class QuotationDetailPage extends StatelessWidget {
     this.userEmail,
     required this.quotationId,
     required this.quotationData,
+    this.currencySymbol = '',
   });
 
   @override
@@ -143,7 +145,7 @@ class QuotationDetailPage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(fontSize: isBold ? 14 : 13, fontWeight: isBold ? FontWeight.w700 : FontWeight.w500, color: isBold ? kBlack87 : kBlack54)),
-          Text('${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 14, fontWeight: FontWeight.w800, color: valueColor ?? (isBold ? kPrimaryColor : kBlack87))),
+          Text('$currencySymbol${val.toStringAsFixed(2)}', style: TextStyle(fontSize: isBold ? 20 : 14, fontWeight: FontWeight.w800, color: valueColor ?? (isBold ? kPrimaryColor : kBlack87))),
         ],
       ),
     );

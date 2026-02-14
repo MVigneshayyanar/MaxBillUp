@@ -16,6 +16,7 @@ import 'package:maxbillup/Menu/KnowledgePage.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/services/cart_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
@@ -144,30 +145,11 @@ class _MenuPageState extends State<MenuPage> {
         if (data != null) {
           setState(() {
             _logoUrl = data['logoUrl'] as String?;
-            _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+            _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
           });
         }
       }
     });
-  }
-
-  /// Convert currency code to short form (Rs, RM, etc.) with trailing space
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   void _loadPermissions() async {
@@ -201,9 +183,9 @@ class _MenuPageState extends State<MenuPage> {
 
         int planRank = isProviderReady ? 0 : 3;
         if (isProviderReady) {
-          if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
-          else if (currentPlan.toLowerCase().contains('growth')) planRank = 2;
-          else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+          if (currentPlan.toLowerCase().contains('MAX Lite')) planRank = 1;
+          else if (currentPlan.toLowerCase().contains('MAX Plus')) planRank = 2;
+          else if (currentPlan.toLowerCase().contains('MAX Pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
           else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) planRank = 0;
         }
 
@@ -531,9 +513,9 @@ class _MenuPageState extends State<MenuPage> {
         final currentPlan = planProvider.cachedPlan;
 
         int planRank = 0;
-        if (currentPlan.toLowerCase().contains('essential')) planRank = 1;
-        else if (currentPlan.toLowerCase().contains('growth')) planRank = 2;
-        else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+        if (currentPlan.toLowerCase().contains('MAX Lite')) planRank = 1;
+        else if (currentPlan.toLowerCase().contains('MAX Plus')) planRank = 2;
+        else if (currentPlan.toLowerCase().contains('MAX Pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -873,7 +855,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   DateTimeRange? _customDateRange;
 
   // Currency
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -894,27 +876,9 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -1341,7 +1305,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
         ),
       );
     } else {
-      Navigator.push(context, CupertinoPageRoute(builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data, uid: widget.uid)));
+      Navigator.push(context, CupertinoPageRoute(builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data, uid: widget.uid, currencySymbol: _currencySymbol)));
     }
   }
 
@@ -1430,12 +1394,14 @@ class SalesDetailPage extends StatelessWidget {
   final String documentId;
   final Map<String, dynamic> initialData;
   final String uid;
+  final String currencySymbol;
 
   const SalesDetailPage({
     super.key,
     required this.documentId,
     required this.initialData,
     required this.uid,
+    this.currencySymbol = '',
   });
 
   // ==========================================
@@ -1954,7 +1920,7 @@ class SalesDetailPage extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', 'Invoice-${data['invoiceNumber']}'),
+                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', '${data['invoiceNumber']}'),
                                   _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'owner'),
                                   _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
                                   _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
@@ -2092,6 +2058,136 @@ class SalesDetailPage extends StatelessWidget {
                                   // Tax Breakdown
                                   ...taxBreakdown.entries.map((e) => _buildPriceRow(e.key, e.value)).toList(),
 
+                                  // Return Details Section (if any returns were made)
+                                  if (isReturned && (data['returnAmount'] ?? 0.0) > 0) ...[
+                                    const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(color: kGreyBg, thickness: 1)),
+                                    const Text('Return details', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: kErrorColor.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: kErrorColor.withOpacity(0.15)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.keyboard_return_rounded, size: 14, color: kErrorColor),
+                                              const SizedBox(width: 6),
+                                              const Text('Items Returned', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kErrorColor, letterSpacing: 0.5)),
+                                              const Spacer(),
+                                              if (data['lastReturnAt'] != null)
+                                                Text(
+                                                  DateFormat('dd MMM yyyy').format((data['lastReturnAt'] as Timestamp).toDate()),
+                                                  style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w600),
+                                                ),
+                                            ],
+                                          ),
+                                          // Returned Items List
+                                          if (data['returnedItems'] != null && (data['returnedItems'] as List).isNotEmpty) ...[
+                                            const SizedBox(height: 10),
+                                            const Divider(height: 1, color: kGrey200),
+                                            const SizedBox(height: 8),
+                                            ...(data['returnedItems'] as List).map((returnedItem) {
+                                              final itemName = returnedItem['name'] ?? 'Item';
+                                              final itemQty = returnedItem['quantity'] ?? 0;
+                                              final itemPrice = (returnedItem['price'] ?? 0).toDouble();
+                                              final itemTotal = (returnedItem['total'] ?? 0).toDouble(); // price * qty
+                                              final itemTax = (returnedItem['taxAmount'] ?? 0).toDouble();
+                                              final taxType = returnedItem['taxType'] as String?;
+                                              final taxPercentage = (returnedItem['taxPercentage'] ?? 0).toDouble();
+
+                                              // Determine tax type
+                                              final bool isTaxIncluded = taxType == 'Tax Included in Price' || taxType == 'Price includes Tax';
+                                              final bool isTaxAdded = taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax';
+
+                                              // Calculate display total:
+                                              // - If tax is included in price: itemTotal already includes tax (price * qty where price has tax)
+                                              // - If tax is added at billing: itemTotal is base, need to add tax
+                                              // - If no tax or unknown: just use itemTotal
+                                              double displayTotal;
+                                              if (isTaxIncluded) {
+                                                displayTotal = itemTotal; // Tax already in price
+                                              } else if (isTaxAdded && itemTax > 0) {
+                                                displayTotal = itemTotal + itemTax; // Add tax on top
+                                              } else {
+                                                displayTotal = itemTotal; // No tax or unknown
+                                              }
+
+                                              // Build tax info string
+                                              String taxInfo = '';
+                                              if (taxPercentage > 0 && itemTax > 0) {
+                                                if (isTaxIncluded) {
+                                                  taxInfo = ' (${taxPercentage.toStringAsFixed(0)}% Tax incl.)';
+                                                } else {
+                                                  taxInfo = ' (+${taxPercentage.toStringAsFixed(0)}% Tax: $currencySymbol${itemTax.toStringAsFixed(2)})';
+                                                }
+                                              }
+
+                                              return Padding(
+                                                padding: const EdgeInsets.only(bottom: 6),
+                                                child: Row(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Icon(Icons.remove_circle_outline, size: 12, color: kErrorColor),
+                                                    const SizedBox(width: 6),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Text(itemName, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87)),
+                                                          Text(
+                                                            'Qty: $itemQty × $currencySymbol${itemPrice.toStringAsFixed(2)}$taxInfo',
+                                                            style: const TextStyle(fontSize: 9, color: kBlack54),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      '-$currencySymbol${displayTotal.toStringAsFixed(2)}',
+                                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kErrorColor),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                            const SizedBox(height: 4),
+                                            const Divider(height: 1, color: kGrey200),
+                                          ],
+                                          const SizedBox(height: 10),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text('Total Refund Amount', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kBlack54)),
+                                              Text(
+                                                '-$currencySymbol${(data['returnAmount'] ?? 0.0).toStringAsFixed(2)}',
+                                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: kErrorColor),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Original Total: $currencySymbol${((data['total'] ?? 0.0) + (data['returnAmount'] ?? 0.0)).toStringAsFixed(2)}',
+                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54),
+                                              ),
+                                              Text(
+                                                'After Return: $currencySymbol${(data['total'] ?? 0.0).toStringAsFixed(2)}',
+                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+
                                   const SizedBox(height: 32),
                                 ],
                               ),
@@ -2175,20 +2271,28 @@ class SalesDetailPage extends StatelessWidget {
 
     debugPrint('📊 Item: ${item['name']}, taxVal=$taxVal, taxPerc=$taxPerc, taxType=$taxType');
 
-    // Calculate based on taxType if we have percentage but no amount
+    // Determine if tax is included in price or added separately
+    bool isTaxIncluded = taxType == 'Tax Included in Price' || taxType == 'Price includes Tax';
+
+    // Calculate tax value based on taxType if we have percentage but no amount
     if (taxVal == 0 && taxPerc > 0 && taxType != null) {
-      if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+      if (isTaxIncluded) {
+        // Tax is included in price - extract it from the subtotal
         final baseAmount = itemSubtotal / (1 + taxPerc / 100);
         taxVal = itemSubtotal - baseAmount;
       } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+        // Tax needs to be added on top of subtotal
         taxVal = itemSubtotal * (taxPerc / 100);
       }
       debugPrint('   ✅ Calculated tax from type: $taxVal');
     }
 
-    final itemTotalWithTax = itemSubtotal + taxVal;
+    // Calculate final total based on tax type
+    // If tax is included in price, total = itemSubtotal (tax is already in the price)
+    // If tax is added at billing, total = itemSubtotal + taxVal
+    final double itemTotalWithTax = isTaxIncluded ? itemSubtotal : (itemSubtotal + taxVal);
 
-    debugPrint('   Final: taxPerc=$taxPerc, taxVal=$taxVal, total=$itemTotalWithTax');
+    debugPrint('   Final: taxPerc=$taxPerc, taxVal=$taxVal, total=$itemTotalWithTax, isTaxIncluded=$isTaxIncluded');
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -2264,6 +2368,11 @@ class SalesDetailPage extends StatelessWidget {
   }
 
   Widget _buildFixedBottomArea(BuildContext context, Map<String, dynamic> data) {
+    final bool hasReturns = (data['returnAmount'] ?? 0.0) > 0;
+    final double returnAmount = (data['returnAmount'] ?? 0.0).toDouble();
+    final double currentTotal = (data['total'] ?? 0.0).toDouble();
+    final double originalTotal = currentTotal + returnAmount;
+
     return SafeArea(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
@@ -2275,12 +2384,37 @@ class SalesDetailPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Show original total and return deduction if there were returns
+            if (hasReturns) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Original Total', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack54)),
+                  Text('$currencySymbol${originalTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kBlack54, decoration: TextDecoration.lineThrough)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.keyboard_return_rounded, size: 12, color: kErrorColor),
+                      const SizedBox(width: 4),
+                      const Text('Return Deduction', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kErrorColor)),
+                    ],
+                  ),
+                  Text('-$currencySymbol${returnAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kErrorColor)),
+                ],
+              ),
+              const Padding(padding: EdgeInsets.symmetric(vertical: 6), child: Divider(height: 1, color: kGrey200)),
+            ],
             // Row 1: Net Amount Fixed at Bottom
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Final Total Payable', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-                Text('Rs ${(data['total'] ?? 0.0).toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                Text(hasReturns ? 'Net Payable (After Return)' : 'Final Total Payable', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
+                Text('$currencySymbol${currentTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
               ],
             ),
             const SizedBox(height: 12),
@@ -2300,10 +2434,16 @@ class SalesDetailPage extends StatelessWidget {
         final perms = permSnap.data!;
         final bool isCancelled = data['status'] == 'cancelled';
 
+        // Check if items list has items
+        final items = data['items'] as List<dynamic>? ?? [];
+        final bool hasItems = items.isNotEmpty;
+
         List<Widget> actions = [];
 
-        // 1. Receipt
-        actions.add(_squareActionButton(Icons.receipt_long_rounded, 'Receipt', kPrimaryColor, () => _printInvoiceReceipt(context, documentId, data)));
+        // 1. Receipt - only show if there are items
+        if (hasItems) {
+          actions.add(_squareActionButton(Icons.receipt_long_rounded, 'Receipt', kPrimaryColor, () => _printInvoiceReceipt(context, documentId, data)));
+        }
 
         // 2. Edit
         if (!isCancelled && (perms['canEditBill'] || perms['isAdmin'])) {
@@ -2320,8 +2460,8 @@ class SalesDetailPage extends StatelessWidget {
           }));
         }
 
-        // 3. Return
-        if (!isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
+        // 3. Return - only show if there are items and not cancelled
+        if (hasItems && !isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
           actions.add(_squareActionButton(Icons.keyboard_return_rounded, 'Return', kPrimaryColor, () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SaleReturnPage(documentId: documentId, invoiceData: data)))));
         }
 
@@ -2488,27 +2628,9 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -2662,7 +2784,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => _CreditNoteDetailPage(documentId: doc.id, creditNoteData: data))),
+          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => _CreditNoteDetailPage(documentId: doc.id, creditNoteData: data, currencySymbol: _currencySymbol))),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -2748,8 +2870,9 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
 class _CreditNoteDetailPage extends StatelessWidget {
   final String documentId;
   final Map<String, dynamic> creditNoteData;
+  final String currencySymbol;
 
-  const _CreditNoteDetailPage({required this.documentId, required this.creditNoteData});
+  const _CreditNoteDetailPage({required this.documentId, required this.creditNoteData, required this.currencySymbol});
 
   @override
   Widget build(BuildContext context) {
@@ -2811,7 +2934,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('Total credit value', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
-                      Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text('$currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                     ]),
                     const SizedBox(height: 24),
                     const Text('Returned items', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
@@ -2855,7 +2978,7 @@ class CustomerLedgerPage extends StatefulWidget {
 
 class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
   List<LedgerEntry> _entries = []; bool _loading = true;
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() { super.initState(); _loadLedger(); _loadCurrency(); }
@@ -2867,27 +2990,9 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   Future<void> _loadLedger() async {
@@ -3080,7 +3185,7 @@ class _ReceiveCreditPage extends StatefulWidget {
 class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
   final TextEditingController _amountController = TextEditingController();
   double _amt = 0.0;
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -3095,19 +3200,9 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'MYR': 'RM ', 'PHP': '₱ ', 'PKR': 'Rs ', 'AED': 'AED ',
-      'SAR': 'SR ', 'BDT': '৳ ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'IDR': 'Rp ', 'THB': '฿ ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -3169,11 +3264,13 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
 class CreditNoteDetailPage extends StatelessWidget {
   final String documentId;
   final Map<String, dynamic> creditNoteData;
+  final String currencySymbol;
 
   const CreditNoteDetailPage({
     super.key,
     required this.documentId,
     required this.creditNoteData,
+    required this.currencySymbol,
   });
 
   @override
@@ -3274,7 +3371,7 @@ class CreditNoteDetailPage extends StatelessWidget {
           const SizedBox(height: 20),
           const Text("Refund amount", style: TextStyle(color: Colors.white70,fontWeight: FontWeight.bold, fontSize: 11)),
           const SizedBox(height: 4),
-          Text("Rs ${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
+          Text("$currencySymbol${amount.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 32)),
         ],
       ),
     );
@@ -3455,15 +3552,25 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _isSearching = false;
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
   }
 
   @override
@@ -3640,7 +3747,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
               const SizedBox(height: 4),
-              Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+              Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kPrimaryColor)),
             ],
           ),
           Container(
@@ -3724,7 +3831,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Balance due', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('Rs ${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('$_currencySymbol${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("Settle", kGoogleGreen),
@@ -3790,7 +3897,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text('Pending amount', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('$_currencySymbol${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     _statusBadge("RECORD", kGoogleGreen),
@@ -3836,7 +3943,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Due amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kErrorColor, letterSpacing: 0.5)),
-                    Text('Rs ${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('$_currencySymbol${remaining.toStringAsFixed(2)}', style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -4308,7 +4415,7 @@ class CustomerCreditDetailsPage extends StatefulWidget {
 }
 
 class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -4322,7 +4429,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
       if (store != null && store.exists && mounted) {
         final data = store.data() as Map<String, dynamic>;
         setState(() {
-          _currencySymbol = _getCurrencyShortForm(data['currency'] ?? 'INR');
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
         });
       }
     } catch (e) {
@@ -4330,23 +4437,6 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     }
   }
 
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'NOK': 'kr ', 'NZD': 'NZ\$ ', 'MXN': 'Mex\$ ',
-      'BRL': 'R\$ ', 'ZAR': 'R ', 'RUB': '₽ ', 'TRY': '₺ ', 'PLN': 'zł ',
-      'THB': '฿ ', 'IDR': 'Rp ', 'MYR': 'RM ', 'PHP': '₱ ', 'CZK': 'Kč ',
-      'ILS': '₪ ', 'CLP': '\$ ', 'PKR': 'Rs ', 'AED': 'AED ', 'SAR': 'SR ',
-      'TWD': 'NT\$ ', 'DKK': 'kr ', 'COP': '\$ ', 'ARS': '\$ ', 'VND': '₫ ',
-      'EGP': 'E£ ', 'BDT': '৳ ', 'QAR': 'QR ', 'KWD': 'KD ', 'NGN': '₦ ',
-      'UAH': '₴ ', 'PEN': 'S/ ', 'RON': 'lei ', 'HUF': 'Ft ', 'BGN': 'лв ',
-      'HRK': 'kn ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'KES': 'KSh ', 'GHS': 'GH₵ ',
-      'MMK': 'K ', 'OMR': 'OMR ', 'BHD': 'BD ', 'JOD': 'JD ', 'LBP': 'L£ ',
-      'MAD': 'MAD ', 'TND': 'DT ', 'DZD': 'DA ', 'IQD': 'IQD ',
-    };
-    return currencyShortForms[code] ?? '$code ';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -4422,7 +4512,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                     children: [
                       const Text('TOTAL OUTSTANDING', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
                       const SizedBox(height: 8),
-                      Text('Rs ${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
+                      Text('$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
@@ -4658,7 +4748,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       children: [
                         const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
                         const SizedBox(height: 4),
-                        Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
                     Container(
@@ -4706,7 +4796,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Bill amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('Rs ${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -4782,7 +4872,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Total outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('Rs ${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
+                    Text('$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
                   ],
                 ),
               ),
@@ -5268,11 +5358,21 @@ class _CustomersPageState extends State<CustomersPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _sortBy = 'sales'; // 'sales' or 'credit'
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
   }
 
   @override
@@ -5407,8 +5507,8 @@ class _CustomersPageState extends State<CustomersPage> {
         rows: rows,
         additionalSummary: {
           'Total Customers': customersSnapshot.docs.length.toString(),
-          'Total Sales': 'Rs ${totalSales.toStringAsFixed(2)}',
-          'Total Credit Due': 'Rs ${totalCredit.toStringAsFixed(2)}',
+          'Total Sales': '$_currencySymbol${totalSales.toStringAsFixed(2)}',
+          'Total Credit Due': '$_currencySymbol${totalCredit.toStringAsFixed(2)}',
         },
       );
     } catch (e) {
@@ -6047,35 +6147,114 @@ class SaleReturnPage extends StatefulWidget {
 class _SaleReturnPageState extends State<SaleReturnPage> {
   Map<int, int> returnQuantities = {};
   String returnMode = 'CreditNote';
+  String _currencySymbol = '';
 
-  double get totalReturnAmount {
-    double total = 0;
-    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
-    returnQuantities.forEach((index, qty) {
-      if (index < items.length) {
-        final item = items[index];
-        final price = (item['price'] ?? 0).toDouble();
-        total += price * qty;
-      }
-    });
-    return total;
+  // Customer info - can be updated if user adds customer
+  String? _customerPhone;
+  String? _customerName;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+    // Initialize customer info from invoice
+    _customerPhone = widget.invoiceData['customerPhone'];
+    _customerName = widget.invoiceData['customerName'];
   }
 
-  double get totalReturnTax {
-    double totalTax = 0;
-    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
+
+  // Check if customer exists
+  bool get hasCustomer => _customerPhone != null && _customerPhone!.isNotEmpty;
+
+  // Show customer selection/add dialog
+  void _showCustomerDialog() {
+    CommonWidgets.showCustomerSelectionDialog(
+      context: context,
+      selectedCustomerPhone: _customerPhone,
+      onCustomerSelected: (phone, name, gst) async {
+        setState(() {
+          _customerPhone = phone;
+          _customerName = name;
+        });
+        // Also update the sale document with the customer
+        try {
+          final salesCollection = await FirestoreService().getStoreCollection('sales');
+          await salesCollection.doc(widget.documentId).update({
+            'customerPhone': phone,
+            'customerName': name,
+            if (gst != null && gst.isNotEmpty) 'customerGst': gst,
+          });
+        } catch (e) {
+          debugPrint('Error updating customer: $e');
+        }
+      },
+    );
+  }
+
+  // Helper to parse quantity properly
+  int _parseQuantity(dynamic qty) {
+    if (qty == null) return 0;
+    if (qty is int) return qty;
+    if (qty is double) return qty.toInt();
+    if (qty is String) return int.tryParse(qty) ?? 0;
+    return 0;
+  }
+
+  // Helper to get filtered items (with quantity > 0)
+  List<dynamic> get _filteredItems {
+    final allItems = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    return allItems.where((item) => _parseQuantity(item['quantity']) > 0).toList();
+  }
+
+  // Calculate subtotal without tax (base amount)
+  double get totalReturnSubtotal {
+    double subtotal = 0;
+    final items = _filteredItems;
     returnQuantities.forEach((index, qty) {
       if (index < items.length) {
         final item = items[index];
         final price = (item['price'] ?? 0).toDouble();
         final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
         final taxType = item['taxType'] as String?;
-        if (taxPercentage > 0) {
+        final itemTotal = price * qty;
+
+        // For tax included, extract the base amount; for tax added, use itemTotal as base
+        if (taxPercentage > 0 && (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax')) {
+          // Tax is included - calculate base amount
+          subtotal += itemTotal / (1 + taxPercentage / 100);
+        } else {
+          // Tax is added or no tax - price is the base amount
+          subtotal += itemTotal;
+        }
+      }
+    });
+    return subtotal;
+  }
+
+  double get totalReturnTax {
+    double totalTax = 0;
+    final items = _filteredItems;
+    returnQuantities.forEach((index, qty) {
+      if (index < items.length) {
+        final item = items[index];
+        final price = (item['price'] ?? 0).toDouble();
+        final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+        final taxType = item['taxType'] as String?;
+        if (taxPercentage > 0 && taxType != null) {
           final itemTotal = price * qty;
           if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+            // Tax is included in price - extract it
             final taxRate = taxPercentage / 100;
             totalTax += itemTotal - (itemTotal / (1 + taxRate));
           } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+            // Tax is added on top
             totalTax += itemTotal * (taxPercentage / 100);
           }
         }
@@ -6084,11 +6263,46 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     return totalTax;
   }
 
-  double get totalReturnWithTax => totalReturnAmount + totalReturnTax;
+  // Total refund amount (what customer gets back)
+  // For tax included: total = subtotal + tax = price * qty (because tax is already in price)
+  // For tax added: total = subtotal + tax = (price * qty) + tax
+  double get totalReturnWithTax {
+    double total = 0;
+    final items = _filteredItems;
+    returnQuantities.forEach((index, qty) {
+      if (index < items.length) {
+        final item = items[index];
+        final price = (item['price'] ?? 0).toDouble();
+        final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+        final taxType = item['taxType'] as String?;
+        final itemTotal = price * qty;
+
+        if (taxPercentage > 0 && taxType != null) {
+          if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+            // Tax is already included in price, so total is just itemTotal
+            total += itemTotal;
+          } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+            // Tax needs to be added
+            total += itemTotal + (itemTotal * taxPercentage / 100);
+          } else {
+            // Unknown tax type, just use itemTotal
+            total += itemTotal;
+          }
+        } else {
+          // No tax
+          total += itemTotal;
+        }
+      }
+    });
+    return total;
+  }
+
+  // For backward compatibility - returns the item price total (may or may not include tax)
+  double get totalReturnAmount => totalReturnSubtotal;
 
   @override
   Widget build(BuildContext context) {
-    final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+    final items = _filteredItems; // Use filtered items with quantity > 0
     final timestamp = widget.invoiceData['timestamp'] != null ? (widget.invoiceData['timestamp'] as Timestamp).toDate() : DateTime.now();
 
     return Scaffold(
@@ -6101,9 +6315,22 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
         leading: IconButton(icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
-      body: Column(
+      body: items.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.check_circle_outline, size: 64, color: kGoogleGreen.withOpacity(0.5)),
+                const SizedBox(height: 16),
+                const Text('All items have been returned', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack54)),
+                const SizedBox(height: 8),
+                const Text('No items available for return', style: TextStyle(fontSize: 12, color: kBlack54)),
+              ],
+            ),
+          )
+        : Column(
         children: [
-          // Header Card
+          // Header Card with Customer Info
           Container(
             width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
@@ -6113,10 +6340,45 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(widget.invoiceData['customerName'] ?? 'Walk-in Customer', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87)),
-                    Text("Invoice-${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd MMM yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
+                    Text(_customerName ?? 'Walk-in Customer', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87)),
+                    Text("${widget.invoiceData['invoiceNumber']} • ${DateFormat('dd MMM yyyy').format(timestamp)}", style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
                   ]),
                 ),
+                // Add Customer Button (if no customer)
+                if (!hasCustomer)
+                  InkWell(
+                    onTap: _showCustomerDialog,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: kOrange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: kOrange.withOpacity(0.3)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person_add_rounded, size: 14, color: kOrange),
+                          SizedBox(width: 4),
+                          Text('Add Customer', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange)),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  InkWell(
+                    onTap: _showCustomerDialog,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: kPrimaryColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.edit_rounded, size: 14, color: kPrimaryColor),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -6129,7 +6391,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
               itemBuilder: (ctx, index) {
                 final item = items[index];
                 final name = item['name'] ?? 'Item';
-                final maxQty = (item['quantity'] ?? 0) is int ? item['quantity'] : int.tryParse(item['quantity'].toString()) ?? 0;
+                final maxQty = _parseQuantity(item['quantity']);
                 final price = (item['price'] ?? 0).toDouble();
                 final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
                 final currentReturnQty = returnQuantities[index] ?? 0;
@@ -6145,7 +6407,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                             Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
                             const SizedBox(height: 4),
                             Row(children: [
-                              Text('Rate: Rs ${price.toStringAsFixed(0)}', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
+                              Text('Rate: $_currencySymbol${price.toStringAsFixed(0)}', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w600)),
                               if (taxPercentage > 0) ...[
                                 const SizedBox(width: 6),
                                 Text('($taxPercentage% TAX)', style: const TextStyle(color: kOrange, fontSize: 10, fontWeight: FontWeight.w800)),
@@ -6194,6 +6456,8 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
   }
 
   Widget _buildReturnSummaryPanel() {
+    final bool creditNoteNeedsCustomer = returnMode == 'CreditNote' && !hasCustomer;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       decoration: BoxDecoration(color: kWhite, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -5))], border: const Border(top: BorderSide(color: kGrey200))),
@@ -6201,14 +6465,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _rowItem('Refund Amount', totalReturnAmount.toStringAsFixed(2)),
-            if (totalReturnTax > 0) _rowItem('Tax Reversal', totalReturnTax.toStringAsFixed(2), color: kOrange),
+            _rowItem('Subtotal (Net)', totalReturnSubtotal.toStringAsFixed(2)),
+            if (totalReturnTax > 0) _rowItem('Tax Refund', totalReturnTax.toStringAsFixed(2), color: kOrange),
             const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1, color: kGrey100)),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Total refund', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
-                Text('Rs ${totalReturnWithTax.toStringAsFixed(2)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                Text('$_currencySymbol${totalReturnWithTax.toStringAsFixed(2)}', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kPrimaryColor)),
               ],
             ),
             const SizedBox(height: 16),
@@ -6219,6 +6483,33 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                 Expanded(child: _modeBtn('Cash', 'CASH REFUND')),
               ],
             ),
+            // Warning if credit note needs customer
+            if (creditNoteNeedsCustomer) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: _showCustomerDialog,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: kOrange.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: kOrange.withOpacity(0.3)),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 16, color: kOrange),
+                      SizedBox(width: 8),
+                      Text('Add customer to create credit note', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kOrange)),
+                      SizedBox(width: 4),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 10, color: kOrange),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity, height: 56,
@@ -6234,7 +6525,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     );
   }
 
-  Widget _rowItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)), Text('Rs $v', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color ?? kBlack87))]));
+  Widget _rowItem(String l, String v, {Color? color}) => Padding(padding: const EdgeInsets.symmetric(vertical: 2), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(l, style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)), Text('$_currencySymbol$v', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color ?? kBlack87))]));
 
   Widget _modeBtn(String val, String lbl) {
     bool sel = returnMode == val;
@@ -6250,17 +6541,45 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
   }
 
   Future<void> _processSaleReturn() async {
+    // Check if credit note requires customer
+    if (returnMode == 'CreditNote' && !hasCustomer) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please add a customer to create credit note'),
+          backgroundColor: kOrange,
+          action: SnackBarAction(
+            label: 'Add',
+            textColor: kWhite,
+            onPressed: _showCustomerDialog,
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
       showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
 
-      final items = widget.invoiceData['items'] as List<dynamic>? ?? [];
+      final allItems = widget.invoiceData['items'] as List<dynamic>? ?? [];
+      final filteredItems = _filteredItems; // Items with quantity > 0 (same as displayed in UI)
       final productsCollection = await FirestoreService().getStoreCollection('Products');
 
+      // Map filtered item indices to original item indices
+      Map<int, int> filteredToOriginalIndex = {};
+      int filteredIdx = 0;
+      for (int i = 0; i < allItems.length; i++) {
+        if (_parseQuantity(allItems[i]['quantity']) > 0) {
+          filteredToOriginalIndex[filteredIdx] = i;
+          filteredIdx++;
+        }
+      }
+
+      // Update product stock for returned items
       for (var entry in returnQuantities.entries) {
-        final index = entry.key;
+        final filteredIndex = entry.key;
         final returnQty = entry.value;
-        if (index < items.length) {
-          final item = items[index];
+        if (filteredIndex < filteredItems.length) {
+          final item = filteredItems[filteredIndex];
           if (item['productId'] != null && item['productId'].toString().isNotEmpty) {
             final productRef = productsCollection.doc(item['productId']);
             await FirebaseFirestore.instance.runTransaction((transaction) async {
@@ -6274,19 +6593,20 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         }
       }
 
-      if (returnMode == 'CreditNote' && widget.invoiceData['customerPhone'] != null) {
+      // Create credit note if mode is CreditNote and customer exists
+      if (returnMode == 'CreditNote' && hasCustomer) {
         final creditNoteNumber = await NumberGeneratorService.generateCreditNoteNumber();
         final creditNotesCollection = await FirestoreService().getStoreCollection('creditNotes');
         await creditNotesCollection.add({
           'creditNoteNumber': creditNoteNumber,
           'invoiceNumber': widget.invoiceData['invoiceNumber'],
-          'customerPhone': widget.invoiceData['customerPhone'],
-          'customerName': widget.invoiceData['customerName'] ?? 'Unknown',
+          'customerPhone': _customerPhone,
+          'customerName': _customerName ?? 'Unknown',
           'amount': totalReturnWithTax,
           'subtotal': totalReturnAmount,
           'totalTax': totalReturnTax,
           'items': returnQuantities.entries.map((entry) {
-            final item = items[entry.key];
+            final item = filteredItems[entry.key];
             return {
               'name': item['name'], 'quantity': entry.value, 'price': item['price'],
               'total': (item['price'] ?? 0) * entry.value, 'taxAmount': (totalReturnTax / totalReturnAmount) * ((item['price'] ?? 0) * entry.value),
@@ -6298,13 +6618,71 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
 
       final salesCollection = await FirestoreService().getStoreCollection('sales');
       List<Map<String, dynamic>> updatedItems = [];
-      for (int i = 0; i < items.length; i++) {
-        final item = Map<String, dynamic>.from(items[i]);
-        final originalQty = (item['quantity'] ?? 0) is int ? (item['quantity'] as int) : int.parse(item['quantity'].toString());
-        final returnedQty = returnQuantities[i] ?? 0;
+
+      // Process all original items, updating quantities for returned items
+      for (int i = 0; i < allItems.length; i++) {
+        final item = Map<String, dynamic>.from(allItems[i]);
+        final originalQty = _parseQuantity(item['quantity']);
+
+        // Check if this original index corresponds to a filtered index with returns
+        int? filteredIndex;
+        for (var entry in filteredToOriginalIndex.entries) {
+          if (entry.value == i) {
+            filteredIndex = entry.key;
+            break;
+          }
+        }
+
+        final returnedQty = filteredIndex != null ? (returnQuantities[filteredIndex] ?? 0) : 0;
         final newQty = originalQty - returnedQty;
         if (newQty > 0) { item['quantity'] = newQty; updatedItems.add(item); }
       }
+
+      // Build the list of returned items for this return
+      List<Map<String, dynamic>> newReturnedItems = [];
+      for (var entry in returnQuantities.entries) {
+        final filteredIndex = entry.key;
+        final returnQty = entry.value;
+        if (filteredIndex < filteredItems.length && returnQty > 0) {
+          final item = filteredItems[filteredIndex];
+          final price = (item['price'] ?? 0).toDouble();
+          final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+          final taxType = item['taxType'] as String?;
+          final taxName = item['taxName'] as String?;
+
+          // Calculate tax for this returned item based on tax type
+          double itemTax = 0;
+          final itemTotal = price * returnQty;
+          if (taxPercentage > 0 && taxType != null) {
+            if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+              final taxRate = taxPercentage / 100;
+              itemTax = itemTotal - (itemTotal / (1 + taxRate));
+            } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+              itemTax = itemTotal * (taxPercentage / 100);
+            }
+          }
+
+          newReturnedItems.add({
+            'name': item['name'] ?? 'Item',
+            'quantity': returnQty,
+            'price': price,
+            'total': itemTotal,
+            'taxAmount': itemTax,
+            'taxPercentage': taxPercentage,
+            'taxType': taxType,
+            'taxName': taxName,
+            'productId': item['productId'],
+            'returnedAt': DateTime.now().toIso8601String(),
+          });
+        }
+      }
+
+      // Get existing returned items and append new ones
+      List<dynamic> existingReturnedItems = widget.invoiceData['returnedItems'] as List<dynamic>? ?? [];
+      List<Map<String, dynamic>> allReturnedItems = [
+        ...existingReturnedItems.map((e) => Map<String, dynamic>.from(e)),
+        ...newReturnedItems,
+      ];
 
       // Check if bill was previously edited to preserve the flag
       final wasEdited = widget.invoiceData['status'] == 'edited' || widget.invoiceData['hasBeenEdited'] == true || widget.invoiceData['editedAt'] != null;
@@ -6314,6 +6692,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         'total': (widget.invoiceData['total'] ?? 0.0) - totalReturnWithTax,
         'hasReturns': true,
         'returnAmount': (widget.invoiceData['returnAmount'] ?? 0.0) + totalReturnWithTax,
+        'returnedItems': allReturnedItems, // Store all returned items with details
         'lastReturnAt': FieldValue.serverTimestamp(),
         'status': 'returned', // Mark as returned
         'hasBeenReturned': true, // Preserve return history
@@ -6397,19 +6776,9 @@ class _EditBillPageState extends State<EditBillPage> {
     if (doc.exists && mounted) {
       final data = doc.data();
       setState(() {
-        _currencySymbol = _getCurrencyShortForm(data?['currency'] ?? 'INR');
+        _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
       });
     }
-  }
-
-  String _getCurrencyShortForm(String code) {
-    const currencyShortForms = {
-      'INR': 'Rs ', 'USD': '\$ ', 'EUR': '€ ', 'GBP': '£ ', 'JPY': '¥ ', 'CNY': '¥ ',
-      'AUD': 'A\$ ', 'CAD': 'C\$ ', 'CHF': 'Fr ', 'HKD': 'HK\$ ', 'SGD': 'S\$ ',
-      'SEK': 'kr ', 'KRW': '₩ ', 'MYR': 'RM ', 'PHP': '₱ ', 'PKR': 'Rs ', 'AED': 'AED ',
-      'SAR': 'SR ', 'BDT': '৳ ', 'LKR': 'Rs ', 'NPR': 'Rs ', 'IDR': 'Rp ', 'THB': '฿ ',
-    };
-    return currencyShortForms[code] ?? '$code ';
   }
 
   @override
@@ -6419,12 +6788,25 @@ class _EditBillPageState extends State<EditBillPage> {
   }
 
   // --- Calculations ---
+  // Calculate subtotal (net amount without tax)
   double get subtotal => _items.fold(0.0, (sum, item) {
     final price = (item['price'] ?? 0).toDouble();
     final qty = (item['quantity'] ?? 0) is int
         ? (item['quantity'] as int).toDouble()
         : double.tryParse(item['quantity'].toString()) ?? 0.0;
-    return sum + (price * qty);
+    final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+    final taxType = item['taxType'] as String?;
+
+    final itemTotal = price * qty;
+
+    // For tax included, extract the base amount; for tax added, use itemTotal as base
+    if (taxPercentage > 0 && (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax')) {
+      // Tax is included - calculate base amount
+      return sum + (itemTotal / (1 + taxPercentage / 100));
+    } else {
+      // Tax is added or no tax - price is the base amount
+      return sum + itemTotal;
+    }
   });
 
   // Calculate total tax from all items
@@ -6449,6 +6831,27 @@ class _EditBillPageState extends State<EditBillPage> {
     } else {
       // No Tax Applied or Exempt from Tax
       return sum;
+    }
+  });
+
+  // Calculate the grand total (what customer pays)
+  double get grandTotal => _items.fold(0.0, (sum, item) {
+    final price = (item['price'] ?? 0).toDouble();
+    final qty = (item['quantity'] ?? 0) is int
+        ? (item['quantity'] as int).toDouble()
+        : double.tryParse(item['quantity'].toString()) ?? 0.0;
+    final taxPercentage = (item['taxPercentage'] ?? 0).toDouble();
+    final taxType = item['taxType'] as String?;
+
+    final itemTotal = price * qty;
+
+    // For tax included: total is just itemTotal (tax already in price)
+    // For tax added: total is itemTotal + tax
+    if (taxPercentage > 0 && (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax')) {
+      return sum + itemTotal + (itemTotal * taxPercentage / 100);
+    } else {
+      // Tax included or no tax - just use itemTotal
+      return sum + itemTotal;
     }
   });
 
@@ -6484,7 +6887,7 @@ class _EditBillPageState extends State<EditBillPage> {
   }
 
   double get discount => double.tryParse(_discountController.text) ?? 0;
-  double get totalBeforeCreditNotes => subtotal + totalTax - discount;
+  double get totalBeforeCreditNotes => grandTotal - discount;
   double get finalTotal => (totalBeforeCreditNotes - _creditNotesAmount).clamp(0, double.infinity);
 
   @override
@@ -6528,7 +6931,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Reference invoice", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
-                    Text("Invoice-${widget.invoiceData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kHeaderColor)),
+                    Text("${widget.invoiceData['invoiceNumber'] ?? 'N/A'}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kHeaderColor)),
                   ],
                 ),
                 Column(

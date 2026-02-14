@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/services/currency_service.dart';
 
 class VendorsPage extends StatefulWidget {
   final String uid;
@@ -20,16 +21,27 @@ class _VendorsPageState extends State<VendorsPage> {
   String _searchQuery = '';
   List<Map<String, dynamic>> _vendors = [];
   bool _isLoading = true;
+  String _currencySymbol = '';
 
   @override
   void initState() {
     super.initState();
     _loadVendors();
+    _loadCurrency();
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  void _loadCurrency() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+    final doc = await FirebaseFirestore.instance.collection('store').doc(storeId).get();
+    if (doc.exists && mounted) {
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(doc.data()?['currency']));
+    }
   }
 
   @override
@@ -174,7 +186,7 @@ class _VendorsPageState extends State<VendorsPage> {
                 _buildStat('VENDORS', _vendors.length.toString(), Icons.people_outline_rounded),
                 _buildStat(
                   'TOTAL SPENT',
-                  '${_vendors.fold(0.0, (sum, v) => sum + ((v['totalPurchases'] ?? 0).toDouble())).toStringAsFixed(0)}',
+                  '$_currencySymbol${_vendors.fold(0.0, (sum, v) => sum + ((v['totalPurchases'] ?? 0).toDouble())).toStringAsFixed(0)}',
                   Icons.payments_rounded,
                 ),
                 _buildStat(
@@ -332,7 +344,7 @@ class _VendorsPageState extends State<VendorsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${totalPurchases.toStringAsFixed(0)}',
+                        '$_currencySymbol${totalPurchases.toStringAsFixed(0)}',
                         style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                       ),
                     ),
