@@ -34,20 +34,27 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'rank': 0,
       'price': {'1': 0, '6': 0, '12': 0},
       'icon': Icons.rocket_launch_rounded,
-      'staffText': 'Single admin account',
+      'staffText': '1 Admin Account',
       'included': [
-        'Bill history (7 days)',
         'POS Billing',
-        'Expense Tracking',
-        'Purchase Records',
-        'Cloud Storage'
+        'Purchases',
+        'Expenses',
+        'Credit Sales',
+        'Cloud Backup',
+        'Unlimited Products',
+        'Bill History (upto 15 days)',
       ],
       'excluded': [
-        'Advanced DayBook',
-        'Quotations',
-        'Bulk Uploads',
-        'Business Logo',
-        'TAX Reports',
+        'Edit Bill',
+        'Reports',
+        'Tax Reports',
+        'Quotation / Estimation',
+        'Import Customers',
+        'Support',
+        'Customer Dues',
+        'Bulk Product Upload',
+        'Logo on Bill',
+        'Remove Watermark',
       ],
     },
     {
@@ -55,19 +62,28 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'rank': 1,
       'price': {'1': 249, '6': 1299, '12': 1999},
       'icon': Icons.business_center_rounded,
-      'staffText': 'Admin + 1 Manager',
+      'staffText': '1 Admin Account',
       'included': [
-        'Full Bill History',
         'POS Billing',
-        'Full Reports',
-        'Quotations',
-        'Bulk Inventory',
-        'Business Logo',
-        'TAX Report'
+        'Purchases',
+        'Expenses',
+        'Credit Sales',
+        'Cloud Backup',
+        'Unlimited Products',
+        'Bill History (Unlimited)',
+        'Edit Bill',
+        'Reports',
+        'Tax Reports',
+        'Quotation / Estimation',
+        'Import Customers',
+        'Support',
+        'Customer Dues',
+        'Bulk Product Upload',
+        'Logo on Bill',
+        'Remove Watermark',
       ],
       'excluded': [
         'Multiple Staff Accounts',
-        'Advanced Analytics',
       ],
     },
     {
@@ -76,18 +92,29 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'price': {'1': 429, '6': 2299, '12': 3499},
       'icon': Icons.trending_up_rounded,
       'popular': true,
-      'staffText': 'Admin + 3 Staff accounts',
+      'staffText': 'Admin + 2 Users',
       'included': [
-        'Full Bill History',
-        'Full Reports & GST',
-        'Customer Return / Refund Details',
-        'Quotations & Proforma',
-        'Bulk SMS Support',
-        'Contact Imports'
+        'POS Billing',
+        'Purchases',
+        'Expenses',
+        'Credit Sales',
+        'Cloud Backup',
+        'Unlimited Products',
+        'Bill History (Unlimited)',
+        'Edit Bill',
+        'Reports',
+        'Tax Reports',
+        'Quotation / Estimation',
+        'Import Customers',
+        'Support',
+        'Customer Dues',
+        'Bulk Product Upload',
+        'Logo on Bill',
+        'Remove Watermark',
       ],
       'excluded': [
-        'Up to 15 Staff Accounts',
-        'Dedicated Manager'
+        'Up to 9 Staff Accounts',
+        'Web Application',
       ],
     },
     {
@@ -95,13 +122,25 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'rank': 3,
       'price': {'1': 529, '6': 2899, '12': 4299},
       'icon': Icons.workspace_premium_rounded,
-      'staffText': 'Admin + 15 Staff accounts',
+      'staffText': 'Admin + 9 Users',
       'included': [
-        'Full Enterprise Access',
-        'All Modules Included',
-        'Priority Support',
-        'Advanced Data Exports',
-        'Custom Invoice Hooks'
+        'POS Billing',
+        'Purchases',
+        'Expenses',
+        'Credit Sales',
+        'Cloud Backup',
+        'Unlimited Products',
+        'Bill History (Unlimited)',
+        'Edit Bill',
+        'Reports',
+        'Tax Reports',
+        'Quotation / Estimation',
+        'Import Customers',
+        'Support',
+        'Customer Dues',
+        'Bulk Product Upload',
+        'Logo on Bill',
+        'Remove Watermark',
       ],
       'excluded': [],
     },
@@ -111,10 +150,18 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void initState() {
     super.initState();
     _initializeRazorpay();
-    // Default to 'MAX Plus' if current plan is Starter or Free
-    _selectedPlan = (widget.currentPlan.toLowerCase().contains('starter') || widget.currentPlan.toLowerCase().contains('free'))
-        ? 'MAX Plus'
-        : widget.currentPlan;
+    // Default to 'MAX Plus' if current plan is Starter or Free or not found
+    final currentPlanLower = widget.currentPlan.toLowerCase();
+    if (currentPlanLower.contains('starter') || currentPlanLower.contains('free')) {
+      _selectedPlan = 'MAX Plus';
+    } else {
+      // Try to find matching plan (case-insensitive)
+      final matchingPlan = plans.firstWhere(
+        (p) => p['name'].toString().toLowerCase() == currentPlanLower,
+        orElse: () => plans[2], // Default to MAX Plus
+      );
+      _selectedPlan = matchingPlan['name'];
+    }
   }
 
   void _initializeRazorpay() {
@@ -212,7 +259,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       }
     }
 
-    final plan = plans.firstWhere((p) => p['name'] == _selectedPlan);
+    final plan = plans.firstWhere(
+      (p) => p['name'] == _selectedPlan,
+      orElse: () => plans[2], // Default to MAX Plus
+    );
     final amount = plan['price'][_selectedDuration.toString()] * 100;
 
     if (amount <= 0) {
@@ -253,7 +303,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedPlanData = plans.firstWhere((p) => p['name'] == _selectedPlan);
+    final selectedPlanData = plans.firstWhere(
+      (p) => p['name'] == _selectedPlan,
+      orElse: () => plans[2], // Default to MAX Plus (index 2)
+    );
     final currentPrice = selectedPlanData['price'][_selectedDuration.toString()] ?? 0;
     final bool isCurrentPlanActive = _selectedPlan.toLowerCase() == widget.currentPlan.toLowerCase();
 
@@ -274,20 +327,6 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 0.5),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.compare_arrows_rounded, color: kWhite, size: 20),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PlanComparisonPage(),
-                ),
-              );
-            },
-            tooltip: 'Compare Plans',
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -303,14 +342,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                   const SizedBox(height: 8),
                   _buildDurationSelector(),
                   const SizedBox(height: 24),
-                  _buildFeatureContainer(
-                    title: "What's Included",
-                    features: selectedPlanData['included'],
-                    staffText: selectedPlanData['staffText'],
-                    color: kGoogleGreen,
-                    icon: Icons.check_circle_rounded,
-                  ),
-                  const SizedBox(height: 16),
+                  // Not Included first
                   if (selectedPlanData['excluded'].isNotEmpty)
                     _buildFeatureContainer(
                       title: "Not Included",
@@ -319,6 +351,19 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                       icon: Icons.cancel_rounded,
                       isExcluded: true,
                     ),
+                  if (selectedPlanData['excluded'].isNotEmpty)
+                    const SizedBox(height: 16),
+                  // What's Included second
+                  _buildFeatureContainer(
+                    title: "What's Included",
+                    features: selectedPlanData['included'],
+                    staffText: selectedPlanData['staffText'],
+                    color: kGoogleGreen,
+                    icon: Icons.check_circle_rounded,
+                  ),
+                  const SizedBox(height: 20),
+                  // Compare Plans Button
+                  _buildComparePlansButton(),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -511,12 +556,55 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     );
   }
 
+  Widget _buildComparePlansButton() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PlanComparisonPage(),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        decoration: BoxDecoration(
+          color: kPrimaryColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kPrimaryColor.withValues(alpha: 0.3), width: 1.5),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.compare_arrows_rounded, color: kPrimaryColor, size: 22),
+            const SizedBox(width: 12),
+            const Text(
+              'COMPARE ALL PLANS',
+              style: TextStyle(
+                color: kPrimaryColor,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Icon(Icons.arrow_forward_ios_rounded, color: kPrimaryColor, size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCheckoutBottom(int price, bool isCurrent) {
     final currentPlanData = plans.firstWhere(
-            (p) => p['name'].toLowerCase() == widget.currentPlan.toLowerCase(),
+            (p) => p['name'].toString().toLowerCase() == widget.currentPlan.toLowerCase(),
         orElse: () => plans[0]
     );
-    final selectedPlanData = plans.firstWhere((p) => p['name'] == _selectedPlan);
+    final selectedPlanData = plans.firstWhere(
+      (p) => p['name'] == _selectedPlan,
+      orElse: () => plans[2], // Default to MAX Plus
+    );
     final bool isUpgrade = selectedPlanData['rank'] > currentPlanData['rank'];
 
     String buttonText;

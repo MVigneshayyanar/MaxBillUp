@@ -182,12 +182,12 @@ class _MenuPageState extends State<MenuPage> {
         final currentPlan = planProvider.cachedPlan;
 
         int planRank = isProviderReady ? 0 : 3;
-        if (isProviderReady) {
-          if (currentPlan.toLowerCase().contains('MAX Lite')) planRank = 1;
-          else if (currentPlan.toLowerCase().contains('MAX Plus')) planRank = 2;
-          else if (currentPlan.toLowerCase().contains('MAX Pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
-          else if (currentPlan.toLowerCase().contains('starter') || currentPlan.toLowerCase().contains('free')) planRank = 0;
-        }
+        final planLower = currentPlan.toLowerCase();
+        if (planLower.contains('lite')) planRank = 1;
+        else if (planLower.contains('plus')) planRank = 2;
+        else if (planLower.contains('pro')) planRank = 3;
+        else if (planLower.contains('starter') || planLower.contains('free')) planRank = 0;
+
 
         bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
           if (isAdmin) return true;
@@ -513,9 +513,9 @@ class _MenuPageState extends State<MenuPage> {
         final currentPlan = planProvider.cachedPlan;
 
         int planRank = 0;
-        if (currentPlan.toLowerCase().contains('MAX Lite')) planRank = 1;
-        else if (currentPlan.toLowerCase().contains('MAX Plus')) planRank = 2;
-        else if (currentPlan.toLowerCase().contains('MAX Pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+        if (currentPlan.toLowerCase().contains('lite')) planRank = 1;
+        else if (currentPlan.toLowerCase().contains('plus')) planRank = 2;
+        else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -2233,7 +2233,7 @@ class SalesDetailPage extends StatelessWidget {
             child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
           ),
           Text(
-            AmountFormatter.formatWithSymbol(amount),
+            amount.toStringAsFixed(2),
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: color),
           ),
         ],
@@ -3103,8 +3103,16 @@ class CustomerBillsPage extends StatelessWidget {
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
           if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)));
+          // Sort by timestamp descending (latest first)
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            return bDate.compareTo(aDate); // Descending order
+          });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -3142,7 +3150,15 @@ class CustomerCreditsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
+          // Sort by timestamp descending (latest first)
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            return bDate.compareTo(aDate); // Descending order
+          });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),

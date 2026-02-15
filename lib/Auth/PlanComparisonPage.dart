@@ -1,9 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:maxbillup/Colors.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 
 class PlanComparisonPage extends StatelessWidget {
   const PlanComparisonPage({super.key});
+
+  // Feature list matching the image exactly
+  static const List<Map<String, dynamic>> _features = [
+    {'name': 'No. of. Users (Admin+ Users)', 'free': '1', 'lite': '1', 'plus': 'Admin +\n2 users', 'pro': 'Admin +\n9 users'},
+    {'name': 'POS Billing', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Purchases', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Expenses', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Credit Sales', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Cloud Backup', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Unlimited Products', 'free': true, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Bill History', 'free': 'upto 15 days', 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Edit Bill', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Reports', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Tax Reports', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Quotation / Estimation', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Import Customers', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Support', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Customer Dues', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Bulk Product Upload', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Logo on Bill', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+    {'name': 'Remove Watermark', 'free': false, 'lite': true, 'plus': true, 'pro': true},
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +40,9 @@ class PlanComparisonPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
-          'COMPARE PLANS',
-          style: const TextStyle(
+        title: const Text(
+          'PLAN COMPARISON',
+          style: TextStyle(
             color: kWhite,
             fontWeight: FontWeight.w900,
             fontSize: 16,
@@ -30,223 +51,109 @@ class PlanComparisonPage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  left: 8.0,
-                  right: 8.0,
-                  top: 16.0,
-                  bottom: 100.0,
-                ),
-                child: _buildComparisonTable(constraints.maxWidth - 16),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildComparisonTable(double screenWidth) {
-    // Calculate column widths to fit screen - feature column gets more space
-    final double totalWidth = screenWidth;
-    final double featureColumnWidth = totalWidth * 0.35; // 35% for feature names
-    final double planColumnWidth = (totalWidth - featureColumnWidth) / 4; // Divide remaining among 4 plans
-
-    return Table(
-      defaultColumnWidth: FixedColumnWidth(planColumnWidth),
-      columnWidths: {
-        0: FixedColumnWidth(featureColumnWidth),
-      },
-      border: TableBorder.all(
-        color: kGrey200,
-        width: 1,
-      ),
-      children: [
-        // Header Row
-        TableRow(
-          decoration: BoxDecoration(
-            color: kPrimaryColor.withOpacity(0.1),
+      body: Column(
+        children: [
+          // Sticky header with plan names
+          _buildStickyHeader(),
+          // Scrollable content
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 24),
+              itemCount: _features.length,
+              itemBuilder: (context, index) {
+                return _buildFeatureRow(_features[index]);
+              },
+            ),
           ),
-          children: [
-            _buildHeaderCell('', isFirst: true),
-            _buildHeaderCell('Free'),
-            _buildHeaderCell('MAX Lite'),
-            _buildHeaderCell('MAX Plus'),
-            _buildHeaderCell('MAX MAX Pro'),
-          ],
-        ),
-        // Feature Rows
-        _buildFeatureRow(
-          'No. of. Users (Admin+ Users)',
-          ['1', '1', 'Admin +\n2 users', 'Admin +\n9 users'],
-        ),
-        _buildFeatureRow(
-          'POS Billing',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Purchases',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Expenses',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Credit Sales',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Cloud Backup',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Unlimited Products',
-          [true, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Bill History',
-          ['upto 15 days', true, true, true],
-        ),
-        _buildFeatureRow(
-          'Edit Bill',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Reports',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Tax Reports',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Quotation / Estimation',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Import Customers',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Support',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Customer Dues',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Import Customers',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Bulk Product Upload',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Logo on Bill',
-          [false, true, true, true],
-        ),
-        _buildFeatureRow(
-          'Remove Watermark',
-          [false, true, true, true],
-        ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildHeaderCell(String text, {bool isFirst = false}) {
+  Widget _buildStickyHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: BoxDecoration(
-        color: isFirst ? kWhite : kPrimaryColor.withOpacity(0.1),
-        border: Border(
-          bottom: BorderSide(color: kGrey200, width: 1),
-        ),
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey200, width: 1)),
       ),
-      child: Text(
-        text,
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontWeight: FontWeight.w900,
-          fontSize: isFirst ? 10 : 11,
-          color: kBlack87,
-          letterSpacing: 0.2,
-        ),
+      child: Row(
+        children: [
+          const SizedBox(width: 100), // Space for feature name column
+          Expanded(child: _buildPlanHeader('Free', kBlack54)),
+          Expanded(child: _buildPlanHeader('MAX Lite', kPrimaryColor)),
+          Expanded(child: _buildPlanHeader('MAX Plus', kPrimaryColor)),
+          Expanded(child: _buildPlanHeader('MAX Pro', kPrimaryColor)),
+        ],
       ),
     );
   }
 
-  TableRow _buildFeatureRow(String feature, List<dynamic> values) {
-    return TableRow(
-      children: [
-        _buildFeatureCell(feature),
-        ...values.map((value) => _buildValueCell(value)),
-      ],
+  Widget _buildPlanHeader(String name, Color color) {
+    return Text(
+      name,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        fontWeight: FontWeight.w900,
+        fontSize: 10,
+        color: color,
+      ),
     );
   }
 
-  Widget _buildFeatureCell(String text) {
+  Widget _buildFeatureRow(Map<String, dynamic> feature) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      decoration: BoxDecoration(
-        color: kGreyBg,
-        border: Border(
-          bottom: BorderSide(color: kGrey200, width: 1),
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+      decoration: const BoxDecoration(
+        color: kWhite,
+        border: Border(bottom: BorderSide(color: kGrey100, width: 1)),
       ),
-      child: Text(
-        text,
-        maxLines: 3,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 10,
-          color: kBlack87,
-        ),
+      child: Row(
+        children: [
+          // Feature name
+          SizedBox(
+            width: 96,
+            child: Text(
+              feature['name'],
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 10,
+                color: kBlack87,
+              ),
+            ),
+          ),
+          // Plan columns
+          Expanded(child: _buildValueCell(feature['free'])),
+          Expanded(child: _buildValueCell(feature['lite'])),
+          Expanded(child: _buildValueCell(feature['plus'])),
+          Expanded(child: _buildValueCell(feature['pro'])),
+        ],
       ),
     );
   }
 
   Widget _buildValueCell(dynamic value) {
-    Widget content;
-
     if (value is bool) {
-      content = Icon(
-        value ? Icons.check_circle : Icons.cancel,
-        color: value ? kGoogleGreen : kErrorColor,
-        size: 18,
+      return Center(
+        child: Icon(
+          value ? Icons.check : Icons.close,
+          color: value ? kGoogleGreen : kErrorColor,
+          size: 18,
+        ),
       );
     } else {
-      content = Text(
-        value.toString(),
-        textAlign: TextAlign.center,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 9,
-          color: kBlack87,
+      return Center(
+        child: Text(
+          value.toString(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 9,
+            color: kBlack87,
+          ),
         ),
       );
     }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: kGrey200, width: 1),
-        ),
-      ),
-      child: Center(child: content),
-    );
   }
 }
 

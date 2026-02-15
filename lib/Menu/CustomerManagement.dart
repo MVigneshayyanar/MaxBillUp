@@ -992,8 +992,16 @@ class CustomerBillsPage extends StatelessWidget {
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
           if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)));
+          // Sort by timestamp descending (latest first)
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            return bDate.compareTo(aDate); // Descending order
+          });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -1031,7 +1039,15 @@ class CustomerCreditsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
-          final docs = snapshot.data!.docs;
+          final docs = snapshot.data!.docs.toList();
+          // Sort by timestamp descending (latest first)
+          docs.sort((a, b) {
+            final aData = a.data() as Map<String, dynamic>;
+            final bData = b.data() as Map<String, dynamic>;
+            final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+            return bDate.compareTo(aDate); // Descending order
+          });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
