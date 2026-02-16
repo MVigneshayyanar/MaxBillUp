@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
@@ -326,13 +327,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: Text("Business Profile",
+        title: const Text("Business Profile",
             style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -346,11 +347,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: Column(
                   children: [
                     _buildSectionLabel("Business Details"),
-                    _buildModernField("Business Name", _businessNameCtrl, Icons.store_rounded, isMandatory: true),
-                    _buildModernField("Owner Name", _ownerNameCtrl, Icons.person_rounded, isMandatory: true),
-                    _buildModernField("Business Phone", _businessPhoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 501 234 567"),
+                    _buildModernField("Business Name", _businessNameCtrl, HeroIcons.buildingStorefront, isMandatory: true),
+                    _buildModernField("Owner Name", _ownerNameCtrl, HeroIcons.user, isMandatory: true),
+                    _buildModernField("Business Phone", _businessPhoneCtrl, HeroIcons.phone, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 501 234 567"),
                     _buildPersonalPhoneField(),
-                    _buildModernField("Email Address", TextEditingController(text: widget.email), Icons.email_rounded, enabled: false),
+                    _buildModernField("Email Address", TextEditingController(text: widget.email), HeroIcons.envelope, enabled: false),
                     _buildCurrencyField(isMandatory: true),
                     const SizedBox(height: 24),
                     _buildAdvancedDetailsToggle(),
@@ -360,12 +361,12 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                       _buildLocationField(),
                       const SizedBox(height: 24),
                       _buildSectionLabel("Taxation (Optional)"),
-                      _buildOptionalField("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "e.g. VAT, GST, Sales Tax"),
-                      _buildOptionalField("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number"),
+                      _buildOptionalField("Tax Type", _taxTypeCtrl, HeroIcons.receiptRefund, hint: "e.g. VAT, GST, Sales Tax"),
+                      _buildOptionalField("Tax Number", _taxNumberCtrl, HeroIcons.hashtag, hint: "Enter your tax identification number"),
                       const SizedBox(height: 24),
                       _buildSectionLabel("Additional License (Optional)"),
-                      _buildOptionalField("License Type", _licenseTypeCtrl, Icons.badge_rounded, hint: "e.g. Trade License, FSSAI, F&B"),
-                      _buildOptionalField("License Number", _licenseNumberCtrl, Icons.numbers_rounded, hint: "Enter your license number"),
+                      _buildOptionalField("License Type", _licenseTypeCtrl, HeroIcons.identification, hint: "e.g. Trade License, FSSAI, F&B"),
+                      _buildOptionalField("License Number", _licenseNumberCtrl, HeroIcons.hashtag, hint: "Enter your license number"),
                     ],
                     const SizedBox(height: 40),
                   ],
@@ -395,7 +396,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildModernField(
       String label,
       TextEditingController ctrl,
-      IconData icon, {
+      HeroIcons icon, {
         bool enabled = true,
         TextInputType type = TextInputType.text,
         bool isMandatory = false,
@@ -419,7 +420,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               labelText: label,
               hintText: hint,
               hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
-              prefixIcon: Icon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              ),
               filled: true,
               fillColor: enabled ? kWhite : kGreyBg,
               enabledBorder: OutlineInputBorder(
@@ -469,7 +473,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   Widget _buildOptionalField(
       String label,
       TextEditingController ctrl,
-      IconData icon, {
+      HeroIcons icon, {
         bool enabled = true,
         TextInputType type = TextInputType.text,
         String? hint,
@@ -489,7 +493,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               labelText: label,
               hintText: hint,
               hintStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w400),
-              prefixIcon: Icon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
+              ),
               filled: true,
               fillColor: enabled ? kWhite : kGreyBg,
               enabledBorder: OutlineInputBorder(
@@ -545,10 +552,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   labelText: "Personal Phone",
                   hintText: "e.g. +971 501 234 567",
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w400),
-                  prefixIcon: Icon(
-                    Icons.phone_rounded,
-                    color: _sameAsBusinessNumber ? kGrey400 : (isFilled ? kPrimaryColor : kBlack54),
-                    size: 18,
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: HeroIcon(
+                      HeroIcons.phone,
+                      color: _sameAsBusinessNumber ? kGrey400 : (isFilled ? kPrimaryColor : kBlack54),
+                      size: 18,
+                    ),
                   ),
                   filled: true,
                   fillColor: _sameAsBusinessNumber ? kGreyBg : kWhite,
@@ -599,7 +609,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                     color: _sameAsBusinessNumber ? kPrimaryColor : Colors.transparent,
                   ),
                   child: _sameAsBusinessNumber
-                      ? const Icon(Icons.check, color: kWhite, size: 14)
+                      ? const HeroIcon(HeroIcons.check, color: kWhite, size: 14)
                       : null,
                 ),
                 const SizedBox(width: 10),
@@ -639,8 +649,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         ),
         child: Row(
           children: [
-            Icon(
-              _showAdvancedDetails ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+            HeroIcon(
+              _showAdvancedDetails ? HeroIcons.chevronUp : HeroIcons.chevronDown,
               color: kPrimaryColor,
               size: 24,
             ),
@@ -657,9 +667,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               ),
             ),
             if (_showAdvancedDetails)
-              const Icon(Icons.expand_less_rounded, color: kBlack54, size: 20)
+              const HeroIcon(HeroIcons.chevronUp, color: kBlack54, size: 20)
             else
-              const Icon(Icons.expand_more_rounded, color: kBlack54, size: 20),
+              const HeroIcon(HeroIcons.chevronDown, color: kBlack54, size: 20),
           ],
         ),
       ),
@@ -687,10 +697,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 fontSize: 13,
                 fontWeight: FontWeight.normal,
               ),
-              prefixIcon: Icon(
-                Icons.location_on_rounded,
-                color: isFilled ? kPrimaryColor : kBlack54,
-                size: 18,
+              prefixIcon: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: HeroIcon(
+                  HeroIcons.mapPin,
+                  color: isFilled ? kPrimaryColor : kBlack54,
+                  size: 18,
+                ),
               ),
               filled: true,
               fillColor: kWhite,
@@ -737,7 +750,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.currency_exchange_rounded, color: kPrimaryColor, size: 18),
+              const HeroIcon(HeroIcons.banknotes, color: kPrimaryColor, size: 18),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
@@ -755,7 +768,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   ],
                 ),
               ),
-              const Icon(Icons.expand_more_rounded, color: kGrey400),
+              const HeroIcon(HeroIcons.chevronDown, color: kGrey400),
             ],
           ),
         ),
@@ -794,7 +807,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                   decoration: InputDecoration(
                     hintText: 'Search currency code, name or symbol...',
                     hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
-                    prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.all(12.0),
+                      child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                    ),
                     filled: true,
                     fillColor: kGreyBg,
                     border: OutlineInputBorder(
@@ -829,7 +845,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off, size: 48, color: kGrey400),
+                              HeroIcon(HeroIcons.magnifyingGlass, size: 48, color: kGrey400),
                               SizedBox(height: 12),
                               Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
                             ],
@@ -882,7 +898,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                                 ),
                               ),
                               trailing: isSelected
-                                  ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 24)
+                                  ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 24)
                                   : null,
                             );
                           },

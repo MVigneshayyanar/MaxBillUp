@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/Settings/Profile.dart' hide kPrimaryColor, kBlack54;
 import 'package:maxbillup/Stocks/Stock.dart' as stock;
@@ -56,7 +57,7 @@ class CommonBottomNav extends StatelessWidget {
                     height: 3, // Slimmer bar
                     decoration: BoxDecoration(
                       color: kPrimaryColor,
-                      borderRadius: BorderRadius.vertical(
+                      borderRadius: const BorderRadius.vertical(
                         bottom: Radius.circular(4),
                       ),
                     ),
@@ -67,11 +68,11 @@ class CommonBottomNav extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(context, 0, Icons.grid_view_rounded, context.tr('menu')),
-                  _buildNavItem(context, 1, Icons.bar_chart_rounded, context.tr('reports')),
-                  _buildNavItem(context, 2, Icons.add_circle_rounded, context.tr('new_sale')),
-                  _buildNavItem(context, 3, Icons.inventory_2_rounded, context.tr('Products')),
-                  _buildNavItem(context, 4, Icons.settings_rounded, context.tr('settings')),
+                  _buildNavItem(context, 0, HeroIcons.squares2x2, context.tr('menu')),
+                  _buildNavItem(context, 1, HeroIcons.chartBar, context.tr('reports')),
+                  _buildNavItem(context, 2, HeroIcons.plusCircle, context.tr('new_sale')),
+                  _buildNavItem(context, 3, HeroIcons.archiveBox, context.tr('Products')),
+                  _buildNavItem(context, 4, HeroIcons.cog6Tooth, context.tr('settings')),
                 ],
               ),
             ],
@@ -81,7 +82,7 @@ class CommonBottomNav extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(BuildContext context, int index, IconData icon, String label) {
+  Widget _buildNavItem(BuildContext context, int index, HeroIcons icon, String label) {
     final isSelected = currentIndex == index;
 
     return Expanded(
@@ -92,7 +93,7 @@ class CommonBottomNav extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const SizedBox(height: 6),
-            Icon(
+            HeroIcon(
               icon,
               color: isSelected ? kPrimaryColor : Colors.grey[700],
               size: 26, // Slightly larger icon to balance increased height

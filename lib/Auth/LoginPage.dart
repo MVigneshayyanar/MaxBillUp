@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/utils/language_provider.dart';
@@ -370,7 +371,7 @@ class _LoginPageState extends State<LoginPage> {
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             value: langProvider.currentLanguageCode,
-            icon: const Icon(Icons.language_rounded, color: kPrimaryColor, size: 18),
+            icon: const HeroIcon(HeroIcons.language, color: kPrimaryColor, size: 18),
             style: const TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w800),
             onChanged: (newLang) { if (newLang != null) langProvider.changeLanguage(newLang); },
             items: langProvider.languages.entries.map((entry) {
@@ -444,18 +445,18 @@ class _LoginPageState extends State<LoginPage> {
       _buildTextField(
         _emailCtrl,
         context.tr('email').toUpperCase(),
-        Icons.mail_outline_rounded,
+        HeroIcons.envelope,
         keyboardType: TextInputType.emailAddress,
       ),
       const SizedBox(height: 16),
       _buildTextField(
         _passCtrl,
         context.tr('password').toUpperCase(),
-        Icons.lock_outline_rounded,
+        HeroIcons.lockClosed,
         obscure: _hidePass,
         suffix: IconButton(
-          icon: Icon(
-            _hidePass ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+          icon: HeroIcon(
+            _hidePass ? HeroIcons.eyeSlash : HeroIcons.eye,
             color: kPrimaryColor,
             size: 20,
           ),
@@ -510,7 +511,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildTextField(
       TextEditingController ctrl,
       String label,
-      IconData icon, {
+      HeroIcons icon, {
         bool obscure = false,
         Widget? suffix,
         TextInputType? keyboardType,
@@ -526,7 +527,10 @@ class _LoginPageState extends State<LoginPage> {
           style: const TextStyle(fontSize: 15, color: kBlack87, fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: Icon(icon, color: hasText ? kPrimaryColor : kBlack54, size: 20),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: HeroIcon(icon, color: hasText ? kPrimaryColor : kBlack54, size: 20),
+            ),
             floatingLabelBehavior: FloatingLabelBehavior.auto,
             labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
             floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),

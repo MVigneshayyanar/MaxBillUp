@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/services/direct_notification_service.dart';
 import 'package:maxbillup/Auth/LoginPage.dart';
 import 'package:maxbillup/Colors.dart';
@@ -48,7 +49,7 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
         automaticallyImplyLeading: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout_rounded, color: kWhite, size: 22),
+            icon: const HeroIcon(HeroIcons.arrowRightOnRectangle, color: kWhite, size: 22),
             onPressed: () async {
               try {
                 await FirebaseAuth.instance.signOut();
@@ -88,8 +89,8 @@ class _HomePageState extends State<HomePage> with SingleTickerProviderStateMixin
                 unselectedLabelColor: kBlack54,
                 labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
                 tabs: const [
-                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.store_rounded, size: 16), SizedBox(width: 8), Text('STORES')])),
-                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.auto_stories_rounded, size: 16), SizedBox(width: 8), Text('KNOWLEDGE')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.buildingStorefront, size: 16), SizedBox(width: 8), Text('STORES')])),
+                  Tab(child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.bookOpen, size: 16), SizedBox(width: 8), Text('KNOWLEDGE')])),
                 ],
               ),
             ),
@@ -124,7 +125,7 @@ class StoresTab extends StatelessWidget {
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return _buildEmptyState(Icons.store_outlined, 'No stores registered yet.');
+          return _buildEmptyState(HeroIcons.buildingStorefront, 'No stores registered yet.');
         }
 
         final stores = snapshot.data!.docs;
@@ -190,7 +191,7 @@ class StoresTab extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildStatusBadge(isActive),
-                            const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: kGrey400),
+                            const HeroIcon(HeroIcons.chevronRight, size: 12, color: kGrey400),
                           ],
                         )
                       ],
@@ -259,7 +260,7 @@ class KnowledgeTab extends StatelessWidget {
             return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return _buildEmptyState(Icons.lightbulb_outline_rounded, 'Knowledge base is empty.');
+            return _buildEmptyState(HeroIcons.lightBulb, 'Knowledge base is empty.');
           }
 
           final posts = snapshot.data!.docs;
@@ -281,11 +282,11 @@ class KnowledgeTab extends StatelessWidget {
                   leading: Container(
                     width: 44, height: 44,
                     decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.article_rounded, color: kPrimaryColor, size: 22),
+                    child: const HeroIcon(HeroIcons.documentText, color: kPrimaryColor, size: 22),
                   ),
                   title: Text(data['title'] ?? 'Untitled', style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack87, fontSize: 14)),
                   subtitle: Text(data['content'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
-                  trailing: const Icon(Icons.edit_note_rounded, color: kGrey400, size: 24),
+                  trailing: const HeroIcon(HeroIcons.pencilSquare, color: kGrey400, size: 24),
                   onTap: () => _showKnowledgeDialog(context, docId: posts[index].id, data: data),
                 ),
               );
@@ -299,7 +300,7 @@ class KnowledgeTab extends StatelessWidget {
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         label: const Text('POST ARTICLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-        icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
+        icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
       ),
     );
   }
@@ -320,11 +321,11 @@ class KnowledgeTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDialogField(titleController, 'Article Title', Icons.title_rounded),
+              _buildDialogField(titleController, 'Article Title', HeroIcons.pencil),
               const SizedBox(height: 16),
               _buildCategoryDropdown(category, (v) => category = v!),
               const SizedBox(height: 16),
-              _buildDialogField(contentController, 'Content', Icons.notes_rounded, maxLines: 4),
+              _buildDialogField(contentController, 'Content', HeroIcons.pencilSquare, maxLines: 4),
             ],
           ),
         ),
@@ -377,14 +378,17 @@ class KnowledgeTab extends StatelessWidget {
     );
   }
 
-  Widget _buildDialogField(TextEditingController ctrl, String hint, IconData icon, {int maxLines = 1}) {
+  Widget _buildDialogField(TextEditingController ctrl, String hint, HeroIcons icon, {int maxLines = 1}) {
     return Container(
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: TextField(
         controller: ctrl, maxLines: maxLines,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
-          hintText: hint, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          hintText: hint, prefixIcon: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: HeroIcon(icon, color: kPrimaryColor, size: 18),
+          ),
           border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
@@ -397,7 +401,7 @@ class KnowledgeTab extends StatelessWidget {
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: current, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
+          value: current, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54, size: 20),
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
           items: ['General', 'Tutorial', 'Updates', 'Tips'].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
           onChanged: onSel,
@@ -429,10 +433,10 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'Store Details',
+        title: Text(widget.storeData['businessName']?.toUpperCase() ?? 'STORE DETAILS',
             style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 0.5)),
         backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('store').doc(widget.storeId).snapshots(),
@@ -476,11 +480,11 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
             _buildSectionLabel('REAL-TIME ANALYTICS'),
             Row(
               children: [
-                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Products', 'Products', Icons.inventory_2_rounded, kPrimaryColor)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Products', 'Products', HeroIcons.archiveBox, kPrimaryColor)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Sales', 'sales', Icons.receipt_long_rounded, kGoogleGreen)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Sales', 'sales', HeroIcons.receiptRefund, kGoogleGreen)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Customers', 'customers', Icons.people_alt_rounded, kOrange)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Customers', 'customers', HeroIcons.users, kOrange)),
               ],
             ),
             const SizedBox(height: 24),
@@ -490,12 +494,12 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
               child: Column(
                 children: [
-                  _detailRow(Icons.person_rounded, 'Legal Owner', storeData['ownerName']),
-                  _detailRow(Icons.alternate_email_rounded, 'System Email', storeData['ownerEmail']),
-                  _detailRow(Icons.phone_iphone_rounded, 'Direct Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
-                  _detailRow(Icons.location_on_rounded, 'Business Address', storeData['businessLocation']),
-                  _detailRow(Icons.description_rounded, 'TAX', storeData['gstin']),
-                  _detailRow(Icons.business_center_rounded, 'License', storeData['licenseNumber'], isLast: true),
+                  _detailRow(HeroIcons.user, 'Legal Owner', storeData['ownerName']),
+                  _detailRow(HeroIcons.envelope, 'System Email', storeData['ownerEmail']),
+                  _detailRow(HeroIcons.phone, 'Direct Phone', storeData['ownerPhone'] ?? storeData['businessPhone']),
+                  _detailRow(HeroIcons.mapPin, 'Business Address', storeData['businessLocation']),
+                  _detailRow(HeroIcons.documentText, 'TAX', storeData['gstin']),
+                  _detailRow(HeroIcons.briefcase, 'License', storeData['licenseNumber'], isLast: true),
 
 
                 ],
@@ -510,21 +514,21 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
                 children: [
                   _editableDetailRow(
                     context,
-                    icon: Icons.calendar_today_rounded,
+                    icon: HeroIcons.calendar,
                     label: 'Subscription Start',
                     value: _formatDate(storeData['subscriptionStartDate']),
                     onEdit: () => _editDate(context, 'subscriptionStartDate', storeData['subscriptionStartDate']),
                   ),
                   _editableDetailRow(
                     context,
-                    icon: Icons.event_rounded,
+                    icon: HeroIcons.calendarDays,
                     label: 'Subscription Expiry',
                     value: _formatDate(storeData['subscriptionExpiryDate']),
                     onEdit: () => _editDate(context, 'subscriptionExpiryDate', storeData['subscriptionExpiryDate']),
                   ),
                   _editableDetailRow(
                     context,
-                    icon: Icons.workspace_premium_rounded,
+                    icon: HeroIcons.academicCap,
                     label: 'Current Plan',
                     value: storeData['plan'] ?? 'Free',
                     onEdit: () => _showChangePlanDialog(context, storeData),
@@ -542,7 +546,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
     );
   }
 
-  Widget _editableDetailRow(BuildContext context, {required IconData icon, required String label, required String value, required VoidCallback onEdit, bool isLast = false}) {
+  Widget _editableDetailRow(BuildContext context, {required HeroIcons icon, required String label, required String value, required VoidCallback onEdit, bool isLast = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: kGrey100))),
@@ -551,12 +555,12 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: kPrimaryColor, size: 18),
+          child: HeroIcon(icon, color: kPrimaryColor, size: 18),
         ),
         title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         subtitle: Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: IconButton(
-          icon: const Icon(Icons.edit_rounded, size: 18, color: kPrimaryColor),
+          icon: const HeroIcon(HeroIcons.pencil, size: 18, color: kPrimaryColor),
           onPressed: onEdit,
           tooltip: 'Edit',
         ),
@@ -721,7 +725,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
     );
   }
 
-  Widget _buildEnterpriseStat(String sId, String label, String collection, IconData icon, Color color) {
+  Widget _buildEnterpriseStat(String sId, String label, String collection, HeroIcons icon, Color color) {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('store').doc(sId).collection(collection).snapshots(),
       builder: (context, snapshot) {
@@ -731,7 +735,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
           decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
           child: Column(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle), child: HeroIcon(icon, color: color, size: 20)),
               const SizedBox(height: 10),
               Text(count, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kBlack87)),
               Text(label.toUpperCase(), style: const TextStyle(color: kBlack54, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
@@ -742,13 +746,13 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
     );
   }
 
-  Widget _detailRow(IconData icon, String label, String? value, {bool isLast = false}) {
+  Widget _detailRow(HeroIcons icon, String label, String? value, {bool isLast = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(border: isLast ? null : const Border(bottom: BorderSide(color: kGrey100))),
       child: ListTile(
         dense: true,
-        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 18)),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, color: kPrimaryColor, size: 18)),
         title: Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         subtitle: Text(value ?? 'NOT SET', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
       ),
@@ -756,12 +760,12 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
   }
 }
 
-Widget _buildEmptyState(IconData icon, String msg) {
+Widget _buildEmptyState(HeroIcons icon, String msg) {
   return Center(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 64, color: kGrey300),
+        HeroIcon(icon, size: 64, color: kGrey300),
         const SizedBox(height: 16),
         Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 14)),
       ],

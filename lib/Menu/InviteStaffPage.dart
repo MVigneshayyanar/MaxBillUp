@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart'; // Ensure translation helper is available
@@ -360,13 +361,6 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       'salesReport': isAdmin,
       'itemSalesReport': isAdmin,
       'topCustomer': isAdmin,
-      'stockReport': isAdmin,
-      'lowStockProduct': isAdmin,
-      'topProducts': isAdmin,
-      'topCategory': isAdmin,
-      'expensesReport': isAdmin,
-      'taxReport': isAdmin,
-      'hsnReport': isAdmin,
       'staffSalesReport': isAdmin,
       'addProduct': isAdmin,
       'addCategory': isAdmin,
@@ -405,7 +399,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Form(
         key: _formKey,
@@ -416,15 +410,15 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   _buildSectionHeader("IDENTITY"),
-                  _buildModernField(_nameCtrl, 'Full Name', Icons.person_rounded, isMandatory: true),
+                  _buildModernField(_nameCtrl, 'Full Name', HeroIcons.user, isMandatory: true),
                   const SizedBox(height: 16),
-                  _buildModernField(_phoneCtrl, 'Phone Number', Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true),
+                  _buildModernField(_phoneCtrl, 'Phone Number', HeroIcons.phone, type: TextInputType.phone, isMandatory: true),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader("CREDENTIALS"),
-                  _buildModernField(_emailCtrl, 'Email Address', Icons.email_rounded, type: TextInputType.emailAddress, isMandatory: true),
+                  _buildModernField(_emailCtrl, 'Email Address', HeroIcons.envelope, type: TextInputType.emailAddress, isMandatory: true),
                   const SizedBox(height: 16),
-                  _buildModernField(_passCtrl, 'Temporary Password', Icons.lock_rounded, isPassword: true, isMandatory: true),
+                  _buildModernField(_passCtrl, 'Temporary Password', HeroIcons.lockClosed, isPassword: true, isMandatory: true),
 
                   const SizedBox(height: 24),
                   _buildSectionHeader("ASSIGNMENT"),
@@ -436,7 +430,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
                     decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: kPrimaryColor.withOpacity(0.1))),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, color: kPrimaryColor, size: 20),
+                        HeroIcon(HeroIcons.informationCircle, color: kPrimaryColor, size: 20),
                         SizedBox(width: 12),
                         Expanded(child: Text("Staff will be invited via email. You can approve them in the dashboard once they verify their address.", style: TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500))),
                       ],
@@ -454,7 +448,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
 
   Widget _buildPopupMenu() {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz_rounded, color: kWhite, size: 24),
+      icon: const HeroIcon(HeroIcons.ellipsisHorizontal, color: kWhite, size: 24),
       elevation: 0,
       offset: const Offset(0, 48),
       shape: RoundedRectangleBorder(
@@ -469,13 +463,13 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
         }
       },
       itemBuilder: (context) => [
-        _buildPopupItem('contacts', Icons.contacts_rounded, 'Import Contacts', kPrimaryColor),
-        _buildPopupItem('excel', Icons.table_chart_rounded, 'Import Excel', kGoogleGreen),
+        _buildPopupItem('contacts', HeroIcons.users, 'Import Contacts', kPrimaryColor),
+        _buildPopupItem('excel', HeroIcons.tableCells, 'Import Excel', kGoogleGreen),
       ],
     );
   }
 
-  PopupMenuItem<String> _buildPopupItem(String value, IconData icon, String label, Color color) {
+  PopupMenuItem<String> _buildPopupItem(String value, HeroIcons icon, String label, Color color) {
     return PopupMenuItem(
       value: value,
       child: Row(
@@ -483,7 +477,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, size: 18, color: color),
+            child: HeroIcon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
           Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87)),
@@ -494,7 +488,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
 
   Widget _buildSectionHeader(String title) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(title, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0)));
 
-  Widget _buildModernField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, bool isPassword = false, bool isMandatory = false}) {
+  Widget _buildModernField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, bool isPassword = false, bool isMandatory = false}) {
     return ValueListenableBuilder(
       valueListenable: ctrl,
       builder: (context, val, child) {
@@ -503,7 +497,10 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
           controller: ctrl, keyboardType: type, obscureText: isPassword,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
           decoration: InputDecoration(
-            labelText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
+            labelText: label, prefixIcon: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
+            ),
             filled: true, fillColor: kWhite,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
@@ -522,7 +519,7 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedRole, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
+          value: _selectedRole, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54, size: 20),
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
           items: _availableRoles.map((role) {
             return DropdownMenuItem<String>(
@@ -553,5 +550,3 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
     );
   }
 }
-
-

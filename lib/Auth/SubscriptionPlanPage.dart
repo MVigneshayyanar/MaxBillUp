@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
@@ -33,7 +34,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'name': 'Starter',
       'rank': 0,
       'price': {'1': 0, '6': 0, '12': 0},
-      'icon': Icons.rocket_launch_rounded,
+      'icon': HeroIcons.rocketLaunch,
       'staffText': '1 Admin Account',
       'included': [
         'POS Billing',
@@ -61,7 +62,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'name': 'MAX Lite',
       'rank': 1,
       'price': {'1': 249, '6': 1299, '12': 1999},
-      'icon': Icons.business_center_rounded,
+      'icon': HeroIcons.briefcase,
       'staffText': '1 Admin Account',
       'included': [
         'POS Billing',
@@ -90,7 +91,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'name': 'MAX Plus',
       'rank': 2,
       'price': {'1': 429, '6': 2299, '12': 3499},
-      'icon': Icons.trending_up_rounded,
+      'icon': HeroIcons.chartBar,
       'popular': true,
       'staffText': 'Admin + 2 Users',
       'included': [
@@ -121,7 +122,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       'name': 'MAX Pro',
       'rank': 3,
       'price': {'1': 529, '6': 2899, '12': 4299},
-      'icon': Icons.workspace_premium_rounded,
+      'icon': HeroIcons.academicCap,
       'staffText': 'Admin + 9 Users',
       'included': [
         'POS Billing',
@@ -319,7 +320,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -348,7 +349,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                       title: "Not Included",
                       features: selectedPlanData['excluded'],
                       color: kErrorColor,
-                      icon: Icons.cancel_rounded,
+                      icon: HeroIcons.xCircle,
                       isExcluded: true,
                     ),
                   if (selectedPlanData['excluded'].isNotEmpty)
@@ -359,7 +360,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                     features: selectedPlanData['included'],
                     staffText: selectedPlanData['staffText'],
                     color: kGoogleGreen,
-                    icon: Icons.check_circle_rounded,
+                    icon: HeroIcons.checkCircle,
                   ),
                   const SizedBox(height: 20),
                   // Compare Plans Button
@@ -407,7 +408,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(plan['icon'], color: isSelected ? kWhite : kPrimaryColor, size: 22),
+                  HeroIcon(plan['icon'] as HeroIcons, color: isSelected ? kWhite : kPrimaryColor, size: 22),
                   const SizedBox(height: 6),
                   Text(
                     plan['name'],
@@ -495,7 +496,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     required List<dynamic> features,
     String? staffText,
     required Color color,
-    required IconData icon,
+    required HeroIcons icon,
     bool isExcluded = false,
   }) {
     return Container(
@@ -511,7 +512,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: 18),
+              HeroIcon(icon, color: color, size: 18),
               const SizedBox(width: 10),
               Text(
                 title.toUpperCase(),
@@ -521,25 +522,25 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           ),
           const SizedBox(height: 16),
           if (!isExcluded && staffText != null)
-            _buildFeatureRow(staffText, kPrimaryColor, Icons.people_alt_rounded),
+            _buildFeatureRow(staffText, kPrimaryColor, HeroIcons.users),
 
           ...features.map((feature) => _buildFeatureRow(
               feature,
               kBlack87,
-              isExcluded ? Icons.remove_circle_outline_rounded : Icons.check_circle_outline_rounded
+              isExcluded ? HeroIcons.minusCircle : HeroIcons.checkCircle
           )),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureRow(String text, Color textColor, IconData icon) {
+  Widget _buildFeatureRow(String text, Color textColor, HeroIcons icon) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: textColor.withOpacity(0.3), size: 16),
+          HeroIcon(icon, color: textColor.withOpacity(0.3), size: 16),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -577,7 +578,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.compare_arrows_rounded, color: kPrimaryColor, size: 22),
+            const HeroIcon(HeroIcons.arrowsRightLeft, color: kPrimaryColor, size: 22),
             const SizedBox(width: 12),
             const Text(
               'COMPARE ALL PLANS',
@@ -589,7 +590,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.arrow_forward_ios_rounded, color: kPrimaryColor, size: 14),
+            const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 14),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 import 'package:maxbillup/models/cart_item.dart';
@@ -280,7 +281,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.scale, color: kPrimaryColor, size: 24),
+              child: const HeroIcon(HeroIcons.scale, color: kPrimaryColor, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -416,7 +417,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
+            child: const Text(
               'Cancel',
               style: TextStyle(
                 fontWeight: FontWeight.w700,
@@ -764,10 +765,13 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                  ),
                   suffixIcon: _searchFocusNode.hasFocus
                       ? IconButton(
-                    icon: const Icon(Icons.close, color: kPrimaryColor, size: 20),
+                    icon: const HeroIcon(HeroIcons.xMark, color: kPrimaryColor, size: 20),
                     onPressed: () {
                       _searchCtrl.clear();
                       _searchFocusNode.unfocus();
@@ -790,7 +794,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 color: kPrimaryColor,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.qr_code_scanner, color: kWhite, size: 22),
+              child: const HeroIcon(HeroIcons.qrCode, color: kWhite, size: 22),
             ),
           ),
         ],
@@ -837,10 +841,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 ),
                 child: Center(
                   child: cat == 'Favorite'
-                      ? Icon(
-                    Icons.favorite_rounded,
+                      ? HeroIcon(
+                    HeroIcons.star,
                     size: 16,
                     color: isSelected ? kWhite : kPrimaryColor,
+                    style: isSelected ? HeroIconStyle.solid : HeroIconStyle.outline,
                   )
                       : Text(
                     _formatCategoryName(cat),
@@ -939,8 +944,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.inventory_2_outlined,
+              child: const HeroIcon(
+                HeroIcons.archiveBox,
                 size: 60,
                 color: kPrimaryColor,
               ),
@@ -975,7 +980,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   ),
                 );
               },
-              icon: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
               label: const Text(
                 "Add Your First Product",
                 style: TextStyle(
@@ -1122,7 +1127,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             name,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                               height: 1.1,
@@ -1131,10 +1136,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           ),
                         ),
                         if (isFavorite)
-                          const Icon(
-                            Icons.favorite_outline_rounded,
+                          const HeroIcon(
+                            HeroIcons.star,
                             color: kPrimaryColor,
                             size: 13,
+                            style: HeroIconStyle.outline,
                           ),
                       ],
                     ),
@@ -1183,7 +1189,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           ),
                         ),
                         if (isLowStock && !isOutOfStock)
-                          Icon(Icons.warning_amber_rounded, size: 16, color: lowStockColor),
+                          const HeroIcon(HeroIcons.exclamationTriangle, size: 16, color: lowStockColor),
                       ],
                     ),
                   ],
@@ -1316,7 +1322,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 color: kOrange.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_rounded, color: kOrange, size: 24),
+              child: const HeroIcon(HeroIcons.exclamationTriangle, color: kOrange, size: 24),
             ),
             const SizedBox(width: 12),
             const Expanded(
@@ -1367,7 +1373,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 color: outOfStockColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.remove_shopping_cart_rounded, color: outOfStockColor, size: 24),
+              child: const HeroIcon(HeroIcons.shoppingCart, color: outOfStockColor, size: 24),
             ),
             const SizedBox(width: 12),
             const Expanded(

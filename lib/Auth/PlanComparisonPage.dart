@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Colors.dart';
 
 class PlanComparisonPage extends StatelessWidget {
@@ -37,7 +38,7 @@ class PlanComparisonPage extends StatelessWidget {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -135,8 +136,8 @@ class PlanComparisonPage extends StatelessWidget {
   Widget _buildValueCell(dynamic value) {
     if (value is bool) {
       return Center(
-        child: Icon(
-          value ? Icons.check : Icons.close,
+        child: HeroIcon(
+          value ? HeroIcons.check : HeroIcons.xMark,
           color: value ? kGoogleGreen : kErrorColor,
           size: 18,
         ),
@@ -156,4 +157,3 @@ class PlanComparisonPage extends StatelessWidget {
     }
   }
 }
-

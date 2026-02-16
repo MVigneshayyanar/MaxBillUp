@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/Sales/Saved.dart';
 import 'package:maxbillup/Sales/Quotation.dart';
@@ -174,7 +175,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(context.tr('edit_item'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
-                      GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, color: kBlack54, size: 24)),
+                      GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, color: kBlack54, size: 24)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -215,8 +216,8 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                         _removeSingleItem(idx);
                                       }
                                     },
-                                    icon: Icon(
-                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
+                                    icon: HeroIcon(
+                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? HeroIcons.trash : HeroIcons.minus,
                                       color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
                                       size: 20,
                                     ),
@@ -251,7 +252,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
                                       setDialogState(() => qtyController.text = newQty.toString());
                                     },
-                                    icon: const Icon(Icons.add_rounded, color: kPrimaryColor, size: 20),
+                                    icon: const HeroIcon(HeroIcons.plus, color: kPrimaryColor, size: 20),
                                   ),
                                 ],
                               ),
@@ -268,7 +269,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 16),
+                                    const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 16),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
@@ -356,7 +357,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 40),
+              const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 40),
               const SizedBox(height: 16),
               Text(context.tr('clear_cart'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
               const SizedBox(height: 12),
@@ -532,10 +533,10 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kPrimaryColor.withOpacity(0.2), width: 1.5),
                 ),
-                child: Icon(
+                child: HeroIcon(
                   _selectedCustomerName != null && _selectedCustomerName!.isNotEmpty
-                      ? Icons.person_rounded
-                      : Icons.person_add_rounded,
+                      ? HeroIcons.user
+                      : HeroIcons.userPlus,
                   color: kPrimaryColor,
                   size: 26,
                 ),
@@ -555,7 +556,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.description_rounded, color: kWhite, size: 20),
+                      const HeroIcon(HeroIcons.documentText, color: kWhite, size: 20),
                       const SizedBox(width: 12),
                       Text(
                         "$_currencySymbol${AmountFormatter.format(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0)}",
@@ -693,7 +694,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                   children: [
                                     Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.edit, color: kPrimaryColor, size: 20),
+                                    const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 20),
                                   ],
                                 ),
                               ),
@@ -723,13 +724,13 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     onTap: _handleClearCart,
                     child: Row(
                       children: [
-                        const Icon(Icons.delete_sweep_rounded, color: kErrorColor, size: 18),
+                        const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
                         const SizedBox(width: 4),
                         Text(context.tr('clear'), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 11)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.drag_handle_rounded, color: kGrey300, size: 24),
+                  const HeroIcon(HeroIcons.bars3, color: kGrey300, size: 24),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),

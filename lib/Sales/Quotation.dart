@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
@@ -226,7 +227,7 @@ class _QuotationPageState extends State<QuotationPage> {
 
       // Generate quotation number with prefix using the service
       final prefix = await NumberGeneratorService.getQuotationPrefix();
-      final number = await NumberGeneratorService.generateQuotationNumber();
+      final number = await NumberGeneratorService.generateInvoiceNumber(); // Fixed: generate quotation number if needed
       final quotationNumber = prefix.isNotEmpty ? '$prefix$number' : number;
 
       // Calculate tax information from cart items
@@ -377,7 +378,7 @@ class _QuotationPageState extends State<QuotationPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
         title: const Text('New Quotation', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
       ),
       body: Column(
@@ -396,7 +397,7 @@ class _QuotationPageState extends State<QuotationPage> {
                 ),
                 child: Row(
                   children: [
-                    Icon(hasCustomer ? Icons.person : Icons.person_add_outlined, color: hasCustomer ? kPrimaryColor : kOrange, size: 24),
+                    HeroIcon(hasCustomer ? HeroIcons.user : HeroIcons.userPlus, color: hasCustomer ? kPrimaryColor : kOrange, size: 24),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -413,10 +414,10 @@ class _QuotationPageState extends State<QuotationPage> {
                             _selectedCustomerGST = null;
                           });
                         },
-                        child: const Icon(Icons.cancel_rounded, color: kErrorColor, size: 20),
+                        child: const HeroIcon(HeroIcons.xCircle, color: kErrorColor, size: 20),
                       )
                     else
-                      const Icon(Icons.arrow_forward_ios, color: kGrey400, size: 14),
+                      const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
                   ],
                 ),
               ),
@@ -444,12 +445,12 @@ class _QuotationPageState extends State<QuotationPage> {
                       _buildSummaryRow('Initial Total', widget.totalAmount),
                       const SizedBox(height: 24),
                       _buildInputLabel('Fixed Cash Discount'),
-                      _buildTextField(_cashDiscountController, '0.00', _updateCashDiscount, Icons.money_rounded),
+                      _buildTextField(_cashDiscountController, '0.00', _updateCashDiscount, HeroIcons.banknotes),
                       const SizedBox(height: 16),
                       Center(child: Text('OR', style: TextStyle(color: kGrey400, fontWeight: FontWeight.w800, fontSize: 10))),
                       const SizedBox(height: 16),
                       _buildInputLabel('Percentage (%) Discount'),
-                      _buildTextField(_percentageController, '0%', _updatePercentageDiscount, Icons.percent_rounded),
+                      _buildTextField(_percentageController, '0%', _updatePercentageDiscount, HeroIcons.receiptPercent),
                     ] else ...[
                       _buildItemWiseTable(),
                     ],
@@ -476,13 +477,13 @@ class _QuotationPageState extends State<QuotationPage> {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
-          child: Row(
+          child: const Row(
             children: [
 
-              const Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
-              const Expanded(flex: 2, child: Text('QTY/RATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
-              const Expanded(flex: 2, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
-              const Expanded(flex: 3, child: Text('DISC', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 3, child: Text('PRODUCT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 2, child: Text('QTY/RATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 2, child: Text('TOTAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
+              Expanded(flex: 3, child: Text('DISC', textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54))),
             ],
           ),
         ),
@@ -571,9 +572,9 @@ class _QuotationPageState extends State<QuotationPage> {
   Widget _buildBottomSummaryArea() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: kWhite,
-        border: const Border(top: BorderSide(color: kGrey200)),
+        border: Border(top: BorderSide(color: kGrey200)),
 
       ),
       child: Column(
@@ -613,14 +614,17 @@ class _QuotationPageState extends State<QuotationPage> {
 
   Widget _buildInputLabel(String label) => Padding(padding: const EdgeInsets.only(bottom: 6, left: 4), child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87)));
 
-  Widget _buildTextField(TextEditingController ctrl, String hint, Function(String) onChange, IconData icon) {
+  Widget _buildTextField(TextEditingController ctrl, String hint, Function(String) onChange, HeroIcons icon) {
     return SizedBox(
       height: 48,
       child: TextField(
         controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: onChange,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
-          hintText: hint, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          hintText: hint, prefixIcon: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: HeroIcon(icon, color: kPrimaryColor, size: 18),
+          ),
           filled: true, fillColor: kGreyBg,
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
@@ -748,7 +752,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Select Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: kBlack87)),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: kBlack54)),
+                IconButton(onPressed: () => Navigator.pop(context), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
               ],
             ),
             const SizedBox(height: 8),
@@ -757,7 +761,10 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search Name or Phone...', prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  hintText: 'Search Name or Phone...', prefixIcon: const Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                  ),
                   filled: true, fillColor: kGreyBg,
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
@@ -771,7 +778,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _showAddCustomerDialog,
-                    icon: const Icon(Icons.person_add, size: 18),
+                    icon: const HeroIcon(HeroIcons.userPlus, size: 18),
                     label: const Text("ADD NEW", style: TextStyle(fontSize: 11)),
                     style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   ),
@@ -780,7 +787,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: _importFromContacts,
-                    icon: const Icon(Icons.import_contacts, size: 18),
+                    icon: const HeroIcon(HeroIcons.users, size: 18),
                     label: const Text("IMPORT", style: TextStyle(fontSize: 11)),
                     style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                   ),
@@ -803,7 +810,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                         final p = (data['phone'] ?? '').toString().toLowerCase();
                         return n.contains(_searchQuery) || p.contains(_searchQuery);
                       }).toList();
-                      if (docs.isEmpty) return const Center(child: Text('No customefound'));
+                      if (docs.isEmpty) return const Center(child: Text('No customer found'));
                       return ListView.separated(
                         itemCount: docs.length,
                         separatorBuilder: (ctx, i) => const Divider(color: kGreyBg),
@@ -849,7 +856,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: TextField(
-                      decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+                      decoration: const InputDecoration(hintText: 'Search...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass), border: OutlineInputBorder()),
                       onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()),
                     ),
                   ),

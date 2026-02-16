@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
@@ -306,8 +307,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                   color: kPrimaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.upload_file_rounded,
+                child: const HeroIcon(
+                  HeroIcons.documentPlus,
                   color: kPrimaryColor,
                   size: 48,
                 ),
@@ -376,7 +377,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                         ),
                                       ],
                                     ),
-                                    child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                    child: const HeroIcon(HeroIcons.checkCircle, color: Colors.white, size: 28),
                                   ),
                                   const SizedBox(width: 16),
                                   const Expanded(
@@ -413,7 +414,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                             color: kPrimaryColor,
                                             borderRadius: BorderRadius.circular(8),
                                           ),
-                                          child: const Icon(Icons.description, color: Colors.white, size: 20),
+                                          child: const HeroIcon(HeroIcons.documentText, color: Colors.white, size: 20),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
@@ -451,7 +452,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                     ),
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.folder_outlined, color: kGoogleGreen, size: 18),
+                                        HeroIcon(HeroIcons.folder, color: kGoogleGreen, size: 18),
                                         SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
@@ -485,7 +486,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         );
                       }
                   },
-                  icon: const Icon(Icons.download_rounded, size: 20),
+                  icon: const HeroIcon(HeroIcons.arrowDownTray, size: 20),
                   label: const Text(
                     'DOWNLOAD TEMPLATE',
                     style: TextStyle(
@@ -510,7 +511,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.upload_rounded, size: 20),
+                  icon: const HeroIcon(HeroIcons.arrowUpTray, size: 20),
                   label: const Text(
                     'UPLOAD EXCEL',
                     style: TextStyle(
@@ -571,8 +572,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                       color: kPrimaryColor.withValues(alpha: 0.1),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(
-                                      Icons.upload_file_rounded,
+                                    child: const HeroIcon(
+                                      HeroIcons.documentPlus,
                                       color: kPrimaryColor,
                                       size: 32,
                                     ),
@@ -653,7 +654,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                  child: const HeroIcon(HeroIcons.checkCircle, color: Colors.white, size: 28),
                                 ),
                                 const SizedBox(width: 16),
                                 const Expanded(
@@ -678,7 +679,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.person_add_rounded, color: kGoogleGreen, size: 24),
+                                      const HeroIcon(HeroIcons.userPlus, color: kGoogleGreen, size: 24),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
@@ -703,7 +704,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.warning_rounded, color: kOrange, size: 24),
+                                        const HeroIcon(HeroIcons.exclamationTriangle, color: kOrange, size: 24),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
@@ -837,7 +838,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 color: kErrorColor.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 48),
+              child: const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 48),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -910,25 +911,25 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         ),
         backgroundColor: _primaryColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white, size: 22),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
         elevation: 0,
         actions: widget.isEditMode ? [
           IconButton(
-            icon: const Icon(Icons.delete_rounded, color: Colors.white),
+            icon: const HeroIcon(HeroIcons.trash, color: Colors.white),
             onPressed: () => _confirmDeleteCustomer(context),
             tooltip: 'Delete Customer',
           ),
         ] : [
           IconButton(
-            icon: const Icon(Icons.file_upload_outlined, color: Colors.white, size: 22),
+            icon: const HeroIcon(HeroIcons.documentArrowUp, color: Colors.white, size: 22),
             onPressed: () => _showImportExcelDialog(),
             tooltip: 'Import from Excel',
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+            icon: const HeroIcon(HeroIcons.ellipsisVertical, color: Colors.white),
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -946,7 +947,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 value: 'contacts',
                 child: Row(
                   children: [
-                    Icon(Icons.contacts_rounded, color: _primaryColor, size: 20),
+                    HeroIcon(HeroIcons.users, color: _primaryColor, size: 20),
                     SizedBox(width: 12),
                     Text('Import from Contacts', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
@@ -956,7 +957,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 value: 'excel',
                 child: Row(
                   children: [
-                    Icon(Icons.table_chart_rounded, color: _successColor, size: 20),
+                    HeroIcon(HeroIcons.tableCells, color: _successColor, size: 20),
                     SizedBox(width: 12),
                     Text('Import from Excel', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
                   ],
@@ -980,7 +981,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     controller: _phoneController,
                     label: 'Phone Number',
                     hint: 'Enter phone number',
-                    icon: Icons.phone_android_rounded,
+                    icon: HeroIcons.phone,
                     keyboardType: TextInputType.phone,
                     isRequired: true,
                   ),
@@ -989,7 +990,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     controller: _nameController,
                     label: 'Name',
                     hint: 'Enter name',
-                    icon: Icons.person_rounded,
+                    icon: HeroIcons.user,
                     isRequired: true,
                   ),
                   const SizedBox(height: 24),
@@ -1006,14 +1007,14 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           controller: _gstinController,
                           label: 'Tax No',
                           hint: 'Enter Tax No',
-                          icon: Icons.receipt_long_rounded,
+                          icon: HeroIcons.receiptRefund,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
                           controller: _addressController,
                           label: 'Address',
                           hint: 'Enter address',
-                          icon: Icons.location_on_rounded,
+                          icon: HeroIcons.mapPin,
                           maxLines: 3,
                         ),
                         const SizedBox(height: 16),
@@ -1021,7 +1022,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           controller: _discountController,
                           label: 'Default Discount %',
                           hint: '0',
-                          icon: Icons.percent_rounded,
+                          icon: HeroIcons.receiptPercent,
                           iconColor: kGoogleGreen,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
@@ -1031,7 +1032,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           controller: _lastDueController,
                           label: 'Last Due',
                           hint: '0.00',
-                          icon: Icons.currency_rupee_rounded,
+                          icon: HeroIcons.banknotes,
                           iconColor: kOrange,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         ),
@@ -1053,7 +1054,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.cake_rounded, color: _primaryColor, size: 20),
+                                const HeroIcon(HeroIcons.cake, color: _primaryColor, size: 20),
                                 const SizedBox(width: 12),
                                 Text(
                                   _selectedDOB != null
@@ -1101,7 +1102,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.star_rounded, color: kOrange, size: 20),
+          const HeroIcon(HeroIcons.star, color: kOrange, size: 20, style: HeroIconStyle.solid),
           const SizedBox(width: 12),
           const Text(
             'Rating:',
@@ -1123,10 +1124,11 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Icon(
-                  index < _selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                child: HeroIcon(
+                  HeroIcons.star,
                   size: 28,
                   color: index < _selectedRating ? kOrange : kGrey300,
+                  style: index < _selectedRating ? HeroIconStyle.solid : HeroIconStyle.outline,
                 ),
               ),
             );
@@ -1140,8 +1142,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                   _selectedRating = 0;
                 });
               },
-              child: const Icon(
-                Icons.clear_rounded,
+              child: const HeroIcon(
+                HeroIcons.xMark,
                 size: 20,
                 color: kGrey400,
               ),
@@ -1171,7 +1173,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     required TextEditingController controller,
     required String label,
     required String hint,
-    required IconData icon,
+    required HeroIcons icon,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
@@ -1190,7 +1192,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             labelText: label,
             hintText: hint,
             hintStyle: const TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.normal),
-            prefixIcon: Icon(icon, color: iconColor ?? _primaryColor, size: 20),
+            prefixIcon: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: HeroIcon(icon, color: iconColor ?? _primaryColor, size: 20),
+            ),
             filled: true,
             fillColor: kGreyBg,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1260,4 +1265,3 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     );
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 
@@ -58,10 +59,10 @@ class SaleAppBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: kGrey200),
                 ),
-                child: const Icon(Icons.arrow_back, color: kBlack87, size: 16),
+                child: const HeroIcon(HeroIcons.arrowLeft, color: kBlack87, size: 16),
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
           ],
 
           Expanded(

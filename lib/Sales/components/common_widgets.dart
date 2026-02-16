@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
@@ -55,8 +56,8 @@ class CommonWidgets {
             // Save order button with order name display
             _buildActionIconButtonWithText(
               savedOrderName != null && savedOrderName.isNotEmpty
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_add_outlined,
+                  ? HeroIcons.bookmark
+                  : HeroIcons.bookmark,
               onSaveOrder,
               savedOrderName != null && savedOrderName.isNotEmpty ? kOrange : kPrimaryColor,
               savedOrderName,
@@ -66,7 +67,7 @@ class CommonWidgets {
             // Customer button
             if (onCustomer != null) ...[
               _buildActionIconButton(
-                customerName != null && customerName.isNotEmpty ? Icons.person_rounded : Icons.person_add_rounded,
+                customerName != null && customerName.isNotEmpty ? HeroIcons.user : HeroIcons.userPlus,
                 onCustomer,
                 customerName != null && customerName.isNotEmpty ? kOrange : kPrimaryColor,
               ),
@@ -88,7 +89,7 @@ class CommonWidgets {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.receipt_long_rounded, color: kWhite, size: 18),
+                    const HeroIcon(HeroIcons.receiptRefund, color: kWhite, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       "$currencySymbol${AmountFormatter.format(totalBill)}",
@@ -111,7 +112,7 @@ class CommonWidgets {
     );
   }
 
-  static Widget _buildActionIconButton(IconData icon, VoidCallback onTap, Color color) {
+  static Widget _buildActionIconButton(HeroIcons icon, VoidCallback onTap, Color color) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -123,12 +124,12 @@ class CommonWidgets {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withOpacity(0.2), width: 1.5),
         ),
-        child: Icon(icon, color: color, size: 22),
+        child: HeroIcon(icon, color: color, size: 22),
       ),
     );
   }
 
-  static Widget _buildActionIconButtonWithText(IconData icon, VoidCallback onTap, Color color, String? text) {
+  static Widget _buildActionIconButtonWithText(HeroIcons icon, VoidCallback onTap, Color color, String? text) {
     if (text == null || text.isEmpty) {
       return _buildActionIconButton(icon, onTap, color);
     }
@@ -147,7 +148,7 @@ class CommonWidgets {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: color, size: 20),
+            HeroIcon(icon, color: color, size: 20),
             const SizedBox(width: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 120),
@@ -207,7 +208,7 @@ class CommonWidgets {
             _buildDialogField(
               controller: orderNameCtrl,
               label: 'Order Name',
-              icon: Icons.bookmark_outline_rounded,
+              icon: HeroIcons.bookmark,
             ),
           ],
         ),
@@ -261,7 +262,7 @@ class CommonWidgets {
     );
   }
 
-  static Widget _buildDialogField({required TextEditingController controller, required String label, required IconData icon, TextInputType? keyboardType, Function(String)? onChanged}) {
+  static Widget _buildDialogField({required TextEditingController controller, required String label, required HeroIcons icon, TextInputType? keyboardType, Function(String)? onChanged}) {
     return Container(
       decoration: BoxDecoration(
         color: kGreyBg,
@@ -275,7 +276,10 @@ class CommonWidgets {
         style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          prefixIcon: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: HeroIcon(icon, color: kPrimaryColor, size: 18),
+          ),
           labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -391,7 +395,7 @@ class CommonWidgets {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text('SELECT CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
-                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded, color: kBlack54)),
+                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -403,20 +407,23 @@ class CommonWidgets {
                           child: TextField(
                             controller: searchController,
                             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            decoration: InputDecoration(
-                              hintText: context.tr('search'),
-                              prefixIcon: const Icon(Icons.search_rounded, color: kPrimaryColor),
+                            decoration: const InputDecoration(
+                              hintText: 'Search...',
+                              prefixIcon: Padding(
+                                padding: EdgeInsets.all(12.0),
+                                child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
+                              ),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
                             onChanged: (value) => setDialogState(() => searchQuery = value.toLowerCase()),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      _squareActionBtn(Icons.person_add_alt_1_rounded, () { Navigator.pop(ctx); _showAddCustomerDialog(context, onCustomerSelected); }, kPrimaryColor),
+                      _squareActionBtn(HeroIcons.userPlus, () { Navigator.pop(ctx); _showAddCustomerDialog(context, onCustomerSelected); }, kPrimaryColor),
                       const SizedBox(width: 8),
-                      _squareActionBtn(Icons.contact_phone_rounded, () { Navigator.pop(ctx); _importFromContacts(context, onCustomerSelected); }, kGoogleGreen),
+                      _squareActionBtn(HeroIcons.phone, () { Navigator.pop(ctx); _importFromContacts(context, onCustomerSelected); }, kGoogleGreen),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -428,7 +435,7 @@ class CommonWidgets {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                           decoration: BoxDecoration(color: kErrorColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                          child: const Row(children: [Icon(Icons.link_off_rounded, size: 16, color: kErrorColor), SizedBox(width: 12), Text('Unassign Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12))]),
+                          child: const Row(children: [HeroIcon(HeroIcons.link, size: 16, color: kErrorColor), SizedBox(width: 12), Text('Unassign Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12))]),
                         ),
                       ),
                     ),
@@ -474,10 +481,11 @@ class CommonWidgets {
                                       if (rating > 0) ...[
                                         const SizedBox(height: 2),
                                         Row(
-                                          children: List.generate(5, (i) => Icon(
-                                            i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                          children: List.generate(5, (i) => HeroIcon(
+                                            HeroIcons.star,
                                             size: 12,
                                             color: i < rating ? kOrange : kGrey300,
+                                            style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
                                           )),
                                         ),
                                       ],
@@ -512,14 +520,14 @@ class CommonWidgets {
     );
   }
 
-  static Widget _squareActionBtn(IconData icon, VoidCallback onTap, Color color) {
+  static Widget _squareActionBtn(HeroIcons icon, VoidCallback onTap, Color color) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         height: 48, width: 48,
         decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
-        child: Icon(icon, color: color, size: 20),
+        child: HeroIcon(icon, color: color, size: 20),
       ),
     );
   }
@@ -546,7 +554,7 @@ class CommonWidgets {
                 _buildDialogField(
                   controller: phoneCtrl,
                   label: 'Phone Number',
-                  icon: Icons.phone_android_rounded,
+                  icon: HeroIcons.phone,
                   keyboardType: TextInputType.phone,
                   onChanged: (value) async {
                     if (value.length >= 10) {
@@ -589,7 +597,7 @@ class CommonWidgets {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.info_outline, color: kOrange, size: 18),
+                          HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -600,11 +608,11 @@ class CommonWidgets {
                         ],
                       ),
                     ),
-                  _buildDialogField(controller: nameCtrl, label: 'Full Name', icon: Icons.person_rounded),
+                  _buildDialogField(controller: nameCtrl, label: 'Full Name', icon: HeroIcons.user),
                   const SizedBox(height: 12),
-                  _buildDialogField(controller: gstCtrl, label: 'GST Number (Optional)', icon: Icons.description_rounded),
+                  _buildDialogField(controller: gstCtrl, label: 'GST Number (Optional)', icon: HeroIcons.documentText),
                   const SizedBox(height: 12),
-                  _buildDialogField(controller: balanceCtrl, label: 'Last Due Amount', icon: Icons.account_balance_wallet_rounded, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                  _buildDialogField(controller: balanceCtrl, label: 'Last Due Amount', icon: HeroIcons.wallet, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                 ],
               ],
             ),
@@ -680,8 +688,11 @@ class CommonWidgets {
               height: 550, padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('IMPORT CONTACT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close_rounded))]),
-                  Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Icon(Icons.search_rounded, color: kPrimaryColor), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)), onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()))),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('IMPORT CONTACT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark))]),
+                  Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Padding(
+                    padding: EdgeInsets.all(12.0),
+                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
+                  ), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)), onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()))),
                   const SizedBox(height: 12),
                   Expanded(
                     child: ListView.separated(
@@ -694,7 +705,7 @@ class CommonWidgets {
                           title: Text(c.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                           subtitle: Text(phone, style: const TextStyle(fontSize: 12, color: kBlack54)),
                           onTap: phone.isNotEmpty ? () { Navigator.pop(ctx); _showAddCustomerDialogWithPrefill(context, onCustomerSelected, prefillName: c.displayName, prefillPhone: phone); } : null,
-                          trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: kGrey400),
+                          trailing: const HeroIcon(HeroIcons.chevronRight, size: 18, color: kGrey400),
                         );
                       },
                     ),
@@ -749,7 +760,7 @@ class CommonWidgets {
               _buildDialogField(
                 controller: phoneCtrl,
                 label: 'Phone Number',
-                icon: Icons.phone_android_rounded,
+                icon: HeroIcons.phone,
                 keyboardType: TextInputType.phone,
                 onChanged: (value) async {
                   if (value.length >= 10) {
@@ -792,7 +803,7 @@ class CommonWidgets {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.info_outline, color: kOrange, size: 18),
+                        HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -803,11 +814,11 @@ class CommonWidgets {
                       ],
                     ),
                   ),
-                _buildDialogField(controller: nameCtrl, label: 'Name', icon: Icons.person_rounded),
+                _buildDialogField(controller: nameCtrl, label: 'Name', icon: HeroIcons.user),
                 const SizedBox(height: 12),
-                _buildDialogField(controller: gstCtrl, label: 'GST (Optional)', icon: Icons.description_rounded),
+                _buildDialogField(controller: gstCtrl, label: 'GST (Optional)', icon: HeroIcons.documentText),
                 const SizedBox(height: 12),
-                _buildDialogField(controller: balanceCtrl, label: 'Last Due', icon: Icons.account_balance_wallet_rounded, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+                _buildDialogField(controller: balanceCtrl, label: 'Last Due', icon: HeroIcons.wallet, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
               ],
             ],
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/Sales/QuickSale.dart';
 import 'package:maxbillup/Sales/Saved.dart';
 import 'package:maxbillup/Sales/components/sale_app_bar.dart';
@@ -226,7 +227,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               controller: nameController,
               decoration: InputDecoration(
                 labelText: 'Customer Name',
-                prefixIcon: const Icon(Icons.person_outline, color: kPrimaryColor),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: HeroIcon(HeroIcons.user, color: kPrimaryColor, size: 20),
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -240,7 +244,10 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
                 labelText: 'Phone Number',
-                prefixIcon: const Icon(Icons.phone_outlined, color: kPrimaryColor),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.all(12.0),
+                  child: HeroIcon(HeroIcons.phone, color: kPrimaryColor, size: 20),
+                ),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -388,7 +395,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   void _showEditCartItemDialog(int idx) async {
-    final item = _sharedCartItems![idx];
+    final cartService = Provider.of<CartService>(context, listen: false);
+    final cartItems = cartService.cartItems;
+
+    if (idx < 0 || idx >= cartItems.length) return;
+
+    final item = cartItems[idx];
     final nameController = TextEditingController(text: item.name);
     final priceController = TextEditingController(text: item.price.toString());
     final qtyController = TextEditingController(text: item.quantity.toString());
@@ -426,7 +438,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               children: [
                 const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: const HeroIcon(HeroIcons.xMark, color: Colors.grey),
                   onPressed: () => Navigator.of(context).pop(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -480,8 +492,8 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                         _removeSingleItem(idx);
                                       }
                                     },
-                                    icon: Icon(
-                                      (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? Icons.delete_outline : Icons.remove,
+                                    icon: HeroIcon(
+                                      (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? HeroIcons.trash : HeroIcons.minus,
                                       color: (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? kErrorColor : kPrimaryColor,
                                       size: 20,
                                     ),
@@ -520,7 +532,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
 
                                       setDialogState(() => qtyController.text = newQty.toStringAsFixed(newQty < 1 ? 3 : 1).replaceAll(RegExp(r'\.?0+$'), ''));
                                     },
-                                    icon: const Icon(Icons.add, color: kPrimaryColor, size: 20),
+                                    icon: const HeroIcon(HeroIcons.plus, color: kPrimaryColor, size: 20),
                                   ),
                                 ],
                               ),
@@ -537,7 +549,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 16),
+                                    const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 16),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
@@ -571,7 +583,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                       Navigator.of(context).pop();
                       _removeSingleItem(idx);
                     },
-                    icon: const Icon(Icons.delete_outline, color: kErrorColor, size: 18),
+                    icon: const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
                     label: const Text('Remove', style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold)),
                   ),
                   ElevatedButton(
@@ -949,7 +961,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                       child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
                                     ),
                                     const SizedBox(width: 4),
-                                    const Icon(Icons.edit, color: kPrimaryColor, size: 20),
+                                    const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 20),
                                   ],
                                 ),
                               ),
@@ -993,13 +1005,13 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                     onTap: _handleClearCart,
                     child: Row(
                       children: [
-                        const Icon(Icons.delete_sweep_outlined, color: Colors.redAccent, size: 18),
+                        const HeroIcon(HeroIcons.trash, color: Colors.redAccent, size: 18),
                         const SizedBox(width: 4),
                         Text('Clear', style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontWeight: FontWeight.w800, fontSize: 13)),
                       ],
                     ),
                   ),
-                  const Icon(Icons.drag_handle_rounded, color: Colors.grey, size: 24),
+                  const HeroIcon(HeroIcons.bars3, color: Colors.grey, size: 24),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
@@ -1017,4 +1029,3 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
     );
   }
 }
-

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -57,11 +58,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Delete Customer", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kBlack87)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ],
               ),
               const SizedBox(height: 24),
-              const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 48),
+              const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 48),
               const SizedBox(height: 16),
               const Text("This action cannot be undone. All customer data and credit history will be removed.",
                   textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 14, height: 1.4)),
@@ -103,13 +104,13 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Edit Details", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ],
               ),
               const SizedBox(height: 24),
-              _buildPopupTextField(controller: nameController, label: "Name", icon: Icons.person_outline),
+              _buildPopupTextField(controller: nameController, label: "Name", icon: HeroIcons.user),
               const SizedBox(height: 16),
-              _buildPopupTextField(controller: gstController, label: "GST Number", icon: Icons.description_outlined),
+              _buildPopupTextField(controller: gstController, label: "GST Number", icon: HeroIcons.documentText),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity, height: 50,
@@ -151,17 +152,17 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text("Add Sales Credit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close, size: 24, color: kBlack54)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ],
               ),
-              const SizedBox(height: 24), _buildPopupTextField(controller: amountController, label: "Amount to Add", icon: Icons.add_moderator, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
+              const SizedBox(height: 24), _buildPopupTextField(controller: amountController, label: "Amount to Add", icon: HeroIcons.plusCircle, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildPaymentToggle("Cash", Icons.payments_outlined, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
-                  _buildPaymentToggle("Online", Icons.qr_code_scanner_rounded, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
-                  _buildPaymentToggle("Waive", Icons.handshake_outlined, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
+                  _buildPaymentToggle("Cash", HeroIcons.banknotes, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
+                  _buildPaymentToggle("Online", HeroIcons.qrCode, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
+                  _buildPaymentToggle("Waive", HeroIcons.handRaised, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
                 ],
               ),
               const SizedBox(height: 32),
@@ -188,14 +189,17 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
   // --- UI COMPONENTS ---
 
-  Widget _buildPopupTextField({required TextEditingController controller, required String label, required IconData icon, TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
+  Widget _buildPopupTextField({required TextEditingController controller, required String label, required HeroIcons icon, TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: kBlack87),
       decoration: InputDecoration(
-        labelText: label, prefixIcon: Icon(icon, color: kPrimaryColor, size: 20),
+        labelText: label, prefixIcon: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: HeroIcon(icon, color: kPrimaryColor, size: 20),
+        ),
         filled: true, fillColor: kGreyBg, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
@@ -203,7 +207,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
-  Widget _buildPaymentToggle(String label, IconData icon, String selected, Function(String) onSelect) {
+  Widget _buildPaymentToggle(String label, HeroIcons icon, String selected, Function(String) onSelect) {
     bool isActive = selected == label;
     return GestureDetector(
       onTap: () => onSelect(label),
@@ -216,7 +220,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             shape: BoxShape.circle,
             border: Border.all(color: isActive ? kPrimaryColor : kGrey200, width: 1.5),
           ),
-          child: Icon(icon, color: isActive ? kWhite : kBlack54, size: 22),
+          child: Center(child: HeroIcon(icon, color: isActive ? kWhite : kBlack54, size: 22)),
         ),
         const SizedBox(height: 8),
         Text(label, style: TextStyle(fontSize: 11, fontWeight: isActive ? FontWeight.w600 : FontWeight.w500, color: isActive ? kPrimaryColor : kBlack54)),
@@ -236,7 +240,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.star_rounded, color: kOrange, size: 18),
+          const HeroIcon(HeroIcons.star, color: kOrange, size: 18, style: HeroIconStyle.solid),
           const SizedBox(width: 8),
           const Text(
             'Customer Rating:',
@@ -247,10 +251,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             ),
           ),
           const SizedBox(width: 12),
-          ...List.generate(5, (i) => Icon(
-            i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+          ...List.generate(5, (i) => HeroIcon(
+            HeroIcons.star,
             size: 18,
             color: i < rating ? kOrange : kGrey300,
+            style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
           )),
         ],
       ),
@@ -340,10 +345,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        child: HeroIcon(
+                          HeroIcons.star,
                           size: 40,
                           color: index < selectedRating ? kOrange : kGrey300,
+                          style: index < selectedRating ? HeroIconStyle.solid : HeroIconStyle.outline,
                         ),
                       ),
                     );
@@ -451,7 +457,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                  const HeroIcon(HeroIcons.star, color: kOrange, size: 20, style: HeroIconStyle.solid),
                   const SizedBox(width: 8),
                   Text(
                     'Customer rated $rating star${rating > 1 ? 's' : ''}',
@@ -597,7 +603,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         iconTheme: const IconThemeData(color: kWhite),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_rounded, color: Colors.white),
+            icon: const HeroIcon(HeroIcons.trash, color: Colors.white),
             onPressed: () => _confirmDelete(context),
             tooltip: 'Delete Customer',
           ),
@@ -625,12 +631,12 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                                 CircleAvatar(
                                   backgroundColor: kOrange.withValues(alpha: 0.1),
                                   radius: 24,
-                                  child: const Icon(Icons.person, color: kOrange, size: 24),
+                                  child: const HeroIcon(HeroIcons.user, color: kOrange, size: 24),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(child: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kOrange))),
                                 IconButton(
-                                  icon: const Icon(Icons.edit_rounded, color: kPrimaryColor, size: 24),
+                                  icon: const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 24),
                                   onPressed: () => _navigateToEditCustomer(context, data)
                                 ),
                               ],
@@ -639,15 +645,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                             // Customer Rating Display
                             _buildRatingSection(data),
                             const Divider(height: 32, color: kGrey100),
-                            _buildInfoRow(Icons.phone_android_rounded, "Phone", data['phone'] ?? '--'),
+                            _buildInfoRow(HeroIcons.phone, "Phone", data['phone'] ?? '--'),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.description_outlined, "GST No", data['gst'] ?? data['gstin'] ?? 'Not Provided'),
+                            _buildInfoRow(HeroIcons.documentText, "GST No", data['gst'] ?? data['gstin'] ?? 'Not Provided'),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.location_on_rounded, "Address", data['address'] ?? 'Not Provided'),
+                            _buildInfoRow(HeroIcons.mapPin, "Address", data['address'] ?? 'Not Provided'),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.percent_rounded, "Default Discount", "${(data['defaultDiscount'] ?? 0).toString()}%"),
+                            _buildInfoRow(HeroIcons.receiptPercent, "Default Discount", "${(data['defaultDiscount'] ?? 0).toString()}%"),
                             const SizedBox(height: 10),
-                            _buildInfoRow(Icons.cake_rounded, "Date of Birth", _formatDOB(data['dob'])),
+                            _buildInfoRow(HeroIcons.cake, "Date of Birth", _formatDOB(data['dob'])),
                             const SizedBox(height: 24),
                             Row(children: [
                               _buildStatBox("Total Sales", totalSales, kGoogleGreen),
@@ -658,11 +664,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildMenuItem(context, "Bill History", Icons.receipt_long_rounded),
+                      _buildMenuItem(context, "Bill History", HeroIcons.receiptRefund),
                       const SizedBox(height: 10),
-                      _buildMenuItem(context, "Payment History", Icons.history_rounded),
+                      _buildMenuItem(context, "Payment History", HeroIcons.clock),
                       const SizedBox(height: 10),
-                      _buildMenuItem(context, "Ledger Account", Icons.account_balance_rounded),
+                      _buildMenuItem(context, "Ledger Account", HeroIcons.buildingLibrary),
                       const SizedBox(height: 80), // Space for FAB
                     ],
                   ),
@@ -700,9 +706,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     return 'Not Provided';
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(HeroIcons icon, String label, String value) {
     return Row(children: [
-      Icon(icon, size: 16, color: kBlack54),
+      HeroIcon(icon, size: 16, color: kBlack54),
       const SizedBox(width: 10),
       Text("$label: ", style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
       Text(value, style: const TextStyle(color: kBlack87, fontSize: 13, fontWeight: FontWeight.w700)),
@@ -726,14 +732,14 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, String title, IconData icon) {
+  Widget _buildMenuItem(BuildContext context, String title, HeroIcons icon) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ListTile(
-        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: Icon(icon, color: kPrimaryColor, size: 20)),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, color: kPrimaryColor, size: 20)),
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+        trailing: const HeroIcon(HeroIcons.chevronRight, size: 14, color: kGrey400),
         onTap: () {
           if (title=="Bill History") Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
@@ -1038,7 +1044,7 @@ class CustomerCreditsPage extends StatelessWidget {
         future: _fetchCredits(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.clock, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
           final docs = snapshot.data!.docs.toList();
           // Sort by timestamp descending (latest first)
           docs.sort((a, b) {
@@ -1061,32 +1067,32 @@ class CustomerCreditsPage extends StatelessWidget {
 
               String title;
               Color color;
-              IconData icon;
+              HeroIcons icon;
 
               if (isPaymentReceived) {
                 title = "Payment Received";
                 color = kGoogleGreen;
-                icon = Icons.arrow_downward;
+                icon = HeroIcons.arrowDown;
               } else if (isSalePayment) {
                 title = "Sale Payment";
                 color = kGoogleGreen;
-                icon = Icons.shopping_bag_rounded;
+                icon = HeroIcons.shoppingBag;
               } else if (isCreditSale) {
                 title = "Credit Sale";
                 color = kOrange;
-                icon = Icons.receipt_long_rounded;
+                icon = HeroIcons.receiptRefund;
               } else {
                 title = "Credit Added";
                 color = kErrorColor;
-                icon = Icons.arrow_upward;
+                icon = HeroIcons.arrowUp;
               }
 
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: Icon(icon, color: color, size: 16)),
+                  leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
                   title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
                 ),
               );
@@ -1107,4 +1113,3 @@ class CustomerCreditsPage extends StatelessWidget {
     }
   }
 }
-

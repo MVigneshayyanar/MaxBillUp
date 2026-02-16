@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 
@@ -38,7 +39,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
             onPressed: widget.onBack,
           ),
         ),
@@ -213,7 +214,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.schedule_rounded, size: 12, color: kBlack54.withOpacity(0.6)),
+                        HeroIcon(HeroIcons.clock, size: 12, color: kBlack54.withOpacity(0.6)),
                         const SizedBox(width: 4),
                         Text(timeAgo, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600)),
                       ],
@@ -243,7 +244,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                       style: TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: kPrimaryColor),
+                    const HeroIcon(HeroIcons.chevronRight, size: 10, color: kPrimaryColor),
                   ],
                 ),
               ],
@@ -298,7 +299,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(_getCategoryIcon(category), size: 12, color: categoryColor),
+                          HeroIcon(_getCategoryIcon(category), size: 12, color: categoryColor),
                           const SizedBox(width: 6),
                           Text(category.toUpperCase(), style: TextStyle(color: categoryColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         ],
@@ -310,7 +311,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_rounded, size: 12, color: kBlack54),
+                      const HeroIcon(HeroIcons.calendar, size: 12, color: kBlack54),
                       const SizedBox(width: 6),
                       Text(formattedDate, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
                     ],
@@ -351,7 +352,7 @@ class _KnowledgePageState extends State<KnowledgePage> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, border: Border.all(color: kGrey200)),
-            child: Icon(Icons.lightbulb_outline_rounded, size: 48, color: kBlack54.withOpacity(0.2)),
+            child: HeroIcon(HeroIcons.lightBulb, size: 48, color: kBlack54.withOpacity(0.2)),
           ),
           const SizedBox(height: 24),
           const Text('No knowledge posts yet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87)),
@@ -372,13 +373,13 @@ class _KnowledgePageState extends State<KnowledgePage> {
     }
   }
 
-  IconData _getCategoryIcon(String category) {
+  HeroIcons _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
-      case 'tutorial': return Icons.auto_stories_rounded;
-      case 'faq': return Icons.help_center_rounded;
-      case 'tips': return Icons.tips_and_updates_rounded;
-      case 'updates': return Icons.new_releases_rounded;
-      default: return Icons.info_rounded;
+      case 'tutorial': return HeroIcons.bookOpen;
+      case 'faq': return HeroIcons.questionMarkCircle;
+      case 'tips': return HeroIcons.lightBulb;
+      case 'updates': return HeroIcons.sparkles;
+      default: return HeroIcons.informationCircle;
     }
   }
 

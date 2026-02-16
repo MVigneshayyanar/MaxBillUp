@@ -26,6 +26,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:heroicons/heroicons.dart';
 
 // Invoice Template Types
 enum InvoiceTemplate {
@@ -2095,7 +2096,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 final qty = item['quantity'] ?? 1;
                 final price = (item['price'] ?? 0.0).toDouble();
                 final total = (item['total'] ?? 0.0).toDouble();
-                final taxPerc = (item['taxPercentage'] ?? 0).toInt();
+                final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
 
                 // Build item name with tax percentage if applicable
                 String displayName = _thermalShowTaxColumn && taxPerc > 0 ? '$name $taxPerc% Tax' : name;
@@ -2337,10 +2338,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Expanded(flex: 5, child: Text('Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-          Expanded(flex: 2, child: Text('Qty', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('Rate', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.center)),
-          Expanded(flex: 3, child: Text('Total', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700), textAlign: TextAlign.right)),
+          SizedBox(width: 24, child: Text('SN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack87))),
+          Expanded(flex: 4, child: Text('Item', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack87))),
+          SizedBox(width: 32, child: Text('Qty', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack87), textAlign: TextAlign.center)),
+          Expanded(flex: 2, child: Text('Price', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack87), textAlign: TextAlign.right)),
+          Expanded(flex: 2, child: Text('Amt', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack87), textAlign: TextAlign.right)),
         ],
       ),
     );
@@ -2351,6 +2353,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     final qty = item['quantity'] ?? 1;
     final price = (item['price'] ?? 0.0).toDouble();
     final total = (item['total'] ?? 0.0).toDouble();
+    final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -3022,6 +3026,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             pw.Text(businessLocation, style: pw.TextStyle(fontSize: 10, color: PdfColors.white)),
                           if (_showPhone && businessPhone.isNotEmpty)
                             pw.Text('Tel: $businessPhone', style: pw.TextStyle(fontSize: 10, color: PdfColors.white)),
+                          if (_showEmail && businessEmail != null && businessEmail!.isNotEmpty)
+                            pw.Text('Email: $businessEmail', style: pw.TextStyle(fontSize: 10, color: PdfColors.white)),
                           if (_showGST && businessGSTIN != null)
                             pw.Text('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN', style: pw.TextStyle(fontSize: 10, color: PdfColors.white, fontWeight: pw.FontWeight.bold)),
                           if (_a4ShowLicense && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty)
@@ -3029,24 +3035,34 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                         ],
                       ),
                     ),
+                    // Invoice Info
+                    Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE',
+                            style: TextStyle(color: themeColor, fontSize: 12, fontWeight: FontWeight.w900),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '#${widget.invoiceNumber}',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                        ),
+                        Text(
+                          dateStr,
+                          style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(180)),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
-              ),
-              pw.SizedBox(height: 20),
-
-              // Invoice info
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                      pw.Text('Date: $dateStr', style: const pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
-                ],
               ),
               pw.SizedBox(height: 20),
 
