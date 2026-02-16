@@ -437,8 +437,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        child: HeroIcon(
+                          HeroIcons.star,
+                          style: index < selectedRating ? HeroIconStyle.solid : HeroIconStyle.outline,
                           size: 40,
                           color: index < selectedRating ? kOrange : kGrey300,
                         ),
@@ -549,7 +550,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                const HeroIcon(HeroIcons.star, style: HeroIconStyle.solid, color: kOrange, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Customer rated $rating star${rating > 1 ? 's' : ''}',
@@ -779,7 +780,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: kWhite, size: 18),
+          icon: const HeroIcon(HeroIcons.xMark, color: kWhite, size: 18),
           onPressed: () => Navigator.pushAndRemoveUntil(
             context,
             CupertinoPageRoute(builder: (context) => NewSalePage(uid: widget.uid, userEmail: widget.userEmail)),
@@ -788,7 +789,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.cog6Tooth, color: kWhite, size: 20),
             onPressed: _showInvoiceSettings,
           )
         ],
@@ -3036,28 +3037,28 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       ),
                     ),
                     // Invoice Info
-                    Column(
+                    pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.end,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(4),
+                        pw.Container(
+                          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.white,
+                            borderRadius: pw.BorderRadius.circular(4),
                           ),
-                          child: Text(
+                          child: pw.Text(
                             widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE',
-                            style: TextStyle(color: themeColor, fontSize: 12, fontWeight: FontWeight.w900),
+                            style: pw.TextStyle(color: PdfColors.blue, fontSize: 12, fontWeight: pw.FontWeight.bold),
                           ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
+                        pw.SizedBox(height: 6),
+                        pw.Text(
                           '#${widget.invoiceNumber}',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white),
+                          style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
                         ),
-                        Text(
+                        pw.Text(
                           dateStr,
-                          style: TextStyle(fontSize: 11, color: Colors.white.withAlpha(180)),
+                          style: pw.TextStyle(fontSize: 11, color: PdfColors.white),
                         ),
                       ],
                     ),

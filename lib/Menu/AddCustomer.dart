@@ -1007,7 +1007,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           controller: _gstinController,
                           label: 'Tax No',
                           hint: 'Enter Tax No',
-                          icon: HeroIcons.receiptRefund,
+                          icon: HeroIcons.banknotes,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(

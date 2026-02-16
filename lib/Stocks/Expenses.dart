@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Stocks/AddExpenseTypePopup.dart';
+import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
@@ -89,7 +90,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
             onPressed: widget.onBack,
           ),
           centerTitle: true,
@@ -119,7 +120,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
+                          const HeroIcon(HeroIcons.calendarDays, color: kPrimaryColor, size: 18),
                           const SizedBox(width: 12),
                           Text(
                             DateFormat('dd MMM yyyy').format(_selectedDate),
@@ -148,7 +149,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     height: 46,
                     width: 46,
                     decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+                    child: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
                   ),
                 ),
               ],
@@ -286,7 +287,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                     CircleAvatar(
                       backgroundColor: kOrange.withOpacity(0.1),
                       radius: 18,
-                      child: const Icon(Icons.receipt_long_rounded, color: kOrange, size: 18),
+                      child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 18),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -309,7 +310,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text((data['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: kGrey400),
+                    const HeroIcon(HeroIcons.chevronRight, size: 12, color: kGrey400),
                   ],
                 ),
               ],
@@ -320,8 +321,8 @@ class _ExpensesPageState extends State<ExpensesPage> {
     );
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No expenses found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No matches for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.documentText, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No expenses found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No matches for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 }
 
 // ---------------- CreateExpensePage ----------------
@@ -510,7 +511,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         ),
         title: const Text('New Expense', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: widget.onBack),
       ),
       body: Form(
         key: _formKey,
@@ -525,9 +526,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   const SizedBox(height: 16),
                   _buildAutocompleteExpenseName(),
                   const SizedBox(height: 16),
-                  _buildModernField(_amountController, "Total Amount *", Icons.payments_rounded, type: TextInputType.number, isMandatory: true),
+                  _buildModernField(_amountController, "Total Amount *", HeroIcons.banknotes, type: TextInputType.number, isMandatory: true),
                   const SizedBox(height: 16),
-                  _buildModernField(_referenceNumberController, "Reference Invoice No (Optional)", Icons.receipt_long_rounded),
+                  _buildModernField(_referenceNumberController, "Reference Invoice No (Optional)", HeroIcons.documentText),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _buildDateSelector()),
@@ -536,7 +537,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   ]),
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 16),
-                    _buildModernField(_creditAmountController, "Initial Credit Amount", Icons.account_balance_wallet_rounded, type: TextInputType.number),
+                    _buildModernField(_creditAmountController, "Initial Credit Amount", HeroIcons.wallet, type: TextInputType.number),
                   ],
 
                   const SizedBox(height: 24),
@@ -546,11 +547,11 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                       tilePadding: EdgeInsets.zero,
                       title: _buildSectionLabel("ADDITIONAL INFORMATION"),
                       children: [
-                        _buildModernField(_advanceNotesController, "Advance Notes", Icons.notes_rounded, maxLines: 3),
+                        _buildModernField(_advanceNotesController, "Advance Notes", HeroIcons.documentText, maxLines: 3),
                         const SizedBox(height: 16),
-                        _buildModernField(_taxNumberController, "Tax/GST Ref No", Icons.description_rounded),
+                        _buildModernField(_taxNumberController, "Tax/GST Ref No", HeroIcons.documentText),
                         const SizedBox(height: 16),
-                        _buildModernField(_taxAmountController, "Tax Component", Icons.percent_rounded, type: TextInputType.number),
+                        _buildModernField(_taxAmountController, "Tax Component", HeroIcons.percentBadge, type: TextInputType.number),
                       ],
                     ),
                   ),
@@ -566,7 +567,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
 
   Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
 
-  Widget _buildModernField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false}) {
+  Widget _buildModernField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false}) {
     return ValueListenableBuilder(
       valueListenable: ctrl,
       builder: (context, val, child) {
@@ -575,7 +576,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
           controller: ctrl, keyboardType: type, maxLines: maxLines,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
           decoration: InputDecoration(
-            labelText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
+            labelText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
             filled: true, fillColor: kWhite,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
@@ -614,7 +615,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
               decoration: InputDecoration(
                 labelText: "Expense Name *",
-                prefixIcon: Icon(Icons.shopping_basket_rounded, color: filled ? kPrimaryColor : kBlack54, size: 20),
+                prefixIcon: HeroIcon(HeroIcons.shoppingBag, color: filled ? kPrimaryColor : kBlack54, size: 20),
                 filled: true,
                 fillColor: kWhite,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -660,7 +661,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   final option = options.elementAt(index);
                   return ListTile(
                     dense: true,
-                    leading: const Icon(Icons.history_rounded, size: 18, color: kPrimaryColor),
+                    leading: const HeroIcon(HeroIcons.clock, size: 18, color: kPrimaryColor),
                     title: Text(
                       option,
                       style: const TextStyle(
@@ -686,11 +687,11 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedExpenseType, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54),
+          value: _selectedExpenseType, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54),
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
           items: [
             const DropdownMenuItem(value: 'Select Expense Type', child: Text('Select Expense Type', style: TextStyle(color: kBlack54))),
-            const DropdownMenuItem(value: 'Add Expense Type', child: Row(children: [Icon(Icons.add_circle_outline, size: 18, color: kPrimaryColor), SizedBox(width: 8), Text('New Category', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800))])),
+            const DropdownMenuItem(value: 'Add Expense Type', child: Row(children: [HeroIcon(HeroIcons.plusCircle, size: 18, color: kPrimaryColor), SizedBox(width: 8), Text('New Category', style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800))])),
             ..._expenseTypes.map((e) => DropdownMenuItem(value: e, child: Text(e))),
           ],
           onChanged: (v) async {
@@ -704,8 +705,8 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     );
   }
 
-  Widget _buildDateSelector() => GestureDetector(onTap: () => _selectDate(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
-  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54), items: ['Cash', 'Credit', 'Online'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
+  Widget _buildDateSelector() => GestureDetector(onTap: () => _selectDate(context), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const HeroIcon(HeroIcons.calendar, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
+  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54), items: ['Cash', 'Credit', 'Online'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
   Widget _buildBottomAction() => SafeArea(child: Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 12), decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _isLoading ? null : _saveExpense, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: kWhite) : const Text('Save expense', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5))))));
 }
 
@@ -731,9 +732,9 @@ class ExpenseDetailsPage extends StatelessWidget {
         ),
         title: const Text('Expense Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
         actions: [
-          IconButton(icon: const Icon(Icons.delete_outline_rounded, color: kWhite), onPressed: () => _showDeleteDialog(context)),
+          IconButton(icon: const HeroIcon(HeroIcons.trash, color: kWhite), onPressed: () => _showDeleteDialog(context)),
         ],
       ),
       body: Column(
@@ -745,7 +746,7 @@ class ExpenseDetailsPage extends StatelessWidget {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
               child: Row(
                 children: [
-                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.receipt_long_rounded, color: kOrange, size: 18)),
+                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 18)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -768,10 +769,10 @@ class ExpenseDetailsPage extends StatelessWidget {
                   children: [
                     const Text('TRANSACTION DETAILS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
-                    _buildRow(Icons.tag_rounded, 'Reference ID', expenseData['referenceNumber'] ?? 'N/A'),
-                    _buildRow(Icons.calendar_month_rounded, 'Date Recorded', dateStr),
-                    _buildRow(Icons.description_rounded, 'Tax Number', expenseData['taxNumber'] ?? '--'),
-                    _buildRow(Icons.notes_rounded, 'Note', expenseData['advanceNotes'] ?? '--'),
+                    _buildRow(HeroIcons.hashtag, 'Reference ID', expenseData['referenceNumber'] ?? 'N/A'),
+                    _buildRow(HeroIcons.calendarDays, 'Date Recorded', dateStr),
+                    _buildRow(HeroIcons.documentText, 'Tax Number', expenseData['taxNumber'] ?? '--'),
+                    _buildRow(HeroIcons.documentText, 'Note', expenseData['advanceNotes'] ?? '--'),
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100)),
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -818,6 +819,6 @@ class ExpenseDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(IconData i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
+  Widget _buildRow(HeroIcons i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [HeroIcon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 }
 

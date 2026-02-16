@@ -8,6 +8,7 @@ import 'package:maxbillup/Stocks/AddProduct.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/Menu/Menu.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:heroicons/heroicons.dart';
 
 class StockPage extends StatefulWidget {
   final String uid;
@@ -91,7 +92,7 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
-  Widget _buildActionButton(IconData icon, Color color) {
+  Widget _buildActionButton(HeroIcons icon, Color color) {
     return Container(
       height: 48,
       width: 48,
@@ -99,7 +100,7 @@ class _StockPageState extends State<StockPage> {
         color: const Color(0xFFF5F5F5),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(icon, color: color, size: 24),
+      child: HeroIcon(icon, color: color, size: 24),
     );
   }
 }

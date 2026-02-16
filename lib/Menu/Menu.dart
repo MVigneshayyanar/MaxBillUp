@@ -35,6 +35,7 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 // ignore: uri_does_not_exist
 import 'package:url_launcher/url_launcher.dart' as launcher;
+import 'package:heroicons/heroicons.dart';
 
 import '../Sales/components/common_widgets.dart';
 
@@ -219,15 +220,15 @@ class _MenuPageState extends State<MenuPage> {
                     if (_hasPermission('billHistory') || isAdmin)
                       _buildMenuTile(
                         context.tr('billhistory'),
-                        Icons.receipt_long_rounded,
+                        HeroIcons.documentText,
                         kGoogleGreen,
                         'BillHistory',
                       ),
                     if (isFeatureAvailable('customerManagement', requiredRank: 1))
-                      _buildMenuTile(context.tr('customers'), Icons.people_alt_rounded, const Color(0xFF9C27B0), 'Customers', requiredRank: 1),
+                      _buildMenuTile(context.tr('customers'), HeroIcons.users, const Color(0xFF9C27B0), 'Customers', requiredRank: 1),
 
                     if (isAdmin || _hasPermission('creditNotes'))
-                      _buildMenuTile(context.tr('credit_notes'), Icons.confirmation_number_rounded, kOrange, 'CreditNotes', requiredRank: 1),
+                      _buildMenuTile(context.tr('credit_notes'), HeroIcons.ticket, kOrange, 'CreditNotes', requiredRank: 1),
 
                     const SizedBox(height: 12),
                     _buildSectionLabel("FINANCIALS"),
@@ -235,21 +236,21 @@ class _MenuPageState extends State<MenuPage> {
                       _buildExpenseExpansionTile(context),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
-                      _buildMenuTile(context.tr('creditdetails'), Icons.credit_card_outlined, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
+                      _buildMenuTile(context.tr('creditdetails'), HeroIcons.creditCard, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
 
                     if (isFeatureAvailable('quotation', requiredRank: 1))
-                      _buildMenuTile(context.tr('quotation'), Icons.description_rounded, kPrimaryColor, 'Quotation', requiredRank: 1),
+                      _buildMenuTile(context.tr('quotation'), HeroIcons.document, kPrimaryColor, 'Quotation', requiredRank: 1),
 
-                    const SizedBox(height: 12),
-                    _buildSectionLabel("ADMINISTRATION"),
-                    if (isFeatureAvailable('staffManagement', requiredRank: 1))
-                      _buildMenuTile(context.tr('staff_management'), Icons.badge_rounded, const Color(0xFF607D8B), 'StaffManagement', requiredRank: 1),
+                    // const SizedBox(height: 12),
+                    // _buildSectionLabel("ADMINISTRATION"),
+                    // if (isFeatureAvailable('staffManagement', requiredRank: 1))
+                    //   _buildMenuTile(context.tr('staff_management'), HeroIcons.identification, const Color(0xFF607D8B), 'StaffManagement', requiredRank: 1),
 
                     const SizedBox(height: 12),
                     _buildSectionLabel("SUPPORT"),
-                    _buildMenuTile(context.tr('video_tutorials'), Icons.ondemand_video_rounded, const Color(0xFF2F7CF6), 'VideoTutorial'),
-                    _buildMenuTile(context.tr('knowledge_base'), Icons.school_rounded, const Color(0xFFE6AE00), 'Knowledge'),
-                    _buildMenuTile('Support', Icons.support_agent_rounded, kPrimaryColor, 'Support'),
+                    _buildMenuTile(context.tr('video_tutorials'), HeroIcons.playCircle, const Color(0xFF2F7CF6), 'VideoTutorial'),
+                    _buildMenuTile(context.tr('knowledge_base'), HeroIcons.academicCap, const Color(0xFFE6AE00), 'Knowledge'),
+                    _buildMenuTile('Support', HeroIcons.chatBubbleLeftRight, kPrimaryColor, 'Support'),
 
                     const SizedBox(height: 80),
                   ],
@@ -444,7 +445,7 @@ class _MenuPageState extends State<MenuPage> {
                     ? Image.network(_logoUrl!, fit: BoxFit.cover)
                     : Container(
                   alignment: Alignment.center,
-                  child: const Icon(Icons.store_rounded, color: kWhite, size: 30),
+                  child: const HeroIcon(HeroIcons.buildingStorefront, color: kWhite, size: 30),
                 ),
               ),
             ),
@@ -471,7 +472,7 @@ class _MenuPageState extends State<MenuPage> {
       decoration: BoxDecoration(color: isPremium ? kGoogleGreen : kOrange, borderRadius: BorderRadius.circular(6)),
       child: Row(
         children: [
-          const Icon(Icons.star_rounded, color: kWhite, size: 10),
+          const HeroIcon(HeroIcons.star, style: HeroIconStyle.solid, color: kWhite, size: 10),
           const SizedBox(width: 4),
           Text(plan, style: const TextStyle(color: kWhite, fontSize: 9, fontWeight: FontWeight.w900)),
         ],
@@ -506,7 +507,7 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, IconData icon, Color color, String viewKey, {int requiredRank = 0}) {
+  Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
@@ -551,13 +552,13 @@ class _MenuPageState extends State<MenuPage> {
                     Container(
                       width: 44, height: 44,
                       decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-                      child: Icon(icon, color: color, size: 22),
+                      child: HeroIcon(icon, color: color, size: 22),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
                     ),
-                    const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                    const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
                   ],
                 ),
               ),
@@ -584,7 +585,7 @@ class _MenuPageState extends State<MenuPage> {
           leading: Container(
             width: 44, height: 44,
             decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.account_balance_wallet_rounded, color: color, size: 22),
+            child: const HeroIcon(HeroIcons.wallet, color: color, size: 22),
           ),
           title: Text(context.tr('expenses'), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87)),
           childrenPadding: const EdgeInsets.only(left: 58, right: 12, bottom: 12),
@@ -603,7 +604,7 @@ class _MenuPageState extends State<MenuPage> {
     return ListTile(
       onTap: () => setState(() => _currentView = viewKey),
       title: Text(text, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBlack54)),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 18, color: kGrey300),
+      trailing: const HeroIcon(HeroIcons.chevronRight, size: 18, color: kGrey300),
       dense: true, visualDensity: const VisualDensity(vertical: -2),
     );
   }
@@ -682,7 +683,7 @@ class VideoTutorialPage extends StatelessWidget {
         ),
           title: const Text('Tutorials', style: TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
           backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: onBack),
+          leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: onBack),
         ),
         body: Padding(
           padding: const EdgeInsets.all(24),
@@ -692,7 +693,7 @@ class VideoTutorialPage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.05), shape: BoxShape.circle),
-                child: const Icon(Icons.play_circle_filled_rounded, size: 80, color: kPrimaryColor),
+                child: const HeroIcon(HeroIcons.playCircle, style: HeroIconStyle.solid, size: 80, color: kPrimaryColor),
               ),
               const SizedBox(height: 32),
               const Text('Master Your Business', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBlack87)),
@@ -703,7 +704,7 @@ class VideoTutorialPage extends StatelessWidget {
               SizedBox(
                 width: double.infinity, height: 56,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                  icon: const HeroIcon(HeroIcons.arrowTopRightOnSquare, size: 18),
                   label: const Text('Watch on YouTube', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
                   style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                   onPressed: () async {
@@ -753,7 +754,7 @@ class GenericListPage extends StatelessWidget {
         ),
         title: Text(title, style: const TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF2F7CF6),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white), onPressed: onBack),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white), onPressed: onBack),
         centerTitle: true,
       ),
       body: FutureBuilder<CollectionReference>(

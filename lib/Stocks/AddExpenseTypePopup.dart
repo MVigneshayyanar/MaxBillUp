@@ -4,6 +4,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:heroicons/heroicons.dart';
 
 class AddExpenseTypePopup extends StatefulWidget {
   final String uid;
@@ -90,7 +91,7 @@ class _AddExpenseTypePopupState extends State<AddExpenseTypePopup> {
                 ),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close, size: 24, color: Colors.black54),
+                  child: const HeroIcon(HeroIcons.xMark, size: 24, color: Colors.black54),
                 ),
               ],
             ),

@@ -6,6 +6,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:heroicons/heroicons.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2F7CF6);
@@ -233,7 +234,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   Navigator.pop(context);
                   _showAddVendorDialog();
                 },
-                icon: const Icon(Icons.add, color: Colors.white),
+                icon: const HeroIcon(HeroIcons.plus, color: Colors.white),
                 label: const Text('Add New Vendor', style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _primaryColor,
@@ -441,7 +442,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
     return (total - paid).clamp(0.0, double.infinity);
   }
 
-  Widget _buildPaymentModeChip(String mode, IconData icon) {
+  Widget _buildPaymentModeChip(String mode, HeroIcons icon) {
     final isSelected = _paymentMode == mode;
     return Expanded(
       child: GestureDetector(
@@ -455,7 +456,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey),
+              HeroIcon(icon, size: 18, color: isSelected ? Colors.white : Colors.grey),
               const SizedBox(width: 6),
               Text(
                 mode,
@@ -486,7 +487,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         ),
         backgroundColor: _primaryColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         centerTitle: true,
@@ -550,7 +551,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 controller: _billNumberController,
                 decoration: InputDecoration(
                   hintText: 'Enter bill number',
-                  prefixIcon: const Icon(Icons.receipt, color: _primaryColor),
+                  prefixIcon: const HeroIcon(HeroIcons.documentText, color: _primaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -577,7 +578,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 controller: _nameController,
                 decoration: InputDecoration(
                   hintText: 'Enter expense name',
-                  prefixIcon: const Icon(Icons.title, color: _primaryColor),
+                  prefixIcon: const HeroIcon(HeroIcons.tag, color: _primaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -605,7 +606,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   hintText: '0.00',
-                  prefixIcon: const Icon(Icons.currency_rupee, color: _primaryColor),
+                  prefixIcon: const HeroIcon(HeroIcons.currencyRupee, color: _primaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -640,9 +641,9 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 ),
                 child: Row(
                   children: [
-                    _buildPaymentModeChip('Cash', Icons.money),
-                    _buildPaymentModeChip('Online', Icons.qr_code),
-                    _buildPaymentModeChip('Credit', Icons.account_balance_wallet),
+                    _buildPaymentModeChip('Cash', HeroIcons.banknotes),
+                    _buildPaymentModeChip('Online', HeroIcons.qrCode),
+                    _buildPaymentModeChip('Credit', HeroIcons.wallet),
                   ],
                 ),
               ),
@@ -660,7 +661,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0.00',
-                    prefixIcon: const Icon(Icons.payment, color: _successColor),
+                    prefixIcon: const HeroIcon(HeroIcons.creditCard, color: _successColor),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -695,7 +696,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.account_balance_wallet, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor),
+                          HeroIcon(HeroIcons.wallet, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : _successColor),
                           const SizedBox(width: 8),
                           Text(
                             'Credit Amount:',
@@ -730,7 +731,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 controller: _gstinController,
                 decoration: InputDecoration(
                   hintText: 'Enter GSTIN',
-                  prefixIcon: const Icon(Icons.receipt_long, color: _primaryColor),
+                  prefixIcon: const HeroIcon(HeroIcons.documentText, color: _primaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -752,7 +753,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 decoration: InputDecoration(
                   hintText: '0.00',
-                  prefixIcon: const Icon(Icons.calculate, color: _primaryColor),
+                  prefixIcon: const HeroIcon(HeroIcons.calculator, color: _primaryColor),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -780,7 +781,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.person_add, color: _primaryColor),
+                      const HeroIcon(HeroIcons.userPlus, color: _primaryColor),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
@@ -794,7 +795,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                           ),
                         ),
                       ),
-                      const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                      const HeroIcon(HeroIcons.chevronDown, color: Colors.grey),
                     ],
                   ),
                 ),

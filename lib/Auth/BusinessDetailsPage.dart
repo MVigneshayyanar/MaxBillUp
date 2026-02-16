@@ -361,7 +361,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                       _buildLocationField(),
                       const SizedBox(height: 24),
                       _buildSectionLabel("Taxation (Optional)"),
-                      _buildOptionalField("Tax Type", _taxTypeCtrl, HeroIcons.receiptRefund, hint: "e.g. VAT, GST, Sales Tax"),
+                      _buildOptionalField("Tax Type", _taxTypeCtrl, HeroIcons.banknotes, hint: "e.g. VAT, GST, Sales Tax"),
                       _buildOptionalField("Tax Number", _taxNumberCtrl, HeroIcons.hashtag, hint: "Enter your tax identification number"),
                       const SizedBox(height: 24),
                       _buildSectionLabel("Additional License (Optional)"),

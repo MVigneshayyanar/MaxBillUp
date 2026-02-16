@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:heroicons/heroicons.dart';
 
 class VendorsPage extends StatefulWidget {
   final String uid;
@@ -120,7 +121,7 @@ class _VendorsPageState extends State<VendorsPage> {
               style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
             onPressed: widget.onBack,
           ),
           centerTitle: true,
@@ -151,7 +152,7 @@ class _VendorsPageState extends State<VendorsPage> {
                       decoration: const InputDecoration(
                         hintText: "Search vendors...",
                         hintStyle: TextStyle(color: kBlack54, fontSize: 14),
-                        prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
+                        prefixIcon: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 7),
                       ),
@@ -169,7 +170,7 @@ class _VendorsPageState extends State<VendorsPage> {
                       color: kPrimaryColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: kWhite, size: 22),
+                    child: const HeroIcon(HeroIcons.userPlus, color: kWhite, size: 22),
                   ),
                 ),
               ],
@@ -183,16 +184,16 @@ class _VendorsPageState extends State<VendorsPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStat('VENDORS', _vendors.length.toString(), Icons.people_outline_rounded),
+                _buildStat('VENDORS', _vendors.length.toString(), HeroIcons.users),
                 _buildStat(
                   'TOTAL SPENT',
                   '$_currencySymbol${_vendors.fold(0.0, (sum, v) => sum + ((v['totalPurchases'] ?? 0).toDouble())).toStringAsFixed(0)}',
-                  Icons.payments_rounded,
+                  HeroIcons.banknotes,
                 ),
                 _buildStat(
                   'BILLS',
                   _vendors.fold(0, (sum, v) => sum + ((v['purchaseCount'] ?? 0) as int)).toString(),
-                  Icons.receipt_long_rounded,
+                  HeroIcons.documentText,
                 ),
               ],
             ),
@@ -225,10 +226,10 @@ class _VendorsPageState extends State<VendorsPage> {
     );
   }
 
-  Widget _buildStat(String label, String value, IconData icon) {
+  Widget _buildStat(String label, String value, HeroIcons icon) {
     return Column(
       children: [
-        Icon(icon, color: kPrimaryColor, size: 18),
+        HeroIcon(icon, color: kPrimaryColor, size: 18),
         const SizedBox(height: 6),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
         Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
@@ -311,7 +312,7 @@ class _VendorsPageState extends State<VendorsPage> {
                           const SizedBox(height: 2),
                           Row(
                             children: [
-                              const Icon(Icons.phone_android_rounded, size: 12, color: kBlack54),
+                              const HeroIcon(HeroIcons.devicePhoneMobile, size: 12, color: kBlack54),
                               const SizedBox(width: 6),
                               Text(vendor['phone'] ?? '--', style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
                             ],
@@ -363,7 +364,7 @@ class _VendorsPageState extends State<VendorsPage> {
 
   Widget _buildPopupMenu(Map<String, dynamic> vendor) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: kGrey400, size: 20),
+      icon: const HeroIcon(HeroIcons.ellipsisVertical, color: kGrey400, size: 20),
       elevation: 0,
       offset: const Offset(0, 40),
       color: kWhite,
@@ -379,14 +380,14 @@ class _VendorsPageState extends State<VendorsPage> {
         }
       },
       itemBuilder: (context) => [
-        _buildPopupItem('edit', Icons.edit_note_rounded, 'Edit Profile', kPrimaryColor),
+        _buildPopupItem('edit', HeroIcons.pencilSquare, 'Edit Profile', kPrimaryColor),
         const PopupMenuDivider(height: 1),
-        _buildPopupItem('delete', Icons.delete_forever_rounded, 'Remove Vendor', kErrorColor),
+        _buildPopupItem('delete', HeroIcons.trash, 'Remove Vendor', kErrorColor),
       ],
     );
   }
 
-  PopupMenuItem<String> _buildPopupItem(String value, IconData icon, String label, Color color) {
+  PopupMenuItem<String> _buildPopupItem(String value, HeroIcons icon, String label, Color color) {
     return PopupMenuItem(
       value: value,
       height: 50,
@@ -395,7 +396,7 @@ class _VendorsPageState extends State<VendorsPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, size: 18, color: color),
+            child: HeroIcon(icon, size: 18, color: color),
           ),
           const SizedBox(width: 12),
           Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
@@ -409,7 +410,7 @@ class _VendorsPageState extends State<VendorsPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline_rounded, size: 64, color: kGrey300),
+          HeroIcon(HeroIcons.users, size: 64, color: kGrey300),
           const SizedBox(height: 16),
           const Text(
             'No vendors found',
@@ -444,14 +445,14 @@ class _VendorsPageState extends State<VendorsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildSectionLabel("IDENTITY"),
-              _buildDialogField(nameCtrl, 'Vendor Name *', Icons.person_rounded),
+              _buildDialogField(nameCtrl, 'Vendor Name *', HeroIcons.user),
               const SizedBox(height: 12),
-              _buildDialogField(phoneCtrl, 'Phone Number', Icons.phone_android_rounded, type: TextInputType.phone),
+              _buildDialogField(phoneCtrl, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
               const SizedBox(height: 20),
               _buildSectionLabel("TAX & LOCATION"),
-              _buildDialogField(gstinCtrl, 'GSTIN (Optional)', Icons.description_rounded),
+              _buildDialogField(gstinCtrl, 'GSTIN (Optional)', HeroIcons.documentText),
               const SizedBox(height: 12),
-              _buildDialogField(addressCtrl, 'Physical Address', Icons.location_on_rounded, maxLines: 2),
+              _buildDialogField(addressCtrl, 'Physical Address', HeroIcons.mapPin, maxLines: 2),
             ],
           ),
         ),
@@ -496,14 +497,14 @@ class _VendorsPageState extends State<VendorsPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildSectionLabel("IDENTITY"),
-              _buildDialogField(nameCtrl, 'Vendor Name', Icons.person_rounded),
+              _buildDialogField(nameCtrl, 'Vendor Name', HeroIcons.user),
               const SizedBox(height: 12),
-              _buildDialogField(phoneCtrl, 'Phone Number', Icons.phone_android_rounded, type: TextInputType.phone),
+              _buildDialogField(phoneCtrl, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
               const SizedBox(height: 20),
               _buildSectionLabel("TAX & LOCATION"),
-              _buildDialogField(gstinCtrl, 'GSTIN', Icons.description_rounded),
+              _buildDialogField(gstinCtrl, 'GSTIN', HeroIcons.documentText),
               const SizedBox(height: 12),
-              _buildDialogField(addressCtrl, 'Physical Address', Icons.location_on_rounded, maxLines: 2),
+              _buildDialogField(addressCtrl, 'Physical Address', HeroIcons.mapPin, maxLines: 2),
             ],
           ),
         ),
@@ -559,10 +560,10 @@ class _VendorsPageState extends State<VendorsPage> {
   }
 
   Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 8, left: 4), child: Text(text, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5))));
+ 
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
-
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, int maxLines = 1}) {
+  Widget _buildDialogField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, int maxLines = 1}) {
     return ValueListenableBuilder(
       valueListenable: ctrl,
       builder: (context, val, child) {
@@ -572,7 +573,7 @@ class _VendorsPageState extends State<VendorsPage> {
           child: TextField(
             controller: ctrl, keyboardType: type, maxLines: maxLines,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-            decoration: InputDecoration(hintText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+            decoration: InputDecoration(hintText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
           ),
         );
       },

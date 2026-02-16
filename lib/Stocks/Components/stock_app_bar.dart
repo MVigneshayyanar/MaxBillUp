@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:heroicons/heroicons.dart';
 
 class StockAppBar extends StatelessWidget {
   final String uid;
@@ -14,7 +15,7 @@ class StockAppBar extends StatelessWidget {
   final VoidCallback onAddProduct;
   final double screenWidth;
   final double screenHeight;
-  final Widget Function(IconData, Color) buildActionButton;
+  final Widget Function(HeroIcons, Color) buildActionButton;
 
   const StockAppBar({
     super.key,

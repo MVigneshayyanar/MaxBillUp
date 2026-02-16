@@ -9,6 +9,7 @@ import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:intl/intl.dart';
+import 'package:heroicons/heroicons.dart';
 
 class ProductsPage extends StatefulWidget {
   final String uid;
@@ -131,7 +132,7 @@ class _ProductsPageState extends State<ProductsPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
+        icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
         label: Text(
           context.tr('add_product'),
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
@@ -160,7 +161,7 @@ class _ProductsPageState extends State<ProductsPage> {
         child: Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.close_rounded, color: kBlack87),
+              icon: const HeroIcon(HeroIcons.xMark, color: kBlack87),
               onPressed: () => setState(() {
                 _isMultiSelectMode = false;
                 _selectedProductIds.clear();
@@ -174,7 +175,7 @@ class _ProductsPageState extends State<ProductsPage> {
             if (_selectedProductIds.isNotEmpty)
               ElevatedButton.icon(
                 onPressed: _showBulkDeleteConfirmDialog,
-                icon: const Icon(Icons.delete_rounded, size: 18, color: kWhite),
+                icon: const HeroIcon(HeroIcons.trash, size: 18, color: kWhite),
                 label: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kErrorColor,
@@ -210,7 +211,7 @@ class _ProductsPageState extends State<ProductsPage> {
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 7),
                 ),
@@ -218,19 +219,19 @@ class _ProductsPageState extends State<ProductsPage> {
             ),
           ),
           const SizedBox(width: 10),
-          _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
+          _buildHeaderActionBtn(HeroIcons.barsArrowUp, _showSortMenu),
           const SizedBox(width: 8),
-          _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
+          _buildHeaderActionBtn(HeroIcons.adjustmentsHorizontal, _showFilterMenu),
           if (isAdmin || _hasPermission('addProduct')) ...[
             const SizedBox(width: 8),
-            _buildHeaderActionBtn(Icons.checklist_rounded, () => setState(() => _isMultiSelectMode = true)),
+            _buildHeaderActionBtn(HeroIcons.clipboardDocumentCheck, () => setState(() => _isMultiSelectMode = true)),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildHeaderActionBtn(IconData icon, VoidCallback onTap) {
+  Widget _buildHeaderActionBtn(HeroIcons icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -242,7 +243,7 @@ class _ProductsPageState extends State<ProductsPage> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kGrey200),
         ),
-        child: Icon(icon, color: kPrimaryColor, size: 22),
+        child: HeroIcon(icon, color: kPrimaryColor, size: 22),
       ),
     );
   }
@@ -330,7 +331,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       border: Border.all(color: isSelected ? kPrimaryColor : kGrey300, width: 2),
                     ),
                     child: isSelected
-                        ? const Icon(Icons.check_rounded, color: kWhite, size: 16)
+                        ? const HeroIcon(HeroIcons.check, color: kWhite, size: 16)
                         : null,
                   )
                 else
@@ -340,7 +341,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       color: kOrange.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.inventory_2_rounded, color: Color(0xffCC8758), size: 20),
+                    child: const HeroIcon(HeroIcons.cube, color: Color(0xffCC8758), size: 20),
                   ),
                 if (!_isMultiSelectMode) const SizedBox(width: 14),
                 // Info Column
@@ -360,7 +361,7 @@ class _ProductsPageState extends State<ProductsPage> {
                             ),
                           ),
                           if (isFavorite)
-                            const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 16),
+                            const HeroIcon(HeroIcons.heart, color: kPrimaryColor, size: 16),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -369,7 +370,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           category == 'Favorite'
-                              ? const Icon(Icons.favorite_rounded, color: kPrimaryColor, size: 14)
+                              ? const HeroIcon(HeroIcons.heart, color: kPrimaryColor, size: 14)
                               : Text(
                             _formatCategoryName(category),
                             style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
@@ -404,7 +405,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       // Delete button
 
                       const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                      const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
                     ],
                   ),
               ],
@@ -445,16 +446,16 @@ class _ProductsPageState extends State<ProductsPage> {
           children: [
             const Text('Sort Products', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
             const SizedBox(height: 20),
-            _buildSortOption('Name', 'name', Icons.sort_by_alpha_rounded),
-            _buildSortOption('Price', 'price', Icons.payments_rounded),
-            _buildSortOption('Stock Level', 'stock', Icons.inventory_2_rounded),
+            _buildSortOption('Name', 'name', HeroIcons.barsArrowDown),
+            _buildSortOption('Price', 'price', HeroIcons.banknotes),
+            _buildSortOption('Stock Level', 'stock', HeroIcons.cube),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSortOption(String label, String value, IconData icon) {
+  Widget _buildSortOption(String label, String value, HeroIcons icon) {
     bool isSelected = _sortBy == value;
     return ListTile(
       onTap: () {
@@ -468,10 +469,10 @@ class _ProductsPageState extends State<ProductsPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 20),
+        child: HeroIcon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 20),
       ),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? kPrimaryColor : kBlack87, fontSize: 14)),
-      trailing: isSelected ? Icon(_sortAscending ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, color: kPrimaryColor, size: 16) : null,
+      trailing: isSelected ? HeroIcon(_sortAscending ? HeroIcons.arrowUp : HeroIcons.arrowDown, color: kPrimaryColor, size: 16) : null,
     );
   }
 
@@ -488,17 +489,17 @@ class _ProductsPageState extends State<ProductsPage> {
           children: [
             const Text('Stock Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
             const SizedBox(height: 20),
-            _buildFilterOption(Icons.all_inclusive_rounded, 'All Products', 'all', kPrimaryColor),
-            _buildFilterOption(Icons.check_circle_rounded, 'In Stock', 'inStock', kGoogleGreen),
-            _buildFilterOption(Icons.warning_amber_rounded, 'Low Stock Warning', 'lowStock', kOrange),
-            _buildFilterOption(Icons.error_rounded, 'Out of Stock', 'outOfStock', kErrorColor),
+            _buildFilterOption(HeroIcons.queueList, 'All Products', 'all', kPrimaryColor),
+            _buildFilterOption(HeroIcons.checkCircle, 'In Stock', 'inStock', kGoogleGreen),
+            _buildFilterOption(HeroIcons.exclamationTriangle, 'Low Stock Warning', 'lowStock', kOrange),
+            _buildFilterOption(HeroIcons.exclamationCircle, 'Out of Stock', 'outOfStock', kErrorColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFilterOption(IconData icon, String title, String value, Color color) {
+  Widget _buildFilterOption(HeroIcons icon, String title, String value, Color color) {
     bool isSelected = _filterStock == value;
     return ListTile(
       onTap: () {
@@ -509,10 +510,10 @@ class _ProductsPageState extends State<ProductsPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color, size: 20),
+        child: HeroIcon(icon, color: color, size: 20),
       ),
       title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? color : kBlack87, fontSize: 14)),
-      trailing: isSelected ? Icon(Icons.check_circle_rounded, color: color, size: 20) : null,
+      trailing: isSelected ? HeroIcon(HeroIcons.checkCircle, color: color, size: 20) : null,
     );
   }
 
@@ -532,15 +533,15 @@ class _ProductsPageState extends State<ProductsPage> {
               const SizedBox(height: 20),
               Text(data['itemName'] ?? 'Product', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBlack87)),
               const SizedBox(height: 20),
-              _buildActionTile(Icons.edit_note_rounded, 'Edit Product Details', kPrimaryColor, () {
+              _buildActionTile(HeroIcons.pencilSquare, 'Edit Product Details', kPrimaryColor, () {
                 Navigator.pop(context);
                 Navigator.push(context, CupertinoPageRoute(builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail, productId: productDoc.id, existingData: data)));
               }),
-              _buildActionTile(Icons.inventory_2_rounded, 'Quick Stock Update', kOrange, () {
+              _buildActionTile(HeroIcons.cube, 'Quick Stock Update', kOrange, () {
                 Navigator.pop(context);
                 _showUpdateQuantityDialog(context, productDoc.id, data['itemName'], (data['currentStock'] ?? 0.0).toDouble());
               }),
-              _buildActionTile(Icons.delete_forever_rounded, 'Delete Product', kErrorColor, () {
+              _buildActionTile(HeroIcons.trash, 'Delete Product', kErrorColor, () {
                 Navigator.pop(context);
                 _showDeleteConfirmDialog(context, productDoc);
               }),
@@ -551,10 +552,10 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  Widget _buildActionTile(IconData icon, String title, Color color, VoidCallback onTap) {
+  Widget _buildActionTile(HeroIcons icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
       onTap: onTap,
-      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 20)),
+      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: HeroIcon(icon, color: color, size: 20)),
       title: Text(title, style: TextStyle(fontWeight: FontWeight.w700, color: color, fontSize: 14)),
     );
   }
@@ -577,7 +578,7 @@ class _ProductsPageState extends State<ProductsPage> {
               const SizedBox(height: 20),
               Row(
                 children: [
-                  _qtyBtn(Icons.remove_rounded, () {
+                  _qtyBtn(HeroIcons.minus, () {
                     double v = double.tryParse(ctrl.text) ?? current;
                     if (v > 0) setDialogState(() => ctrl.text = AmountFormatter.format(v - 1));
                   }),
@@ -595,7 +596,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       ),
                     ),
                   ),
-                  _qtyBtn(Icons.add_rounded, () {
+                  _qtyBtn(HeroIcons.plus, () {
                     double v = double.tryParse(ctrl.text) ?? current;
                     setDialogState(() => ctrl.text = AmountFormatter.format(v + 1));
                   }),
@@ -623,10 +624,11 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  Widget _qtyBtn(IconData i, VoidCallback onTap) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(i, color: kPrimaryColor, size: 24)));
+  Widget _qtyBtn(HeroIcons i, VoidCallback onTap) => InkWell(onTap: onTap, borderRadius: BorderRadius.circular(10), child: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: HeroIcon(i, color: kPrimaryColor, size: 24)));
 
   void _showDeleteConfirmDialog(BuildContext context, QueryDocumentSnapshot productDoc) {
-    final data = productDoc.data() as Map<String, dynamic>;
+
+   final data = productDoc.data() as Map<String, dynamic>;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -752,8 +754,8 @@ class _ProductsPageState extends State<ProductsPage> {
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.inventory_2_outlined,
+              child: const HeroIcon(
+                HeroIcons.cube,
                 size: 60,
                 color: kPrimaryColor,
               ),
@@ -787,7 +789,7 @@ class _ProductsPageState extends State<ProductsPage> {
                         ),
                       )
                   : null,
-              icon: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
               label: const Text(
                 "Add Your First Product",
                 style: TextStyle(
@@ -811,5 +813,16 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 
-  Widget _buildNoResultsState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
+  Widget _buildNoResultsState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300),
+          const SizedBox(height: 16),
+          Text('No results for "$_searchQuery"', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
 }

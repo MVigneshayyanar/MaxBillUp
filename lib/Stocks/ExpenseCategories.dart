@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:heroicons/heroicons.dart';
 
 class ExpenseCategoriesPage extends StatefulWidget {
   final String uid;
@@ -62,7 +63,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
             onPressed: widget.onBack,
           ),
           bottom: TabBar(
@@ -115,7 +116,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     decoration: InputDecoration(
                       hintText: context.tr('search'),
                       hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                      prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 7),
                     ),
@@ -133,7 +134,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     color: kPrimaryColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+                  child: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
                 ),
               ),
             ],
@@ -189,12 +190,12 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               color: kPrimaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.category_rounded, color: kPrimaryColor, size: 20),
+                            child: const HeroIcon(HeroIcons.tag, color: kPrimaryColor, size: 20),
                           ),
                           title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           subtitle: Text('Created: $dateStr', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                           trailing: IconButton(
-                            icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26),
+                            icon: const HeroIcon(HeroIcons.pencilSquare, color: kPrimaryColor, size: 26),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -242,7 +243,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
               decoration: const InputDecoration(
                 hintText: "Search expense titles...",
                 hintStyle: TextStyle(color: kBlack54, fontSize: 14),
-                prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
+                prefixIcon: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.symmetric(vertical: 7),
               ),
@@ -300,7 +301,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                               color: kOrange.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.receipt_long_rounded, color: kOrange, size: 20),
+                            child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 20),
                           ),
                           title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
                           subtitle: Padding(
@@ -309,7 +310,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                                 style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.edit_note_rounded, color: kPrimaryColor, size: 26),
+                            icon: const HeroIcon(HeroIcons.pencilSquare, color: kPrimaryColor, size: 26),
                             onPressed: () {
                               showDialog(
                                 context: context,
@@ -334,9 +335,9 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
     );
   }
 
-  Widget _buildEmptyStateExpenseNames() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.receipt_long_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No expense names found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.category_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No categories found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
+  Widget _buildEmptyStateExpenseNames() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.documentText, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No expense names found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.tag, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No categories found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No results for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 
   void _showAddCategoryDialog(BuildContext context) {
     final TextEditingController nameController = TextEditingController();
@@ -379,7 +380,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                     ),
                     const SizedBox(height: 24),
                     _buildSectionLabel("CATEGORY IDENTITY"),
-                    _buildDialogField(nameController, 'Category Name', Icons.category_rounded),
+                    _buildDialogField(nameController, 'Category Name', HeroIcons.tag),
                   ],
                 ),
               ),
@@ -408,7 +409,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
 
   Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildDialogField(TextEditingController ctrl, String label, HeroIcons icon) {
     return ValueListenableBuilder(
       valueListenable: ctrl,
       builder: (context, val, child) {
@@ -418,7 +419,7 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
           child: TextField(
             controller: ctrl,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-            decoration: InputDecoration(hintText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+            decoration: InputDecoration(hintText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
           ),
         );
       },
@@ -481,7 +482,7 @@ class _EditDeleteCategoryDialogState extends State<_EditDeleteCategoryDialog> {
             child: TextField(
               controller: _controller,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(prefixIcon: Icon(Icons.edit_rounded, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+              decoration: const InputDecoration(prefixIcon: HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
             ),
           ),
         ],
@@ -523,7 +524,7 @@ class _EditDeleteExpenseNameDialogState extends State<_EditDeleteExpenseNameDial
         child: TextField(
           controller: _controller,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          decoration: const InputDecoration(prefixIcon: Icon(Icons.text_fields_rounded, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+          decoration: const InputDecoration(prefixIcon: HeroIcon(HeroIcons.bars3BottomLeft, color: kPrimaryColor, size: 18), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
         ),
       ),
       actions: [

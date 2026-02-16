@@ -9,6 +9,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:intl/intl.dart';
 import 'AddCategoryPopup.dart';
 import 'package:maxbillup/services/excel_import_service.dart';
+import 'package:heroicons/heroicons.dart';
 
 class AddProductPage extends StatefulWidget {
   final String uid;
@@ -205,8 +206,8 @@ class _AddProductPageState extends State<AddProductPage> {
                   color: kPrimaryColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.upload_file_rounded,
+                child: const HeroIcon(
+                  HeroIcons.documentArrowUp,
                   color: kPrimaryColor,
                   size: 48,
                 ),
@@ -276,7 +277,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                  child: const HeroIcon(HeroIcons.checkCircle, color: Colors.white, size: 28),
                                 ),
                                 const SizedBox(width: 16),
                                 const Expanded(
@@ -313,7 +314,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                           color: kPrimaryColor,
                                           borderRadius: BorderRadius.circular(8),
                                         ),
-                                        child: const Icon(Icons.description, color: Colors.white, size: 20),
+                                        child: const HeroIcon(HeroIcons.documentText, color: Colors.white, size: 20),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -351,7 +352,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                   ),
                                   child: const Row(
                                     children: [
-                                      Icon(Icons.folder_outlined, color: kGoogleGreen, size: 18),
+                                      HeroIcon(HeroIcons.folder, color: kGoogleGreen, size: 18),
                                       SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -385,7 +386,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       );
                     }
                   },
-                  icon: const Icon(Icons.download_rounded, size: 20),
+                  icon: const HeroIcon(HeroIcons.arrowDownTray, size: 20),
                   label: const Text(
                     'DOWNLOAD TEMPLATE',
                     style: TextStyle(
@@ -410,7 +411,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.upload_rounded, size: 20),
+                  icon: const HeroIcon(HeroIcons.arrowUpTray, size: 20),
                   label: const Text(
                     'UPLOAD EXCEL',
                     style: TextStyle(
@@ -471,8 +472,8 @@ class _AddProductPageState extends State<AddProductPage> {
                                       color: kPrimaryColor.withValues(alpha: 0.1),
                                       shape: BoxShape.circle,
                                     ),
-                                    child: const Icon(
-                                      Icons.upload_file_rounded,
+                                    child: const HeroIcon(
+                                      HeroIcons.documentArrowUp,
                                       color: kPrimaryColor,
                                       size: 32,
                                     ),
@@ -553,7 +554,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                       ),
                                     ],
                                   ),
-                                  child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
+                                  child: const HeroIcon(HeroIcons.checkCircle, color: Colors.white, size: 28),
                                 ),
                                 const SizedBox(width: 16),
                                 const Expanded(
@@ -578,7 +579,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.inventory_2_rounded, color: kGoogleGreen, size: 24),
+                                      const HeroIcon(HeroIcons.cube, color: kGoogleGreen, size: 24),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
@@ -603,7 +604,7 @@ class _AddProductPageState extends State<AddProductPage> {
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.warning_rounded, color: kOrange, size: 24),
+                                        const HeroIcon(HeroIcons.exclamationTriangle, color: kOrange, size: 24),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
@@ -738,10 +739,10 @@ class _AddProductPageState extends State<AddProductPage> {
         centerTitle: true,
         title: Text(context.tr(widget.productId != null ? 'edit_product' : 'add_product'),
             style: const TextStyle(fontWeight: FontWeight.w700, color: kWhite, fontSize: 18)),
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
         actions: widget.productId == null ? [
           IconButton(
-            icon: const Icon(Icons.file_upload_outlined, color: kWhite, size: 22),
+            icon: const HeroIcon(HeroIcons.arrowUpTray, color: kWhite, size: 22),
             onPressed: () => _showImportExcelDialog(),
             tooltip: 'Import from Excel',
           ),
@@ -765,7 +766,7 @@ class _AddProductPageState extends State<AddProductPage> {
                   _buildModernTextField(
                     controller: _priceController,
                     label: "Price",
-                    icon: Icons.payments_rounded,
+                    icon: HeroIcons.banknotes,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     isRequired: true,
                     hint: "0.00",
@@ -790,16 +791,16 @@ class _AddProductPageState extends State<AddProductPage> {
                         _buildModernTextField(
                           controller: _barcodeController,
                           label: "Barcode String",
-                          icon: Icons.barcode_reader,
+                          icon: HeroIcons.qrCode,
                           hint: "Scan or type barcode",
-                          suffixIcon: Icons.qr_code_scanner_rounded,
+                          suffixIcon: HeroIcons.viewfinderCircle,
                           onSuffixTap: _scanBarcode,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
                           controller: _costPriceController,
                           label: "Total Cost Price",
-                          icon: Icons.shopping_cart_rounded,
+                          icon: HeroIcons.shoppingCart,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           hint: "0.00",
                         ),
@@ -807,7 +808,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         _buildModernTextField(
                           controller: _mrpController,
                           label: "MRP",
-                          icon: Icons.tag_rounded,
+                          icon: HeroIcons.tag,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           hint: "Maximum Retail Price",
                         ),
@@ -819,13 +820,13 @@ class _AddProductPageState extends State<AddProductPage> {
                         _buildModernTextField(
                           controller: _hsnController,
                           label: "HSN / SAC Code",
-                          icon: Icons.assignment_outlined,
+                          icon: HeroIcons.clipboardDocumentList,
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
                           controller: _locationController,
                           label: "Product Location",
-                          icon: Icons.location_on_outlined,
+                          icon: HeroIcons.mapPin,
                           hint: "e.g. Shelf A3, Warehouse B",
                         ),
                         const SizedBox(height: 16),
@@ -907,12 +908,12 @@ class _AddProductPageState extends State<AddProductPage> {
   Widget _buildModernTextField({
     required TextEditingController controller,
     required String label,
-    required IconData icon,
+    required HeroIcons icon,
     bool isRequired = false,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
     String? hint,
-    IconData? suffixIcon,
+    HeroIcons? suffixIcon,
     VoidCallback? onSuffixTap,
     Color? iconColor,
   }) {
@@ -928,9 +929,9 @@ class _AddProductPageState extends State<AddProductPage> {
           decoration: InputDecoration(
             labelText: label,
             hintText: hint,
-            prefixIcon: Icon(icon, color: isFilled ? (iconColor ?? kPrimaryColor) : kBlack54, size: 20),
+            prefixIcon: HeroIcon(icon, color: isFilled ? (iconColor ?? kPrimaryColor) : kBlack54, size: 20),
             suffixIcon: suffixIcon != null
-                ? IconButton(icon: Icon(suffixIcon, color: kPrimaryColor, size: 20), onPressed: onSuffixTap)
+                ? IconButton(icon: HeroIcon(suffixIcon, color: kPrimaryColor, size: 20), onPressed: onSuffixTap)
                 : null,
             filled: true,
             fillColor: kWhite,
@@ -963,7 +964,7 @@ class _AddProductPageState extends State<AddProductPage> {
           child: _buildModernTextField(
             controller: _itemNameController,
             label: "Item Name",
-            icon: Icons.shopping_basket_rounded,
+            icon: HeroIcons.shoppingBag,
             isRequired: true,
             hint: "Enter product name",
           ),
@@ -979,8 +980,9 @@ class _AddProductPageState extends State<AddProductPage> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _isFavorite ? kPrimaryColor : kGrey200, width: 1.5),
             ),
-            child: Icon(
-              _isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            child: HeroIcon(
+              HeroIcons.heart,
+              style: _isFavorite ? HeroIconStyle.solid : HeroIconStyle.outline,
               color: _isFavorite ? kPrimaryColor : kBlack54,
               size: 22,
             ),
@@ -998,7 +1000,7 @@ class _AddProductPageState extends State<AddProductPage> {
           child: _buildModernTextField(
             controller: _productCodeController,
             label: "Product Code",
-            icon: Icons.qr_code_rounded,
+            icon: HeroIcons.qrCode,
             isRequired: true,
             hint: "Unique ID",
           ),
@@ -1013,7 +1015,7 @@ class _AddProductPageState extends State<AddProductPage> {
               color: kPrimaryColor,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.refresh_rounded, color: kWhite, size: 22),
+            child: const HeroIcon(HeroIcons.arrowPath, color: kWhite, size: 22),
           ),
         ),
       ],
@@ -1050,7 +1052,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: _buildModernTextField(
                   controller: _quantityController,
                   label: "Initial Stock",
-                  icon: Icons.inventory_2_rounded,
+                  icon: HeroIcons.archiveBox,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   isRequired: true,
                   hint: "0.00",
@@ -1074,7 +1076,7 @@ class _AddProductPageState extends State<AddProductPage> {
                 child: _buildModernTextField(
                   controller: _lowStockAlertController,
                   label: "Low Stock Alert",
-                  icon: Icons.notification_important_rounded,
+                  icon: HeroIcons.bellAlert,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   hint: "0.00",
                   iconColor: kOrange,
@@ -1114,7 +1116,7 @@ class _AddProductPageState extends State<AddProductPage> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.all_inclusive_rounded, color: kGoogleGreen, size: 18),
+          HeroIcon(HeroIcons.arrowPath, color: kGoogleGreen, size: 18),
           SizedBox(width: 12),
           Text("Infinity Stock Enabled", style: TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w800, fontSize: 12)),
         ],
@@ -1189,7 +1191,7 @@ class _AddProductPageState extends State<AddProductPage> {
                         onTap: () => _showDeleteUnitDialog(unit),
                         child: const Padding(
                           padding: EdgeInsets.only(left: 8),
-                          child: Icon(Icons.delete_outline_rounded, color: kErrorColor, size: 18),
+                          child: HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
                         ),
                       ),
                   ],
@@ -1322,9 +1324,9 @@ class _AddProductPageState extends State<AddProductPage> {
         child: _buildModernTextField(
           controller: _expiryDateController,
           label: "Expiry Date",
-          icon: Icons.event_rounded,
+          icon: HeroIcons.calendar,
           hint: "Select date",
-          suffixIcon: Icons.calendar_today_rounded,
+          suffixIcon: HeroIcons.calendarDays,
         ),
       ),
     );
@@ -1338,8 +1340,9 @@ class _AddProductPageState extends State<AddProductPage> {
         filled: true,
         fillColor: kWhite,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-        suffixIcon: onAdd != null ? IconButton(icon: const Icon(Icons.add_circle_outline_rounded, color: kPrimaryColor, size: 22), onPressed: onAdd) : null,
+        suffixIcon: onAdd != null ? IconButton(icon: const HeroIcon(HeroIcons.plusCircle, color: kPrimaryColor, size: 22), onPressed: onAdd) : null,
         floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
       ),
       child: DropdownButtonHideUnderline(child: child),

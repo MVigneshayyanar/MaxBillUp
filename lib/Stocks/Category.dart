@@ -9,6 +9,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:intl/intl.dart';
+import 'package:heroicons/heroicons.dart';
 
 class CategoryPage extends StatefulWidget {
   final String uid;
@@ -137,7 +138,7 @@ class _CategoryPageState extends State<CategoryPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
+        icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
         label: Text(
           context.tr('add_category'),
           style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
@@ -178,7 +179,7 @@ class _CategoryPageState extends State<CategoryPage> {
                 decoration: InputDecoration(
                   hintText: context.tr('search_categories'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 7),
                 ),
@@ -186,15 +187,15 @@ class _CategoryPageState extends State<CategoryPage> {
             ),
           ),
           const SizedBox(width: 10),
-          _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
+          _buildHeaderActionBtn(HeroIcons.barsArrowUp, _showSortMenu),
           const SizedBox(width: 8),
-          _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
+          _buildHeaderActionBtn(HeroIcons.adjustmentsHorizontal, _showFilterMenu),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderActionBtn(IconData icon, VoidCallback onTap) {
+  Widget _buildHeaderActionBtn(HeroIcons icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -206,7 +207,7 @@ class _CategoryPageState extends State<CategoryPage> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kGrey200),
         ),
-        child: Icon(icon, color: kPrimaryColor, size: 22),
+        child: HeroIcon(icon, color: kPrimaryColor, size: 22),
       ),
     );
   }
@@ -313,16 +314,16 @@ class _CategoryPageState extends State<CategoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit_note_rounded, size: 26, color: kPrimaryColor),
+                      icon: const HeroIcon(HeroIcons.pencilSquare, size: 26, color: kPrimaryColor),
                       onPressed: () => _showEditCategoryDialog(context, categoryDoc.id, name),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 22, color: kErrorColor),
+                      icon: const HeroIcon(HeroIcons.trash, size: 22, color: kErrorColor),
                       onPressed: () => _showDeleteConfirmation(context, categoryDoc.id, name),
                     ),
                   ],
                 )
-                    : const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: kGrey400),
+                    : const HeroIcon(HeroIcons.chevronRight, size: 14, color: kGrey400),
               ),
               if (_hasPermission('addCategory') || isAdmin) ...[
                 const Divider(height: 1, color: kGrey100),
@@ -341,7 +342,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.add_box_outlined, size: 16, color: kPrimaryColor),
+                                const HeroIcon(HeroIcons.plusCircle, size: 16, color: kPrimaryColor),
                                 const SizedBox(width: 8),
                                 Text(context.tr('add_existing').toUpperCase(),
                                     style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5)),
@@ -361,7 +362,7 @@ class _CategoryPageState extends State<CategoryPage> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.add_circle_outline, size: 16, color: kGoogleGreen),
+                                const HeroIcon(HeroIcons.plus, size: 16, color: kGoogleGreen),
                                 const SizedBox(width: 8),
                                 Text(context.tr('create_new').toUpperCase(),
                                     style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w800, fontSize: 10, letterSpacing: 0.5)),
@@ -400,16 +401,17 @@ class _CategoryPageState extends State<CategoryPage> {
             children: [
               const Text('Sort Categories', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
               const SizedBox(height: 20),
-              _buildSortItem('Name (A-Z)', Icons.sort_by_alpha_rounded, true),
-              _buildSortItem('Name (Z-A)', Icons.sort_by_alpha_rounded, false),
+              _buildSortItem('Name (A-Z)', HeroIcons.barsArrowDown, true),
+              _buildSortItem('Name (Z-A)', HeroIcons.barsArrowDown, false),
             ],
           ),
         ),
       ),
+
     );
   }
 
-  Widget _buildSortItem(String label, IconData icon, bool ascending) {
+  Widget _buildSortItem(String label, HeroIcons icon, bool ascending) {
     bool isSelected = _sortAscending == ascending;
     return ListTile(
       onTap: () {
@@ -420,10 +422,10 @@ class _CategoryPageState extends State<CategoryPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg, borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 20),
+        child: HeroIcon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 20),
       ),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? kPrimaryColor : kBlack87, fontSize: 14)),
-      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 20) : null,
+      trailing: isSelected ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 20) : null,
     );
   }
 
@@ -442,9 +444,9 @@ class _CategoryPageState extends State<CategoryPage> {
             children: [
               const Text('Category Filter', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87)),
               const SizedBox(height: 20),
-              _buildFilterItem('All Categories', 'all', Icons.all_inclusive_rounded, kPrimaryColor),
-              _buildFilterItem('With Products', 'nonEmpty', Icons.inventory_2_rounded, kGoogleGreen),
-              _buildFilterItem('Empty Categories', 'empty', Icons.layers_clear_rounded, kOrange),
+              _buildFilterItem('All Categories', 'all', HeroIcons.queueList, kPrimaryColor),
+              _buildFilterItem('With Products', 'nonEmpty', HeroIcons.cube, kGoogleGreen),
+              _buildFilterItem('Empty Categories', 'empty', HeroIcons.archiveBoxXMark, kOrange),
             ],
           ),
         ),
@@ -452,7 +454,7 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _buildFilterItem(String label, String value, IconData icon, Color color) {
+  Widget _buildFilterItem(String label, String value, HeroIcons icon, Color color) {
     bool isSelected = _filterType == value;
     return ListTile(
       onTap: () {
@@ -463,10 +465,10 @@ class _CategoryPageState extends State<CategoryPage> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-        child: Icon(icon, color: color, size: 20),
+        child: HeroIcon(icon, color: color, size: 20),
       ),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w600, color: isSelected ? color : kBlack87, fontSize: 14)),
-      trailing: isSelected ? Icon(Icons.check_circle_rounded, color: color, size: 20) : null,
+      trailing: isSelected ? HeroIcon(HeroIcons.checkCircle, color: color, size: 20) : null,
     );
   }
 
@@ -484,8 +486,8 @@ class _CategoryPageState extends State<CategoryPage> {
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.category_outlined,
+              child: const HeroIcon(
+                HeroIcons.tag,
                 size: 60,
                 color: kPrimaryColor,
               ),
@@ -512,7 +514,7 @@ class _CategoryPageState extends State<CategoryPage> {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: (isAdmin || _hasPermission('category')) ? () => _showAddCategoryDialog(context) : null,
-              icon: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
               label: const Text(
                 "Add Your First Category",
                 style: TextStyle(
@@ -536,7 +538,7 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('no_categories_found'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('no_categories_found'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 
   // ==========================================
   // DIALOGS & POPUPS
@@ -745,7 +747,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             elevation: 0,
             centerTitle: true,
             iconTheme: const IconThemeData(color: kWhite),
-            leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+            leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
           ),
           floatingActionButton: showAddButton
               ? FloatingActionButton.extended(
@@ -753,7 +755,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
             backgroundColor: kPrimaryColor,
             elevation: 0,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            icon: const Icon(Icons.add_rounded, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
             label: const Text("ADD ITEM", style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
           )
               : null,
@@ -781,7 +783,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
           decoration: InputDecoration(
             hintText: 'Search in ${widget.categoryName}...',
             hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-            prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+            prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
             border: InputBorder.none,
             contentPadding: const EdgeInsets.symmetric(vertical: 7),
           ),
@@ -797,7 +799,7 @@ class _CategoryDetailsPageState extends State<CategoryDetailsPage> {
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
         final products = snapshot.data!.docs.where((doc) => (doc.data() as Map)['itemName'].toString().toLowerCase().contains(_searchQuery)).toList();
-        if (products.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text("No products found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
+        if (products.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text("No products found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
 
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),

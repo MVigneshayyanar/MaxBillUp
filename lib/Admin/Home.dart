@@ -482,7 +482,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
               children: [
                 Expanded(child: _buildEnterpriseStat(widget.storeId, 'Products', 'Products', HeroIcons.archiveBox, kPrimaryColor)),
                 const SizedBox(width: 12),
-                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Sales', 'sales', HeroIcons.receiptRefund, kGoogleGreen)),
+                Expanded(child: _buildEnterpriseStat(widget.storeId, 'Sales', 'sales', HeroIcons.banknotes, kGoogleGreen)),
                 const SizedBox(width: 12),
                 Expanded(child: _buildEnterpriseStat(widget.storeId, 'Customers', 'customers', HeroIcons.users, kOrange)),
               ],

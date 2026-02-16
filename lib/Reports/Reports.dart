@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:heroicons/heroicons.dart';
 
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/utils/permission_helper.dart';
@@ -218,14 +219,14 @@ class _ReportsPageState extends State<ReportsPage> {
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
           if (isFeatureAvailable('analytics'))
-            _buildReportTile(context.tr('Business  Summary'), Icons.insights_rounded, kPrimaryColor, 'Analytics', subtitle: 'MAX Plus & data trends'),
-          _buildReportTile(context.tr('daybook_today'), Icons.menu_book_rounded, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
+            _buildReportTile(context.tr('Business  Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
+          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Summary', Icons.summarize_rounded, const Color(0xFF3F51B5), 'Summary', subtitle: 'Income, expense & dues'),
+            _buildReportTile('Summary', HeroIcons.documentText, kGoogleGreen, 'Summary', subtitle: 'Income, expense & dues'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile(context.tr('Sales Report'), Icons.analytics_rounded, const Color(0xFF673AB7), 'SalesSummary', subtitle: 'Sales performance'),
+            _buildReportTile(context.tr('Sales Report'), HeroIcons.chartPie, kPrimaryColor, 'SalesSummary', subtitle: 'Sales performance'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Payment Summary', Icons.payments_rounded, const Color(0xFF00897B), 'PaymentReport', subtitle: 'Cash & online breakdown'),
+            _buildReportTile('Payment Summary', HeroIcons.banknotes, const Color(0xFF43A047), 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
           // Sales & Transactions Section
           if (hasSalesItems) ...[
@@ -233,13 +234,13 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildSectionLabel(context.tr('sales_transactions')),
           ],
           if (isFeatureAvailable('salesReport'))
-            _buildReportTile(context.tr('Sales Record'), Icons.shopping_cart_rounded, const Color(0xFF9C27B0), 'SalesReport', subtitle: 'Detailed invoice history'),
+            _buildReportTile(context.tr('Sales Record'), HeroIcons.shoppingCart, const Color(0xFFE91E63), 'SalesReport', subtitle: 'Detailed invoice history'),
           if (isFeatureAvailable('itemSalesReport'))
-            _buildReportTile(context.tr('item_sales_report'), Icons.shopping_bag_rounded, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product'),
+            _buildReportTile(context.tr('item_sales_report'), HeroIcons.shoppingBag, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product'),
           if (isFeatureAvailable('topCustomer'))
-            _buildReportTile(context.tr('top_customers'), Icons.emoji_events_rounded, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients'),
+            _buildReportTile(context.tr('top_customers'), HeroIcons.trophy, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients'),
           if (isFeatureAvailable('staffSalesReport'))
-            _buildReportTile(context.tr('staff_sale_report'), Icons.person_rounded, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user'),
+            _buildReportTile(context.tr('staff_sale_report'), HeroIcons.user, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user'),
 
           // Inventory & Products Section
           if (hasInventoryItems) ...[
@@ -247,13 +248,13 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildSectionLabel(context.tr('inventory_products')),
           ],
           if (isFeatureAvailable('stockReport'))
-            _buildReportTile(context.tr('stock_report'), Icons.warehouse_rounded, const Color(0xFF303F9F), 'StockReport', subtitle: 'Full inventory valuation'),
+            _buildReportTile(context.tr('stock_report'), HeroIcons.archiveBox, const Color(0xFF5C6BC0), 'StockReport', subtitle: 'Full inventory valuation'),
           if (isFeatureAvailable('lowStockProduct'))
-            _buildReportTile(context.tr('low_stock_products'), Icons.inventory_rounded, kOrange, 'LowStock', subtitle: 'Restock action required'),
+            _buildReportTile(context.tr('low_stock_products'), HeroIcons.clipboardDocumentList, kOrange, 'LowStock', subtitle: 'Restock action required'),
           if (isFeatureAvailable('topProducts'))
-            _buildReportTile(context.tr('Product Summary'), Icons.trending_up_rounded, kGoogleGreen, 'TopProducts', subtitle: 'Most sold items'),
+            _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('topCategory'))
-            _buildReportTile(context.tr('top_categories'), Icons.category_rounded, const Color(0xFFE91E63), 'TopCategories', subtitle: 'Department performance'),
+            _buildReportTile(context.tr('top_categories'), HeroIcons.tag, const Color(0xFFFF5722), 'TopCategories', subtitle: 'Department performance'),
 
           // Financials & Tax Section
           if (hasFinancialsItems) ...[
@@ -261,9 +262,9 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildSectionLabel(context.tr('financials_tax')),
           ],
           if (isFeatureAvailable('expensesReport'))
-            _buildReportTile(context.tr('expense_report'), Icons.account_balance_wallet_rounded, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
+            _buildReportTile(context.tr('expense_report'), HeroIcons.wallet, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
           if (isFeatureAvailable('taxReport'))
-            _buildReportTile(context.tr('tax_report'), Icons.receipt_rounded, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance'),
+            _buildReportTile(context.tr('tax_report'), HeroIcons.receiptPercent, const Color(0xFF43A047), 'TaxReport', subtitle: 'Taxable sales compliance'),
           //if (isFeatureAvailable('taxReport'))
            // _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF4455DF), 'GSTReport', subtitle: 'GST on sales & purchases'),
           const SizedBox(height: 40),
@@ -284,7 +285,7 @@ class _ReportsPageState extends State<ReportsPage> {
         style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildReportTile(String title, IconData icon, Color color, String viewName, {String? subtitle}) {
+  Widget _buildReportTile(String title, HeroIcons icon, Color color, String viewName, {String? subtitle}) {
     // Get current plan from provider
     final planProvider = context.watch<PlanProvider>();
     final currentPlan = planProvider.cachedPlan;
@@ -347,7 +348,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     color: color.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: color, size: 22),
+                  child: HeroIcon(icon, color: color, size: 22),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -365,7 +366,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+                const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
               ],
             ),
           ),
@@ -537,9 +538,9 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildIconBtn(Icons.chevron_left, () => setModalState(() => selectedYear--)),
+                  _buildIconBtn(HeroIcons.chevronLeft, () => setModalState(() => selectedYear--)),
                   Text('$selectedYear', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
-                  _buildIconBtn(Icons.chevron_right, selectedYear < now.year ? () => setModalState(() => selectedYear++) : null),
+                  _buildIconBtn(HeroIcons.chevronRight, selectedYear < now.year ? () => setModalState(() => selectedYear++) : null),
                 ],
               ),
               const SizedBox(height: 20),
@@ -594,30 +595,30 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
               padding: EdgeInsets.only(left: 8.0, bottom: 12),
               child: Text("ADVANCED AUDIT TIMEFRAME", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 1.5)),
             ),
-            _buildModalItem(DateFilterOption.last7Days, Icons.date_range_rounded, () {
+            _buildModalItem(DateFilterOption.last7Days, HeroIcons.calendarDays, () {
               final now = DateTime.now();
               widget.onDateChanged(DateFilterOption.last7Days, now.subtract(const Duration(days: 6)), now);
               Navigator.pop(context);
             }),
-            _buildModalItem(DateFilterOption.last30Days, Icons.av_timer_rounded, () {
+            _buildModalItem(DateFilterOption.last30Days, HeroIcons.clock, () {
               final now = DateTime.now();
               widget.onDateChanged(DateFilterOption.last30Days, now.subtract(const Duration(days: 29)), now);
               Navigator.pop(context);
             }),
-            _buildModalItem(DateFilterOption.lastMonth, Icons.calendar_month_rounded, () {
+            _buildModalItem(DateFilterOption.lastMonth, HeroIcons.calendar, () {
               final lastMonth = DateTime(DateTime.now().year, DateTime.now().month - 1, 1);
               widget.onDateChanged(DateFilterOption.lastMonth, lastMonth, DateTime(DateTime.now().year, DateTime.now().month, 0, 23, 59, 59));
               Navigator.pop(context);
             }),
-            _buildModalItem(DateFilterOption.customDate, Icons.event_note_rounded, () {
+            _buildModalItem(DateFilterOption.customDate, HeroIcons.calendar, () {
               Navigator.pop(context);
               _selectCustomDate();
             }),
-            _buildModalItem(DateFilterOption.customMonth, Icons.grid_view_rounded, () {
+            _buildModalItem(DateFilterOption.customMonth, HeroIcons.squares2x2, () {
               Navigator.pop(context);
               _selectCustomMonth();
             }),
-            _buildModalItem(DateFilterOption.customPeriod, Icons.date_range_rounded, () {
+            _buildModalItem(DateFilterOption.customPeriod, HeroIcons.calendarDays, () {
               Navigator.pop(context);
               _selectCustomPeriod();
             }),
@@ -630,7 +631,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
 
   // --- UI HELPERS ---
 
-  Widget _buildModalItem(DateFilterOption option, IconData icon, VoidCallback onTap) {
+  Widget _buildModalItem(DateFilterOption option, HeroIcons icon, VoidCallback onTap) {
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
       decoration: BoxDecoration(
@@ -640,9 +641,9 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
       child: ListTile(
         visualDensity: VisualDensity.compact,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        leading: Icon(icon, size: 18, color: kPrimaryColor),
+        leading: HeroIcon(icon, size: 18, color: kPrimaryColor),
         title: Text(_getFilterLabel(option), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+        trailing: const HeroIcon(HeroIcons.chevronRight, size: 12, color: Colors.grey),
         onTap: onTap,
       ),
     );
@@ -659,10 +660,10 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
     );
   }
 
-  Widget _buildIconBtn(IconData icon, VoidCallback? onPressed) {
+  Widget _buildIconBtn(HeroIcons icon, VoidCallback? onPressed) {
     return Container(
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)),
-      child: IconButton(icon: Icon(icon, size: 18, color: kPrimaryColor), onPressed: onPressed),
+      child: IconButton(icon: HeroIcon(icon, size: 18, color: kPrimaryColor), onPressed: onPressed),
     );
   }
 
@@ -706,7 +707,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
               ),
               if (widget.showSortButton)
                 _buildActionSquare(
-                  widget.isDescending ? Icons.south_rounded : Icons.north_rounded,
+                  widget.isDescending ? HeroIcons.arrowDown : HeroIcons.arrowUp,
                   widget.onSortPressed,
                 ),
             ],
@@ -761,7 +762,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
                       children: [
                         Text("ALL", style: TextStyle(color: Colors.black87, fontSize: 10, fontWeight: FontWeight.w900)),
                         SizedBox(width: 2),
-                        Icon(Icons.tune_rounded, size: 12, color: kPrimaryColor),
+                        HeroIcon(HeroIcons.adjustmentsHorizontal, size: 12, color: kPrimaryColor),
                       ],
                     ),
                   ),
@@ -776,7 +777,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
     );
   }
 
-  Widget _buildActionSquare(IconData icon, VoidCallback? onPressed) {
+  Widget _buildActionSquare(HeroIcons icon, VoidCallback? onPressed) {
     return Container(
       height: 32, // Reduced from 38
       width: 32,  // Reduced from 38
@@ -786,7 +787,7 @@ class _DateFilterWidgetState extends State<DateFilterWidget> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: IconButton(
-        icon: Icon(icon, color: kPrimaryColor, size: 16), // Smaller icon
+        icon: HeroIcon(icon, color: kPrimaryColor, size: 16), // Smaller icon
         onPressed: onPressed,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -885,7 +886,7 @@ class _EmptyChartPainter extends CustomPainter {
      shape: const RoundedRectangleBorder(
        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
      ),
-     leading: IconButton(icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20), onPressed: onBack),
+     leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white, size: 20), onPressed: onBack),
      title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
      backgroundColor: kPrimaryColor,
      elevation: 0,
@@ -893,7 +894,7 @@ class _EmptyChartPainter extends CustomPainter {
      actions: onDownload != null
          ? [
              IconButton(
-               icon: const Icon(Icons.download_rounded, color: Colors.white, size: 22),
+               icon: const HeroIcon(HeroIcons.arrowDownTray, color: Colors.white, size: 22),
                onPressed: onDownload,
                tooltip: 'Download PDF',
              ),

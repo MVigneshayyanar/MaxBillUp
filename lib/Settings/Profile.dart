@@ -13,6 +13,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_cropper/image_cropper.dart';
+import 'package:heroicons/heroicons.dart';
 
 // Imports from your project structure
 import 'package:maxbillup/components/common_bottom_nav.dart';
@@ -234,11 +235,11 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 24),
           _buildSectionTitle("App config"),
           // 1. Business Profile - only visible if admin or has editBusinessProfile permission
-          if (_isAdmin || _hasPermission('editBusinessProfile'))
+            if (_isAdmin || _hasPermission('editBusinessProfile'))
             _buildModernTile(
               title: "Business Profile",
-              icon: Icons.store_mall_directory_rounded,
-              color: const Color(0xFF1976D2),
+              icon: HeroIcons.buildingStorefront,
+              color: kGoogleGreen,
               onTap: () => _navigateTo('BusinessDetails'),
               subtitle: "Manage business profile & details",
             ),
@@ -246,8 +247,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (_isAdmin || _hasPermission('staffManagement'))
             _buildModernTile(
               title: "User Management",
-              icon: Icons.people_rounded,
-              color: const Color(0xFF607D8B),
+              icon: HeroIcons.users,
+              color: const Color(0xFF9C27B0),
               onTap: () => _navigateTo('UserManagement'),
               subtitle: "Manage staff & permissions",
             ),
@@ -255,8 +256,8 @@ class _SettingsPageState extends State<SettingsPage> {
           if (_isAdmin || _hasPermission('taxSettings'))
             _buildModernTile(
               title: "Tax Setting",
-              icon: Icons.percent_rounded,
-              color: const Color(0xFF43A047),
+              icon: HeroIcons.receiptPercent,
+              color: const Color(0xFF00796B),
               onTap: () => _navigateTo('TaxSettings'),
               subtitle: "GST, VAT & local tax compliance",
             ),
@@ -264,24 +265,24 @@ class _SettingsPageState extends State<SettingsPage> {
           if (_isAdmin || _hasPermission('receiptCustomization'))
             _buildModernTile(
               title: "Bill Receipt Setting",
-              icon: Icons.receipt_long_rounded,
-              color: const Color(0xFFFF9800),
+              icon: HeroIcons.documentText,
+              color: kOrange,
               onTap: () => _navigateTo('BillPrintSettings'),
               subtitle: "Invoice templates & format",
             ),
           // 5. Printer Setup
           _buildModernTile(
             title: "Printer Setup",
-            icon: Icons.print_rounded,
-            color: const Color(0xFF9C27B0),
+            icon: HeroIcons.printer,
+            color: const Color(0xFFE91E63),
             onTap: () => _navigateTo('PrinterSetup'),
             subtitle: "Setup Bluetooth thermal printers",
           ),
           // 6. General Settings (Language included)
           _buildModernTile(
             title: "General Setting",
-            icon: Icons.settings_rounded,
-            color: const Color(0xFF12008C),
+            icon: HeroIcons.cog6Tooth,
+            color: kPrimaryColor,
             onTap: () => _navigateTo('GeneralSettings'),
             subtitle: "Language",//, theme & preferences
           ),
@@ -378,7 +379,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     border: Border.all(color: kGrey200, width: 2),
                     image: logoUrl.isNotEmpty ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) : null,
                   ),
-                  child: logoUrl.isEmpty ? const Icon(Icons.store_rounded, size: 28, color: kGrey400) : null,
+                  child: logoUrl.isEmpty ? const HeroIcon(HeroIcons.buildingStorefront, size: 28, color: kGrey400) : null,
                 ),
               ),
               const SizedBox(width: 16),
@@ -425,7 +426,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                const Icon(Icons.warning_amber_rounded, size: 12, color: kErrorColor),
+                                const HeroIcon(HeroIcons.exclamationTriangle, size: 12, color: kErrorColor),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Expired on $expiryText',
@@ -442,7 +443,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Icon(Icons.event_rounded, size: 12, color: isExpiringSoon ? kErrorColor : kBlack54),
+                                HeroIcon(HeroIcons.calendar, size: 12, color: isExpiringSoon ? kErrorColor : kBlack54),
                                 const SizedBox(width: 4),
                                 Text(
                                   isExpiringSoon
@@ -480,24 +481,21 @@ class _SettingsPageState extends State<SettingsPage> {
     return months[month - 1];
   }
 
-
-  Widget _buildModernTile({required String title, required IconData icon, required Color color, required VoidCallback onTap, String? subtitle}) {
+  Widget _buildModernTile({required String title, required HeroIcons icon, required Color color, required VoidCallback onTap, String? subtitle}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200),
-      ),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Container(
           width: 44, height: 44,
           decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 22),
+          child: HeroIcon(icon, color: color, size: 22),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87, fontFamily: 'NotoSans')),
         subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500, fontFamily: 'Lato')) : null,
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 14),
+        trailing: const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
       ),
     );
   }

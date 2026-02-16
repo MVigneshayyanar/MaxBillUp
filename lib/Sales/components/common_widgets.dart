@@ -89,7 +89,7 @@ class CommonWidgets {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const HeroIcon(HeroIcons.receiptRefund, color: kWhite, size: 18),
+                    const HeroIcon(HeroIcons.banknotes, color: kWhite, size: 18),
                     const SizedBox(width: 10),
                     Text(
                       "$currencySymbol${AmountFormatter.format(totalBill)}",

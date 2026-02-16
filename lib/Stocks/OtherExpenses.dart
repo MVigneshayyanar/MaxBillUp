@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:heroicons/heroicons.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = Color(0xFF2F7CF6);
@@ -122,7 +123,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.calendar_month, color: _primaryColor, size: 18),
+                          const HeroIcon(HeroIcons.calendarDays, color: _primaryColor, size: 18),
                           const SizedBox(width: 10),
                           Text(DateFormat('dd - MM - yyyy').format(_selectedDate),
                               style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -150,7 +151,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                     padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Icon(Icons.add, color: Colors.white),
+                  child: const HeroIcon(HeroIcons.plus, color: Colors.white),
                 )
               ],
             ),
@@ -169,7 +170,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  prefixIcon: const Icon(Icons.search, color: _primaryColor, size: 20),
+                  prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: _primaryColor, size: 20),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
@@ -307,7 +308,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.receipt_long_outlined, size: 80, color: _primaryColor.withOpacity(0.1)),
+          HeroIcon(HeroIcons.documentText, size: 80, color: _primaryColor.withOpacity(0.1)),
           const SizedBox(height: 16),
           const Text("No other expenses found",
               style: TextStyle(fontSize: 16,fontWeight: FontWeight.bold, color: Colors.grey)),
@@ -427,9 +428,9 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField('Title *', _titleController, Icons.edit),
+            _buildTextField('Title *', _titleController, HeroIcons.pencil),
             const SizedBox(height: 16),
-            _buildTextField('Amount *', _amountController, Icons.currency_rupee, isNum: true),
+            _buildTextField('Amount *', _amountController, HeroIcons.currencyRupee, isNum: true),
             const SizedBox(height: 16),
             const Text("Date", style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -439,7 +440,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
             const SizedBox(height: 8),
             _buildDropdown(),
             const SizedBox(height: 16),
-            _buildTextField('Description', _descriptionController, Icons.description, lines: 3),
+            _buildTextField('Description', _descriptionController, HeroIcons.documentText, lines: 3),
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
@@ -464,7 +465,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, IconData icon,
+  Widget _buildTextField(String label, TextEditingController controller, HeroIcons icon,
       {bool isNum = false, int lines = 1}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +477,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
           maxLines: lines,
           keyboardType: isNum ? TextInputType.number : TextInputType.text,
           decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: _primaryColor, size: 20),
+            prefixIcon: HeroIcon(icon, color: _primaryColor, size: 20),
             filled: true,
             fillColor: _primaryColor.withOpacity(0.04),
             border: OutlineInputBorder(
@@ -501,7 +502,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today, size: 18, color: _primaryColor),
+            const HeroIcon(HeroIcons.calendar, size: 18, color: _primaryColor),
             const SizedBox(width: 12),
             Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
           ],

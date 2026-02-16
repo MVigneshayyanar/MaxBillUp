@@ -664,7 +664,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildMenuItem(context, "Bill History", HeroIcons.receiptRefund),
+                      _buildMenuItem(context, "Bill History", HeroIcons.banknotes),
                       const SizedBox(height: 10),
                       _buildMenuItem(context, "Payment History", HeroIcons.clock),
                       const SizedBox(height: 10),
@@ -1080,7 +1080,7 @@ class CustomerCreditsPage extends StatelessWidget {
               } else if (isCreditSale) {
                 title = "Credit Sale";
                 color = kOrange;
-                icon = HeroIcons.receiptRefund;
+                icon = HeroIcons.banknotes;
               } else {
                 title = "Credit Added";
                 color = kErrorColor;

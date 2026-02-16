@@ -18,6 +18,7 @@ import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import '../utils/amount_formatter.dart';
+import 'package:heroicons/heroicons.dart';
 
 // ==========================================
 // 1. BILL PAGE (Main State Widget)
@@ -284,7 +285,7 @@ class _BillPageState extends State<BillPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 40),
+            const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 40),
             const SizedBox(height: 16),
             const Text('Clear Order?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
             const SizedBox(height: 12),
@@ -398,7 +399,7 @@ class _BillPageState extends State<BillPage> {
               children: [
                 const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
                 IconButton(
-                  icon: const Icon(Icons.close, color: Colors.grey),
+                  icon: const HeroIcon(HeroIcons.xMark, color: Colors.grey),
                   onPressed: () => Navigator.of(context).pop(),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -450,8 +451,8 @@ class _BillPageState extends State<BillPage> {
                                         _removeCartItem(idx);
                                       }
                                     },
-                                    icon: Icon(
-                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline : Icons.remove,
+                                    icon: HeroIcon(
+                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? HeroIcons.trash : HeroIcons.minus,
                                       color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
                                       size: 20,
                                     ),
@@ -475,7 +476,7 @@ class _BillPageState extends State<BillPage> {
                                       int current = int.tryParse(qtyController.text) ?? 0;
                                       setDialogState(() => qtyController.text = (current + 1).toString());
                                     },
-                                    icon: const Icon(Icons.add, color: kPrimaryColor, size: 20),
+                                    icon: const HeroIcon(HeroIcons.plus, color: kPrimaryColor, size: 20),
                                   ),
                                 ],
                               ),
@@ -526,7 +527,7 @@ class _BillPageState extends State<BillPage> {
                             onPressed: () {
                               setDialogState(() => selectedTaxId = null);
                             },
-                            icon: const Icon(Icons.close, size: 16, color: kErrorColor),
+                            icon: const HeroIcon(HeroIcons.xMark, size: 16, color: kErrorColor),
                             label: const Text('Remove Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kErrorColor)),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -609,7 +610,7 @@ class _BillPageState extends State<BillPage> {
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.add_circle_outline, size: 16, color: kPrimaryColor),
+                            icon: const HeroIcon(HeroIcons.plusCircle, size: 16, color: kPrimaryColor),
                             label: const Text('Add Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kPrimaryColor)),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -632,7 +633,7 @@ class _BillPageState extends State<BillPage> {
                       Navigator.of(context).pop();
                       _removeCartItem(idx);
                     },
-                    icon: const Icon(Icons.delete_outline, color: kErrorColor, size: 18),
+                    icon: const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
                     label: const Text('Remove', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
                   ),
                   ElevatedButton(
@@ -834,7 +835,7 @@ class _BillPageState extends State<BillPage> {
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   const Text('APPLY DISCOUNT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, size: 24, color: kBlack54)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ]),
                 const SizedBox(height: 16),
                 // Show customer default discount if available
@@ -848,7 +849,7 @@ class _BillPageState extends State<BillPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.person_rounded, color: kGoogleGreen, size: 18),
+                        const HeroIcon(HeroIcons.user, color: kGoogleGreen, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -928,7 +929,7 @@ class _BillPageState extends State<BillPage> {
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   const Text('CREDIT NOTES', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark)),
                 ]),
                 const SizedBox(height: 16),
                 ConstrainedBox(
@@ -1031,7 +1032,7 @@ class _BillPageState extends State<BillPage> {
           elevation: 0,
           centerTitle: true,
           title: Text(context.tr('Bill Summary').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
-          leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 18), onPressed: () {
+          leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: () {
             // Clear cart when going back from quotation to prevent items persisting
             if (_isFromQuotation) {
               final cartService = Provider.of<CartService>(context, listen: false);
@@ -1039,7 +1040,7 @@ class _BillPageState extends State<BillPage> {
             }
             Navigator.pop(context);
           }),
-          actions: [IconButton(icon: const Icon(Icons.delete_sweep_rounded, color: kWhite, size: 22), onPressed: _clearOrder)],
+          actions: [IconButton(icon: const HeroIcon(HeroIcons.trash, color: kWhite, size: 22), onPressed: _clearOrder)],
         ),
       body: Column(
         children: [
@@ -1084,7 +1085,7 @@ class _BillPageState extends State<BillPage> {
               Container(
                 width: 38, height: 38,
                 decoration: BoxDecoration(color: hasCustomer ? kPrimaryColor : kOrange.withOpacity(0.15), shape: BoxShape.circle),
-                child: Icon(hasCustomer ? Icons.person_rounded : Icons.person_add_rounded, color: hasCustomer ? kWhite : kOrange, size: 20),
+                child: HeroIcon(hasCustomer ? HeroIcons.user : HeroIcons.userPlus, color: hasCustomer ? kWhite : kOrange, size: 20),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1103,11 +1104,11 @@ class _BillPageState extends State<BillPage> {
                   child: Container(
                     padding: const EdgeInsets.all(6), margin: const EdgeInsets.only(right: 8),
                     decoration: BoxDecoration(shape: BoxShape.circle, color: kBlack87.withOpacity(0.05)),
-                    child: const Icon(Icons.close_rounded, size: 14, color: kBlack54),
+                    child: const HeroIcon(HeroIcons.xMark, size: 14, color: kBlack54),
                   ),
                 ),
               ],
-              const Icon(Icons.arrow_forward_ios_rounded, color: kGrey400, size: 12),
+              const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 12),
             ],
           ),
         ),
@@ -1167,7 +1168,7 @@ class _BillPageState extends State<BillPage> {
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.edit, color: kPrimaryColor, size: 18),
+              child: const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 18),
             ),
           ),
         ],
@@ -1227,7 +1228,7 @@ class _BillPageState extends State<BillPage> {
                     decoration: InputDecoration(
                       hintText: 'Add bill notes / description (Optional)..',
                       hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
-                      prefixIcon: const Icon(Icons.note_alt_outlined, color: kBlack54, size: 20),
+                      prefixIcon: const HeroIcon(HeroIcons.documentText, color: kBlack54, size: 20),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
@@ -1251,7 +1252,7 @@ class _BillPageState extends State<BillPage> {
                     decoration: InputDecoration(
                       hintText: 'Add Customer Note (optional)...',
                       hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
-                      prefixIcon: const Icon(Icons.location_on_outlined, color: kBlack54, size: 20),
+                      prefixIcon: const HeroIcon(HeroIcons.mapPin, color: kBlack54, size: 20),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     ),
@@ -1307,10 +1308,10 @@ class _BillPageState extends State<BillPage> {
                 // Payment Buttons
                 Row(
                   children: [
-                    _buildPayIcon(Icons.payments_rounded, 'Cash', () => _proceedToPayment('Cash')),
-                    _buildPayIcon(Icons.qr_code_scanner_rounded, 'Online', () => _proceedToPayment('Online')),
-                    _buildPayIcon(Icons.menu_book_rounded, 'Credit', () => _proceedToPayment('Credit')),
-                    _buildPayIcon(Icons.call_split_rounded, 'Split', () => _proceedToPayment('Split')),
+                    _buildPayIcon(HeroIcons.banknotes, 'Cash', () => _proceedToPayment('Cash')),
+                    _buildPayIcon(HeroIcons.qrCode, 'Online', () => _proceedToPayment('Online')),
+                    _buildPayIcon(HeroIcons.bookOpen, 'Credit', () => _proceedToPayment('Credit')),
+                    _buildPayIcon(HeroIcons.arrowsRightLeft, 'Split', () => _proceedToPayment('Split')),
                   ],
                 ),
               ],
@@ -1331,7 +1332,7 @@ class _BillPageState extends State<BillPage> {
           children: [
             Row(children: [
               Text(label, style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)),
-              if (isClickable) Padding(padding: const EdgeInsets.only(left: 6), child: Icon(Icons.edit_note_rounded, size: 16, color: color ?? kPrimaryColor)),
+              if (isClickable) Padding(padding: const EdgeInsets.only(left: 6), child: HeroIcon(HeroIcons.pencilSquare, size: 16, color: color ?? kPrimaryColor)),
             ]),
             Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color ?? kBlack87)),
           ],
@@ -1341,7 +1342,7 @@ class _BillPageState extends State<BillPage> {
   }
 
 
-  Widget _buildPayIcon(IconData icon, String label, VoidCallback onTap) {
+  Widget _buildPayIcon(HeroIcons icon, String label, VoidCallback onTap) {
     final bool isOrange = label == 'Online' || label == 'Credit';
 
     // Define rich gradients based on your theme colors
@@ -1387,7 +1388,7 @@ class _BillPageState extends State<BillPage> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, color: Colors.white, size: 24),
+                      HeroIcon(icon, color: Colors.white, size: 24),
                       const SizedBox(height: 6),
                       Text(
                         label.toUpperCase(), // Uppercase for a more "UI Label" feel
@@ -1469,7 +1470,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('Select Contact', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                          GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close)),
+                          GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark)),
                         ],
                       ),
                     ),
@@ -1477,7 +1478,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                       child: TextField(
                         controller: contactSearchController,
-                        decoration: const InputDecoration(hintText: 'Search contacts...', prefixIcon: Icon(Icons.search), border: OutlineInputBorder()),
+                        decoration: const InputDecoration(hintText: 'Search contacts...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass), border: OutlineInputBorder()),
                         onChanged: (v) => setDialogState(() => filteredContacts = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()),
                       ),
                     ),
@@ -1528,7 +1529,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('New Customer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-                  GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close)),
+                  GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark)),
                 ],
               ),
               const SizedBox(height: 20),
@@ -1572,7 +1573,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
           children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('SELECT CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
-              IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: kBlack54)),
+              IconButton(onPressed: () => Navigator.pop(context), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
             ]),
             const SizedBox(height: 12),
             Row(
@@ -1585,7 +1586,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: context.tr('search'),
-                        prefixIcon: const Icon(Icons.search_rounded, color: kPrimaryColor),
+                        prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 14),
                       ),
@@ -1593,9 +1594,9 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                _squareActionBtn(Icons.person_add_rounded, _showAddCustomerDialog, kPrimaryColor),
+                _squareActionBtn(HeroIcons.userPlus, _showAddCustomerDialog, kPrimaryColor),
                 const SizedBox(width: 8),
-                _squareActionBtn(Icons.contact_phone_rounded, _importFromContacts, kGoogleGreen),
+                _squareActionBtn(HeroIcons.phone, _importFromContacts, kGoogleGreen),
               ],
             ),
             const SizedBox(height: 12),
@@ -1638,14 +1639,14 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
     );
   }
 
-  Widget _squareActionBtn(IconData icon, VoidCallback onTap, Color color) {
+  Widget _squareActionBtn(HeroIcons icon, VoidCallback onTap, Color color) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
         height: 48, width: 48,
         decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
-        child: Icon(icon, color: color, size: 20),
+        child: HeroIcon(icon, color: color, size: 20),
       ),
     );
   }
@@ -1905,7 +1906,7 @@ class _PaymentPageState extends State<PaymentPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Column(
         children: [
@@ -1954,7 +1955,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.event_rounded, color: kOrange, size: 20),
+                          const HeroIcon(HeroIcons.calendar, color: kOrange, size: 20),
                           const SizedBox(width: 8),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1970,7 +1971,7 @@ class _PaymentPageState extends State<PaymentPage> {
                             ],
                           ),
                           const SizedBox(width: 8),
-                          const Icon(Icons.edit_rounded, color: kOrange, size: 16),
+                          const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
                         ],
                       ),
                     ),
@@ -2029,7 +2030,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: kOrange, size: 18),
+                    const HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -2090,7 +2091,7 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Widget _buildKeyPad() { final List<String> keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back']; return GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 1.8), itemCount: keys.length, itemBuilder: (ctx, i) => _buildKey(keys[i])); }
-  Widget _buildKey(String key) { return Material(color: kGreyBg, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => _onKeyTap(key), borderRadius: BorderRadius.circular(14), child: Center(child: key == 'back' ? const Icon(Icons.backspace_rounded, color: kBlack87, size: 22) : Text(key, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87))))); }
+  Widget _buildKey(String key) { return Material(color: kGreyBg, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => _onKeyTap(key), borderRadius: BorderRadius.circular(14), child: Center(child: key == 'back' ? const HeroIcon(HeroIcons.backspace, color: kBlack87, size: 22) : Text(key, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87))))); }
 }
 
 // ==========================================
@@ -2394,11 +2395,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               ]),
             ),
             const SizedBox(height: 24),
-            _buildInput('Cash Received', Icons.payments_rounded, _cashController),
+            _buildInput('Cash Received', HeroIcons.banknotes, _cashController),
             const SizedBox(height: 12),
-            _buildInput('Online / UPI', Icons.qr_code_scanner_rounded, _onlineController),
+            _buildInput('Online / UPI', HeroIcons.qrCode, _onlineController),
             const SizedBox(height: 12),
-            _buildInput('Credit Book', Icons.menu_book_rounded, _creditController, enabled: widget.customerPhone != null),
+            _buildInput('Credit Book', HeroIcons.bookOpen, _creditController, enabled: widget.customerPhone != null),
 
             // Show change amount when overpaid (cash + online > bill and no credit)
             if (changeAmount > 0) ...[
@@ -2413,7 +2414,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle_outline_rounded, color: kGoogleGreen, size: 20),
+                    const HeroIcon(HeroIcons.checkCircle, color: kGoogleGreen, size: 20),
                     const SizedBox(width: 8),
                     const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kGoogleGreen, letterSpacing: 0.5)),
                     Text('$_currencySymbol${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kGoogleGreen)),
@@ -2437,7 +2438,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.event_rounded, color: kOrange, size: 20),
+                      const HeroIcon(HeroIcons.calendar, color: kOrange, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -2454,7 +2455,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                           ],
                         ),
                       ),
-                      const Icon(Icons.edit_rounded, color: kOrange, size: 16),
+                      const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
                     ],
                   ),
                 ),
@@ -2495,7 +2496,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded, color: kOrange, size: 18),
+                    const HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -2555,11 +2556,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
-  Widget _buildInput(String label, IconData icon, TextEditingController ctrl, {bool enabled = true}) {
+  Widget _buildInput(String label, HeroIcons icon, TextEditingController ctrl, {bool enabled = true}) {
     return TextFormField(
         controller: ctrl, enabled: enabled, keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: InputDecoration(
-          labelText: label, prefixIcon: Icon(icon, color: enabled ? kPrimaryColor : kBlack54),
+          labelText: label, prefixIcon: HeroIcon(icon, color: enabled ? kPrimaryColor : kBlack54),
           filled: true, fillColor: kWhite,
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),

@@ -7,6 +7,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:heroicons/heroicons.dart';
 
 class StockPurchasePage extends StatefulWidget {
   final String uid;
@@ -75,7 +76,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
           title: const Text('Stock Purchases', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
           backgroundColor: kPrimaryColor,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 20),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
             onPressed: widget.onBack,
           ),
           centerTitle: true,
@@ -102,7 +103,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 18),
+                            const HeroIcon(HeroIcons.calendarDays, color: kPrimaryColor, size: 18),
                             const SizedBox(width: 12),
                             Text(
                               DateFormat('dd MMM yyyy').format(_selectedDate),
@@ -122,7 +123,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                     child: Container(
                       height: 46, width: 46,
                       decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.add_rounded, color: kWhite, size: 24),
+                      child: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
                     ),
                   ),
                 ],
@@ -146,7 +147,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                   decoration: const InputDecoration(
                     hintText: "Search supplier or invoice...",
                     hintStyle: TextStyle(color: kBlack54, fontSize: 14),
-                    prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
+                    prefixIcon: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 7),
                   ),
@@ -223,7 +224,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                   children: [
                     CircleAvatar(
                       backgroundColor: kOrange.withOpacity(0.1), radius: 18,
-                      child: const Icon(Icons.store_rounded, color: kOrange, size: 18),
+                      child: const HeroIcon(HeroIcons.buildingStorefront, color: kOrange, size: 18),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -238,7 +239,7 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text((data['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: kGrey400),
+                    const HeroIcon(HeroIcons.chevronRight, size: 12, color: kGrey400),
                   ],
                 ),
               ],
@@ -249,8 +250,8 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
     );
   }
 
-  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.shopping_cart_outlined, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No stock purchases found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
-  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No matches for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
+  Widget _buildEmptyState() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.shoppingCart, size: 64, color: kGrey300), const SizedBox(height: 16), const Text('No stock purchases found', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack87))]));
+  Widget _buildNoResults() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 64, color: kGrey300), const SizedBox(height: 16), Text('No matches for "$_searchQuery"', style: const TextStyle(color: kBlack54))]));
 }
 
 // ---------------- CreateStockPurchasePage ----------------
@@ -405,7 +406,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       appBar: AppBar(
           shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-          ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: widget.onBack)),
+          ),title: const Text('New Stock Purchase', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)), backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0, leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: widget.onBack)),
       body: Form(
         key: _formKey,
         child: Column(
@@ -417,15 +418,15 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   _buildSectionLabel("SUPPLIER DETAILS"),
                   _buildSupplierAutocomplete(),
                   const SizedBox(height: 16),
-                  _buildModernField(_supplierPhoneController, 'Phone Number', Icons.phone_android_rounded, type: TextInputType.phone),
+                  _buildModernField(_supplierPhoneController, 'Phone Number', HeroIcons.devicePhoneMobile, type: TextInputType.phone),
                   const SizedBox(height: 16),
-                  _buildModernField(_supplierGstinController, 'Tax Number', Icons.receipt_long_rounded),
+                  _buildModernField(_supplierGstinController, 'Tax Number', HeroIcons.documentText),
 
                   const SizedBox(height: 24),
                   _buildSectionLabel("INVOICE DETAILS"),
-                  _buildModernField(_totalAmountController, 'Total Amount *', Icons.payments_rounded, type: const TextInputType.numberWithOptions(decimal: true), isMandatory: true, onChanged: () => setState(() {})),
+                  _buildModernField(_totalAmountController, 'Total Amount *', HeroIcons.banknotes, type: const TextInputType.numberWithOptions(decimal: true), isMandatory: true, onChanged: () => setState(() {})),
                   const SizedBox(height: 16),
-                  _buildModernField(_invoiceNumberController, 'Reference Invoice No (Optional)', Icons.receipt_long_rounded),
+                  _buildModernField(_invoiceNumberController, 'Reference Invoice No (Optional)', HeroIcons.documentText),
                   const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _buildDateSelector()),
@@ -434,7 +435,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   ]),
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 16),
-                    _buildModernField(_paidAmountController, 'Paid Amount', Icons.payment_rounded, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
+                    _buildModernField(_paidAmountController, 'Paid Amount', HeroIcons.creditCard, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
                     const SizedBox(height: 12),
                     // Credit Amount Display (auto-calculated)
                     Container(
@@ -449,7 +450,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                         children: [
                           Row(
                             children: [
-                              Icon(Icons.account_balance_wallet_rounded, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
+                              HeroIcon(HeroIcons.wallet, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
                               const SizedBox(width: 8),
                               Text('Credit Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                             ],
@@ -467,9 +468,9 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                       tilePadding: EdgeInsets.zero,
                       title: _buildSectionLabel("ADDITIONAL INFORMATION"),
                       children: [
-                        _buildModernField(_taxAmountController, 'Tax Component (Amount)', Icons.percent_rounded, type: const TextInputType.numberWithOptions(decimal: true)),
+                        _buildModernField(_taxAmountController, 'Tax Component (Amount)', HeroIcons.percentBadge, type: const TextInputType.numberWithOptions(decimal: true)),
                         const SizedBox(height: 16),
-                        _buildModernField(_notesController, 'Internal Notes', Icons.notes_rounded, maxLines: 3),
+                        _buildModernField(_notesController, 'Internal Notes', HeroIcons.documentText, maxLines: 3),
                       ],
                     ),
                   ),
@@ -485,7 +486,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 
   Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
 
-  Widget _buildModernField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false, VoidCallback? onChanged}) {
+  Widget _buildModernField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false, VoidCallback? onChanged}) {
     return ValueListenableBuilder(
       valueListenable: ctrl,
       builder: (context, val, child) {
@@ -495,7 +496,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
           onChanged: (v) { if (onChanged != null) onChanged(); setState(() {}); },
           decoration: InputDecoration(
-            labelText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
+            labelText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
             filled: true, fillColor: kWhite, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
@@ -515,15 +516,15 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       fieldViewBuilder: (ctx, ctrl, focus, onSub) {
         if (_supplierNameController.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text = _supplierNameController.text;
         ctrl.addListener(() => _supplierNameController.text = ctrl.text);
-        return _buildModernField(ctrl, 'Supplier Name *', Icons.store_rounded, isMandatory: true);
+        return _buildModernField(ctrl, 'Supplier Name *', HeroIcons.buildingStorefront, isMandatory: true);
       },
       optionsViewBuilder: (ctx, onSel, options) => Align(alignment: Alignment.topLeft, child: Material(elevation: 4, borderRadius: BorderRadius.circular(12), child: Container(width: MediaQuery.of(context).size.width - 40, constraints: const BoxConstraints(maxHeight: 250), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: ListView.separated(padding: EdgeInsets.zero, shrinkWrap: true, itemCount: options.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) { final v = options.elementAt(i); return ListTile(dense: true, leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), radius: 16, child: Text(v['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold, fontSize: 12))), title: Text(v['name'], style: const TextStyle(fontWeight: FontWeight.w600)), subtitle: Text(v['phone'] ?? '--', style: const TextStyle(fontSize: 10)), onTap: () => onSel(v)); })))),
     );
   }
 
-  Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const Icon(Icons.calendar_today_rounded, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
+  Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const HeroIcon(HeroIcons.calendar, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
 
-  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const Icon(Icons.arrow_drop_down_rounded, color: kBlack54), items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
+  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54), items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
 
   Widget _buildBottomAction() => SafeArea(child: Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 12), decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _isLoading ? null : _savePurchase, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: kWhite) : const Text('Save purchase', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5))))));
 }
@@ -550,7 +551,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
         ),
         title: const Text('Purchase Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
       ),
       body: Column(
         children: [
@@ -561,7 +562,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
               child: Row(
                 children: [
-                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.store_rounded, color: kOrange, size: 18)),
+                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.buildingStorefront, color: kOrange, size: 18)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -584,11 +585,11 @@ class StockPurchaseDetailsPage extends StatelessWidget {
                   children: [
                     const Text('LOGISTICS INFORMATION', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
-                    _buildRow(Icons.receipt_long_rounded, 'Ref Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
+                    _buildRow(HeroIcons.documentText, 'Ref Invoice', purchaseData['invoiceNumber'] ?? 'N/A'),
                     if (purchaseData['supplierGstin'] != null && purchaseData['supplierGstin'].toString().isNotEmpty)
-                      _buildRow(Icons.business_rounded, 'Tax No', purchaseData['supplierGstin']),
-                    _buildRow(Icons.calendar_month_rounded, 'Date Recorded', dateStr),
-                    _buildRow(Icons.notes_rounded, 'Note', purchaseData['notes'] ?? '--'),
+                      _buildRow(HeroIcons.buildingOffice2, 'Tax No', purchaseData['supplierGstin']),
+                    _buildRow(HeroIcons.calendar, 'Date Recorded', dateStr),
+                    _buildRow(HeroIcons.documentText, 'Note', purchaseData['notes'] ?? '--'),
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100)),
 
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -613,5 +614,5 @@ class StockPurchaseDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(IconData i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
+  Widget _buildRow(HeroIcons i, String l, String v) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [HeroIcon(i, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$l: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 }
