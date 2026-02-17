@@ -918,7 +918,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         elevation: 0,
         actions: widget.isEditMode ? [
           IconButton(
-            icon: const HeroIcon(HeroIcons.trash, color: Colors.white),
+            icon: const HeroIcon(HeroIcons.trash, color: Colors.red),
             onPressed: () => _confirmDeleteCustomer(context),
             tooltip: 'Delete Customer',
           ),

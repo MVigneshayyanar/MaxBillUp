@@ -6,11 +6,6 @@ flutter_launcher_icons:
   min_sdk_android: 21
 
   # Adaptive icon configuration for Android (API 26+)
-  # Using white background to ensure icon is fully visible without cropping
-  # The adaptive_icon_foreground will be automatically scaled to fit within safe zone
-  adaptive_icon_background: "#FFFFFF"
+  # Using the icon image itself for both foreground and background
+  # This ensures consistent appearance without white padding
   adaptive_icon_foreground: "assets/MAX_my_bill_icon.png"
-
-  # Additional padding to ensure icon is not cropped on any device
-  # This creates extra safe area so icon appears fully on all screen shapes
-  # (circular, squircle, rounded square, etc.)

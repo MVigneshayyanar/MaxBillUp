@@ -1501,7 +1501,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
 
   // Document Numbering Settings
   String _selectedDocType = 'Invoice';
-  final List<String> _docTypes = ['Invoice', 'Quotation/Estimation', 'Purchase', 'Expense'];
+  final List<String> _docTypes = ['Invoice', 'Quotation/Estimation', 'Purchase', 'Expense', 'Payment Receipt'];
 
   // Prefix and number controllers for each document type
   final _invoicePrefixCtrl = TextEditingController();
@@ -1512,12 +1512,15 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
   final _purchaseNumberCtrl = TextEditingController();
   final _expensePrefixCtrl = TextEditingController();
   final _expenseNumberCtrl = TextEditingController();
+  final _paymentReceiptPrefixCtrl = TextEditingController();
+  final _paymentReceiptNumberCtrl = TextEditingController();
 
   // Old series lists
   List<Map<String, dynamic>> _oldInvoiceSeries = [];
   List<Map<String, dynamic>> _oldQuotationSeries = [];
   List<Map<String, dynamic>> _oldPurchaseSeries = [];
   List<Map<String, dynamic>> _oldExpenseSeries = [];
+  List<Map<String, dynamic>> _oldPaymentReceiptSeries = [];
 
   @override
   void initState() {
@@ -1538,6 +1541,8 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
     _purchaseNumberCtrl.dispose();
     _expensePrefixCtrl.dispose();
     _expenseNumberCtrl.dispose();
+    _paymentReceiptPrefixCtrl.dispose();
+    _paymentReceiptNumberCtrl.dispose();
     super.dispose();
   }
 
@@ -1605,6 +1610,11 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
             _expensePrefixCtrl.text = data['expensePrefix']?.toString() ?? '';
             _expenseNumberCtrl.text = (data['nextExpenseNumber'] ?? 100001).toString();
             _oldExpenseSeries = List<Map<String, dynamic>>.from(data['oldExpenseSeries'] ?? []);
+
+            // Payment Receipt
+            _paymentReceiptPrefixCtrl.text = data['paymentReceiptPrefix']?.toString() ?? 'PR';
+            _paymentReceiptNumberCtrl.text = (data['nextPaymentReceiptNumber'] ?? 100001).toString();
+            _oldPaymentReceiptSeries = List<Map<String, dynamic>>.from(data['oldPaymentReceiptSeries'] ?? []);
           });
         }
       }
@@ -1748,6 +1758,25 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           updateData['expensePrefix'] = newPrefix;
           updateData['nextExpenseNumber'] = newNumber;
           break;
+
+        case 'Payment Receipt':
+          final currentPrefix = currentData['paymentReceiptPrefix']?.toString() ?? 'PR';
+          final currentNumber = currentData['nextPaymentReceiptNumber'] ?? 100001;
+
+          if (currentPrefix != newPrefix || currentNumber != newNumber) {
+            final oldSeries = List<Map<String, dynamic>>.from(currentData['oldPaymentReceiptSeries'] ?? []);
+            final existsInHistory = oldSeries.any((s) =>
+              (s['prefix']?.toString() ?? '') == (currentPrefix.isEmpty ? '--' : currentPrefix) &&
+              s['number'] == currentNumber);
+            if (!existsInHistory && (currentPrefix.isNotEmpty || currentNumber != 100001)) {
+              oldSeries.add({'prefix': currentPrefix.isEmpty ? '--' : currentPrefix, 'number': currentNumber});
+              updateData['oldPaymentReceiptSeries'] = oldSeries;
+              setState(() => _oldPaymentReceiptSeries = oldSeries);
+            }
+          }
+          updateData['paymentReceiptPrefix'] = newPrefix;
+          updateData['nextPaymentReceiptNumber'] = newNumber;
+          break;
       }
 
       await FirebaseFirestore.instance.collection('store').doc(storeId).update(updateData);
@@ -1773,6 +1802,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       case 'Quotation/Estimation': return _quotationPrefixCtrl.text;
       case 'Purchase': return _purchasePrefixCtrl.text;
       case 'Expense': return _expensePrefixCtrl.text;
+      case 'Payment Receipt': return _paymentReceiptPrefixCtrl.text;
       default: return '';
     }
   }
@@ -1783,6 +1813,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
       case 'Quotation/Estimation': return int.tryParse(_quotationNumberCtrl.text) ?? 100001;
       case 'Purchase': return int.tryParse(_purchaseNumberCtrl.text) ?? 100001;
       case 'Expense': return int.tryParse(_expenseNumberCtrl.text) ?? 100001;
+      case 'Payment Receipt': return int.tryParse(_paymentReceiptNumberCtrl.text) ?? 100001;
       default: return 100001;
     }
   }
@@ -1815,6 +1846,13 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           setState(() {
             _expensePrefixCtrl.text = prefix == '--' ? '' : prefix;
             _expenseNumberCtrl.text = number.toString();
+          });
+          break;
+
+        case 'Payment Receipt':
+          setState(() {
+            _paymentReceiptPrefixCtrl.text = prefix == '--' ? '' : prefix;
+            _paymentReceiptNumberCtrl.text = number.toString();
           });
           break;
       }
@@ -2021,6 +2059,13 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         docLabel = 'Expense';
         docColor = Colors.teal;
         break;
+      case 'Payment Receipt':
+        prefixCtrl = _paymentReceiptPrefixCtrl;
+        numberCtrl = _paymentReceiptNumberCtrl;
+        oldSeries = _oldPaymentReceiptSeries;
+        docLabel = 'Payment Receipt';
+        docColor = Colors.green;
+        break;
       default:
         prefixCtrl = _invoicePrefixCtrl;
         numberCtrl = _invoiceNumberCtrl;
@@ -2042,7 +2087,7 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
           child: Row(
             children: _docTypes.map((type) {
               final isSelected = _selectedDocType == type;
-              Color chipColor = type == 'Invoice' ? kPrimaryColor : type == 'Quotation/Estimation' ? Colors.orange : type == 'Purchase' ? Colors.purple : Colors.teal;
+              Color chipColor = type == 'Invoice' ? kPrimaryColor : type == 'Quotation/Estimation' ? Colors.orange : type == 'Purchase' ? Colors.purple : type == 'Expense' ? Colors.teal : Colors.green;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
                 child: GestureDetector(

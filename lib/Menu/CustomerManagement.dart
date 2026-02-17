@@ -7,7 +7,12 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Menu/AddCustomer.dart';
+import 'package:maxbillup/Menu/Menu.dart' hide kWhite, kPrimaryColor, kErrorColor, kGoogleGreen, kOrange, kGrey200, kGrey300, kGrey400, kGreyBg, kBlack87, kBlack54, kGrey100;
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/payment_receipt_printer.dart';
+import 'package:maxbillup/Receipts/PaymentReceiptPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -528,14 +533,53 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         'note': 'Sales Credit Added via Customer Management',
       });
 
+      // Generate payment receipt
+      final paymentReceiptPrefix = await NumberGeneratorService.getPaymentReceiptPrefix();
+      final paymentReceiptNumber = await NumberGeneratorService.generatePaymentReceiptNumber();
+      final fullReceiptNumber = '$paymentReceiptPrefix$paymentReceiptNumber';
+
+      // Create payment receipt record
+      final paymentReceipts = await FirestoreService().getStoreCollection('paymentReceipts');
+      final receiptDocRef = await paymentReceipts.add({
+        'receiptNumber': fullReceiptNumber,
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': amount,
+        'paymentMethod': method,
+        'type': 'payment_received',
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Payment received - Sales Credit Added',
+      });
+
+      // Load store data
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      final storeData = storeDoc?.data() as Map<String, dynamic>?;
+
+      // Calculate previous and current credit balance
+      final previousCredit = oldBalance;
+      final currentCredit = oldBalance + amount;
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Credit of $_currencySymbol${amount.toStringAsFixed(0)} added successfully'),
-            backgroundColor: kGoogleGreen,
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        // Navigate to Payment Receipt page
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => PaymentReceiptPage(
+              receiptNumber: fullReceiptNumber,
+              dateTime: DateTime.now(),
+              businessName: storeData?['businessName'] ?? '',
+              businessLocation: storeData?['businessLocation'] ?? '',
+              businessPhone: storeData?['businessPhone'] ?? '',
+              businessGSTIN: storeData?['taxType'] ?? storeData?['gstin'],
+              customerName: widget.customerData['name'],
+              customerPhone: widget.customerId,
+              previousCredit: previousCredit,
+              receivedAmount: amount,
+              paymentMode: method,
+              currentCredit: currentCredit,
+              currency: CurrencyService.getSymbolWithSpace(storeData?['currency']),
+            ),
           ),
         );
       }
@@ -603,7 +647,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         iconTheme: const IconThemeData(color: kWhite),
         actions: [
           IconButton(
-            icon: const HeroIcon(HeroIcons.trash, color: Colors.white),
+            icon: const HeroIcon(HeroIcons.trash, color: Colors.red),
             onPressed: () => _confirmDelete(context),
             tooltip: 'Delete Customer',
           ),
@@ -762,9 +806,21 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           )),
           const SizedBox(width: 12),
           Expanded(child: OutlinedButton(
-            onPressed: () => Navigator.push(context, CupertinoPageRoute(builder: (context) => _ReceiveCreditPage(customerId: widget.customerId, customerData: widget.customerData, currentBalance: balance))),
+            onPressed: () {
+              // Navigate to CustomerCreditDetailsPage to show credit history
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (context) => CustomerCreditDetailsPage(
+                    customerId: widget.customerId,
+                    customerData: widget.customerData,
+                    currentBalance: balance,
+                  ),
+                ),
+              );
+            },
             style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text("RECEIVE PAYMENT", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            child: const Text("CREDIT HISTORY", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
           )),
         ]),
       ),
@@ -855,8 +911,8 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
 // =============================================================================
 
 class LedgerEntry {
-  final DateTime date; final String type; final String desc; final double debit; final double credit; double balance;
-  LedgerEntry({required this.date, required this.type, required this.desc, required this.debit, required this.credit, this.balance = 0});
+  final DateTime date; final String type; final String desc; final double debit; final double credit; final double balanceImpact; double balance;
+  LedgerEntry({required this.date, required this.type, required this.desc, required this.debit, required this.credit, this.balanceImpact = 0, this.balance = 0});
 }
 
 class CustomerLedgerPage extends StatefulWidget {
@@ -893,12 +949,20 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final total = (d['total'] ?? 0.0).toDouble();
       final mode = d['paymentMode'] ?? 'Unknown';
-      entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0));
       if (mode == 'Cash' || mode == 'Online') {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Immediate Payment", debit: 0, credit: total));
+        // Fully paid sale - sale in debit, no credit used, balance unchanged
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
+      } else if (mode == 'Credit') {
+        // Full credit sale - sale in debit, full amount as credit used
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
       } else if (mode == 'Split') {
-        final paid = (d['cashReceived'] ?? 0.0).toDouble();
-        if (paid > 0) entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Partial Payment", debit: 0, credit: paid));
+        final cashPaid = (d['cashReceived'] ?? 0.0).toDouble();
+        final onlinePaid = (d['onlineReceived'] ?? 0.0).toDouble();
+        final creditAmt = total - cashPaid - onlinePaid;
+        // Split sale - sale in debit, only credit portion in credit column
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
+      } else {
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
       }
     }
     for (var doc in credits.docs) {
@@ -908,16 +972,21 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final type = d['type'] ?? '';
       final method = d['method'] ?? '';
       if (type == 'payment_received') {
-        entries.add(LedgerEntry(date: date, type: 'CR', desc: "Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: amt));
+        // Payment received - shows in debit (green), reduces outstanding
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+      } else if (type == 'settlement') {
+        // Credit received/settled - shows in debit (green), reduces outstanding
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'add_credit') {
-        entries.add(LedgerEntry(date: date, type: 'DR', desc: "Sales Credit Added (${method.isNotEmpty ? method : 'Manual'})", debit: amt, credit: 0));
+        // Manual credit added - shows in credit (red), increases outstanding
+        entries.add(LedgerEntry(date: date, type: 'CR', desc: "Manual Credit Added", debit: 0, credit: amt, balanceImpact: amt));
       }
       // Note: credit_sale and sale_payment entries are skipped here since they're already tracked via sales collection
     }
     entries.sort((a, b) => a.date.compareTo(b.date));
     double running = 0;
     for (var e in entries) {
-      running += (e.debit - e.credit);
+      running += e.balanceImpact;
       e.balance = running;
     }
     if (mounted) setState(() { _entries = entries.reversed.toList(); _loading = false; });
@@ -938,8 +1007,8 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
           child: const Row(children: [
             Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
             Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
             Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
@@ -953,9 +1022,9 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
               child: Row(children: [
                 Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
                 Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Expanded(flex: 2, child: Text(e.debit > 0 ? "$_currencySymbol${e.debit.toStringAsFixed(0)}" : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text(e.credit > 0 ? "$_currencySymbol${e.credit.toStringAsFixed(0)}" : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text("$_currencySymbol${e.balance.toStringAsFixed(0)}", textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kBlack87, fontSize: 12, fontWeight: FontWeight.w900))),
               ]),
             );
           },
@@ -973,7 +1042,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
         ]),
       ),
     );
@@ -999,30 +1068,96 @@ class CustomerBillsPage extends StatelessWidget {
         builder: (context, snapshot) {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           final docs = snapshot.data!.docs.toList();
-          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)));
-          // Sort by timestamp descending (latest first)
+          if (docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(Icons.receipt_long_rounded, size: 64, color: kGrey300),
+            const SizedBox(height: 16),
+            const Text("No bills found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 15)),
+            const SizedBox(height: 4),
+            const Text("Bills will appear here once created", style: TextStyle(color: kGrey400, fontSize: 12)),
+          ]));
           docs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
             final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
             final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-            return bDate.compareTo(aDate); // Descending order
+            return bDate.compareTo(aDate);
           });
-          return ListView.separated(
-            padding: const EdgeInsets.all(16), itemCount: docs.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
-              return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                child: ListTile(
-                  title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
-                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                  trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
+
+          // Summary header
+          double totalAmount = 0;
+          int creditCount = 0;
+          for (var doc in docs) {
+            final d = doc.data() as Map<String, dynamic>;
+            totalAmount += (d['total'] ?? 0.0).toDouble();
+            final mode = d['paymentMode'] ?? 'Cash';
+            if (mode == 'Credit' || mode == 'Split') creditCount++;
+          }
+
+          return Column(
+            children: [
+              // Summary bar
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kPrimaryColor.withOpacity(0.12)),
                 ),
-              );
-            },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text("${docs.length} Bills", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      if (creditCount > 0) Text("$creditCount on credit", style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w600)),
+                    ]),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                      const Text("TOTAL", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                      Text(totalAmount.toStringAsFixed(2), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+                    ]),
+                  ],
+                ),
+              ),
+              // Bill list
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16), itemCount: docs.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+                    final paymentMode = data['paymentMode'] ?? 'Cash';
+                    final total = (data['total'] ?? 0.0).toDouble();
+                    final cashReceived = (data['cashReceived'] ?? 0.0).toDouble();
+                    final onlineReceived = (data['onlineReceived'] ?? 0.0).toDouble();
+
+                    double creditAmount = 0;
+                    if (paymentMode == 'Credit') {
+                      creditAmount = total;
+                    } else if (paymentMode == 'Split') {
+                      creditAmount = total - cashReceived - onlineReceived;
+                      if (creditAmount < 0) creditAmount = 0;
+                    }
+
+                    Color color = paymentMode == 'Cash' ? kGoogleGreen : paymentMode == 'Online' ? kPrimaryColor : paymentMode == 'Credit' ? kOrange : (creditAmount > 0 ? kOrange : Colors.purple);
+                    HeroIcons icon = paymentMode == 'Cash' ? HeroIcons.banknotes : paymentMode == 'Online' ? HeroIcons.devicePhoneMobile : paymentMode == 'Credit' ? HeroIcons.creditCard : HeroIcons.arrowsRightLeft;
+
+                    String subtitle = "${DateFormat('dd MMM yyyy').format(date)} • $paymentMode";
+                    if (creditAmount > 0) subtitle += " • Credit: ${creditAmount.toStringAsFixed(2)}";
+
+                    return Container(
+                      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                      child: ListTile(
+                        leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
+                        title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+                        subtitle: Text(subtitle, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: creditAmount > 0 ? kErrorColor : kBlack54)),
+                        trailing: Text(total.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -1046,13 +1181,12 @@ class CustomerCreditsPage extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.clock, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
           final docs = snapshot.data!.docs.toList();
-          // Sort by timestamp descending (latest first)
           docs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
             final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
             final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-            return bDate.compareTo(aDate); // Descending order
+            return bDate.compareTo(aDate);
           });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
@@ -1063,7 +1197,13 @@ class CustomerCreditsPage extends StatelessWidget {
               bool isPaymentReceived = type == 'payment_received';
               bool isCreditSale = type == 'credit_sale';
               bool isSalePayment = type == 'sale_payment';
+              bool isSettlement = type == 'settlement';
+              bool isAddCredit = type == 'add_credit';
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+              final method = data['method'] ?? 'Manual';
+              final amount = (data['amount'] ?? 0.0).toDouble();
+              final note = data['note'] ?? '';
+              final bool isSplit = note.toString().contains('Split');
 
               String title;
               Color color;
@@ -1073,17 +1213,25 @@ class CustomerCreditsPage extends StatelessWidget {
                 title = "Payment Received";
                 color = kGoogleGreen;
                 icon = HeroIcons.arrowDown;
-              } else if (isSalePayment) {
-                title = "Sale Payment";
+              } else if (isSettlement) {
+                title = "Credit Received";
                 color = kGoogleGreen;
-                icon = HeroIcons.shoppingBag;
+                icon = HeroIcons.arrowDown;
+              } else if (isSalePayment) {
+                title = isSplit ? "Split Payment" : "Sale Payment";
+                color = isSplit ? Colors.purple : kGoogleGreen;
+                icon = isSplit ? HeroIcons.arrowsRightLeft : HeroIcons.shoppingBag;
               } else if (isCreditSale) {
-                title = "Credit Sale";
+                title = isSplit ? "Split Credit" : "Credit Sale";
                 color = kOrange;
                 icon = HeroIcons.banknotes;
+              } else if (isAddCredit) {
+                title = "Manual Credit";
+                color = kOrange;
+                icon = HeroIcons.arrowUp;
               } else {
                 title = "Credit Added";
-                color = kErrorColor;
+                color = kOrange;
                 icon = HeroIcons.arrowUp;
               }
 
@@ -1092,8 +1240,8 @@ class CustomerCreditsPage extends StatelessWidget {
                 child: ListTile(
                   leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
                   title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} • ${data['method'] ?? 'Manual'}${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
+                  subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} • $method${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                  trailing: Text(amount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
                 ),
               );
             },

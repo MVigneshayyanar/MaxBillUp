@@ -81,7 +81,9 @@ class InvoicePage extends StatefulWidget {
   final String? customerGSTIN;
   final String? customNote;
   final String? deliveryAddress;
+  final double deliveryCharge;
   final bool isQuotation;
+  final bool isPaymentReceipt;
   final double? cashReceived_split;
   final double? onlineReceived_split;
   final double? creditIssued_split;
@@ -110,7 +112,9 @@ class InvoicePage extends StatefulWidget {
     this.customerGSTIN,
     this.customNote,
     this.deliveryAddress,
+    this.deliveryCharge = 0.0,
     this.isQuotation = false,
+    this.isPaymentReceipt = false,
     this.cashReceived_split,
     this.onlineReceived_split,
     this.creditIssued_split,
@@ -632,7 +636,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       final prefs = await SharedPreferences.getInstance();
       setState(() {
         // Header Info (general)
-        _receiptHeader = prefs.getString('receipt_header') ?? 'INVOICE';
+        _receiptHeader = widget.isPaymentReceipt ? 'PAYMENT RECEIPT' : (prefs.getString('receipt_header') ?? 'INVOICE');
         _showLogo = prefs.getBool('receipt_show_logo') ?? true;
         _showEmail = prefs.getBool('receipt_show_email') ?? true;
         _showPhone = prefs.getBool('receipt_show_phone') ?? true;
@@ -771,7 +775,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         elevation: 0,
         centerTitle: true,
         title: Text(
-          widget.isQuotation ? 'Quotation Details' : 'Invoice Details',
+          widget.isPaymentReceipt ? 'Payment Receipt' : (widget.isQuotation ? 'Quotation Details' : 'Invoice Details'),
           style: const TextStyle(
             color: kWhite,
             fontWeight: FontWeight.w700,
@@ -1764,6 +1768,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                     tax['name'] ?? 'Tax',
                                     '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}',
                                   )),
+                            if (widget.deliveryCharge > 0)
+                              _buildA4PreviewTotalRow('Delivery Charge', '+${widget.deliveryCharge.toStringAsFixed(2)}'),
                             const Divider(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2175,6 +2181,18 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   children: [
                     const Text('Discount', style: TextStyle(fontSize: 11, color: kBlack54)),
                     Text('-$currency ${widget.discount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            // ========== DELIVERY CHARGE ==========
+            if (widget.deliveryCharge > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Delivery Charge', style: TextStyle(fontSize: 11, color: kBlack54)),
+                    Text('+$currency ${widget.deliveryCharge.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -2698,6 +2716,12 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         }
       }
 
+      // Delivery Charge
+      if (widget.deliveryCharge > 0) {
+        bytes.addAll(utf8.encode(_formatTwoColumns('Delivery Charge', '+${widget.deliveryCharge.toStringAsFixed(2)}', lineWidth)));
+        bytes.add(lf);
+      }
+
       // Total
       bytes.addAll(utf8.encode(dividerLine));
       bytes.add(lf);
@@ -3047,7 +3071,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             borderRadius: pw.BorderRadius.circular(4),
                           ),
                           child: pw.Text(
-                            widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE',
+                            widget.isPaymentReceipt ? 'PAYMENT RECEIPT' : (widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE'),
                             style: pw.TextStyle(color: PdfColors.blue, fontSize: 12, fontWeight: pw.FontWeight.bold),
                           ),
                         ),
@@ -3125,6 +3149,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             pw.Text('$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
                           ],
                         )),
+                      if (widget.deliveryCharge > 0)
+                        pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                          pw.Text('Delivery Charge', style: const pw.TextStyle(fontSize: 10)),
+                          pw.Text('+$currency${widget.deliveryCharge.toStringAsFixed(2)}', style: const pw.TextStyle(fontSize: 10)),
+                        ]),
                       pw.Divider(),
                       pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                         pw.Text('TOTAL', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),

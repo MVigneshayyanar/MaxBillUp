@@ -17,6 +17,11 @@ import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
+import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:maxbillup/services/payment_receipt_printer.dart';
+import 'package:maxbillup/Receipts/PaymentReceiptPage.dart';
+import 'package:maxbillup/Sales/Invoice.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:maxbillup/Stocks/StockPurchase.dart';
 import 'package:maxbillup/Stocks/ExpenseCategories.dart';
 import 'package:maxbillup/Stocks/Expenses.dart';
@@ -2967,8 +2972,8 @@ class _CreditNoteDetailPage extends StatelessWidget {
 }
 
 class LedgerEntry {
-  final DateTime date; final String type; final String desc; final double debit; final double credit; double balance;
-  LedgerEntry({required this.date, required this.type, required this.desc, required this.debit, required this.credit, this.balance = 0});
+  final DateTime date; final String type; final String desc; final double debit; final double credit; final double balanceImpact; double balance;
+  LedgerEntry({required this.date, required this.type, required this.desc, required this.debit, required this.credit, this.balanceImpact = 0, this.balance = 0});
 }
 
 class CustomerLedgerPage extends StatefulWidget {
@@ -3005,12 +3010,17 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final total = (d['total'] ?? 0.0).toDouble();
       final mode = d['paymentMode'] ?? 'Unknown';
-      entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0));
       if (mode == 'Cash' || mode == 'Online') {
-        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Immediate Payment", debit: 0, credit: total));
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
+      } else if (mode == 'Credit') {
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
       } else if (mode == 'Split') {
-        final paid = (d['cashReceived'] ?? 0.0).toDouble();
-        if (paid > 0) entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Partial Payment", debit: 0, credit: paid));
+        final cashPaid = (d['cashReceived'] ?? 0.0).toDouble();
+        final onlinePaid = (d['onlineReceived'] ?? 0.0).toDouble();
+        final creditAmt = total - cashPaid - onlinePaid;
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Split)", debit: total, credit: creditAmt > 0 ? creditAmt : 0, balanceImpact: creditAmt > 0 ? creditAmt : 0));
+      } else {
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']}", debit: total, credit: 0, balanceImpact: 0));
       }
     }
     for (var doc in credits.docs) {
@@ -3020,15 +3030,17 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final type = d['type'] ?? '';
       final method = d['method'] ?? '';
       if (type == 'payment_received') {
-        entries.add(LedgerEntry(date: date, type: 'CR', desc: "Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: amt));
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
+      } else if (type == 'settlement') {
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'add_credit') {
-        entries.add(LedgerEntry(date: date, type: 'DR', desc: "Sales Credit Added (${method.isNotEmpty ? method : 'Manual'})", debit: amt, credit: 0));
+        entries.add(LedgerEntry(date: date, type: 'CR', desc: "Manual Credit Added", debit: 0, credit: amt, balanceImpact: amt));
       }
     }
     entries.sort((a, b) => a.date.compareTo(b.date));
     double running = 0;
     for (var e in entries) {
-      running += (e.debit - e.credit);
+      running += e.balanceImpact;
       e.balance = running;
     }
     if (mounted) setState(() { _entries = entries.reversed.toList(); _loading = false; });
@@ -3047,11 +3059,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           color: kPrimaryColor.withOpacity(0.05),
           child: const Row(children: [
-            Expanded(flex: 2, child: Text("Date", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
+            Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
             Expanded(flex: 3, child: Text("PARTICULARS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5))),
-            Expanded(flex: 2, child: Text("Debit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
-            Expanded(flex: 2, child: Text("Credit", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
-            Expanded(flex: 2, child: Text("Balance", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
+            Expanded(flex: 2, child: Text("DEBIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen))),
+            Expanded(flex: 2, child: Text("CREDIT", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor))),
+            Expanded(flex: 2, child: Text("BALANCE", textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54))),
           ]),
         ),
         Expanded(child: ListView.separated(
@@ -3064,9 +3076,9 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
               child: Row(children: [
                 Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
                 Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
-                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: TextStyle(color: e.balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 12, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kBlack87, fontSize: 12, fontWeight: FontWeight.w900))),
               ]),
             );
           },
@@ -3084,7 +3096,7 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
         decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const Text("Current Closing Balance:", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack54)),
-          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: bal > 0 ? kErrorColor : kGoogleGreen)),
+          Text("$_currencySymbol${bal.toStringAsFixed(2)}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kErrorColor)),
         ]),
       ),
     );
@@ -4476,65 +4488,47 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
       body: Column(
         children: [
           // Customer Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: kPrimaryColor,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-            ),
-            child: Column(
-              children: [
-                // Customer Avatar and Info
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kWhite.withOpacity(0.2),
-                      radius: 28,
-                      child: Text(
-                        customerName[0].toUpperCase(),
-                        style: const TextStyle(color: kWhite, fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
+          
+
+          // Credit Breakdown Summary
+          FutureBuilder<CollectionReference>(
+            future: FirestoreService().getStoreCollection('credits'),
+            builder: (context, collSnap) {
+              if (!collSnap.hasData) return const SizedBox.shrink();
+              return StreamBuilder<QuerySnapshot>(
+                stream: collSnap.data!.where('customerId', isEqualTo: widget.customerId).snapshots(),
+                builder: (context, snap) {
+                  double billCredit = 0;
+                  double manualCredit = 0;
+                  if (snap.hasData) {
+                    for (var doc in snap.data!.docs) {
+                      final d = doc.data() as Map<String, dynamic>;
+                      final type = d['type'] ?? '';
+                      final amt = (d['amount'] ?? 0.0).toDouble();
+                      final isSettled = d['isSettled'] == true;
+                      if (type == 'credit_sale' && !isSettled) {
+                        billCredit += amt;
+                      } else if (type == 'add_credit') {
+                        manualCredit += amt;
+                      }
+                    }
+                  }
+                  final totalCredit = billCredit + manualCredit;
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                    child: Row(
+                      children: [
+                        _buildCreditSummaryCard('Total Credit', totalCredit, kErrorColor),
+                        const SizedBox(width: 8),
+                        _buildCreditSummaryCard('Bill Credit', billCredit, kOrange),
+                        const SizedBox(width: 8),
+                        _buildCreditSummaryCard('Manual Credit', manualCredit, Colors.purple),
+                      ],
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(phone, style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          if (rating > 0)
-                            Row(
-                              children: List.generate(5, (i) => Icon(
-                                i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                                size: 14,
-                                color: i < rating ? kOrange : Colors.white30,
-                              )),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Total Balance Card
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: kWhite.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text('TOTAL OUTSTANDING', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
-                      const SizedBox(height: 8),
-                      Text('$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+                  );
+                },
+              );
+            },
           ),
 
           // Credit Bills List Header
@@ -4648,6 +4642,26 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
             ),
             child: const Text('SETTLE FULL BALANCE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 14)),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreditSummaryCard(String label, double amount, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+            const SizedBox(height: 6),
+            Text('$_currencySymbol${amount.toStringAsFixed(0)}', style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w900)),
+          ],
         ),
       ),
     );
@@ -5020,24 +5034,57 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
         'note': 'Settlement for Invoice #${data['invoiceNumber']}',
       });
 
+      // Generate payment receipt
+      final paymentReceiptPrefix = await NumberGeneratorService.getPaymentReceiptPrefix();
+      final paymentReceiptNumber = await NumberGeneratorService.generatePaymentReceiptNumber();
+      final fullReceiptNumber = '$paymentReceiptPrefix$paymentReceiptNumber';
+
+      // Create payment receipt record
+      final paymentReceipts = await FirestoreService().getStoreCollection('paymentReceipts');
+      final receiptDocRef = await paymentReceipts.add({
+        'receiptNumber': fullReceiptNumber,
+        'customerId': widget.customerId,
+        'customerName': widget.customerData['name'],
+        'amount': amount,
+        'paymentMethod': paymentMode,
+        'type': 'bill_settlement',
+        'relatedInvoiceNumber': data['invoiceNumber'],
+        'relatedCreditId': docId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'note': 'Payment received for Invoice #${data['invoiceNumber']}',
+      });
+
+      // Load store data
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      final storeData = storeDoc?.data() as Map<String, dynamic>?;
+
+      // Calculate previous and current credit balance
+      final previousCredit = widget.currentBalance;
+      final currentCredit = widget.currentBalance - amount;
+
       if (mounted) {
         Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Payment settled successfully'),
-            backgroundColor: kGoogleGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        // Refresh the page
-        Navigator.pushReplacement(
+        
+        // Navigate to Payment Receipt page
+        Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => CustomerCreditDetailsPage(
-              customerId: widget.customerId,
-              customerData: widget.customerData,
-              currentBalance: widget.currentBalance - amount,
+          CupertinoPageRoute(
+            builder: (_) => PaymentReceiptPage(
+              receiptNumber: fullReceiptNumber,
+              dateTime: DateTime.now(),
+              businessName: storeData?['businessName'] ?? '',
+              businessLocation: storeData?['businessLocation'] ?? '',
+              businessPhone: storeData?['businessPhone'] ?? '',
+              businessGSTIN: storeData?['taxType'] ?? storeData?['gstin'],
+              customerName: widget.customerData['name'],
+              customerPhone: widget.customerId,
+              previousCredit: previousCredit,
+              receivedAmount: amount,
+              paymentMode: paymentMode,
+              currentCredit: currentCredit,
+              invoiceReference: data['invoiceNumber'],
+              currency: CurrencyService.getSymbolWithSpace(storeData?['currency']),
             ),
           ),
         );

@@ -842,7 +842,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 child: Center(
                   child: cat == 'Favorite'
                       ? HeroIcon(
-                    HeroIcons.star,
+                    HeroIcons.heart,
                     size: 16,
                     color: isSelected ? kWhite : kPrimaryColor,
                     style: isSelected ? HeroIconStyle.solid : HeroIconStyle.outline,
@@ -1137,7 +1137,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                         ),
                         if (isFavorite)
                           const HeroIcon(
-                            HeroIcons.star,
+                            HeroIcons.heart,
                             color: kPrimaryColor,
                             size: 13,
                             style: HeroIconStyle.outline,

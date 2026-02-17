@@ -79,6 +79,11 @@ class NumberGeneratorService {
     return await _getCustomPrefix('expensePrefix');
   }
 
+  /// Get payment receipt prefix
+  static Future<String> getPaymentReceiptPrefix() async {
+    return await _getCustomPrefix('paymentReceiptPrefix');
+  }
+
   /// Generate next invoice number - uses nextInvoiceNumber from settings directly
   static Future<String> generateInvoiceNumber() async {
     try {
@@ -139,6 +144,22 @@ class NumberGeneratorService {
       return nextNumber.toString();
     } catch (e) {
       print('❌ Error generating expense number: $e');
+      return _defaultStartNumber.toString();
+    }
+  }
+
+  /// Generate next payment receipt number - uses nextPaymentReceiptNumber from settings directly
+  static Future<String> generatePaymentReceiptNumber() async {
+    try {
+      final nextNumber = await _getCustomStartNumber('nextPaymentReceiptNumber');
+      print('📝 Using payment receipt number from settings: $nextNumber');
+
+      // Increment the number in settings for next time
+      await _incrementNumber('nextPaymentReceiptNumber', nextNumber);
+
+      return nextNumber.toString();
+    } catch (e) {
+      print('❌ Error generating payment receipt number: $e');
       return _defaultStartNumber.toString();
     }
   }

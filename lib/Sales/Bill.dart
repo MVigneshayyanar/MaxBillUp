@@ -72,6 +72,7 @@ class _BillPageState extends State<BillPage> {
   String? _unsettledSaleId;
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _deliveryAddressController = TextEditingController();
+  double _deliveryCharge = 0.0;
   bool _isFromQuotation = false; // Track if came from quotation
 
   // Fast-Fetch Variables
@@ -216,7 +217,7 @@ class _BillPageState extends State<BillPage> {
     final amountAfterCustomerDiscount = totalWithTax - customerDiscountAmount;
     final amountAfterAllDiscounts = amountAfterCustomerDiscount - _additionalDiscount;
     final creditToApply = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
-    final finalAmount = (amountAfterAllDiscounts - creditToApply).clamp(0.0, double.infinity);
+    final finalAmount = ((amountAfterAllDiscounts - creditToApply) + _deliveryCharge).clamp(0.0, double.infinity);
     final actualCreditUsed = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
 
     // Total discount for payment page = customer discount + additional discount
@@ -248,6 +249,7 @@ class _BillPageState extends State<BillPage> {
           businessPhone: _businessPhone,
           staffName: _staffName,
           actualCreditUsed: actualCreditUsed,
+          deliveryCharge: _deliveryCharge,
         )
             : PaymentPage(
           uid: _uid,
@@ -272,6 +274,7 @@ class _BillPageState extends State<BillPage> {
           businessPhone: _businessPhone,
           staffName: _staffName,
           actualCreditUsed: actualCreditUsed,
+          deliveryCharge: _deliveryCharge,
         ),
       ),
     );
@@ -1140,11 +1143,11 @@ class _BillPageState extends State<BillPage> {
                 Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis),
                 Row(
                   children: [
-                    Text('@ $_currencySymbol${AmountFormatter.format(item.price)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
+                    Text('@ ${AmountFormatter.format(item.price)}', style: const TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600)),
                     if (item.taxAmount > 0) ...[
                       const SizedBox(width: 8),
                       Text(
-                        '+$_currencySymbol${AmountFormatter.format(item.taxAmount)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
+                        '+${AmountFormatter.format(item.taxAmount)} (Tax ${item.taxPercentage?.toInt() ?? 0}%)',
                         style: const TextStyle(
                           color: kBlack54,
                           fontSize: 8,
@@ -1158,7 +1161,7 @@ class _BillPageState extends State<BillPage> {
             ),
           ),
           const SizedBox(width: 8),
-          Text('$_currencySymbol${AmountFormatter.format(item.totalWithTax)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
+          Text('${AmountFormatter.format(item.totalWithTax)}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: kPrimaryColor)),
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _showEditCartItemDialog(idx),
@@ -1173,6 +1176,136 @@ class _BillPageState extends State<BillPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showNoteBottomSheet(BuildContext context, TextEditingController controller, String title, String hint) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                  child: TextField(
+                    controller: controller,
+                    maxLines: 3,
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.all(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity, height: 48,
+                  child: ElevatedButton(
+                    onPressed: () { Navigator.pop(ctx); setState(() {}); },
+                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                    child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeliveryChargeBottomSheet(BuildContext context) {
+    final controller = TextEditingController(text: _deliveryCharge > 0 ? _deliveryCharge.toStringAsFixed(2) : '');
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 16),
+                const Text('Delivery Charge', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
+                const SizedBox(height: 16),
+                Container(
+                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    autofocus: true,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                    decoration: const InputDecoration(
+                      hintText: '0.00',
+                      hintStyle: TextStyle(color: kBlack54, fontSize: 18),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.all(14),
+                      prefixIcon: Icon(Icons.local_shipping_outlined, color: kBlack54),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    if (_deliveryCharge > 0)
+                      Expanded(
+                        child: SizedBox(
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: () { Navigator.pop(ctx); setState(() => _deliveryCharge = 0.0); },
+                            style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            child: const Text('REMOVE', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
+                          ),
+                        ),
+                      ),
+                    if (_deliveryCharge > 0) const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final val = double.tryParse(controller.text) ?? 0.0;
+                            Navigator.pop(ctx);
+                            setState(() => _deliveryCharge = val);
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                          child: const Text('SAVE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1194,8 +1327,11 @@ class _BillPageState extends State<BillPage> {
 
     // 4. Credit Applied
     final creditToApply = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
-    final finalAmount = (amountAfterAllDiscounts - creditToApply).clamp(0.0, double.infinity);
+    final amountAfterCredit = (amountAfterAllDiscounts - creditToApply).clamp(0.0, double.infinity);
     final actualCreditUsed = _totalCreditNotesAmount > amountAfterAllDiscounts ? amountAfterAllDiscounts : _totalCreditNotesAmount;
+
+    // 5. Delivery Charge
+    final finalAmount = amountAfterCredit + _deliveryCharge;
 
     final bool hasCustomer = _selectedCustomerPhone != null;
 
@@ -1211,63 +1347,87 @@ class _BillPageState extends State<BillPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Column(
               children: [
-                // Notes Input Field
-                Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  decoration: BoxDecoration(
-                    color: kGreyBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kGrey200),
-                  ),
-                  child: TextField(
-                    controller: _notesController,
-                    maxLines: 2,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: 'Add bill notes / description (Optional)..',
-                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
-                      prefixIcon: const HeroIcon(HeroIcons.documentText, color: kBlack54, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                // Note Buttons Row
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _showNoteBottomSheet(context, _notesController, 'Bill Note', 'Add bill notes / description...'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.08) : kGreyBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.3) : kGrey200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HeroIcon(_notesController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54, size: 14),
+                              const SizedBox(width: 4),
+                              Flexible(child: Text(_notesController.text.isNotEmpty ? 'Note ✓' : 'Note', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54), overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _showNoteBottomSheet(context, _deliveryAddressController, 'Customer Note', 'Add customer note...'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.08) : kGreyBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.3) : kGrey200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HeroIcon(_deliveryAddressController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _deliveryAddressController.text.isNotEmpty ? kOrange : kBlack54, size: 14),
+                              const SizedBox(width: 4),
+                              Flexible(child: Text(_deliveryAddressController.text.isNotEmpty ? 'Cust. Note ✓' : 'Cust. Note', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _deliveryAddressController.text.isNotEmpty ? kOrange : kBlack54), overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _showDeliveryChargeBottomSheet(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.08) : kGreyBg,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.3) : kGrey200),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              HeroIcon(_deliveryCharge > 0 ? HeroIcons.checkCircle : HeroIcons.plus, color: _deliveryCharge > 0 ? kGoogleGreen : kBlack54, size: 14),
+                              const SizedBox(width: 4),
+                              Flexible(child: Text(_deliveryCharge > 0 ? 'Delivery ✓' : 'Delivery', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _deliveryCharge > 0 ? kGoogleGreen : kBlack54), overflow: TextOverflow.ellipsis)),
+                            ],
+                          ),
+                        ),
+                      ),
 
-                // Delivery Address Input Field
-                Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  decoration: BoxDecoration(
-                    color: kGreyBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kGrey200),
-                  ),
-                  child: TextField(
-                    controller: _deliveryAddressController,
-                    maxLines: 2,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => FocusScope.of(context).unfocus(),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: 'Add Customer Note (optional)...',
-                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
-                      prefixIcon: const HeroIcon(HeroIcons.mapPin, color: kBlack54, size: 20),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    ),
-                  ),
+                    )],
                 ),
+                const SizedBox(height: 8),
 
                 // Bill Summary Breakdown
                 // 1. Subtotal (Total with Tax)
-                _buildSummaryRow('Subtotal', '$_currencySymbol${AmountFormatter.format(subtotal)}'),
+                _buildSummaryRow('Subtotal', AmountFormatter.format(subtotal)),
 
                 // 2. Customer Discount (if available)
                 if (_customerDefaultDiscount > 0) ...[
                   _buildSummaryRow(
                     'Customer Discount (${AmountFormatter.format(_customerDefaultDiscount, maxDecimals: 1)}%)',
-                    '- $_currencySymbol${AmountFormatter.format(customerDiscountAmount)}',
+                    '- ${AmountFormatter.format(customerDiscountAmount)}',
                     color: kGoogleGreen,
                   ),
                   const SizedBox(height: 2),
@@ -1276,7 +1436,7 @@ class _BillPageState extends State<BillPage> {
                 // 3. Additional Discount (clickable to edit)
                 _buildSummaryRow(
                   _customerDefaultDiscount > 0 ? 'Additional Discount' : 'Discount',
-                  '- $_currencySymbol${AmountFormatter.format(additionalDiscountAmount)}',
+                  '- ${AmountFormatter.format(additionalDiscountAmount)}',
                   color: kGoogleGreen,
                   isClickable: true,
                   onTap: _showDiscountDialog,
@@ -1287,13 +1447,25 @@ class _BillPageState extends State<BillPage> {
                 if (hasCustomer)
                   _buildSummaryRow(
                     'Return Credit',
-                    '- $_currencySymbol${AmountFormatter.format(actualCreditUsed)}',
+                    '- ${AmountFormatter.format(actualCreditUsed)}',
                     color: kOrange,
                     isClickable: true,
                     onTap: _showCreditNotesDialog,
                   ),
 
                 const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Divider(height: 1, color: kGrey100)),
+
+                // 5. Delivery Charge (if added)
+                if (_deliveryCharge > 0) ...[  
+                  _buildSummaryRow(
+                    'Delivery Charge',
+                    '+ ${AmountFormatter.format(_deliveryCharge)}',
+                    color: Colors.black,
+                    isClickable: true,
+                    onTap: () => _showDeliveryChargeBottomSheet(context),
+                  ),
+                  const SizedBox(height: 2),
+                ],
 
                 // Total Amount Payable
                 Row(
@@ -1343,12 +1515,17 @@ class _BillPageState extends State<BillPage> {
 
 
   Widget _buildPayIcon(HeroIcons icon, String label, VoidCallback onTap) {
-    final bool isOrange = label == 'Online' || label == 'Credit';
-
-    // Define rich gradients based on your theme colors
-    final List<Color> gradientColors = isOrange
-        ? [kOrange, Color(0xFFFF9A5C)] // Lighten the orange slightly for the top
-        : [kPrimaryColor, kPrimaryColor.withBlue(255)]; // Adjust based on your primary hex
+    // Define colors: Cash=green, Online=blue, Credit=orange, Split=purple
+    List<Color> gradientColors;
+    if (label == 'Cash') {
+      gradientColors = [const Color(0xFF34A853), const Color(0xFF57C278)];
+    } else if (label == 'Online') {
+      gradientColors = [kPrimaryColor, kPrimaryColor.withBlue(255)];
+    } else if (label == 'Credit') {
+      gradientColors = [kOrange, const Color(0xFFFF9A5C)];
+    } else {
+      gradientColors = [Colors.purple, Colors.purple.shade300];
+    }
 
     return Expanded(
       child: Padding(
@@ -1659,8 +1836,9 @@ class PaymentPage extends StatefulWidget {
   final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String paymentMode; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? deliveryAddress; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
+  final double deliveryCharge;
 
-  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const PaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, required this.paymentMode, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed, this.deliveryCharge = 0.0});
   @override State<PaymentPage> createState() => _PaymentPageState();
 }
 
@@ -1721,7 +1899,7 @@ class _PaymentPageState extends State<PaymentPage> {
           subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
           cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
           creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
-          customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress)));
+          customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
     }
 
     // Fire-and-forget: Run all Firebase operations in background
@@ -1739,7 +1917,7 @@ class _PaymentPageState extends State<PaymentPage> {
           'cashReceived_partial': _cashReceived,
           'creditIssued_partial': widget.totalAmount - _cashReceived,
         },
-        'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'deliveryAddress': widget.deliveryAddress, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
+        'customerPhone': widget.customerPhone, 'customerName': widget.customerName, 'customerGST': widget.customerGST, 'creditNote': widget.creditNote, 'customNote': widget.customNote, 'deliveryAddress': widget.deliveryAddress, 'deliveryCharge': widget.deliveryCharge, 'date': DateTime.now().toIso8601String(), 'staffId': widget.uid, 'staffName': widget.staffName, 'businessName': widget.businessName, 'businessLocation': widget.businessLocation, 'businessPhone': widget.businessPhone, 'timestamp': FieldValue.serverTimestamp(),
       };
 
       // Run all operations in parallel
@@ -1918,6 +2096,24 @@ class _PaymentPageState extends State<PaymentPage> {
               children: [
                 Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)),
                 Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)),
+                if (widget.deliveryCharge > 0) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: kGoogleGreen.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_shipping_outlined, size: 14, color: kGoogleGreen),
+                        const SizedBox(width: 6),
+                        Text('Incl. Delivery: ${widget.deliveryCharge.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kGoogleGreen)),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -2101,8 +2297,9 @@ class SplitPaymentPage extends StatefulWidget {
   final String uid; final String? userEmail; final List<CartItem> cartItems; final double totalAmount; final String? customerPhone; final String? customerName; final String? customerGST; final double discountAmount; final String creditNote; final String customNote; final String? deliveryAddress; final String? savedOrderId; final List<Map<String, dynamic>> selectedCreditNotes; final String? quotationId; final String? existingInvoiceNumber; final String? unsettledSaleId;
   final String businessName; final String businessLocation; final String businessPhone; final String staffName;
   final double actualCreditUsed;
+  final double deliveryCharge;
 
-  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed});
+  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed, this.deliveryCharge = 0.0});
   @override State<SplitPaymentPage> createState() => _SplitPaymentPageState();
 }
 
@@ -2222,7 +2419,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         'customerName': widget.customerName,
         'customerGST': widget.customerGST,
         'creditNote': widget.creditNote,
-        'customNote': widget.customNote,
+        'customNote': widget.customNote, 'deliveryCharge': widget.deliveryCharge,
         'deliveryAddress': widget.deliveryAddress,
         'date': DateTime.now().toIso8601String(),
         'staffId': widget.uid,
@@ -2262,7 +2459,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
             subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
             cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
-            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress)));
+            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
   }
@@ -2392,6 +2589,21 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 const Text('TOTAL BILL AMOUNT', style: TextStyle(color: kWhite, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1)),
                 const SizedBox(height: 8),
                 Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w600)),
+                if (widget.deliveryCharge > 0) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.local_shipping_outlined, size: 14, color: kWhite),
+                        const SizedBox(width: 6),
+                        Text('Incl. Delivery: ${widget.deliveryCharge.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kWhite)),
+                      ],
+                    ),
+                  ),
+                ],
               ]),
             ),
             const SizedBox(height: 24),

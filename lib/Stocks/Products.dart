@@ -175,7 +175,7 @@ class _ProductsPageState extends State<ProductsPage> {
             if (_selectedProductIds.isNotEmpty)
               ElevatedButton.icon(
                 onPressed: _showBulkDeleteConfirmDialog,
-                icon: const HeroIcon(HeroIcons.trash, size: 18, color: kWhite),
+                icon: const HeroIcon(HeroIcons.trash, size: 18, color: Colors.white),
                 label: const Text('Delete', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kErrorColor,
