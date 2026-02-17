@@ -435,7 +435,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   ]),
                   if (_paymentMode == 'Credit') ...[
                     const SizedBox(height: 16),
-                    _buildModernField(_paidAmountController, 'Paid Amount', HeroIcons.creditCard, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
+                    _buildModernField(_paidAmountController, 'Paid Amount', HeroIcons.bookOpen, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
                     const SizedBox(height: 12),
                     // Credit Amount Display (auto-calculated)
                     Container(

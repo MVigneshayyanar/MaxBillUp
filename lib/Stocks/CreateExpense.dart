@@ -661,7 +661,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     hintText: '0.00',
-                    prefixIcon: const HeroIcon(HeroIcons.creditCard, color: _successColor),
+                    prefixIcon: const HeroIcon(HeroIcons.bookOpen, color: _successColor),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(

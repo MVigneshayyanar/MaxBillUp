@@ -241,7 +241,7 @@ class _MenuPageState extends State<MenuPage> {
                       _buildExpenseExpansionTile(context),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
-                      _buildMenuTile(context.tr('creditdetails'), HeroIcons.creditCard, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
+                      _buildMenuTile(context.tr('creditdetails'), HeroIcons.bookOpen, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
 
                     if (isFeatureAvailable('quotation', requiredRank: 1))
                       _buildMenuTile(context.tr('quotation'), HeroIcons.document, kPrimaryColor, 'Quotation', requiredRank: 1),
@@ -5452,6 +5452,8 @@ class _CustomersPageState extends State<CustomersPage> {
       double totalSales = 0.0;
       for (var saleDoc in salesSnapshot.docs) {
         final saleData = saleDoc.data() as Map<String, dynamic>;
+        // Skip cancelled bills
+        if (saleData['status'] == 'cancelled') continue;
         totalSales += (saleData['total'] ?? 0.0).toDouble();
       }
       return totalSales;

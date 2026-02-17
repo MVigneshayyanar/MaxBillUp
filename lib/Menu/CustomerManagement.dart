@@ -1140,7 +1140,7 @@ class CustomerBillsPage extends StatelessWidget {
                     }
 
                     Color color = paymentMode == 'Cash' ? kGoogleGreen : paymentMode == 'Online' ? kPrimaryColor : paymentMode == 'Credit' ? kOrange : (creditAmount > 0 ? kOrange : Colors.purple);
-                    HeroIcons icon = paymentMode == 'Cash' ? HeroIcons.banknotes : paymentMode == 'Online' ? HeroIcons.devicePhoneMobile : paymentMode == 'Credit' ? HeroIcons.creditCard : HeroIcons.arrowsRightLeft;
+                    HeroIcons icon = paymentMode == 'Cash' ? HeroIcons.banknotes : paymentMode == 'Online' ? HeroIcons.qrCode : paymentMode == 'Credit' ? HeroIcons.bookOpen : HeroIcons.arrowsRightLeft;
 
                     String subtitle = "${DateFormat('dd MMM yyyy').format(date)} • $paymentMode";
                     if (creditAmount > 0) subtitle += " • Credit: ${creditAmount.toStringAsFixed(2)}";

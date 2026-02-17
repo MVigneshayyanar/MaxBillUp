@@ -1477,14 +1477,31 @@ class _BillPageState extends State<BillPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Payment Buttons
-                Row(
-                  children: [
-                    _buildPayIcon(HeroIcons.banknotes, 'Cash', () => _proceedToPayment('Cash')),
-                    _buildPayIcon(HeroIcons.qrCode, 'Online', () => _proceedToPayment('Online')),
-                    _buildPayIcon(HeroIcons.bookOpen, 'Credit', () => _proceedToPayment('Credit')),
-                    _buildPayIcon(HeroIcons.arrowsRightLeft, 'Split', () => _proceedToPayment('Split')),
-                  ],
+                // Checkout Button
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: cartItems.isEmpty ? null : () => _showPaymentMethodSheet(context, finalAmount),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      disabledBackgroundColor: kGrey200,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('Checkout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kWhite, letterSpacing: 0.3)),
+                        const SizedBox(width: 10),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                          child: Text('$_currencySymbol${AmountFormatter.format(finalAmount)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kWhite)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1514,72 +1531,136 @@ class _BillPageState extends State<BillPage> {
   }
 
 
+  void _showPaymentMethodSheet(BuildContext context, double amount) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('Select Payment Method', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
+              const SizedBox(height: 16),
+              _buildPaymentMethodTile(ctx, HeroIcons.banknotes, 'Cash', 'Pay with cash', const Color(0xFF34A853), () => _proceedToPayment('Cash')),
+              const SizedBox(height: 8),
+              _buildPaymentMethodTile(ctx, HeroIcons.qrCode, 'Online / UPI', 'Digital payment', kPrimaryColor, () => _proceedToPayment('Online')),
+              const SizedBox(height: 8),
+              _buildPaymentMethodTile(ctx, HeroIcons.bookOpen, 'Credit', 'Add to credit book', kOrange, () => _proceedToPayment('Credit')),
+              const SizedBox(height: 8),
+              _buildPaymentMethodTile(ctx, HeroIcons.arrowsRightLeft, 'Split Payment', 'Split across methods', Colors.purple, () => _proceedToPayment('Split')),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentMethodTile(BuildContext ctx, HeroIcons icon, String title, String subtitle, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(ctx);
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withOpacity(0.15)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                child: Center(child: HeroIcon(icon, color: color, size: 20)),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(fontSize: 11, color: kBlack54)),
+                  ],
+                ),
+              ),
+              HeroIcon(HeroIcons.chevronRight, color: color.withOpacity(0.5), size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
   Widget _buildPayIcon(HeroIcons icon, String label, VoidCallback onTap) {
     // Define colors: Cash=green, Online=blue, Credit=orange, Split=purple
-    List<Color> gradientColors;
+    Color themeColor;
     if (label == 'Cash') {
-      gradientColors = [const Color(0xFF34A853), const Color(0xFF57C278)];
+      themeColor = const Color(0xFF34A853);
     } else if (label == 'Online') {
-      gradientColors = [kPrimaryColor, kPrimaryColor.withBlue(255)];
+      themeColor = kPrimaryColor;
     } else if (label == 'Credit') {
-      gradientColors = [kOrange, const Color(0xFFFF9A5C)];
+      themeColor = kOrange;
     } else {
-      gradientColors = [Colors.purple, Colors.purple.shade300];
+      themeColor = Colors.purple;
     }
 
     return Expanded(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(15),
-          child: Container(
-            height: 85, // Fixed height for uniformity
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: gradientColors,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: themeColor.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: themeColor.withOpacity(0.25), width: 1.5),
               ),
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: gradientColors[0].withOpacity(0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                // Subtle decorative circle in the corner
-                Positioned(
-                  right: -10,
-                  top: -10,
-                  child: CircleAvatar(
-                    radius: 25,
-                    backgroundColor: Colors.white.withOpacity(0.1),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: themeColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: HeroIcon(icon, color: themeColor, size: 20),
+                    ),
                   ),
-                ),
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      HeroIcon(icon, color: Colors.white, size: 24),
-                      const SizedBox(height: 6),
-                      Text(
-                        label.toUpperCase(), // Uppercase for a more "UI Label" feel
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: themeColor,
+                      letterSpacing: 0.3,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
