@@ -229,7 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: kPrimaryColor))
           : ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
         children: [
           _buildProfileCard(),
           const SizedBox(height: 24),

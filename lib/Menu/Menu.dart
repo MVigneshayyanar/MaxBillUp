@@ -257,7 +257,7 @@ class _MenuPageState extends State<MenuPage> {
                     _buildMenuTile(context.tr('knowledge_base'), HeroIcons.academicCap, const Color(0xFFE6AE00), 'Knowledge'),
                     _buildMenuTile('Support', HeroIcons.chatBubbleLeftRight, kPrimaryColor, 'Support'),
 
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),
@@ -1700,8 +1700,8 @@ class SalesDetailPage extends StatelessWidget {
                     'createdBy': 'owner',
                   });
 
-                  // If it was a credit sale, also reverse the balance
-                  if (data['paymentMode'] == 'Credit') {
+                  // Reverse customer balance and total sales
+                  if (data['customerPhone'] != null && data['customerPhone'].toString().trim().isNotEmpty) {
                     final customersCollection = await FirestoreService().getStoreCollection('customers');
                     final customerRef = customersCollection.doc(data['customerPhone']);
 
@@ -1709,12 +1709,32 @@ class SalesDetailPage extends StatelessWidget {
                       final customerDoc = await transaction.get(customerRef);
                       if (customerDoc.exists) {
                         final customerData = customerDoc.data() as Map<String, dynamic>?;
-                        final currentBalance = customerData?['balance'] ?? 0.0;
+                        final currentBalance = (customerData?['balance'] ?? 0.0).toDouble();
+                        final currentTotalSales = (customerData?['totalSales'] ?? 0.0).toDouble();
                         final billTotal = (data['total'] as num).toDouble();
-                        final newBalance = currentBalance - billTotal;
-                        transaction.update(customerRef, {'balance': newBalance});
+
+                        double balanceToDeduct = 0.0;
+                        if (data['paymentMode'] == 'Credit') {
+                          balanceToDeduct = billTotal;
+                        } else if (data['paymentMode'] == 'Split') {
+                          balanceToDeduct = (data['creditIssued_split'] ?? 0.0).toDouble();
+                        }
+
+                        final newBalance = currentBalance - balanceToDeduct;
+                        final newTotalSales = currentTotalSales >= billTotal ? currentTotalSales - billTotal : 0.0;
+                        transaction.update(customerRef, {
+                          'balance': newBalance,
+                          'totalSales': newTotalSales
+                        });
                       }
                     });
+
+                    // Also mark associated credits as cancelled
+                    final creditsCollection = await FirestoreService().getStoreCollection('credits');
+                    final creditsSnapshot = await creditsCollection.where('invoiceNumber', isEqualTo: data['invoiceNumber']).get();
+                    for (var doc in creditsSnapshot.docs) {
+                      await doc.reference.update({'status': 'cancelled'});
+                    }
                   }
                 }
 
@@ -2000,7 +2020,7 @@ class SalesDetailPage extends StatelessWidget {
                                               children: [
                                                 Icon(Icons.note_alt_outlined, size: 14, color: kOrange),
                                                 SizedBox(width: 6),
-                                                Text('Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                                                Text('Bill Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
                                               ],
                                             ),
                                             const SizedBox(height: 6),
@@ -2032,7 +2052,7 @@ class SalesDetailPage extends StatelessWidget {
                                               children: [
                                                 Icon(Icons.location_on_outlined, size: 14, color: kPrimaryColor),
                                                 SizedBox(width: 6),
-                                                Text('Delivery Address', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
+                                                Text('Customer Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
                                               ],
                                             ),
                                             const SizedBox(height: 6),

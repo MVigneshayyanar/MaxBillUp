@@ -1050,7 +1050,7 @@ class _BillPageState extends State<BillPage> {
           _buildCustomerSection(),
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
               itemCount: cartItems.length,
               separatorBuilder: (ctx, i) => const SizedBox(height: 10),
               itemBuilder: (ctx, i) => _buildItemRow(cartItems[i], i),
@@ -1192,7 +1192,7 @@ class _BillPageState extends State<BillPage> {
               color: kWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1246,7 +1246,7 @@ class _BillPageState extends State<BillPage> {
               color: kWhite,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1541,7 +1541,7 @@ class _BillPageState extends State<BillPage> {
             color: kWhite,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1929,15 +1929,32 @@ class _PaymentPageState extends State<PaymentPage> {
   double get _change => _cashReceived - widget.totalAmount;
   DateTime? _creditDueDate;
 
+  String _currencySymbol = 'Rs '; // Default currency
+
   @override
   void initState() {
     super.initState();
+    _loadCurrency();
     if (widget.paymentMode != 'Credit') {
       _cashReceived = widget.totalAmount;
       _displayController.text = widget.totalAmount.toStringAsFixed(1);
     } else {
       // Don't set default due date - let user choose or skip
       _creditDueDate = null;
+    }
+  }
+
+  Future<void> _loadCurrency() async {
+    try {
+      final store = await FirestoreService().getCurrentStoreDoc();
+      if (store != null && store.exists && mounted) {
+        final data = store.data() as Map<String, dynamic>;
+        setState(() {
+          _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading currency: $e');
     }
   }
 
@@ -2158,11 +2175,31 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     bool canPay = widget.paymentMode == 'Credit' || _cashReceived >= widget.totalAmount - 0.01;
+    
+    // Theme colors based on payment mode
+    Color primaryThemeColor;
+    Color secondaryThemeColor;
+    HeroIcons headerIcon;
+    
+    if (widget.paymentMode == 'Cash') {
+      primaryThemeColor = const Color(0xFF34A853);
+      secondaryThemeColor = const Color(0xFF1B5E20);
+      headerIcon = HeroIcons.banknotes;
+    } else if (widget.paymentMode == 'Online') {
+      primaryThemeColor = kPrimaryColor;
+      secondaryThemeColor = const Color(0xFF1565C0);
+      headerIcon = HeroIcons.qrCode;
+    } else {
+      primaryThemeColor = kOrange;
+      secondaryThemeColor = const Color(0xFFE65100);
+      headerIcon = HeroIcons.bookOpen;
+    }
+
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
-        backgroundColor: kPrimaryColor,
+        title: Text('${widget.paymentMode} Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+        backgroundColor: primaryThemeColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20), onPressed: () => Navigator.pop(context)),
@@ -2171,111 +2208,188 @@ class _PaymentPageState extends State<PaymentPage> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-            decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(bottom: Radius.circular(30))),
-            child: Column(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+            decoration: BoxDecoration(
+              color: primaryThemeColor,
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+              boxShadow: [BoxShadow(color: primaryThemeColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+            ),
+            child: Stack(
               children: [
-                Text(context.tr('total_bill'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600, letterSpacing: 1)),
-                Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600, color: kBlack87)),
-                if (widget.deliveryCharge > 0) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: kGoogleGreen.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                Positioned(
+                  right: -10, top: -10,
+                  child: HeroIcon(headerIcon, color: Colors.white.withOpacity(0.15), size: 100),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.local_shipping_outlined, size: 14, color: kGoogleGreen),
-                        const SizedBox(width: 6),
-                        Text('Incl. Delivery: ${widget.deliveryCharge.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kGoogleGreen)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                          child: const Text('TOTAL DUE', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        ),
                       ],
                     ),
-                  ),
-                ],
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(20), border: Border.all(color: kGrey200, width: 2)),
-                  child: Column(
-                    children: [
-                      const Text('RECEIVED AMOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
+                    if (widget.deliveryCharge > 0) ...[
                       const SizedBox(height: 8),
-                      Text(_displayController.text, style: TextStyle(fontSize: 48, fontWeight: FontWeight.w600, color: canPay ? kGoogleGreen : kPrimaryColor, letterSpacing: -1)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (widget.paymentMode != 'Credit')
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)),
-                      Text('${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: _change >= 0 ? kGoogleGreen : kGoogleRed)),
-                    ],
-                  ),
-                // Credit Due Date Selector
-                if (widget.paymentMode == 'Credit') ...[
-                  const SizedBox(height: 16),
-                  InkWell(
-                    onTap: () => _selectCreditDueDate(context),
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: kOrange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kOrange.withOpacity(0.3)),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.local_shipping_outlined, size: 12, color: kWhite),
+                            const SizedBox(width: 4),
+                            Text('+${widget.deliveryCharge.toStringAsFixed(2)} del.', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kWhite)),
+                          ],
+                        ),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    ],
+                    const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 6, right: 4),
+                          child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.w700)),
+                        ),
+                        Text(widget.totalAmount.toString(), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: kWhite, 
+                        borderRadius: BorderRadius.circular(20), 
+                      ),
+                      child: Column(
                         children: [
-                          const HeroIcon(HeroIcons.calendar, color: kOrange, size: 20),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Credit Due Date', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
-                              const SizedBox(height: 2),
-                              Text(
-                                _creditDueDate != null
-                                    ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
-                                    : 'Select Date',
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
-                              ),
-                            ],
+                          const Text('AMOUNT RECEIVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 1.0)),
+                          const SizedBox(height: 8),
+                          Text(
+                            _displayController.text, 
+                            style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: canPay ? primaryThemeColor : kBlack87, letterSpacing: -1, height: 1)
                           ),
-                          const SizedBox(width: 8),
-                          const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
                         ],
                       ),
                     ),
-                  ),
-                ],
+                    
+                    if (widget.paymentMode != 'Credit') ...[
+                      const SizedBox(height: 16),
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('CHANGE: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white70, letterSpacing: 0.5)),
+                              Text('$_currencySymbol${_change > 0 ? _change.toStringAsFixed(2) : "0.00"}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: _change >= 0 ? kWhite : const Color(0xFFFF8A80))),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+
+                    // Credit Due Date Selector
+                    if (widget.paymentMode == 'Credit') ...[
+                      const SizedBox(height: 16),
+                      InkWell(
+                        onTap: () => _selectCreditDueDate(context),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                                child: const HeroIcon(HeroIcons.calendar, color: kWhite, size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white70, letterSpacing: 0.5)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _creditDueDate != null
+                                          ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
+                                          : 'Select Date',
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kWhite),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const HeroIcon(HeroIcons.pencil, color: Colors.white70, size: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 0),
-              decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-              child: Column(
-                children: [
-                  _buildKeyPad(),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 60,
-                    child: ElevatedButton(
-                      onPressed: canPay ? _completeSale : null,
-                      style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
-                      child: const Text('COMPLETE SALE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: kWhite, letterSpacing: 1)),
+          
+          Expanded(
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Expanded(child: Center(child: _buildKeyPad())),
+                    const SizedBox(height: 12),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      height: 60,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: canPay ? primaryThemeColor : kGrey200,
+                        boxShadow: canPay ? [BoxShadow(color: primaryThemeColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: canPay ? _completeSale : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(canPay ? 'CONFIRM PAYMENT' : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                            if (canPay) ...[
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                                child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 18),
+                              ),
+                            ]
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -2651,7 +2765,6 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate change - overpayment (when cash + online > bill amount and no credit)
     final paidAmount = _cashAmount + _onlineAmount;
     final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
     bool canPay = (_dueAmount <= 0.01 && _dueAmount >= -0.01) || changeAmount > 0;
@@ -2660,95 +2773,160 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       backgroundColor: kGreyBg,
       appBar: AppBar(title: const Text('Split Payment', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, iconTheme: const IconThemeData(color: kWhite), elevation: 0),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
           children: [
             Container(
-              width: double.infinity, padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4))]),
-              child: Column(children: [
-                const Text('TOTAL BILL AMOUNT', style: TextStyle(color: kWhite, fontSize: 12, fontWeight: FontWeight.w600, letterSpacing: 1)),
-                const SizedBox(height: 8),
-                Text('${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontSize: 32, fontWeight: FontWeight.w600)),
-                if (widget.deliveryCharge > 0) ...[
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.local_shipping_outlined, size: 14, color: kWhite),
-                        const SizedBox(width: 6),
-                        Text('Incl. Delivery: ${widget.deliveryCharge.toStringAsFixed(2)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kWhite)),
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: kPrimaryColor,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: -15, top: -15,
+                    child: HeroIcon(HeroIcons.receiptPercent, color: Colors.white.withOpacity(0.1), size: 100),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('TOTAL DUE', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                          ),
+                        ],
+                      ),
+                      if (widget.deliveryCharge > 0) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_shipping_outlined, size: 12, color: kWhite),
+                              const SizedBox(width: 4),
+                              Text('+${widget.deliveryCharge.toStringAsFixed(2)} del.', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kWhite)),
+                            ],
+                          ),
+                        ),
                       ],
-                    ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 6, right: 4),
+                            child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.w700)),
+                          ),
+                          Text(widget.totalAmount.toString(), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.15), borderRadius: BorderRadius.circular(16)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildSummaryItem('PAID', _totalPaid, Colors.white),
+                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.2)),
+                            _buildSummaryItem('REMAINING', _dueAmount > 0 ? _dueAmount : 0.0, const Color(0xFFFFB74D)),
+                          ],
+                        ),
+                      )
+                    ],
                   ),
                 ],
-              ]),
+              ),
             ),
             const SizedBox(height: 24),
-            _buildInput('Cash Received', HeroIcons.banknotes, _cashController),
-            const SizedBox(height: 12),
-            _buildInput('Online / UPI', HeroIcons.qrCode, _onlineController),
-            const SizedBox(height: 12),
-            _buildInput('Credit Book', HeroIcons.bookOpen, _creditController, enabled: widget.customerPhone != null),
+            _buildPaymentRow('Cash Received', HeroIcons.banknotes, const Color(0xFF34A853), _cashController),
+            _buildPaymentRow('Online / UPI', HeroIcons.qrCode, kPrimaryColor, _onlineController),
+            _buildPaymentRow('Credit Book', HeroIcons.bookOpen, kOrange, _creditController, enabled: widget.customerPhone != null),
 
-            // Show change amount when overpaid (cash + online > bill and no credit)
+            // Show change amount when overpaid
             if (changeAmount > 0) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: kGoogleGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
+                  color: const Color(0xFF34A853).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFF34A853).withOpacity(0.3), width: 1.5),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const HeroIcon(HeroIcons.checkCircle, color: kGoogleGreen, size: 20),
-                    const SizedBox(width: 8),
-                    const Text('CHANGE: ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('$_currencySymbol${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kGoogleGreen)),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: const Color(0xFF34A853).withOpacity(0.2), shape: BoxShape.circle),
+                      child: const HeroIcon(HeroIcons.banknotes, color: Color(0xFF34A853), size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('CASH TO RETURN', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF34A853), letterSpacing: 1.0)),
+                          const SizedBox(height: 2),
+                          Text('$_currencySymbol${changeAmount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF34A853))),
+                        ],
+                      ),
+                    ),
+                    const HeroIcon(HeroIcons.checkCircle, color: Color(0xFF34A853), size: 32),
                   ],
                 ),
               ),
             ],
 
-            // Credit Due Date Selector - show when credit amount > 0
+            // Credit Due Date Selector
             if (_creditAmount > 0) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               InkWell(
                 onTap: () => _selectCreditDueDate(context),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    color: kOrange.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kOrange.withOpacity(0.3)),
+                    color: kOrange.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kOrange.withOpacity(0.3), width: 1.5),
                   ),
                   child: Row(
                     children: [
-                      const HeroIcon(HeroIcons.calendar, color: kOrange, size: 20),
-                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: kOrange.withOpacity(0.15), shape: BoxShape.circle),
+                        child: const HeroIcon(HeroIcons.calendar, color: kOrange, size: 24),
+                      ),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
+                            const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5)),
                             const SizedBox(height: 2),
                             Text(
                               _creditDueDate != null
                                   ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
                                   : 'Select Date',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87),
                             ),
                           ],
                         ),
                       ),
-                      const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]),
+                        child: const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
+                      ),
                     ],
                   ),
                 ),
@@ -2758,9 +2936,40 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: SizedBox(height: 60, child: ElevatedButton(onPressed: canPay ? _processSplitSale : null, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text('SETTLE BILL - $_currencySymbol${widget.totalAmount.toStringAsFixed(2)}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600, fontSize: 15)))),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          decoration: const BoxDecoration(color: kGreyBg),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: 60,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: canPay ? kPrimaryColor : kGrey200,
+              boxShadow: canPay ? [BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
+            ),
+            child: ElevatedButton(
+              onPressed: canPay ? _processSplitSale : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(canPay ? 'CONFIRM PAYMENT' : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                  if (canPay) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                      child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 18),
+                    ),
+                  ]
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -2849,16 +3058,68 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
-  Widget _buildInput(String label, HeroIcons icon, TextEditingController ctrl, {bool enabled = true}) {
-    return TextFormField(
-        controller: ctrl, enabled: enabled, keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        decoration: InputDecoration(
-          labelText: label, prefixIcon: HeroIcon(icon, color: enabled ? kPrimaryColor : kBlack54),
-          filled: true, fillColor: kWhite,
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey100)),
-        )
+  Widget _buildPaymentRow(String title, HeroIcons icon, Color tintColor, TextEditingController ctrl, {bool enabled = true}) {
+    final double amount = double.tryParse(ctrl.text) ?? 0.0;
+    final bool hasValue = amount > 0;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: enabled ? kWhite : kGrey100,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: enabled && hasValue ? tintColor.withOpacity(0.5) : (enabled ? kGrey200 : kGrey100), width: hasValue ? 2.0 : 1.5),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: enabled ? tintColor.withOpacity(0.1) : kGrey200,
+              shape: BoxShape.circle,
+            ),
+            child: HeroIcon(icon, color: enabled ? tintColor : kBlack54, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: enabled ? kBlack87 : kBlack54)),
+                if (!enabled) const Text('Customer required', style: TextStyle(fontSize: 10, color: kOrange, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 120,
+            child: TextFormField(
+              controller: ctrl,
+              enabled: enabled,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              textAlign: TextAlign.right,
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: enabled ? tintColor : kBlack54),
+              decoration: InputDecoration(
+                prefixText: '$_currencySymbol ',
+                prefixStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: enabled ? tintColor.withOpacity(0.6) : kBlack54),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, double amount, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(label, style: TextStyle(color: color.withOpacity(0.7), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w900)),
+      ],
     );
   }
 }

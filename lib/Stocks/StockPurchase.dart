@@ -413,7 +413,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
           children: [
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                 children: [
                   _buildSectionLabel("SUPPLIER DETAILS"),
                   _buildSupplierAutocomplete(),
@@ -579,7 +579,7 @@ class StockPurchaseDetailsPage extends StatelessWidget {
             child: Container(
               decoration: const BoxDecoration(color: kWhite, borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [

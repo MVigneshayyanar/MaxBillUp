@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -214,19 +215,19 @@ class _ReportsPageState extends State<ReportsPage> {
       ),
       body: ListView(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
           if (isFeatureAvailable('analytics'))
             _buildReportTile(context.tr('Business  Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
-          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFF009688), 'DayBook', subtitle: 'Daily transaction log'),
+          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFFFF5722), 'DayBook', subtitle: 'Daily transaction log'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Summary', HeroIcons.documentText, kGoogleGreen, 'Summary', subtitle: 'Income, expense & dues'),
+            _buildReportTile('Summary', HeroIcons.documentText,   kPrimaryColor, 'Summary', subtitle: 'Income, expense & dues'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile(context.tr('Sales Report'), HeroIcons.chartPie, kPrimaryColor, 'SalesSummary', subtitle: 'Sales performance'),
+            _buildReportTile(context.tr('Sales Report'), HeroIcons.chartPie, const Color(0xFFE91E63), 'SalesSummary', subtitle: 'Sales performance'),
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Payment Summary', HeroIcons.banknotes, const Color(0xFF43A047), 'PaymentReport', subtitle: 'Cash & online breakdown'),
+            _buildReportTile('Payment Summary', HeroIcons.banknotes,kGoogleGreen , 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
           // Sales & Transactions Section
           if (hasSalesItems) ...[
@@ -234,13 +235,13 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildSectionLabel(context.tr('sales_transactions')),
           ],
           if (isFeatureAvailable('salesReport'))
-            _buildReportTile(context.tr('Sales Record'), HeroIcons.shoppingCart, const Color(0xFFE91E63), 'SalesReport', subtitle: 'Detailed invoice history'),
+            _buildReportTile(context.tr('Sales Record'), HeroIcons.shoppingCart, Colors.deepPurple, 'SalesReport', subtitle: 'Detailed invoice history'),
           if (isFeatureAvailable('itemSalesReport'))
-            _buildReportTile(context.tr('item_sales_report'), HeroIcons.shoppingBag, const Color(0xFF00BCD4), 'ItemSales', subtitle: 'Sales by product'),
+            _buildReportTile(context.tr('item_sales_report'), HeroIcons.shoppingBag,Colors.brown  , 'ItemSales', subtitle: 'Sales by product'),
           if (isFeatureAvailable('topCustomer'))
             _buildReportTile(context.tr('top_customers'), HeroIcons.trophy, const Color(0xFFFFC107), 'TopCustomers', subtitle: 'Best performing clients'),
           if (isFeatureAvailable('staffSalesReport'))
-            _buildReportTile(context.tr('staff_sale_report'), HeroIcons.user, const Color(0xFF607D8B), 'StaffReport', subtitle: 'Performance by user'),
+            _buildReportTile(context.tr('staff_sale_report'), HeroIcons.user, const Color(0xFF009688) , 'StaffReport', subtitle: 'Performance by user'),
 
           // Inventory & Products Section
           if (hasInventoryItems) ...[
@@ -254,7 +255,7 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('topProducts'))
             _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('topCategory'))
-            _buildReportTile(context.tr('top_categories'), HeroIcons.tag, const Color(0xFFFF5722), 'TopCategories', subtitle: 'Department performance'),
+            _buildReportTile(context.tr('top_categories'), HeroIcons.tag, CupertinoColors.systemPurple, 'TopCategories', subtitle: 'Department performance'),
 
           // Financials & Tax Section
           if (hasFinancialsItems) ...[
@@ -2523,6 +2524,7 @@ class _DayBookPageState extends State<DayBookPage> {
                           Expanded(
                             child: SingleChildScrollView(
                               physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 100),
                               child: Column(
                                 children: [
                                   // Summary Cards

@@ -2258,26 +2258,26 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
             ],
 
             // ========== BILL NOTES ==========
-            if (widget.customNote != null && widget.customNote!.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kGrey200,
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: kGrey300),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Note:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kBlack87)),
-                    const SizedBox(height: 2),
-                    Text(widget.customNote!, style: const TextStyle(fontSize: 10, color: kBlack87)),
-                  ],
-                ),
-              ),
-            ],
+            // if (widget.customNote != null && widget.customNote!.isNotEmpty) ...[
+            //   const SizedBox(height: 10),
+            //   Container(
+            //     width: double.infinity,
+            //     padding: const EdgeInsets.all(8),
+            //     decoration: BoxDecoration(
+            //       color: kGrey200,
+            //       borderRadius: BorderRadius.circular(6),
+            //       border: Border.all(color: kGrey300),
+            //     ),
+            //     child: Column(
+            //       crossAxisAlignment: CrossAxisAlignment.start,
+            //       children: [
+            //         const Text('Note:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kBlack87)),
+            //         const SizedBox(height: 2),
+            //         Text(widget.customNote!, style: const TextStyle(fontSize: 10, color: kBlack87)),
+            //       ],
+            //     ),
+            //   ),
+            // ],
 
             // ========== DELIVERY ADDRESS ==========
             if (widget.deliveryAddress != null && widget.deliveryAddress!.isNotEmpty) ...[
@@ -2293,7 +2293,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Delivery Address:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kBlack87)),
+                    const Text('Customer Notes:', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kBlack87)),
                     const SizedBox(height: 2),
                     Text(widget.deliveryAddress!, style: const TextStyle(fontSize: 10, color: kBlack87)),
                   ],

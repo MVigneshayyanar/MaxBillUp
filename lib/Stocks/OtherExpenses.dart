@@ -220,7 +220,7 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                     }
 
                     return ListView.builder(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                       itemCount: expenses.length,
                       itemBuilder: (context, index) {
                         final data = expenses[index].data() as Map<String, dynamic>;
@@ -424,7 +424,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -558,8 +558,8 @@ class OtherExpenseDetailsPage extends StatelessWidget {
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(

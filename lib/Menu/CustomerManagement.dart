@@ -10,9 +10,7 @@ import 'package:maxbillup/Menu/AddCustomer.dart';
 import 'package:maxbillup/Menu/Menu.dart' hide kWhite, kPrimaryColor, kErrorColor, kGoogleGreen, kOrange, kGrey200, kGrey300, kGrey400, kGreyBg, kBlack87, kBlack54, kGrey100;
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
-import 'package:maxbillup/services/payment_receipt_printer.dart';
 import 'package:maxbillup/Receipts/PaymentReceiptPage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -622,6 +620,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
             Map<String, dynamic> data;
             if (snapshot.hasData && snapshot.data!.exists) {
               data = snapshot.data!.data() as Map<String, dynamic>;
+              // Preserve the dynamically calculated totalSales from widget.customerData 
+              // instead of using the raw database 'totalSales' field which might not have subtracted cancelled bills yet.
+              if (widget.customerData.containsKey('totalSales')) {
+                data['totalSales'] = widget.customerData['totalSales'];
+              }
             } else {
               data = widget.customerData;
             }
@@ -785,8 +788,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: const HeroIcon(HeroIcons.chevronRight, size: 14, color: kGrey400),
         onTap: () {
-          if (title=="Bill History") Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
-          else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
+          if (title=="Bill History") {
+            Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
+          } else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
           else Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerLedgerPage(customerId: widget.customerId, customerName: widget.customerData['name'])));
         },
       ),
@@ -949,7 +953,10 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final total = (d['total'] ?? 0.0).toDouble();
       final mode = d['paymentMode'] ?? 'Unknown';
-      if (mode == 'Cash' || mode == 'Online') {
+      final isCancelled = d['status'] == 'cancelled';
+      if (isCancelled) {
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
+      } else if (mode == 'Cash' || mode == 'Online') {
         // Fully paid sale - sale in debit, no credit used, balance unchanged
         entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
       } else if (mode == 'Credit') {
@@ -971,7 +978,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final amt = (d['amount'] ?? 0.0).toDouble();
       final type = d['type'] ?? '';
       final method = d['method'] ?? '';
-      if (type == 'payment_received') {
+      final isCancelled = d['status'] == 'cancelled';
+      
+      if (isCancelled) {
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
+      } else if (type == 'payment_received') {
         // Payment received - shows in debit (green), reduces outstanding
         entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'settlement') {
@@ -1063,18 +1074,24 @@ class CustomerBillsPage extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),title: const Text("Bill History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
-      body: FutureBuilder<QuerySnapshot>(
-        future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          final docs = snapshot.data!.docs.toList();
-          if (docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      body: FutureBuilder<CollectionReference>(
+        future: FirestoreService().getStoreCollection('sales'),
+        builder: (context, collectionSnap) {
+          if (!collectionSnap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnap.data!.where('customerPhone', isEqualTo: phone).snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+              final docs = snapshot.data!.docs.toList();
+              if (docs.isEmpty) {
+                return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
             Icon(Icons.receipt_long_rounded, size: 64, color: kGrey300),
             const SizedBox(height: 16),
             const Text("No bills found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w700, fontSize: 15)),
             const SizedBox(height: 4),
             const Text("Bills will appear here once created", style: TextStyle(color: kGrey400, fontSize: 12)),
           ]));
+              }
           docs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
             final bData = b.data() as Map<String, dynamic>;
@@ -1086,11 +1103,15 @@ class CustomerBillsPage extends StatelessWidget {
           // Summary header
           double totalAmount = 0;
           int creditCount = 0;
+          int validBillCount = 0;
           for (var doc in docs) {
             final d = doc.data() as Map<String, dynamic>;
-            totalAmount += (d['total'] ?? 0.0).toDouble();
-            final mode = d['paymentMode'] ?? 'Cash';
-            if (mode == 'Credit' || mode == 'Split') creditCount++;
+            if (d['status'] != 'cancelled') {
+              validBillCount++;
+              totalAmount += (d['total'] ?? 0.0).toDouble();
+              final mode = d['paymentMode'] ?? 'Cash';
+              if (mode == 'Credit' || mode == 'Split') creditCount++;
+            }
           }
 
           return Column(
@@ -1108,7 +1129,7 @@ class CustomerBillsPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text("${docs.length} Bills", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                      Text("$validBillCount Bills", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       if (creditCount > 0) Text("$creditCount on credit", style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w600)),
                     ]),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -1130,6 +1151,7 @@ class CustomerBillsPage extends StatelessWidget {
                     final total = (data['total'] ?? 0.0).toDouble();
                     final cashReceived = (data['cashReceived'] ?? 0.0).toDouble();
                     final onlineReceived = (data['onlineReceived'] ?? 0.0).toDouble();
+                    final isCancelled = data['status'] == 'cancelled';
 
                     double creditAmount = 0;
                     if (paymentMode == 'Credit') {
@@ -1139,25 +1161,31 @@ class CustomerBillsPage extends StatelessWidget {
                       if (creditAmount < 0) creditAmount = 0;
                     }
 
-                    Color color = paymentMode == 'Cash' ? kGoogleGreen : paymentMode == 'Online' ? kPrimaryColor : paymentMode == 'Credit' ? kOrange : (creditAmount > 0 ? kOrange : Colors.purple);
+                    Color color = isCancelled ? Colors.grey : (paymentMode == 'Cash' ? kGoogleGreen : paymentMode == 'Online' ? kPrimaryColor : paymentMode == 'Credit' ? kOrange : (creditAmount > 0 ? kOrange : Colors.purple));
                     HeroIcons icon = paymentMode == 'Cash' ? HeroIcons.banknotes : paymentMode == 'Online' ? HeroIcons.qrCode : paymentMode == 'Credit' ? HeroIcons.bookOpen : HeroIcons.arrowsRightLeft;
 
                     String subtitle = "${DateFormat('dd MMM yyyy').format(date)} • $paymentMode";
-                    if (creditAmount > 0) subtitle += " • Credit: ${creditAmount.toStringAsFixed(2)}";
+                    if (isCancelled) {
+                      subtitle += " • CANCELLED";
+                    } else if (creditAmount > 0) {
+                      subtitle += " • Credit: ${creditAmount.toStringAsFixed(2)}";
+                    }
 
                     return Container(
-                      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                      decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
                       child: ListTile(
                         leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
                         title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                        subtitle: Text(subtitle, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: creditAmount > 0 ? kErrorColor : kBlack54)),
-                        trailing: Text(total.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
+                        subtitle: Text(subtitle, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isCancelled ? Colors.grey : (creditAmount > 0 ? kErrorColor : kBlack54))),
+                        trailing: Text(total.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color, decoration: isCancelled ? TextDecoration.lineThrough : null)),
                       ),
                     );
                   },
                 ),
               ),
             ],
+          );
+            },
           );
         },
       ),
@@ -1175,25 +1203,30 @@ class CustomerCreditsPage extends StatelessWidget {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),title: const Text("Payment History", style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 16)), backgroundColor: kPrimaryColor, elevation: 0, centerTitle: true, iconTheme: const IconThemeData(color: kWhite)),
-      body: FutureBuilder<QuerySnapshot>(
-        future: _fetchCredits(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.clock, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
-          final docs = snapshot.data!.docs.toList();
-          docs.sort((a, b) {
-            final aData = a.data() as Map<String, dynamic>;
-            final bData = b.data() as Map<String, dynamic>;
-            final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-            final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
-            return bDate.compareTo(aDate);
-          });
+      body: FutureBuilder<CollectionReference>(
+        future: FirestoreService().getStoreCollection('credits'),
+        builder: (context, collectionSnap) {
+          if (!collectionSnap.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          return StreamBuilder<QuerySnapshot>(
+            stream: collectionSnap.data!.where('customerId', isEqualTo: customerId).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.clock, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
+              final docs = snapshot.data!.docs.toList();
+              docs.sort((a, b) {
+                final aData = a.data() as Map<String, dynamic>;
+                final bData = b.data() as Map<String, dynamic>;
+                final aDate = (aData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                final bDate = (bData['timestamp'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                return bDate.compareTo(aDate);
+              });
           return ListView.separated(
             padding: const EdgeInsets.all(16), itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
               final type = data['type'] ?? '';
+              final isCancelled = data['status'] == 'cancelled';
               bool isPaymentReceived = type == 'payment_received';
               bool isCreditSale = type == 'credit_sale';
               bool isSalePayment = type == 'sale_payment';
@@ -1209,7 +1242,11 @@ class CustomerCreditsPage extends StatelessWidget {
               Color color;
               HeroIcons icon;
 
-              if (isPaymentReceived) {
+              if (isCancelled) {
+                title = "Cancelled Payment";
+                color = Colors.grey;
+                icon = HeroIcons.xCircle;
+              } else if (isPaymentReceived) {
                 title = "Payment Received";
                 color = kGoogleGreen;
                 icon = HeroIcons.arrowDown;
@@ -1236,28 +1273,20 @@ class CustomerCreditsPage extends StatelessWidget {
               }
 
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
                 child: ListTile(
                   leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
                   title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
                   subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} • $method${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text(amount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color)),
+                  trailing: Text(amount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color, decoration: isCancelled ? TextDecoration.lineThrough : null)),
                 ),
               );
+            },
+          );
             },
           );
         },
       ),
     );
-  }
-
-  Future<QuerySnapshot> _fetchCredits() async {
-    try {
-      final collection = await FirestoreService().getStoreCollection('credits');
-      return await collection.where('customerId', isEqualTo: customerId).orderBy('timestamp', descending: true).get();
-    } catch (e) {
-      final collection = await FirestoreService().getStoreCollection('credits');
-      return await collection.where('customerId', isEqualTo: customerId).get();
-    }
   }
 }

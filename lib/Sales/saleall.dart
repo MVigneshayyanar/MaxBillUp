@@ -1096,18 +1096,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isExpired
-                      ? kOrange.withOpacity(0.05)
+                      ? Colors.black.withOpacity(0.05)
                       : isOutOfStock
-                          ? Colors.black.withOpacity(0.05)
+                          ? kErrorColor.withOpacity(0.05)
                           : isLowStock
                               ? lowStockColor.withOpacity(0.05)
                               : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: isExpired
-                        ? kOrange.withOpacity(0.5)
+                        ? Colors.black.withOpacity(0.5)
                         : isOutOfStock
-                            ? Colors.black.withOpacity(0.5)
+                            ? kErrorColor.withOpacity(0.5)
                             : isLowStock
                                 ? lowStockColor.withOpacity(0.5)
                                 : (isAnimating ? kGoogleGreen : kGrey200),
@@ -1172,16 +1172,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                   color: kPrimaryColor,
                                 ),
                               ),
-                              if (stockEnabled && !isOutOfStock) ...[
+                              if (stockEnabled) ...[
                                 const SizedBox(height: 2),
                                 Text(
                                   '${AmountFormatter.format(stock)} $unit',
                                   style: TextStyle(
                                     fontSize: 8,
                                     fontWeight: FontWeight.w900,
-                                    color: isLowStock
-                                        ? lowStockColor
-                                        : kGoogleGreen,
+                                    color: isOutOfStock
+                                        ? kErrorColor
+                                        : isLowStock
+                                            ? lowStockColor
+                                            : kGoogleGreen,
                                   ),
                                 ),
                               ],
@@ -1265,7 +1267,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: kErrorColor,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
@@ -1287,7 +1289,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
-                      color: kOrange,
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
