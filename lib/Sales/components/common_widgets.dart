@@ -76,15 +76,22 @@ class CommonWidgets {
 
             const Spacer(),
 
-            // Main Bill button (Enterprise High-Density)
+            // Main Bill button (Premium UI Upgrade)
             GestureDetector(
               onTap: onBill,
               child: Container(
-                height: 50,
+                height: 60,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 decoration: BoxDecoration(
                   color: kPrimaryColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kPrimaryColor.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -93,14 +100,23 @@ class CommonWidgets {
                     const SizedBox(width: 10),
                     Text(
                       "$currencySymbol${AmountFormatter.format(totalBill)}",
-                      style: const TextStyle(color: kWhite, fontSize: 17, fontWeight: FontWeight.w900),
+                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
                     ),
-                    const SizedBox(width: 8),
-                    Container(width: 1, height: 14, color: kWhite.withValues(alpha: 0.3)),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
+                    Container(width: 1.5, height: 20, color: kWhite.withOpacity(0.3)),
+                    const SizedBox(width: 10),
                     Text(
-                      context.tr('Bill'),
-                      style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                      context.tr('Bill').toUpperCase(),
+                      style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: kWhite.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 16),
                     ),
                   ],
                 ),

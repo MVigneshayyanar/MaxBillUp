@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:intl/intl.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/ledger_helper.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Menu/AddCustomer.dart';
@@ -28,11 +29,19 @@ class CustomerDetailsPage extends StatefulWidget {
 
 class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   String _currencySymbol = '';
-
   @override
   void initState() {
     super.initState();
     _loadCurrency();
+    _syncBalanceInBackground();
+  }
+
+  Future<void> _syncBalanceInBackground() async {
+    try {
+      await LedgerHelper.computeClosingBalance(widget.customerId, syncToFirestore: true);
+    } catch (e) {
+      debugPrint('Error quietly syncing balance: $e');
+    }
   }
 
   void _loadCurrency() async {
@@ -154,7 +163,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text("Add Sales Credit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
+                  const Text("Add New Credit", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: kBlack87)),
                   GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, size: 24, color: kBlack54)),
                 ],
               ),
@@ -165,7 +174,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 children: [
                   _buildPaymentToggle("Cash", HeroIcons.banknotes, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
                   _buildPaymentToggle("Online", HeroIcons.qrCode, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
-                  _buildPaymentToggle("Waive", HeroIcons.handRaised, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
+                  // _buildPaymentToggle("Waive", HeroIcons.handRaised, selectedMethod, (v) => setModalState(() => selectedMethod = v)),
                 ],
               ),
               const SizedBox(height: 32),
@@ -182,7 +191,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   child: const Text("CONFIRM CREDIT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 50),
             ],
           ),
         ),
@@ -671,11 +680,22 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         iconTheme: const IconThemeData(color: kWhite),
         actions: [
           IconButton(
-            icon: const HeroIcon(HeroIcons.trash, color: Colors.red),
+            icon: const HeroIcon(HeroIcons.trash, color: Colors.white),
             onPressed: () => _confirmDelete(context),
             tooltip: 'Delete Customer',
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddCreditModal(context, balance, totalSales),
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
+        label: const Text(
+          'Add New Credit',
+          style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
+        ),
       ),
       body: Column(
         children: [
@@ -732,17 +752,35 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
+                      _buildMenuItem(
+                        context,
+                        "Credit History",
+                        HeroIcons.bookOpen,
+                        color: kOrange,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (context) => CustomerCreditDetailsPage(
+                                customerId: widget.customerId,
+                                customerData: widget.customerData,
+                                currentBalance: balance,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 10),
                       _buildMenuItem(context, "Bill History", HeroIcons.banknotes),
                       const SizedBox(height: 10),
                       _buildMenuItem(context, "Payment History", HeroIcons.clock),
                       const SizedBox(height: 10),
                       _buildMenuItem(context, "Ledger Account", HeroIcons.buildingLibrary),
-                      const SizedBox(height: 80), // Space for FAB
+                      const SizedBox(height: 100), // Space for FAB
                     ],
                   ),
                 ),
               ),
-              _buildBottomActionArea(balance, totalSales),
             ],
           ),
         );
@@ -800,15 +838,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
-  Widget _buildMenuItem(BuildContext context, String title, HeroIcons icon) {
+  Widget _buildMenuItem(BuildContext context, String title, HeroIcons icon, {Color color = kPrimaryColor, VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ListTile(
-        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, color: kPrimaryColor, size: 20)),
+        leading: Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, color: color, size: 20)),
         title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87)),
         trailing: const HeroIcon(HeroIcons.chevronRight, size: 14, color: kGrey400),
-        onTap: () {
+        onTap: onTap ?? () {
           if (title=="Bill History") {
             Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerBillsPage(phone: widget.customerId)));
           } else if (title.contains("Payment")) Navigator.push(context, CupertinoPageRoute(builder: (_) => CustomerCreditsPage(customerId: widget.customerId)));
@@ -818,39 +856,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     );
   }
 
-  Widget _buildBottomActionArea(double balance, double totalSales) {
-    return SafeArea(
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        decoration: BoxDecoration(color: kWhite, border: const Border(top: BorderSide(color: kGrey200))),
-        child: Row(children: [
-          Expanded(child: ElevatedButton(
-            onPressed: () => _showAddCreditModal(context, balance, totalSales),
-            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-            child: const Text("ADD CREDIT", style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-          )),
-          const SizedBox(width: 12),
-          Expanded(child: OutlinedButton(
-            onPressed: () {
-              // Navigate to CustomerCreditDetailsPage to show credit history
-              Navigator.push(
-                context,
-                CupertinoPageRoute(
-                  builder: (context) => CustomerCreditDetailsPage(
-                    customerId: widget.customerId,
-                    customerData: widget.customerData,
-                    currentBalance: balance,
-                  ),
-                ),
-              );
-            },
-            style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor, width: 1.5), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-            child: const Text("CREDIT HISTORY", style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-          )),
-        ]),
-      ),
-    );
-  }
+
 }
 
 // =============================================================================
@@ -1077,8 +1083,8 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
               child: Row(children: [
                 Expanded(flex: 2, child: Text(DateFormat('dd/MM/yy').format(e.date), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack87))),
-                Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
+                Expanded(flex: 3, child: Text(e.desc, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis)),
+                Expanded(flex: 2, child: Text(e.debit > 0 ? e.debit.toStringAsFixed(0) : "0", textAlign: TextAlign.right, style: const TextStyle(color: kGoogleGreen, fontSize: 11, fontWeight: FontWeight.w900))),
                 Expanded(flex: 2, child: Text(e.credit > 0 ? e.credit.toStringAsFixed(0) : "-", textAlign: TextAlign.right, style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w900))),
                 Expanded(flex: 2, child: Text(e.balance.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(color: kBlack87, fontSize: 12, fontWeight: FontWeight.w900))),
               ]),

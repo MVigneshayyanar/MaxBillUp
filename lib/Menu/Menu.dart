@@ -12,6 +12,7 @@ import 'package:maxbillup/Sales/Invoice.dart';
 import 'package:maxbillup/Sales/QuotationsList.dart';
 import 'package:maxbillup/Menu/CustomerManagement.dart';
 import 'package:maxbillup/Menu/AddCustomer.dart';
+import 'package:maxbillup/Menu/SettleManualCredit.dart';
 import 'package:maxbillup/Menu/KnowledgePage.dart';
 import 'package:maxbillup/components/common_bottom_nav.dart';
 import 'package:maxbillup/models/cart_item.dart';
@@ -34,6 +35,7 @@ import 'package:maxbillup/utils/permission_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
+import 'package:maxbillup/utils/ledger_helper.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
@@ -3746,6 +3748,7 @@ class CreditDetailsPage extends StatefulWidget {
 
 class _CreditDetailsPageState extends State<CreditDetailsPage> {
   final TextEditingController _searchController = TextEditingController();
+  final Map<String, double> _salesCreditCache = {};
   String _searchQuery = '';
   bool _isSearching = false;
   String _currencySymbol = '';
@@ -3982,10 +3985,14 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   Widget _buildSalesCard(QueryDocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
     final customerName = (data['name'] ?? 'Guest').toString();
-    final balance = (data['balance'] ?? 0.0).toDouble();
     final phone = (data['phone'] ?? 'N/A').toString();
     final rating = (data['rating'] ?? 0) as num;
+    final balance = (data['balance'] ?? 0.0).toDouble();
 
+    return _buildSalesCardInner(doc.id, data, customerName, phone, rating, balance);
+  }
+
+  Widget _buildSalesCardInner(String docId, Map<String, dynamic> data, String customerName, String phone, num rating, double balance) {
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
@@ -4000,7 +4007,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             context,
             MaterialPageRoute(
               builder: (_) => CustomerCreditDetailsPage(
-                customerId: doc.id,
+                customerId: docId,
                 customerData: data,
                 currentBalance: balance,
               ),
@@ -4663,6 +4670,15 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
   void initState() {
     super.initState();
     _loadCurrency();
+    _syncBalanceInBackground();
+  }
+
+  Future<void> _syncBalanceInBackground() async {
+    try {
+      await LedgerHelper.computeClosingBalance(widget.customerId, syncToFirestore: true);
+    } catch (e) {
+      debugPrint('Error quietly syncing balance: $e');
+    }
   }
 
   Future<void> _loadCurrency() async {
@@ -4682,182 +4698,221 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final customerName = (widget.customerData['name'] ?? 'Customer').toString();
-    final phone = (widget.customerData['phone'] ?? 'N/A').toString();
-    final rating = (widget.customerData['rating'] ?? 0) as num;
+    return FutureBuilder<String?>(
+      future: FirestoreService().getCurrentStoreId(),
+      builder: (context, storeIdSnap) {
+        if (storeIdSnap.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+        }
+        final storeId = storeIdSnap.data;
+        if (storeId == null) return const Scaffold(body: Center(child: Text("Store not found")));
 
-    return Scaffold(
-      backgroundColor: kGreyBg,
-      appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-        elevation: 0,
-        backgroundColor: kPrimaryColor,
-        iconTheme: const IconThemeData(color: kWhite),
-        title: Text(customerName, style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Customer Header
-          
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('store')
+              .doc(storeId)
+              .collection('customers')
+              .doc(widget.customerId)
+              .snapshots(),
+      builder: (context, custSnap) {
+        final custData = custSnap.data?.data() as Map<String, dynamic>? ?? widget.customerData;
+        final currentBalance = (custData['balance'] ?? 0.0).toDouble();
+        final customerName = (custData['name'] ?? 'Customer').toString();
 
-          // Credit Breakdown Summary
-          FutureBuilder<CollectionReference>(
-            future: FirestoreService().getStoreCollection('credits'),
-            builder: (context, collSnap) {
-              if (!collSnap.hasData) return const SizedBox.shrink();
-              return StreamBuilder<QuerySnapshot>(
-                stream: collSnap.data!.where('customerId', isEqualTo: widget.customerId).snapshots(),
-                builder: (context, snap) {
-                  double billCredit = 0;
-                  double manualCredit = 0;
-                  if (snap.hasData) {
-                    for (var doc in snap.data!.docs) {
-                      final d = doc.data() as Map<String, dynamic>;
-                      final type = d['type'] ?? '';
-                      final amt = (d['amount'] ?? 0.0).toDouble();
-                      final isSettled = d['isSettled'] == true;
-                      if (type == 'credit_sale' && !isSettled) {
-                        billCredit += amt;
-                      } else if (type == 'add_credit') {
-                        manualCredit += amt;
+        return Scaffold(
+          backgroundColor: kGreyBg,
+          appBar: AppBar(
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+            ),
+            elevation: 0,
+            backgroundColor: kPrimaryColor,
+            iconTheme: const IconThemeData(color: kWhite),
+            title: Text(customerName, style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+            centerTitle: true,
+          ),
+          body: Column(
+            children: [
+              // Credit Breakdown Summary
+              FutureBuilder<CollectionReference>(
+                future: FirestoreService().getStoreCollection('credits'),
+                builder: (context, collSnap) {
+                  if (!collSnap.hasData) return const SizedBox.shrink();
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: collSnap.data!.where('customerId', isEqualTo: widget.customerId).snapshots(),
+                    builder: (context, snap) {
+                      double billCredit = 0;
+                      double manualCredit = 0;
+                      if (snap.hasData) {
+                        for (var doc in snap.data!.docs) {
+                          final d = doc.data() as Map<String, dynamic>;
+                          final type = d['type'] ?? '';
+                          final amt = (d['amount'] ?? 0.0).toDouble();
+                          final isSettled = d['isSettled'] == true;
+                          if (type == 'credit_sale' && !isSettled) {
+                            billCredit += amt;
+                          } else if (type == 'add_credit') {
+                            manualCredit += amt;
+                          }
+                        }
                       }
-                    }
-                  }
-                  final totalCredit = billCredit + manualCredit;
-                  return Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                    child: Row(
-                      children: [
-                        _buildCreditSummaryCard('Total Credit', totalCredit, kErrorColor),
-                        const SizedBox(width: 8),
-                        _buildCreditSummaryCard('Bill Credit', billCredit, kOrange),
-                        const SizedBox(width: 8),
-                        _buildCreditSummaryCard('Manual Credit', manualCredit, Colors.purple),
-                      ],
-                    ),
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                        child: Row(
+                          children: [
+                            _buildCreditSummaryCard('Total Credit', currentBalance, kErrorColor),
+                            const SizedBox(width: 8),
+                            _buildCreditSummaryCard('Bill Credit', billCredit, kOrange),
+                            const SizedBox(width: 8),
+                            _buildCreditSummaryCard('Manual Credit', manualCredit, Colors.purple),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
-              );
-            },
-          ),
+              ),
 
-          // Credit Bills List Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Credit Bills', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+              // Credit Bills List Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Credit Bills', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+                  ],
+                ),
+              ),
 
-              ],
-            ),
-          ),
-
-          // Credit Bills List
-          Expanded(
-            child: FutureBuilder<CollectionReference>(
-              future: FirestoreService().getStoreCollection('credits'),
-              builder: (context, collectionSnapshot) {
-                if (!collectionSnapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                }
-                return StreamBuilder<QuerySnapshot>(
-                  stream: collectionSnapshot.data!
-                      .where('customerId', isEqualTo: widget.customerId)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
+              // Credit Bills List
+              Expanded(
+                child: FutureBuilder<CollectionReference>(
+                  future: FirestoreService().getStoreCollection('credits'),
+                  builder: (context, collectionSnapshot) {
+                    if (!collectionSnapshot.hasData) {
                       return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                     }
+                    return StreamBuilder<QuerySnapshot>(
+                      stream: collectionSnapshot.data!
+                          .where('customerId', isEqualTo: widget.customerId)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                        }
 
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline, size: 60, color: kErrorColor),
-                            const SizedBox(height: 16),
-                            Text('Error: ${snapshot.error}', style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
-                          ],
-                        ),
-                      );
-                    }
+                        final docs = snapshot.data?.docs ?? [];
+                        final unsettledDocs = docs.where((d) {
+                          final data = d.data() as Map<String, dynamic>;
+                          final type = data['type'] as String?;
+                          final isSettled = data['isSettled'] == true;
+                          final amount = (data['amount'] ?? 0.0).toDouble();
 
-                    final docs = snapshot.data?.docs ?? [];
-                    // Filter for credit sales only (type == 'credit_sale' or no type but has amount > 0 and invoiceNumber)
-                    // Also filter out settled ones
-                    final unsettledDocs = docs.where((d) {
-                      final data = d.data() as Map<String, dynamic>;
-                      final type = data['type'] as String?;
-                      final isSettled = data['isSettled'] == true;
-                      final amount = (data['amount'] ?? 0.0).toDouble();
+                          if (isSettled) return false;
+                          if (type == 'credit_sale') return true;
+                          if (type == null && amount > 0 && data['invoiceNumber'] != null) return true;
+                          return false;
+                        }).toList();
 
-                      // Include if it's a credit_sale type and not settled
-                      // Or if it has no type but has positive amount and invoice (legacy data)
-                      if (isSettled) return false;
-                      if (type == 'credit_sale') return true;
-                      if (type == null && amount > 0 && data['invoiceNumber'] != null) return true;
-                      return false;
-                    }).toList();
+                        unsettledDocs.sort((a, b) {
+                          final aData = a.data() as Map<String, dynamic>;
+                          final bData = b.data() as Map<String, dynamic>;
+                          final aTime = aData['timestamp'] as Timestamp?;
+                          final bTime = bData['timestamp'] as Timestamp?;
+                          if (aTime == null && bTime == null) return 0;
+                          if (aTime == null) return 1;
+                          if (bTime == null) return -1;
+                          return bTime.compareTo(aTime);
+                        });
 
-                    // Sort by timestamp descending
-                    unsettledDocs.sort((a, b) {
-                      final aData = a.data() as Map<String, dynamic>;
-                      final bData = b.data() as Map<String, dynamic>;
-                      final aTime = aData['timestamp'] as Timestamp?;
-                      final bTime = bData['timestamp'] as Timestamp?;
-                      if (aTime == null && bTime == null) return 0;
-                      if (aTime == null) return 1;
-                      if (bTime == null) return -1;
-                      return bTime.compareTo(aTime);
-                    });
+                        if (unsettledDocs.isEmpty) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.check_circle_outline_rounded, size: 60, color: kGoogleGreen.withOpacity(0.3)),
+                                const SizedBox(height: 16),
+                                const Text('No pending credit bills', style: TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
+                              ],
+                            ),
+                          );
+                        }
 
-                    if (unsettledDocs.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle_outline_rounded, size: 60, color: kGoogleGreen.withOpacity(0.3)),
-                            const SizedBox(height: 16),
-                            const Text('No pending credit bills', style: TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: unsettledDocs.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) => _buildCreditBillCard(unsettledDocs[index]),
+                        return ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: unsettledDocs.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) => _buildCreditBillCard(unsettledDocs[index], currentBalance),
+                        );
+                      },
                     );
                   },
-                );
-              },
+                ),
+              ),
+            ],
+          ),
+          bottomNavigationBar: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ElevatedButton(
+                onPressed: () async {
+                  showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+                  try {
+                    final totalBalance = currentBalance;
+                    final credsColl = await FirestoreService().getStoreCollection('credits');
+                    final unsettledBills = await credsColl
+                        .where('customerId', isEqualTo: widget.customerId)
+                        .where('type', isEqualTo: 'credit_sale')
+                        .get();
+                    
+                    double unsettledBillTotal = 0;
+                    for (var d in unsettledBills.docs) {
+                      final data = d.data() as Map<String, dynamic>;
+                      if (data['isSettled'] != true) {
+                        unsettledBillTotal += (data['amount'] ?? 0.0).toDouble();
+                      }
+                    }
+                    
+                    final manualCreditBalance = totalBalance - unsettledBillTotal;
+                    
+                    if (mounted) {
+                      Navigator.pop(context); // Close loading
+                      Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => SettleManualCreditPage(
+                            customerId: widget.customerId,
+                            customerData: custData,
+                            currentBalance: totalBalance,
+                            billAmount: manualCreditBalance > 0 ? manualCreditBalance : 0.0,
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kWhite,
+                  foregroundColor: kPrimaryColor,
+                  side: const BorderSide(color: kPrimaryColor, width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('SETTLE MANUAL CREDIT', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              ),
             ),
           ),
-        ],
-      ),
-      // Settle All Button
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton(
-            onPressed: () => _showSettleAllDialog(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 0,
-            ),
-            child: const Text('SETTLE FULL BALANCE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 14)),
-          ),
-        ),
-      ),
+        );
+      },
     );
+  },
+);
   }
 
   Widget _buildCreditSummaryCard(String label, double amount, Color color) {
@@ -4880,7 +4935,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     );
   }
 
-  Widget _buildCreditBillCard(QueryDocumentSnapshot doc) {
+  Widget _buildCreditBillCard(QueryDocumentSnapshot doc, double currentBalance) {
     final data = doc.data() as Map<String, dynamic>;
     final amount = (data['amount'] ?? 0.0).toDouble();
     final invoiceNumber = (data['invoiceNumber'] ?? 'N/A').toString();
@@ -4931,7 +4986,23 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showSettleBillDialog(doc.id, data, amount),
+          onTap: () => Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (_) => SettleManualCreditPage(
+                customerId: widget.customerId,
+                customerData: widget.customerData,
+                currentBalance: currentBalance,
+                invoiceNumber: invoiceNumber,
+                billAmount: amount,
+                creditDocId: doc.id,
+              ),
+            ),
+          ).then((settled) {
+            if (settled == true && mounted) {
+              setState(() {});
+            }
+          }),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -5014,424 +5085,6 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     );
   }
 
-  void _showSettleBillDialog(String docId, Map<String, dynamic> data, double amount) {
-    final TextEditingController amountController = TextEditingController(text: amount.toStringAsFixed(2));
-    String paymentMode = 'Cash';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: kWhite,
-          title: const Text('Settle Credit Bill', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: kGoogleGreen.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kGoogleGreen.withOpacity(0.15)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Bill amount', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: amountController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: 'Settlement Amount',
-                    prefixIcon: Icon(Icons.currency_rupee_rounded, color: kPrimaryColor, size: 18),
-                    filled: true,
-                    fillColor: const Color(0xFFF8F9FA),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                    ),
-                    labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                    floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-                  ),
-                
-);
-      },
-    ),
-              ),
-              const SizedBox(height: 20),
-              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
-              const SizedBox(height: 8),
-              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final settlementAmount = double.tryParse(amountController.text);
-                if (settlementAmount == null || settlementAmount <= 0 || settlementAmount > amount) return;
-                Navigator.pop(ctx);
-                await _settleCreditBill(docId, data, settlementAmount, paymentMode);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSettleAllDialog() {
-    final TextEditingController amountController = TextEditingController(text: widget.currentBalance.toStringAsFixed(2));
-    String paymentMode = 'Cash';
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          backgroundColor: kWhite,
-          title: const Text('Settle Full Balance', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack87, fontSize: 18)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: kGoogleGreen.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: kGoogleGreen.withOpacity(0.15)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Total outstanding', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5)),
-                    Text('$_currencySymbol${widget.currentBalance.toStringAsFixed(2)}', style: const TextStyle(color: kGoogleGreen, fontWeight: FontWeight.w900, fontSize: 16)),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: amountController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
-                  controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                  decoration: InputDecoration(
-                    labelText: 'Settlement Amount',
-                    prefixIcon: Icon(Icons.currency_rupee_rounded, color: kPrimaryColor, size: 18),
-                    filled: true,
-                    fillColor: const Color(0xFFF8F9FA),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                    ),
-                    labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                    floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-                  ),
-                
-);
-      },
-    ),
-              ),
-              const SizedBox(height: 20),
-              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
-              const SizedBox(height: 8),
-              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
-              const SizedBox(height: 8),
-              _buildPayOption(setDialogState, paymentMode, 'Waive Off', Icons.block_outlined, kOrange, (v) => paymentMode = v),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold)),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final settlementAmount = double.tryParse(amountController.text);
-                if (settlementAmount == null || settlementAmount <= 0 || settlementAmount > widget.currentBalance) return;
-                Navigator.pop(ctx);
-                await _settleFullBalance(settlementAmount, paymentMode);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: const Text('SETTLE', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPayOption(StateSetter setDialogState, String current, String val, IconData icon, Color color, Function(String) onSel) {
-    final sel = current == val;
-    return InkWell(
-      onTap: () => setDialogState(() => onSel(val)),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: sel ? color.withOpacity(0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: sel ? color : kGrey200),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: sel ? color : kBlack54, size: 18),
-            const SizedBox(width: 12),
-            Text(val, style: TextStyle(color: sel ? color : kBlack87, fontWeight: sel ? FontWeight.w900 : FontWeight.w600, fontSize: 13)),
-            const Spacer(),
-            if (sel) Icon(Icons.check_circle_rounded, color: color, size: 18),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _settleCreditBill(String docId, Map<String, dynamic> data, double amount, String paymentMode) async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
-    try {
-      final custs = await FirestoreService().getStoreCollection('customers');
-      final creds = await FirestoreService().getStoreCollection('credits');
-
-      final originalAmount = (data['amount'] ?? 0.0).toDouble();
-
-      // Update customer balance
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final customerDoc = await tx.get(custs.doc(widget.customerId));
-        if (customerDoc.exists) {
-          final customerData = customerDoc.data() as Map<String, dynamic>;
-          final currentBalance = (customerData['balance'] ?? 0.0).toDouble();
-          tx.update(custs.doc(widget.customerId), {
-            'balance': currentBalance - amount,
-            'lastUpdated': FieldValue.serverTimestamp(),
-          });
-        }
-      });
-
-      // Mark the credit bill as settled (fully or partially)
-      if (amount >= originalAmount) {
-        // Fully settled
-        await creds.doc(docId).update({
-          'isSettled': true,
-          'settledAt': FieldValue.serverTimestamp(),
-          'settledAmount': amount,
-          'settlementMethod': paymentMode,
-        });
-      } else {
-        // Partially settled - update remaining amount
-        await creds.doc(docId).update({
-          'amount': originalAmount - amount,
-          'partiallySettledAt': FieldValue.serverTimestamp(),
-          'lastPartialAmount': amount,
-          'lastPartialMethod': paymentMode,
-        });
-      }
-
-      // Add settlement record
-      await creds.add({
-        'customerId': widget.customerId,
-        'customerName': widget.customerData['name'],
-        'amount': amount,
-        'type': 'settlement',
-        'method': paymentMode,
-        'relatedCreditId': docId,
-        'invoiceNumber': data['invoiceNumber'],
-        'timestamp': FieldValue.serverTimestamp(),
-        'date': DateTime.now().toIso8601String(),
-        'note': 'Settlement for Invoice #${data['invoiceNumber']}',
-      });
-
-      // Generate payment receipt
-      final paymentReceiptPrefix = await NumberGeneratorService.getPaymentReceiptPrefix();
-      final paymentReceiptNumber = await NumberGeneratorService.generatePaymentReceiptNumber();
-      final fullReceiptNumber = '$paymentReceiptPrefix$paymentReceiptNumber';
-
-      // Create payment receipt record
-      final paymentReceipts = await FirestoreService().getStoreCollection('paymentReceipts');
-      final receiptDocRef = await paymentReceipts.add({
-        'receiptNumber': fullReceiptNumber,
-        'customerId': widget.customerId,
-        'customerName': widget.customerData['name'],
-        'amount': amount,
-        'paymentMethod': paymentMode,
-        'type': 'bill_settlement',
-        'relatedInvoiceNumber': data['invoiceNumber'],
-        'relatedCreditId': docId,
-        'timestamp': FieldValue.serverTimestamp(),
-        'date': DateTime.now().toIso8601String(),
-        'note': 'Payment received for Invoice #${data['invoiceNumber']}',
-      });
-
-      // Load store data
-      final storeDoc = await FirestoreService().getCurrentStoreDoc();
-      final storeData = storeDoc?.data() as Map<String, dynamic>?;
-
-      // Calculate previous and current credit balance
-      final previousCredit = widget.currentBalance;
-      final currentCredit = widget.currentBalance - amount;
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading
-        
-        // Navigate to Payment Receipt page
-        Navigator.push(
-          context,
-          CupertinoPageRoute(
-            builder: (_) => PaymentReceiptPage(
-              receiptNumber: fullReceiptNumber,
-              dateTime: DateTime.now(),
-              businessName: storeData?['businessName'] ?? '',
-              businessLocation: storeData?['businessLocation'] ?? '',
-              businessPhone: storeData?['businessPhone'] ?? '',
-              businessGSTIN: storeData?['taxType'] ?? storeData?['gstin'],
-              customerName: widget.customerData['name'],
-              customerPhone: widget.customerId,
-              previousCredit: previousCredit,
-              receivedAmount: amount,
-              paymentMode: paymentMode,
-              currentCredit: currentCredit,
-              invoiceReference: data['invoiceNumber'],
-              currency: CurrencyService.getSymbolWithSpace(storeData?['currency']),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: kErrorColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _settleFullBalance(double amount, String paymentMode) async {
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
-    try {
-      final custs = await FirestoreService().getStoreCollection('customers');
-      final creds = await FirestoreService().getStoreCollection('credits');
-
-      // Update customer balance
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        tx.update(custs.doc(widget.customerId), {
-          'balance': widget.currentBalance - amount,
-          'lastUpdated': FieldValue.serverTimestamp(),
-        });
-      });
-
-      // Add settlement record
-      await creds.add({
-        'customerId': widget.customerId,
-        'customerName': widget.customerData['name'],
-        'amount': amount,
-        'type': 'settlement',
-        'method': paymentMode,
-        'timestamp': FieldValue.serverTimestamp(),
-        'date': DateTime.now().toIso8601String(),
-        'note': 'Full balance settlement',
-      });
-
-      // If settling full balance, mark all credit_sale entries as settled
-      if (amount >= widget.currentBalance) {
-        final creditDocs = await creds
-            .where('customerId', isEqualTo: widget.customerId)
-            .where('type', isEqualTo: 'credit_sale')
-            .get();
-
-        for (var doc in creditDocs.docs) {
-          final docData = doc.data() as Map<String, dynamic>;
-          if (docData['isSettled'] != true) {
-            await creds.doc(doc.id).update({
-              'isSettled': true,
-              'settledAt': FieldValue.serverTimestamp(),
-              'settlementMethod': paymentMode,
-            });
-          }
-        }
-      }
-
-      if (mounted) {
-        Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Balance settled successfully'),
-            backgroundColor: kGoogleGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        Navigator.pop(context); // Go back to credit list
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: kErrorColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    }
-  }
 }
 
 // 4. PURCHASE CREDIT NOTE DETAIL PAGE
@@ -5676,6 +5329,7 @@ class CustomersPage extends StatefulWidget {
 }
 
 class _CustomersPageState extends State<CustomersPage> {
+  static bool _hasSyncedBalancesThisSession = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _sortBy = 'sales'; // 'sales' or 'credit'
@@ -5686,6 +5340,7 @@ class _CustomersPageState extends State<CustomersPage> {
     super.initState();
     _loadCurrency();
     _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
+    _syncAllBalancesInBackground();
   }
 
   void _loadCurrency() async {
@@ -5696,41 +5351,21 @@ class _CustomersPageState extends State<CustomersPage> {
     }
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  Future<void> _syncAllBalancesInBackground() async {
+    if (_hasSyncedBalancesThisSession) return;
+    _hasSyncedBalancesThisSession = true;
 
-  Future<double> _calculateTotalSalesFromBackend(String customerPhone) async {
     try {
-      final salesCollection = await FirestoreService().getStoreCollection('sales');
-      final salesSnapshot = await salesCollection.where('customerPhone', isEqualTo: customerPhone).get();
-      double totalSales = 0.0;
-      for (var saleDoc in salesSnapshot.docs) {
-        final saleData = saleDoc.data() as Map<String, dynamic>;
-        // Skip cancelled bills
-        if (saleData['status'] == 'cancelled') continue;
-        totalSales += (saleData['total'] ?? 0.0).toDouble();
+      final customersCollection = await FirestoreService().getStoreCollection('customers');
+      final snap = await customersCollection.get();
+      for (var doc in snap.docs) {
+        // Run ledger helper in background for each customer, this silently updates 
+        // the Firestore document with the true balance, which then triggers the 
+        // StreamBuilder in the UI to update organically.
+        LedgerHelper.computeClosingBalance(doc.id, syncToFirestore: true);
       }
-      return totalSales;
     } catch (e) {
-      return 0.0;
-    }
-  }
-
-  Future<Map<String, dynamic>> _fetchCustomerDataWithTotalSales(String customerPhone) async {
-    try {
-      final customerDoc = await FirestoreService().getDocument('customers', customerPhone);
-      Map<String, dynamic> customerData = {};
-      if (customerDoc.exists) {
-        customerData = customerDoc.data() as Map<String, dynamic>;
-      }
-      final calculatedTotalSales = await _calculateTotalSalesFromBackend(customerPhone);
-      customerData['totalSales'] = calculatedTotalSales;
-      return customerData;
-    } catch (e) {
-      return {};
+      debugPrint('Error syncing balances: $e');
     }
   }
 
@@ -5919,6 +5554,31 @@ class _CustomersPageState extends State<CustomersPage> {
             const SizedBox(width: 8),
           ],
         ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (context) => AddCustomerPage(
+                  uid: widget.uid,
+                  onBack: null,
+                ),
+              ),
+            ).then((value) {
+              if (value == true) {
+                setState(() {}); // Refresh the list
+              }
+            });
+          },
+          backgroundColor: kPrimaryColor,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 20),
+          label: Text(
+            context.tr('add_customer'),
+            style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 13, letterSpacing: 0.5),
+          ),
+        ),
         body: Column(
         children: [
           // Updated Search Header Area with Sort Button
@@ -5989,33 +5649,6 @@ class _CustomersPageState extends State<CustomersPage> {
                     child: const Icon(Icons.sort_rounded, color: kPrimaryColor, size: 22),
                   ),
                 ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      CupertinoPageRoute(
-                        builder: (context) => AddCustomerPage(
-                          uid: widget.uid,
-                          onBack: null,
-                        ),
-                      ),
-                    ).then((value) {
-                      if (value == true) {
-                        setState(() {}); // Refresh the list
-                      }
-                    });
-                  },
-                  child: Container(
-                    height: 46,
-                    width: 46,
-                    decoration: BoxDecoration(
-                      color: kPrimaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: kWhite, size: 22),
-                  ),
-                ),
               ],
             ),
           ),
@@ -6061,14 +5694,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       itemBuilder: (context, index) {
                         final docId = docs[index].id;
                         final data = docs[index].data() as Map<String, dynamic>;
-
-                        return FutureBuilder<Map<String, dynamic>>(
-                          future: _fetchCustomerDataWithTotalSales(docId),
-                          builder: (context, freshSnapshot) {
-                            final freshData = freshSnapshot.data ?? data;
-                            return _buildCustomerCard(docId, freshData);
-                          },
-                        );
+                        return _buildCustomerCard(docId, data);
                       },
                     );
                   },

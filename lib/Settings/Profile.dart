@@ -246,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // 2. User Management (Staff Management moved here)
           if (_isAdmin || _hasPermission('staffManagement'))
             _buildModernTile(
-              title: "User Management",
+              title: "Staff Access & Roles",
               icon: HeroIcons.users,
               color: const Color(0xFF9C27B0),
               onTap: () => _navigateTo('UserManagement'),
@@ -255,7 +255,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // 3. Tax Settings - only visible if admin or has taxSettings permission
           if (_isAdmin || _hasPermission('taxSettings'))
             _buildModernTile(
-              title: "Tax Setting",
+              title: "Tax Settings",
               icon: HeroIcons.receiptPercent,
               color: const Color(0xFF00796B),
               onTap: () => _navigateTo('TaxSettings'),
@@ -264,7 +264,7 @@ class _SettingsPageState extends State<SettingsPage> {
           // 4. Bill & Print Settings - only visible if admin or has receiptCustomization permission
           if (_isAdmin || _hasPermission('receiptCustomization'))
             _buildModernTile(
-              title: "Bill Receipt Setting",
+              title: "Bill Receipt Settings",
               icon: HeroIcons.documentText,
               color: kOrange,
               onTap: () => _navigateTo('BillPrintSettings'),
@@ -280,7 +280,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           // 6. General Settings (Language included)
           _buildModernTile(
-            title: "General Setting",
+            title: "General Settings",
             icon: HeroIcons.cog6Tooth,
             color: kPrimaryColor,
             onTap: () => _navigateTo('GeneralSettings'),

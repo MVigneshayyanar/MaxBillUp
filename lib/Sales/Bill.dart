@@ -2723,8 +2723,50 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  Widget _buildKeyPad() { final List<String> keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back']; return GridView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, crossAxisSpacing: 14, mainAxisSpacing: 14, childAspectRatio: 1.8), itemCount: keys.length, itemBuilder: (ctx, i) => _buildKey(keys[i])); }
-  Widget _buildKey(String key) { return Material(color: kGreyBg, borderRadius: BorderRadius.circular(14), child: InkWell(onTap: () => _onKeyTap(key), borderRadius: BorderRadius.circular(14), child: Center(child: key == 'back' ? const HeroIcon(HeroIcons.backspace, color: kBlack87, size: 22) : Text(key, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w600, color: kBlack87))))); }
+  Widget _buildKeyPad() {
+    final List<String> keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'];
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.5,
+      ),
+      itemCount: keys.length,
+      itemBuilder: (ctx, i) => _buildKey(keys[i]),
+    );
+  }
+
+  Widget _buildKey(String key) {
+    final bool isBack = key == 'back';
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onKeyTap(key),
+          borderRadius: BorderRadius.circular(16),
+          child: Center(
+            child: isBack
+                ? const HeroIcon(HeroIcons.backspace, color: kErrorColor, size: 24)
+                : Text(
+                    key,
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: kBlack87),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ==========================================

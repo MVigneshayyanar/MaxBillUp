@@ -396,7 +396,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
           
           final currentPrice = plan['price'][_selectedDuration.toString()] ?? 0;
           final double dailyPrice = currentPrice > 0 ? (_selectedDuration == 12 ? currentPrice / 365.0 : currentPrice / 30.0) : 0;
-          final String dailyPriceStr = dailyPrice < 10 ? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
+          final String dailyPriceStr = dailyPrice < 10? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
           
           final themeColor = plan['themeColor'] as Color? ?? kPrimaryColor;
 
