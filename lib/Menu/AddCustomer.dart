@@ -1183,6 +1183,10 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
       valueListenable: controller,
       builder: (context, value, child) {
         final bool isFilled = value.text.isNotEmpty;
+        return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
         return TextFormField(
           controller: controller,
           keyboardType: keyboardType,
@@ -1196,27 +1200,38 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               padding: const EdgeInsets.all(12.0),
               child: HeroIcon(icon, color: iconColor ?? _primaryColor, size: 20),
             ),
-            filled: true,
-            fillColor: kGreyBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                  color: isFilled ? _primaryColor : _cardBorder,
-                  width: isFilled ? 1.5 : 1.0
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: _primaryColor, width: 1.5),
-            ),
+            
+            
+            
+            
+            
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kErrorColor),
             ),
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+            ),
+            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
           ),
           validator: isRequired ? (v) => (v == null || v.trim().isEmpty) ? 'Required' : null : null,
-        );
+        
+);
+      },
+    );
       },
     );
   }

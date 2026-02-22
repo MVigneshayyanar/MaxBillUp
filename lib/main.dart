@@ -110,6 +110,29 @@ class MyApp extends StatelessWidget {
         textSelectionTheme: const TextSelectionThemeData(
           cursorColor: Color(0xFF2F7CF6),
         ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA), // kGreyBg equivalent
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          labelStyle: const TextStyle(color: Colors.black54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: const TextStyle(color: Color(0xFF2F7CF6), fontSize: 11, fontWeight: FontWeight.w900),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFFEEEEEE), width: 1.0), // kGrey200 equivalent
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 2.0),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.red, width: 1.0),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: Colors.red, width: 2.0),
+          ),
+        ),
         // Reduce animations for better keyboard performance
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {

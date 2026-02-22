@@ -381,7 +381,11 @@ class KnowledgeTab extends StatelessWidget {
   Widget _buildDialogField(TextEditingController ctrl, String hint, HeroIcons icon, {int maxLines = 1}) {
     return Container(
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-      child: TextField(
+      child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
         controller: ctrl, maxLines: maxLines,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
@@ -389,9 +393,28 @@ class KnowledgeTab extends StatelessWidget {
             padding: const EdgeInsets.all(12.0),
             child: HeroIcon(icon, color: kPrimaryColor, size: 18),
           ),
-          border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
         ),
-      ),
+      
+);
+      },
+    ),
     );
   }
 
@@ -641,7 +664,7 @@ class _StoreDetailPageState extends State<StoreDetailPage> {
             children: [
               const Text('Select new plan:', style: TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600)),
               const SizedBox(height: 12),
-              ...['Free', 'MAX Lite', 'MAX Plus', 'MAX Pro'].map((plan) => RadioListTile<String>(
+              ...['Free', 'MAX One', 'MAX Plus', 'MAX Pro'].map((plan) => RadioListTile<String>(
                 title: Text(plan, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                 value: plan,
                 groupValue: selectedPlan,

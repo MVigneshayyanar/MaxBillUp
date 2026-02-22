@@ -81,10 +81,10 @@ class PlanComparisonPage extends StatelessWidget {
       child: Row(
         children: [
           const SizedBox(width: 100), // Space for feature name column
-          Expanded(child: _buildPlanHeader('Free', kBlack54)),
-          Expanded(child: _buildPlanHeader('MAX Lite', kPrimaryColor)),
-          Expanded(child: _buildPlanHeader('MAX Plus', kPrimaryColor)),
-          Expanded(child: _buildPlanHeader('MAX Pro', kPrimaryColor)),
+          Expanded(child: _buildPlanHeader('Free', kOrange)),
+          Expanded(child: _buildPlanHeader('MAX One', kPrimaryColor)),
+          Expanded(child: _buildPlanHeader('MAX Plus', Colors.purple)),
+          Expanded(child: _buildPlanHeader('MAX Pro', kGoogleGreen)),
         ],
       ),
     );

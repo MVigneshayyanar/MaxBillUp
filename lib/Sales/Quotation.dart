@@ -21,6 +21,8 @@ class QuotationPage extends StatefulWidget {
   final String? customerPhone;
   final String? customerName;
   final String? customerGST;
+  final String? editQuotationId;
+  final Map<String, dynamic>? initialQuotationData;
 
   const QuotationPage({
     super.key,
@@ -31,6 +33,8 @@ class QuotationPage extends StatefulWidget {
     this.customerPhone,
     this.customerName,
     this.customerGST,
+    this.editQuotationId,
+    this.initialQuotationData,
   });
 
   @override
@@ -225,10 +229,14 @@ class _QuotationPageState extends State<QuotationPage> {
       final storeData = storeDoc?.data() as Map<String, dynamic>?;
       final staffName = storeData?['ownerName'] ?? 'Staff';
 
-      // Generate quotation number with prefix using the service
-      final prefix = await NumberGeneratorService.getQuotationPrefix();
-      final number = await NumberGeneratorService.generateInvoiceNumber(); // Fixed: generate quotation number if needed
-      final quotationNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+      // Generate quotation number with prefix using the service or reuse existing
+      final quotationNumber = widget.editQuotationId != null 
+          ? (widget.initialQuotationData?['quotationNumber'] ?? 'N/A')
+          : await () async {
+              final prefix = await NumberGeneratorService.getQuotationPrefix();
+              final number = await NumberGeneratorService.generateQuotationNumber();
+              return prefix.isNotEmpty ? '$prefix$number' : number;
+            }();
 
       // Calculate tax information from cart items
       final Map<String, double> taxMap = {};
@@ -302,11 +310,13 @@ class _QuotationPageState extends State<QuotationPage> {
       };
 
       // 4. Save to Subcollection of Store
-      final docRef = await firestoreService.addDocument('quotations', quotationData);
-
-      // Secondary update to store the generated ID inside the document
-      await firestoreService.updateDocument('quotations', docRef.id, {'quotationId': docRef.id});
-
+      if (widget.editQuotationId != null) {
+        await firestoreService.updateDocument('quotations', widget.editQuotationId!, quotationData);
+      } else {
+        final docRef = await firestoreService.addDocument('quotations', quotationData);
+        // Secondary update to store the generated ID inside the document
+        await firestoreService.updateDocument('quotations', docRef.id, {'quotationId': docRef.id});
+      }
       if (mounted) {
         Navigator.pop(context); // Remove loading indicator
 
@@ -552,12 +562,9 @@ class _QuotationPageState extends State<QuotationPage> {
                     onChanged: (v) => _updateItemDiscount(index, v),
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-                    decoration: InputDecoration(
+                    decoration: const InputDecoration(
                       hintText: '0',
-                      filled: true,
-                      fillColor: kGreyBg,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide.none),
-                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
                     ),
                   ),
                 ),
@@ -586,7 +593,7 @@ class _QuotationPageState extends State<QuotationPage> {
             child: ElevatedButton(
               onPressed: _generateQuotation,
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-              child: const Text('GENERATE QUOTATION', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w700)),
+              child: Text(widget.editQuotationId != null ? 'UPDATE QUOTATION' : 'GENERATE QUOTATION', style: const TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -617,7 +624,11 @@ class _QuotationPageState extends State<QuotationPage> {
   Widget _buildTextField(TextEditingController ctrl, String hint, Function(String) onChange, HeroIcons icon) {
     return SizedBox(
       height: 48,
-      child: TextField(
+      child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
         controller: ctrl, keyboardType: const TextInputType.numberWithOptions(decimal: true), onChanged: onChange,
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
@@ -625,12 +636,28 @@ class _QuotationPageState extends State<QuotationPage> {
             padding: const EdgeInsets.all(12.0),
             child: HeroIcon(icon, color: kPrimaryColor, size: 18),
           ),
-          filled: true, fillColor: kGreyBg,
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
         ),
-      ),
+      
+);
+      },
+    ),
     );
   }
 
@@ -758,19 +785,39 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             const SizedBox(height: 8),
             SizedBox(
               height: 48,
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _searchController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Search Name or Phone...', prefixIcon: const Padding(
                     padding: EdgeInsets.all(12.0),
                     child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                   ),
-                  filled: true, fillColor: kGreyBg,
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-                  contentPadding: EdgeInsets.zero,
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
-              ),
+              
+);
+      },
+    ),
             ),
             const SizedBox(height: 12),
             Row(
@@ -856,8 +903,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: TextField(
-                      decoration: const InputDecoration(hintText: 'Search...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass), border: OutlineInputBorder()),
-                      onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()),
+                      decoration: InputDecoration(hintText: 'Search...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass)),
                     ),
                   ),
                   Expanded(
@@ -898,11 +944,86 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
             children: [
               const Text('New Customer', style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold)),
               const SizedBox(height: 20),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: nameCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Name',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 16),
-              TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: phoneCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 16),
-              TextField(controller: gstCtrl, decoration: const InputDecoration(labelText: 'GST (Optional)', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: gstCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: gstCtrl, decoration: InputDecoration(labelText: 'GST (Optional)',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,

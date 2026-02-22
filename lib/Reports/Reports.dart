@@ -5403,7 +5403,7 @@ class _StockReportPageState extends State<StockReportPage> {
                       decoration: const InputDecoration(
                         hintText: 'FILTER BY NAME, ID OR CATEGORY...',
                         hintStyle: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5),
-                        border: InputBorder.none,
+                        
                         isDense: true,
                       ),
                       onChanged: (v) => setState(() => _searchQuery = v),

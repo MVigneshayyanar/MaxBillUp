@@ -26,15 +26,16 @@ class SubscriptionPlanPage extends StatefulWidget {
 class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   Razorpay? _razorpay;
   String _selectedPlan = 'MAX Plus';
-  int _selectedDuration = 1; // 1, 6, or 12 months
+  int _selectedDuration = 12; // 1 or 12 months
   bool _isPaymentInProgress = false;
 
   final List<Map<String, dynamic>> plans = [
     {
       'name': 'Starter',
       'rank': 0,
-      'price': {'1': 0, '6': 0, '12': 0},
+      'price': {'1': 0, '12': 0},
       'icon': HeroIcons.rocketLaunch,
+      'themeColor': kOrange,
       'staffText': '1 Admin Account',
       'included': [
         'POS Billing',
@@ -59,10 +60,11 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       ],
     },
     {
-      'name': 'MAX Lite',
+      'name': 'MAX One',
       'rank': 1,
-      'price': {'1': 249, '6': 1299, '12': 1999},
+      'price': {'1': 299, '12': 2499},
       'icon': HeroIcons.briefcase,
+      'themeColor': kPrimaryColor,
       'staffText': '1 Admin Account',
       'included': [
         'POS Billing',
@@ -90,8 +92,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     {
       'name': 'MAX Plus',
       'rank': 2,
-      'price': {'1': 429, '6': 2299, '12': 3499},
+      'price': {'1': 449, '12': 3999},
       'icon': HeroIcons.chartBar,
+      'themeColor': Colors.purple,
       'popular': true,
       'staffText': 'Admin + 2 Users',
       'included': [
@@ -114,15 +117,15 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         'Remove Watermark',
       ],
       'excluded': [
-        'Up to 9 Staff Accounts',
-        'Web Application',
+        // 'Up to 9 Staff Accounts',
       ],
     },
     {
       'name': 'MAX Pro',
       'rank': 3,
-      'price': {'1': 529, '6': 2899, '12': 4299},
+      'price': {'1': 599, '12': 5499},
       'icon': HeroIcons.academicCap,
+      'themeColor': kGoogleGreen,
       'staffText': 'Admin + 9 Users',
       'included': [
         'POS Billing',
@@ -158,7 +161,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     } else {
       // Try to find matching plan (case-insensitive)
       final matchingPlan = plans.firstWhere(
-        (p) => p['name'].toString().toLowerCase() == currentPlanLower,
+            (p) => p['name'].toString().toLowerCase() == currentPlanLower,
         orElse: () => plans[2], // Default to MAX Plus
       );
       _selectedPlan = matchingPlan['name'];
@@ -261,7 +264,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     }
 
     final plan = plans.firstWhere(
-      (p) => p['name'] == _selectedPlan,
+          (p) => p['name'] == _selectedPlan,
       orElse: () => plans[2], // Default to MAX Plus
     );
     final amount = plan['price'][_selectedDuration.toString()] * 100;
@@ -305,7 +308,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   @override
   Widget build(BuildContext context) {
     final selectedPlanData = plans.firstWhere(
-      (p) => p['name'] == _selectedPlan,
+          (p) => p['name'] == _selectedPlan,
       orElse: () => plans[2], // Default to MAX Plus (index 2)
     );
     final currentPrice = selectedPlanData['price'][_selectedDuration.toString()] ?? 0;
@@ -332,6 +335,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       body: Column(
         children: [
           _buildHorizontalPlanSelector(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: _buildComparePlansButton(),
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -359,12 +366,9 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                     title: "What's Included",
                     features: selectedPlanData['included'],
                     staffText: selectedPlanData['staffText'],
-                    color: kGoogleGreen,
+                    color: selectedPlanData['themeColor'] as Color? ?? kGoogleGreen,
                     icon: HeroIcons.checkCircle,
                   ),
-                  const SizedBox(height: 20),
-                  // Compare Plans Button
-                  _buildComparePlansButton(),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -383,75 +387,143 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   Widget _buildHorizontalPlanSelector() {
     return Container(
-      height: 120,
+      height: 140,
       color: kWhite,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-        itemCount: plans.length,
-        itemBuilder: (context, index) {
-          final plan = plans[index];
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+      child: Row(
+        children: plans.map((plan) {
           final isSelected = _selectedPlan == plan['name'];
-          final monthlyPrice = plan['price']['1'];
+          
+          final currentPrice = plan['price'][_selectedDuration.toString()] ?? 0;
+          final double dailyPrice = currentPrice > 0 ? (_selectedDuration == 12 ? currentPrice / 365.0 : currentPrice / 30.0) : 0;
+          final String dailyPriceStr = dailyPrice < 10 ? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
+          
+          final themeColor = plan['themeColor'] as Color? ?? kPrimaryColor;
 
-          return GestureDetector(
-            onTap: () => setState(() => _selectedPlan = plan['name']),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 90,
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: isSelected ? kPrimaryColor : kWhite,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isSelected ? kPrimaryColor : kGrey200, width: isSelected ? 2 : 1),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  HeroIcon(plan['icon'] as HeroIcons, color: isSelected ? kWhite : kPrimaryColor, size: 22),
-                  const SizedBox(height: 6),
-                  Text(
-                    plan['name'],
-                    style: TextStyle(
-                      color: isSelected ? kWhite : kBlack87,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 13,
+          return Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedPlan = plan['name']),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  color: isSelected ? themeColor : kWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isSelected ? themeColor : kGrey200, width: isSelected ? 2 : 1),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HeroIcon(plan['icon'] as HeroIcons, color: isSelected ? kWhite : themeColor, size: 25),
+                    const SizedBox(height: 4),
+                    Text(
+                      plan['name'],
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: isSelected ? kWhite : kBlack87,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    monthlyPrice == 0 ? "Free" : "$monthlyPrice",
-                    style: TextStyle(
-                      color: isSelected ? kWhite.withOpacity(0.8) : kBlack54,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
+                    const SizedBox(height: 2),
+                    Text(
+                      currentPrice == 0 ? "Free" : "$currentPrice",///${_selectedDuration == 12 ? 'yr' : 'mo'}
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: isSelected ? kWhite.withOpacity(0.9) : kBlack87,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      currentPrice == 0 ? "Forever" : "/${_selectedDuration == 12 ? 'year' : 'month'}",//$currentPrice
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: isSelected ? kWhite.withOpacity(0.9) : kBlack87,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                      ),
+                    ),
+
+                    // if (currentPrice > 0)
+                    //   Text(
+                    //     "$dailyPriceStr/day",
+                    //     textAlign: TextAlign.center,
+                    //     maxLines: 1,
+                    //     overflow: TextOverflow.fade,
+                    //     softWrap: false,
+                    //     style: TextStyle(
+                    //       color: isSelected ? kWhite.withOpacity(0.7) : kBlack54,
+                    //       fontWeight: FontWeight.w600,
+                    //       fontSize: 8,
+                    //     ),
+                    //   ),
+                  ],
+                ),
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
 
   Widget _buildDurationSelector() {
-    return Container(
-      height: 56,
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: kWhite,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kGrey200),
-      ),
-      child: Row(
-        children: [
-          _durationToggleItem("1 MONTH", 1),
-          _durationToggleItem("6 MONTHS", 6),
-          _durationToggleItem("Annual", 12, badge: "Save 20%"),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF7E6),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.access_time_outlined, color: Colors.green, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: RichText(
+                  text: const TextSpan(
+                    style: TextStyle(fontSize: 12, color: Colors.black87),
+                    children: [
+                      TextSpan(text: "Limited Time Offer: "),
+                      TextSpan(text: "Extra savings on yearly plans!", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          height: 56,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: kGrey200),
+          ),
+          child: Row(
+            children: [
+              _durationToggleItem("Monthly", 1),
+              _durationToggleItem("Yearly", 12, badge: "Save up to 30%"),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -475,14 +547,14 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                 style: TextStyle(
                   color: isActive ? kWhite : kBlack54,
                   fontWeight: FontWeight.w900,
-                  fontSize: 10,
+                  fontSize: 13,
                   letterSpacing: 0.5,
                 ),
               ),
-              if (badge != null && isActive)
+              if (badge != null )
                 Text(
                   badge,
-                  style: const TextStyle(color: kOrange, fontSize: 8, fontWeight: FontWeight.w900),
+                  style: const TextStyle(color: Colors.red, fontSize: 8, fontWeight: FontWeight.w900),
                 ),
             ],
           ),
@@ -603,9 +675,10 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         orElse: () => plans[0]
     );
     final selectedPlanData = plans.firstWhere(
-      (p) => p['name'] == _selectedPlan,
+          (p) => p['name'] == _selectedPlan,
       orElse: () => plans[2], // Default to MAX Plus
     );
+    final themeColor = selectedPlanData['themeColor'] as Color? ?? kPrimaryColor;
     final bool isUpgrade = selectedPlanData['rank'] > currentPlanData['rank'];
 
     String buttonText;
@@ -622,6 +695,14 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       isEnabled = false;
     }
 
+    final bool isYearly = _selectedDuration == 12;
+    final double dailyPrice = price > 0 ? (isYearly ? price / 365.0 : price / 30.0) : 0;
+    final String dailyPriceStr = dailyPrice < 10 ? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
+    
+    final int monthlyPrice = selectedPlanData['price']['1'] ?? 0;
+    final int yearlyTotalIfMonthly = monthlyPrice * 12;
+    final int savings = isYearly ? yearlyTotalIfMonthly - price : 0;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
       decoration: const BoxDecoration(
@@ -629,48 +710,78 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
         border: Border(top: BorderSide(color: kGrey200, width: 1.5)),
       ),
       child: SafeArea(
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("TOTAL PAYABLE", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-                  const SizedBox(height: 2),
-                  Text("$price", style: const TextStyle(color: kPrimaryColor, fontSize: 24, fontWeight: FontWeight.w900)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              flex: 2,
-              child: SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: isEnabled ? _startPayment : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPrimaryColor,
-                    disabledBackgroundColor: kGreyBg,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            if (isYearly && price > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: kGoogleGreen, size: 16),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        "Serious business owners choose yearly",
+                        style: TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w600),
+                      )
                     ),
-                    side: isEnabled
-                        ? BorderSide.none
-                        : const BorderSide(color: kGrey200),
+                    Text(
+                      "Save $savings",
+                      style: const TextStyle(fontSize: 12, color: kGoogleGreen, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(isYearly ? "TOTAL (YEARLY)" : "TOTAL (MONTHLY)", style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                      const SizedBox(height: 2),
+                      Text("$price", style: TextStyle(color: themeColor, fontSize: 24, fontWeight: FontWeight.w900)),
+                      if (price > 0) ...[
+                        const SizedBox(height: 2),
+                        Text("Only $dailyPriceStr per day", style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w700)),
+                      ],
+                    ],
                   ),
-                  child: Text(
-                    buttonText,
-                    style: TextStyle(
-                        color: isEnabled ? kWhite : kBlack54,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1.0
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: isEnabled ? _startPayment : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: themeColor,
+                        disabledBackgroundColor: kGreyBg,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: isEnabled
+                            ? BorderSide.none
+                            : const BorderSide(color: kGrey200),
+                      ),
+                      child: Text(
+                        buttonText,
+                        style: TextStyle(
+                            color: isEnabled ? kWhite : kBlack54,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.0
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),

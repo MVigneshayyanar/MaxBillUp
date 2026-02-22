@@ -488,7 +488,7 @@ class _LoginPageState extends State<LoginPage> {
         child: OutlinedButton(
           onPressed: _loading ? null : _googleLogin,
           style: OutlinedButton.styleFrom(
-            backgroundColor: kWhite,
+            backgroundColor: kGreyBg,
             side: const BorderSide(color: kGrey200, width: 1.5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
@@ -534,16 +534,23 @@ class _LoginPageState extends State<LoginPage> {
             floatingLabelBehavior: FloatingLabelBehavior.auto,
             labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
             floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-            filled: true,
-            fillColor: kWhite,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            
+            
+            
             suffixIcon: suffix,
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
             ),
           ),

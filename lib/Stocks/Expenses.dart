@@ -170,17 +170,39 @@ class _ExpensesPageState extends State<ExpensesPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _searchController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: _searchController,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: "Search expense name or type...",
                   hintStyle: TextStyle(color: kBlack54, fontSize: 14),
                   prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(vertical: 7),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
-              ),
+              
+);
+      },
+    ),
             ),
           ),
 
@@ -572,19 +594,43 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       valueListenable: ctrl,
       builder: (context, val, child) {
         bool filled = ctrl.text.isNotEmpty;
+        return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
         return TextFormField(
           controller: ctrl, keyboardType: type, maxLines: maxLines,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
           decoration: InputDecoration(
             labelText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
-            filled: true, fillColor: kWhite,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+             
+            
+            
+            
             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kErrorColor)),
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+            ),
+            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
           ),
           validator: isMandatory ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
-        );
+        
+);
+      },
+    );
       },
     );
   }
@@ -609,32 +655,50 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
           valueListenable: textEditingController,
           builder: (context, value, child) {
             bool filled = textEditingController.text.isNotEmpty;
-            return TextFormField(
+            return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: textEditingController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
               controller: textEditingController,
               focusNode: focusNode,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
               decoration: InputDecoration(
                 labelText: "Expense Name *",
                 prefixIcon: HeroIcon(HeroIcons.shoppingBag, color: filled ? kPrimaryColor : kBlack54, size: 20),
-                filled: true,
-                fillColor: kWhite,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)
-                ),
+                
+                
+                
+                
+                
                 errorBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: const BorderSide(color: kErrorColor)
                 ),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                ),
+                labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
               ),
               validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
               onFieldSubmitted: (value) => onFieldSubmitted(),
-            );
+            
+);
+      },
+    );
           },
         );
       },

@@ -153,12 +153,37 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
           children: [
             Container(
               decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: nameController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: nameController,
                 textCapitalization: TextCapitalization.words,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontFamily: 'Lato'),
-                decoration: const InputDecoration(hintText: 'e.g. Customs Duty', prefixIcon: Icon(Icons.label_important_rounded, size: 20), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)),
-              ),
+                decoration: InputDecoration(hintText: 'e.g. Customs Duty', prefixIcon: Icon(Icons.label_important_rounded, size: 20),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                ),
+              
+);
+      },
+    ),
             ),
           ],
         ),
@@ -347,7 +372,11 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
               ),
               const SizedBox(height: 16),
               // Tax Rate Field
-              TextFormField(
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _taxPercentController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
                 controller: _taxPercentController,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, fontFamily: 'Lato'),
@@ -356,19 +385,27 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
                   hintText: "e.g. 5, 12, 18",
                   prefixIcon: const Icon(Icons.percent_rounded, color: kBlack54, size: 20),
                   filled: true,
-                  fillColor: kWhite,
+                  fillColor: const Color(0xFFF8F9FA),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kGrey200),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
-              ),
+              
+);
+      },
+    ),
               const SizedBox(height: 20),
               // Add Button - Full Width
               SizedBox(
@@ -396,13 +433,28 @@ class _TaxSettingsPageState extends State<TaxSettingsPage> with SingleTickerProv
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
-        filled: true,
-        fillColor: kWhite,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        
+        
+        
+        
+        
         suffixIcon: onAdd != null ? IconButton(icon: const Icon(Icons.add_circle_outline_rounded, color: kPrimaryColor, size: 22), onPressed: onAdd) : null,
         floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w800),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kGrey200, width: 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kGrey200, width: 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
       ),
       child: DropdownButtonHideUnderline(child: child),
     );

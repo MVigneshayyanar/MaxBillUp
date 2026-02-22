@@ -139,27 +139,38 @@ class _AddExpenseTypePopupState extends State<AddExpenseTypePopup> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
+        ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _typeController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
           controller: _typeController,
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87),
           decoration: InputDecoration(
             labelText: 'Expense Type Name',
             floatingLabelBehavior: FloatingLabelBehavior.auto,
-            labelStyle: const TextStyle(color: Colors.black54, fontSize: 15),
-            floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 13, fontWeight: FontWeight.w600),
             filled: true,
-            fillColor: kGreyBg,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kGrey300, width: 1),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: kPrimaryColor, width: 1.5),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
             ),
+            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
           ),
-        ),
+        
+);
+      },
+    ),
         const SizedBox(height: 6),
         Text(
           "e.g. Salary, Rent, Electricity, Travel, etc.",

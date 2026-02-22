@@ -1253,11 +1253,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       valueListenable: ctrl,
       builder: (context, value, _) {
         final bool isFilled = value.text.isNotEmpty;
-        // For mandatory: always blue. For non-mandatory: grey when empty, kBlack54 when filled
-        final Color borderColor = isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kBlack54 : kGrey200);
+        // For mandatory: always primary. For non-mandatory: grey when empty, kPrimaryColor when filled
+        final Color borderColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kGrey200);
         final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
-        final Color labelColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
-        final Color iconColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        final Color labelColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
+        final Color iconColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           child: TextFormField(
@@ -1266,19 +1266,23 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             keyboardType: type,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
             decoration: InputDecoration(
-              labelText: label,
+              labelText: isMandatory ? '$label *' : label,
               labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
               prefixIcon: Icon(icon, color: iconColor, size: 20),
               filled: true,
-              fillColor: kWhite,
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: borderColor, width: borderWidth),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, width: 1.5),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -1288,7 +1292,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderRadius: BorderRadius.circular(16),
                 borderSide: const BorderSide(color: kErrorColor),
               ),
-              floatingLabelStyle: TextStyle(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, fontWeight: FontWeight.w800),
+              floatingLabelStyle: TextStyle(color: isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54), fontWeight: FontWeight.w900),
             ),
             validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
             onChanged: (_) => _checkForChanges(),
@@ -1303,11 +1307,11 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       valueListenable: ctrl,
       builder: (context, value, _) {
         final bool isFilled = value.text.isNotEmpty;
-        // For mandatory: always blue. For non-mandatory: grey when empty, kBlack54 when filled
-        final Color borderColor = isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kBlack54 : kGrey200);
+        // For mandatory: always primary. For non-mandatory: grey when empty, kPrimaryColor when filled
+        final Color borderColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kGrey200);
         final double borderWidth = isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0);
-        final Color labelColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
-        final Color iconColor = isMandatory ? const Color(0xFF6B78D8) : kBlack54;
+        final Color labelColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
+        final Color iconColor = isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54);
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           child: TextFormField(
@@ -1316,21 +1320,25 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             keyboardType: type,
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
             decoration: InputDecoration(
-              labelText: label,
+              labelText: isMandatory ? '$label *' : label,
               hintText: hint,
               hintStyle: const TextStyle(color: kGrey400, fontSize: 12, fontWeight: FontWeight.w400),
               labelStyle: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
               prefixIcon: Icon(icon, color: iconColor, size: 20),
               filled: true,
-              fillColor: kWhite,
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(color: borderColor, width: borderWidth),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, width: 1.5),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
               disabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -1340,7 +1348,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderRadius: BorderRadius.circular(16),
                 borderSide: const BorderSide(color: kErrorColor),
               ),
-              floatingLabelStyle: TextStyle(color: isMandatory ? const Color(0xFF6B78D8) : kBlack54, fontWeight: FontWeight.w800),
+              floatingLabelStyle: TextStyle(color: isMandatory ? kPrimaryColor : (isFilled ? kPrimaryColor : kBlack54), fontWeight: FontWeight.w900),
             ),
             validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
             onChanged: (_) => _checkForChanges(),
@@ -1367,18 +1375,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               labelText: "Address",
               labelStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
               prefixIcon: const Icon(Icons.location_on_rounded, color: kBlack54, size: 20),
-              filled: true,
-              fillColor: kWhite,
-              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: isFilled ? kBlack54 : kGrey200, width: isFilled ? 1.5 : 1.0),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: kBlack54, width: 1.5),
-              ),
-              floatingLabelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w800),
+              
+              
+              
+              
+              
+              
+              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
             ),
             onChanged: (_) => _checkForChanges(),
           ),
@@ -2155,11 +2158,11 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                           decoration: InputDecoration(
                             hintText: 'DD',
                             hintStyle: const TextStyle(color: kGrey400, fontSize: 13),
-                            filled: true,
-                            fillColor: kGreyBg,
+                            
+                            
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            
+                            
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -2181,11 +2184,11 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
                           decoration: InputDecoration(
                             hintText: '505',
                             hintStyle: const TextStyle(color: kGrey400, fontSize: 13),
-                            filled: true,
-                            fillColor: kGreyBg,
+                            
+                            
                             isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            
+                            
                           ),
                           onChanged: (_) => setState(() {}),
                         ),
@@ -2316,7 +2319,8 @@ class _BillPrintSettingsPageState extends State<BillPrintSettingsPage> with Sing
         Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'NotoSans')),
         const SizedBox(height: 8),
         TextField(controller: controller, onChanged: onChanged, maxLines: 2, style: const TextStyle(fontSize: 14, fontFamily: 'Lato'),
-          decoration: InputDecoration(hintText: 'Enter $label', hintStyle: const TextStyle(color: kGrey400, fontSize: 12), filled: true, fillColor: kGreyBg, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none))),
+          decoration: InputDecoration(hintText: 'Enter $label', hintStyle: const TextStyle(color: kGrey400, fontSize: 12),   ),
+        ),
       ]),
     );
   }
@@ -3536,16 +3540,10 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
               autofocus: true,
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color),
               decoration: InputDecoration(
-                filled: true,
-                fillColor: color.withOpacity(0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: color.withOpacity(0.3)),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: color, width: 2),
-                ),
+                
+                
+                
+                
               ),
             ),
             const SizedBox(height: 8),
@@ -3595,7 +3593,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         decoration: InputDecoration(
           labelText: label,
           labelStyle: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
-          border: InputBorder.none,
+          
         ),
       ),
     );

@@ -425,24 +425,19 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
               ),
               filled: true,
-              fillColor: enabled ? kWhite : kGreyBg,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: isMandatory ? const Color(0xFF6B78D8) : (isFilled ? kPrimaryColor : kGrey200),
-                  width: isMandatory ? 1.5 : (isFilled ? 1.5 : 1.0),
-                ),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: isMandatory ? const Color(0xFF6B78D8) : kPrimaryColor,
-                  width: 2.0,
-                ),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kGrey200),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -452,10 +447,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kErrorColor, width: 2.0),
               ),
-              floatingLabelStyle: TextStyle(
-                color: isMandatory ? const Color(0xFF6B78D8) : kPrimaryColor,
-                fontWeight: FontWeight.w900,
-              ),
+              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
             validator: (v) {
               if (isMandatory && (v == null || v.trim().isEmpty)) return "$label is required";
@@ -498,21 +491,19 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
               ),
               filled: true,
-              fillColor: enabled ? kWhite : kGreyBg,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: kGrey200,
-                  width: 1.0,
-                ),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-              ),
-              disabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kGrey200),
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -522,10 +513,8 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kErrorColor, width: 2.0),
               ),
-              floatingLabelStyle: const TextStyle(
-                color: kPrimaryColor,
-                fontWeight: FontWeight.w900,
-              ),
+              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
           );
         },
@@ -561,23 +550,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                     ),
                   ),
                   filled: true,
-                  fillColor: _sameAsBusinessNumber ? kGreyBg : kWhite,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: kGrey200, width: 1.0),
+                    borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kGrey200),
-                  ),
-                  floatingLabelStyle: const TextStyle(
-                    color: kPrimaryColor,
-                    fontWeight: FontWeight.w900,
-                  ),
+                  labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
               );
             },
@@ -706,25 +694,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 ),
               ),
               filled: true,
-              fillColor: kWhite,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: isFilled ? kPrimaryColor : kGrey200,
-                  width: isFilled ? 1.5 : 1.0,
-                ),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                  color: kPrimaryColor,
-                  width: 2.0,
-                ),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
-              floatingLabelStyle: const TextStyle(
-                color: kPrimaryColor,
-                fontWeight: FontWeight.w900,
-              ),
+              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
           );
         },
@@ -811,13 +796,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                       padding: EdgeInsets.all(12.0),
                       child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                     ),
-                    filled: true,
-                    fillColor: kGreyBg,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    
+                    
+                    
+                    
                   ),
                   onChanged: (value) {
                     setModalState(() {

@@ -7,6 +7,7 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/Colors.dart';
+import 'package:maxbillup/Sales/nq.dart' as maxbillup_nq;
 
 class QuotationDetailPage extends StatelessWidget {
   final String uid;
@@ -57,49 +58,109 @@ class QuotationDetailPage extends StatelessWidget {
           Expanded(
             child: Container(
               width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(12, 4, 12, 16), // Reduced margin
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15)]),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20), // Reduced padding
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeaderRow('$quotationNumber', isActive),
-                    const SizedBox(height: 16), // Reduced gap
+                    const SizedBox(height: 8), // Reduced gap
                     _buildDetailRow(Icons.person_rounded, 'Customer', customerName),
                     _buildDetailRow(Icons.badge_rounded, 'Created By', staffName),
                     _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', formattedDate),
-                    _buildDetailRow(Icons.shopping_bag_rounded, 'Line Items', '${items.length} units'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGreyBg, thickness: 1)),
+                    _buildDetailRow(Icons.shopping_bag_rounded, 'Items', '${items.length} units'),
+                    const Padding(padding: EdgeInsets.symmetric(vertical: 0), child: Divider(color: kGreyBg, thickness: 1)),
                     const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     _buildPriceRow('Subtotal (Gross)', (quotationData['subtotal'] ?? 0.0).toDouble()),
                     _buildPriceRow('Total Deductions', -(quotationData['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
-                    const Divider(height: 24, color: kGreyBg),
+                    const Divider(height: 16, color: kGreyBg),
                     _buildPriceRow('Final Net Total', total, isBold: true),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
                     if (isActive)
-                      SizedBox(
-                        width: double.infinity, height: 54,
-                        child: ElevatedButton(
-                          onPressed: () => _generateInvoice(context),
-                          style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-                          child: const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kWhite)),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: SizedBox(
+                              height: 48,
+                              child: OutlinedButton(
+                                onPressed: () => _editQuotation(context),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor, width: 2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 4)
+                                ),
+                                child: const Text('EDIT', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 7,
+                            child: SizedBox(
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () => _generateInvoice(context),
+                                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 4)),
+                                child: const FittedBox(child: Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kWhite))),
+                              ),
+                            ),
+                          ),
+                        ],
                       )
                     else
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: kGoogleGreen.withOpacity(0.15))),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
                             Icon(Icons.check_circle, color: kGoogleGreen, size: 20),
                             SizedBox(width: 10),
-                            Text('Quotation Settled', style: TextStyle(fontSize: 15, color: kGoogleGreen, fontWeight: FontWeight.w700)),
+                            Text('Quotation Settled', style: TextStyle(fontSize: 14, color: kGoogleGreen, fontWeight: FontWeight.w800)),
                           ],
                         ),
                       ),
+                    const SizedBox(height: 16),
+                    const Text('ITEMS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+                    const SizedBox(height: 8),
+                    ...items.map((item) {
+                      final name = item['name'] ?? 'Unknown Item';
+                      final qty = item['quantity'] ?? 1;
+                      final price = (item['price'] ?? 0.0).toDouble();
+                      final totalWithTax = (item['totalWithTax'] ?? item['total'] ?? 0.0).toDouble();
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: kGreyBg,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kGrey200),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                                  const SizedBox(height: 4),
+                                  Text('$qty  x  $currencySymbol${price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)),
+                                ],
+                              ),
+                            ),
+                            Text('$currencySymbol${totalWithTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kPrimaryColor)),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                    // Bottom padding to clear the navigation bar securely
+                    SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
                   ],
                 ),
               ),
@@ -174,5 +235,19 @@ class QuotationDetailPage extends StatelessWidget {
       await FirestoreService().updateDocument('quotations', quotationId, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
       if (context.mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order Finalized Successfully'))); Navigator.pop(context); }
     }
+  }
+
+  void _editQuotation(BuildContext context) {
+    Navigator.pushReplacement(
+      context,
+      CupertinoPageRoute(
+        builder: (context) => maxbillup_nq.NewQuotationPage(
+          uid: uid,
+          userEmail: userEmail,
+          editQuotationId: quotationId,
+          initialQuotationData: quotationData,
+        ),
+      ),
+    );
   }
 }

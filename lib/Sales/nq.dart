@@ -18,11 +18,15 @@ import 'package:maxbillup/services/currency_service.dart';
 class NewQuotationPage extends StatefulWidget {
   final String uid;
   final String? userEmail;
+  final String? editQuotationId;
+  final Map<String, dynamic>? initialQuotationData;
 
   const NewQuotationPage({
     super.key,
     required this.uid,
     this.userEmail,
+    this.editQuotationId,
+    this.initialQuotationData,
   });
 
   @override
@@ -53,6 +57,23 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   void initState() {
     super.initState();
     _loadCurrency();
+
+    if (widget.initialQuotationData != null) {
+      _selectedCustomerName = widget.initialQuotationData!['customerName'];
+      _selectedCustomerPhone = widget.initialQuotationData!['customerPhone'];
+      _selectedCustomerGST = widget.initialQuotationData!['customerGST'];
+
+      final items = widget.initialQuotationData!['items'] as List<dynamic>? ?? [];
+      _sharedCartItems = items.map((item) {
+        return CartItem(
+          productId: item['productId'] ?? '',
+          name: item['name'] ?? '',
+          price: (item['price'] ?? 0.0).toDouble(),
+          quantity: item['quantity'] ?? 1,
+        );
+      }).toList();
+    }
+
     _highlightController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -223,14 +244,39 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                     ),
                                   ),
                                   Expanded(
-                                    child: TextField(
+                                    child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: qtyController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87),
-                                      decoration: const InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero),
-                                    ),
+                                      decoration: InputDecoration( isDense: true,
+                                        filled: true,
+                                        fillColor: const Color(0xFFF8F9FA),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                                        ),
+                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                                      ),
+                                    
+);
+      },
+    ),
                                   ),
                                   IconButton(
                                     onPressed: () {
@@ -402,7 +448,11 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
-    return TextField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
       controller: ctrl,
       enabled: enabled,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
@@ -410,11 +460,26 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: enabled ? kGreyBg : Colors.grey[100],
+        fillColor: const Color(0xFFF8F9FA),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 
@@ -566,7 +631,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       Container(width: 1, height: 16, color: kWhite.withOpacity(0.3)),
                       const SizedBox(width: 10),
                       Text(
-                        context.tr('QUOTE'),
+                        widget.editQuotationId != null ? context.tr('UPDATE') : context.tr('QUOTE'),
                         style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
@@ -613,6 +678,8 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
           customerPhone: _selectedCustomerPhone,
           customerName: _selectedCustomerName,
           customerGST: _selectedCustomerGST,
+          editQuotationId: widget.editQuotationId,
+          initialQuotationData: widget.initialQuotationData,
         ),
       ),
     ).then((_) {

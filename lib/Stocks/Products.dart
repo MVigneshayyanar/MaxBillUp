@@ -205,17 +205,39 @@ class _ProductsPageState extends State<ProductsPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _searchController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: _searchController,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
                   prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 7),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
-              ),
+              
+);
+      },
+    ),
             ),
           ),
           const SizedBox(width: 10),
@@ -587,13 +609,38 @@ class _ProductsPageState extends State<ProductsPage> {
                       height: 50,
                       margin: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                      child: TextField(
+                      child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                         controller: ctrl,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         textAlign: TextAlign.center,
                         style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
-                        decoration: const InputDecoration(border: InputBorder.none),
-                      ),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                        ),
+                      
+);
+      },
+    ),
                     ),
                   ),
                   _qtyBtn(HeroIcons.plus, () {

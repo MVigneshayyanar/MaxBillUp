@@ -8,7 +8,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 class PlanProvider extends ChangeNotifier {
   static const String PLAN_FREE = 'Free';
   static const String PLAN_STARTER = 'Starter';
-  static const String PLAN_MAXLite = 'MAX Lite';
+  static const String PLAN_MAXOne = 'MAX One';
   static const String PLAN_MAXPlus = 'MAX Plus';
   static const String PLAN_MAX = 'MAX Pro';
 
@@ -304,7 +304,7 @@ class PlanProvider extends ChangeNotifier {
       debugPrint('🔍 canAccessStaffManagementAsync: returning FALSE (free/starter)');
       return false;
     }
-    final canAccess = planLower == 'MAX Lite' || planLower == 'MAX Plus' || planLower == 'MAX Pro';
+    final canAccess = planLower == 'max one' || planLower == 'max lite' || planLower == 'max plus' || planLower == 'max pro';
     debugPrint('🔍 canAccessStaffManagementAsync: returning $canAccess');
     return canAccess;
   }
@@ -316,11 +316,12 @@ class PlanProvider extends ChangeNotifier {
       case 'free':
       case 'starter':
         return 0;
-      case 'MAX Lite':
+      case 'max one':
+      case 'max lite':
         return 1; // Admin + 1 Manager
-      case 'MAX Plus':
+      case 'max plus':
         return 3; // Admin + 3 Staff
-      case 'MAX Pro':
+      case 'max pro':
         return 15; // Admin + 15 Staff
       default:
         return 0;
@@ -359,7 +360,7 @@ class PlanProvider extends ChangeNotifier {
   bool canUseBulkInventory() => !_isFreePlan();
   bool canAccessStaffManagement() {
     final planLower = _cachedPlan.toLowerCase();
-    return planLower == 'MAX Lite' || planLower == 'MAX Plus' || planLower == 'MAX Pro';
+    return planLower == 'max one' || planLower == 'max lite' || planLower == 'max plus' || planLower == 'max pro';
   }
 
   int getMaxStaffCount() {
@@ -368,11 +369,12 @@ class PlanProvider extends ChangeNotifier {
       case 'free':
       case 'starter':
         return 0;
-      case 'MAX Lite':
+      case 'max one':
+      case 'max lite':
         return 1; // Admin + 1 Manager
-      case 'MAX Plus':
+      case 'max plus':
         return 3; // Admin + 3 Staff
-      case 'MAX Pro':
+      case 'max pro':
         return 15; // Admin + 15 Staff
       default:
         return 0;

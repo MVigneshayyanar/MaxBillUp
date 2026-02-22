@@ -72,7 +72,11 @@ class KeyboardHelper {
     TextInputAction? textInputAction,
     Function(String)? onSubmitted,
   }) {
-    return TextField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
@@ -94,6 +98,8 @@ class KeyboardHelper {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
       ),
+    );
+      },
     );
   }
 

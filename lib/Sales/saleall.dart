@@ -317,28 +317,50 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: gramController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: gramController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 decoration: InputDecoration(
                   labelText: 'Grams',
-                  labelStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                  
                   suffixText: 'g',
                   suffixStyle: const TextStyle(
                     color: kPrimaryColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
                 onChanged: (value) {
                   if (value.isNotEmpty && kgController.text.isNotEmpty) {
                     kgController.clear();
                   }
                 },
-              ),
+              
+);
+      },
+    ),
             ),
             const SizedBox(height: 12),
             // OR text
@@ -358,28 +380,50 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: kgController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: kgController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                 decoration: InputDecoration(
                   labelText: 'Kilograms',
-                  labelStyle: const TextStyle(color: kBlack54, fontSize: 14),
+                  
                   suffixText: 'kg',
                   suffixStyle: const TextStyle(
                     color: kPrimaryColor,
                     fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
                 onChanged: (value) {
                   if (value.isNotEmpty && gramController.text.isNotEmpty) {
                     gramController.clear();
                   }
                 },
-              ),
+              
+);
+      },
+    ),
             ),
             const SizedBox(height: 16),
             // Price info
@@ -758,7 +802,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: kGrey200),
               ),
-              child: TextField(
+              child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _searchCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocusNode,
                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
@@ -778,10 +826,28 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     },
                   )
                       : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 7),
+                  filled: true,
+                  fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  ),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                 ),
-              ),
+              
+);
+      },
+    ),
             ),
           ),
           const SizedBox(width: 12),

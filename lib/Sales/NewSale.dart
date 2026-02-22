@@ -223,7 +223,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             const Text('Please provide customer name or phone number',
                 style: TextStyle(color: kBlack54, fontSize: 13)),
             const SizedBox(height: 16),
-            TextField(
+            ValueListenableBuilder<TextEditingValue>(
+      valueListenable: nameController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
               controller: nameController,
               decoration: InputDecoration(
                 labelText: 'Customer Name',
@@ -231,15 +235,34 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                   padding: EdgeInsets.all(12.0),
                   child: HeroIcon(HeroIcons.user, color: kPrimaryColor, size: 20),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                 ),
+                labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
               ),
-            ),
+            
+);
+      },
+    ),
             const SizedBox(height: 12),
-            TextField(
+            ValueListenableBuilder<TextEditingValue>(
+      valueListenable: phoneController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
@@ -248,13 +271,28 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                   padding: EdgeInsets.all(12.0),
                   child: HeroIcon(HeroIcons.phone, color: kPrimaryColor, size: 20),
                 ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kPrimaryColor, width: 2),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                 ),
+                labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
               ),
-            ),
+            
+);
+      },
+    ),
           ],
         ),
         actions: [
@@ -499,18 +537,41 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                     ),
                                   ),
                                   Expanded(
-                                    child: TextField(
+                                    child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: qtyController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      decoration: const InputDecoration(
-                                        border: InputBorder.none,
+                                      decoration: InputDecoration(
+                                        
                                         isDense: true,
-                                        contentPadding: EdgeInsets.zero,
+                                        filled: true,
+                                        fillColor: const Color(0xFFF8F9FA),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                                        ),
+                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                                       ),
-                                    ),
+                                    
+);
+      },
+    ),
                                   ),
                                   IconButton(
                                     onPressed: () {
@@ -700,7 +761,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
-    return TextField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
       controller: ctrl,
       enabled: enabled,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
@@ -712,13 +777,26 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: enabled ? const Color(0xFFF8FAFC) : Colors.grey[100],
+        fillColor: const Color(0xFFF8F9FA),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 

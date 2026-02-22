@@ -281,8 +281,8 @@ class CommonWidgets {
             child: HeroIcon(icon, color: kPrimaryColor, size: 18),
           ),
           labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          
+          
         ),
       ),
     );
@@ -413,8 +413,8 @@ class CommonWidgets {
                                 padding: EdgeInsets.all(12.0),
                                 child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
                               ),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                              
+                              
                             ),
                             onChanged: (value) => setDialogState(() => searchQuery = value.toLowerCase()),
                           ),
@@ -435,7 +435,7 @@ class CommonWidgets {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
                           decoration: BoxDecoration(color: kErrorColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                          child: const Row(children: [HeroIcon(HeroIcons.link, size: 16, color: kErrorColor), SizedBox(width: 12), Text('Unassign Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12))]),
+                          child: const Row(children: [HeroIcon(HeroIcons.link, size: 16, color: kErrorColor), SizedBox(width: 12), Text('Remove Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12))]),
                         ),
                       ),
                     ),
@@ -692,7 +692,7 @@ class CommonWidgets {
                   Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Padding(
                     padding: EdgeInsets.all(12.0),
                     child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
-                  ), border: InputBorder.none, contentPadding: EdgeInsets.symmetric(vertical: 14)), onChanged: (v) => setDialogState(() => filtered = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()))),
+                  )))),
                   const SizedBox(height: 12),
                   Expanded(
                     child: ListView.separated(

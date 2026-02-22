@@ -193,7 +193,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   // --- UI COMPONENTS ---
 
   Widget _buildPopupTextField({required TextEditingController controller, required String label, required HeroIcons icon, TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
-    return TextFormField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
@@ -203,10 +207,27 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
           padding: const EdgeInsets.all(12.0),
           child: HeroIcon(icon, color: kPrimaryColor, size: 20),
         ),
-        filled: true, fillColor: kGreyBg, contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 
@@ -885,13 +906,37 @@ class _ReceiveCreditPageState extends State<_ReceiveCreditPage> {
           const SizedBox(height: 32),
           const Text("Enter Amount Received", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54, letterSpacing: 0.5)),
           const SizedBox(height: 12),
-          TextField(
+          ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _amountController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
             controller: _amountController, keyboardType: const TextInputType.numberWithOptions(decimal: true),
             onChanged: (v) => setState(() => _amt = double.tryParse(v) ?? 0.0),
             style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kPrimaryColor),
-            decoration: InputDecoration(prefixText: "", filled: true, fillColor: kWhite, enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey300)), focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2))),
-          ),
-          const Spacer(),
+            decoration: InputDecoration(prefixText: "",
+              filled: true,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+              floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+          
+);
+      },
+    ),
           SizedBox(width: double.infinity, height: 60, child: ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
             onPressed: () async {

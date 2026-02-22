@@ -461,18 +461,41 @@ class _BillPageState extends State<BillPage> {
                                     ),
                                   ),
                                   Expanded(
-                                    child: TextField(
+                                    child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: qtyController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
                                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-                                      decoration: const InputDecoration(
-                                        border: InputBorder.none,
+                                      decoration: InputDecoration(
+                                        
                                         isDense: true,
-                                        contentPadding: EdgeInsets.zero,
+                                        filled: true,
+                                        fillColor: const Color(0xFFF8F9FA),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                                        ),
+                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                                       ),
-                                    ),
+                                    
+);
+      },
+    ),
                                   ),
                                   IconButton(
                                     onPressed: () {
@@ -698,17 +721,39 @@ class _BillPageState extends State<BillPage> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kGrey200),
       ),
-      child: TextField(
+      child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
         controller: controller,
         keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         onChanged: (v) => setDialogState(() {}),
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
         ),
-      ),
+      
+);
+      },
+    ),
     );
   }
 
@@ -999,18 +1044,39 @@ class _BillPageState extends State<BillPage> {
   }
 
   Widget _buildPopupTextField({required TextEditingController controller, required String label, String? hint, TextInputType keyboardType = TextInputType.text, int maxLines = 1, Function(String)? onChanged}) {
-    return TextFormField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       onChanged: onChanged,
       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: kBlack87),
       decoration: InputDecoration(
-        labelText: label, hintText: hint, filled: true, fillColor: kGreyBg, contentPadding: const EdgeInsets.all(16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
-        floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900),
+        labelText: label, hintText: hint,
+        filled: true,
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+        ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 
@@ -1095,7 +1161,7 @@ class _BillPageState extends State<BillPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(hasCustomer ? _selectedCustomerName! : 'Assign Customer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: hasCustomer ? kBlack87 : kOrange)),
+                    Text(hasCustomer ? _selectedCustomerName! : 'Add Customer', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: hasCustomer ? kBlack87 : kOrange)),
                     if (hasCustomer) Text(_selectedCustomerPhone ?? '', style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600)),
                   ],
                 ),
@@ -1202,7 +1268,11 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                  child: TextField(
+                  child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                     controller: controller,
                     maxLines: 3,
                     autofocus: true,
@@ -1210,10 +1280,28 @@ class _BillPageState extends State<BillPage> {
                     decoration: InputDecoration(
                       hintText: hint,
                       hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.all(14),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                      floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                     ),
-                  ),
+                  
+);
+      },
+    ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
@@ -1256,19 +1344,43 @@ class _BillPageState extends State<BillPage> {
                 const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                  child: TextField(
+                  child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                     controller: controller,
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     autofocus: true,
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '0.00',
                       hintStyle: TextStyle(color: kBlack54, fontSize: 18),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.all(14),
+                      
+                      
                       prefixIcon: Icon(Icons.local_shipping_outlined, color: kBlack54),
+                      filled: true,
+                      fillColor: const Color(0xFFF8F9FA),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                      ),
+                      labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                      floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                     ),
-                  ),
+                  
+);
+      },
+    ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -1545,17 +1657,24 @@ class _BillPageState extends State<BillPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 16),
+              const SizedBox(height: 5),
               const Text('Select Payment Method', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kBlack87)),
               const SizedBox(height: 16),
-              _buildPaymentMethodTile(ctx, HeroIcons.banknotes, 'Cash', 'Pay with cash', const Color(0xFF34A853), () => _proceedToPayment('Cash')),
-              const SizedBox(height: 8),
-              _buildPaymentMethodTile(ctx, HeroIcons.qrCode, 'Online / UPI', 'Digital payment', kPrimaryColor, () => _proceedToPayment('Online')),
-              const SizedBox(height: 8),
-              _buildPaymentMethodTile(ctx, HeroIcons.bookOpen, 'Credit', 'Add to credit book', kOrange, () => _proceedToPayment('Credit')),
-              const SizedBox(height: 8),
-              _buildPaymentMethodTile(ctx, HeroIcons.arrowsRightLeft, 'Split Payment', 'Split across methods', Colors.purple, () => _proceedToPayment('Split')),
+              Row(
+                children: [
+                  _buildPayIcon(HeroIcons.banknotes, 'Cash', () { Navigator.pop(ctx); _proceedToPayment('Cash'); }),
+                  const SizedBox(width: 16),
+                  _buildPayIcon(HeroIcons.qrCode, 'Online', () { Navigator.pop(ctx); _proceedToPayment('Online'); }),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildPayIcon(HeroIcons.bookOpen, 'Credit', () { Navigator.pop(ctx); _proceedToPayment('Credit'); }),
+                  const SizedBox(width: 16),
+                  _buildPayIcon(HeroIcons.arrowsRightLeft, 'Split', () { Navigator.pop(ctx); _proceedToPayment('Split'); }),
+                ],
+              ),
             ],
           ),
         );
@@ -1628,38 +1747,40 @@ class _BillPageState extends State<BillPage> {
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: themeColor.withOpacity(0.06),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: themeColor.withOpacity(0.25), width: 1.5),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: themeColor.withOpacity(0.12),
-                      shape: BoxShape.circle,
+            child: AspectRatio(
+              aspectRatio: 1.0, // Make it a perfect square
+              child: Container(
+                decoration: BoxDecoration(
+                  color: themeColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: themeColor.withOpacity(0.25), width: 1.5),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 56, // Increased size
+                      height: 56, // Increased size
+                      decoration: BoxDecoration(
+                        color: themeColor.withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: HeroIcon(icon, color: themeColor, size: 28), // Increased icon size
+                      ),
                     ),
-                    child: Center(
-                      child: HeroIcon(icon, color: themeColor, size: 20),
+                    const SizedBox(height: 12),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 14, // Increased text size
+                        fontWeight: FontWeight.w800,
+                        color: themeColor,
+                        letterSpacing: 0.3,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: themeColor,
-                      letterSpacing: 0.3,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -1734,11 +1855,35 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: TextField(
+                      child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: contactSearchController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
                         controller: contactSearchController,
-                        decoration: const InputDecoration(hintText: 'Search contacts...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass), border: OutlineInputBorder()),
-                        onChanged: (v) => setDialogState(() => filteredContacts = contacts.where((c) => c.displayName.toLowerCase().contains(v.toLowerCase())).toList()),
-                      ),
+                        decoration: InputDecoration(hintText: 'Search contacts...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass),
+                          filled: true,
+                          fillColor: const Color(0xFFF8F9FA),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                          ),
+                          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                        ),
+                      
+);
+      },
+    ),
                     ),
                     const SizedBox(height: 8),
                     Expanded(
@@ -1791,11 +1936,86 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 ],
               ),
               const SizedBox(height: 20),
-              TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: 'Name', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: nameCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Name',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 16),
-              TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: phoneCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 16),
-              TextField(controller: gstCtrl, decoration: const InputDecoration(labelText: 'GST (Optional)', border: OutlineInputBorder())),
+              ValueListenableBuilder<TextEditingValue>(
+      valueListenable: gstCtrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(controller: gstCtrl, decoration: InputDecoration(labelText: 'GST (Optional)',
+          filled: true,
+          fillColor: const Color(0xFFF8F9FA),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+          ),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        ),
+);
+      },
+    ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity, height: 50,
@@ -1839,16 +2059,38 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                 Expanded(
                   child: Container(
                     decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
-                    child: TextFormField(
+                    child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _searchController,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
                       controller: _searchController,
                       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
                         hintText: context.tr('search'),
                         prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        filled: true,
+                        fillColor: const Color(0xFFF8F9FA),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                        ),
+                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
                       ),
-                    ),
+                    
+);
+      },
+    ),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -3092,7 +3334,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           ),
           SizedBox(
             width: 120,
-            child: TextFormField(
+            child: ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextFormField(
               controller: ctrl,
               enabled: enabled,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -3101,11 +3347,30 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               decoration: InputDecoration(
                 prefixText: '$_currencySymbol ',
                 prefixStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: enabled ? tintColor.withOpacity(0.6) : kBlack54),
-                border: InputBorder.none,
+                
                 isDense: true,
-                contentPadding: EdgeInsets.zero,
+                filled: true,
+                fillColor: const Color(0xFFF8F9FA),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                ),
+                labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
               ),
-            ),
+            
+);
+      },
+    ),
           ),
         ],
       ),

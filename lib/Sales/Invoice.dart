@@ -1211,30 +1211,46 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   }
 
   Widget _buildTextFieldInModal(TextEditingController controller, String label, Function(String) onChanged) {
-    return TextField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
       controller: controller,
       onChanged: onChanged,
       style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: kBlack54, fontWeight: FontWeight.w500),
         filled: true,
-        fillColor: kGreyBg,
+        fillColor: const Color(0xFFF8F9FA),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kGrey200),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _getTemplateColors(_selectedTemplate)['primary']!, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
         ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 
   Widget _buildMultilineTextFieldInModal(TextEditingController controller, String hint, Function(String) onChanged) {
-    return TextField(
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: controller,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
+        return TextField(
       controller: controller,
       onChanged: onChanged,
       maxLines: 3,
@@ -1243,17 +1259,26 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         hintText: hint,
         hintStyle: const TextStyle(color: kGrey400, fontWeight: FontWeight.w400),
         filled: true,
-        fillColor: kGreyBg,
-        contentPadding: const EdgeInsets.all(14),
+        fillColor: const Color(0xFFF8F9FA),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+        ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: kGrey200),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: _getTemplateColors(_selectedTemplate)['primary']!, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
         ),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
       ),
+    
+);
+      },
     );
   }
 
@@ -1793,8 +1818,14 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      'Paid via ${widget.paymentMode}',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: themeColor),
+                      widget.paymentMode != "quotation"
+                          ? '${widget.paymentMode}'
+                          : 'Paid via ${widget.paymentMode}',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: themeColor
+                      ),
                     ),
                   ),
 

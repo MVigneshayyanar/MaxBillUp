@@ -140,11 +140,11 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
 
       // Determine max staff based on plan
       int maxStaff = 0;
-      if (plan.contains('MAX Lite')) {
+      if (plan.contains('max one') || plan.contains('max lite')) {
         maxStaff = 1;
-      } else if (plan.contains('MAX Plus')) {
+      } else if (plan.contains('max plus')) {
         maxStaff = 3;
-      } else if (plan.contains('MAX Pro') || plan.contains('premium')) {
+      } else if (plan.contains('max pro') || plan.contains('premium')) {
         maxStaff = 15;
       }
 
@@ -493,6 +493,10 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
       valueListenable: ctrl,
       builder: (context, val, child) {
         bool filled = ctrl.text.isNotEmpty;
+        return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: ctrl,
+      builder: (context, value, _) {
+        final bool hasText = value.text.isNotEmpty;
         return TextFormField(
           controller: ctrl, keyboardType: type, obscureText: isPassword,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
@@ -501,14 +505,34 @@ class _InviteStaffPageState extends State<InviteStaffPage> {
               padding: const EdgeInsets.all(12.0),
               child: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
             ),
-            filled: true, fillColor: kWhite,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+             
+            
+            
+            
             errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kErrorColor)),
+            filled: true,
+            fillColor: const Color(0xFFF8F9FA),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+            ),
+            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
           ),
           validator: isMandatory ? (v) => (v == null || v.isEmpty) ? '$label is required' : null : null,
-        );
+        
+);
+      },
+    );
       },
     );
   }
