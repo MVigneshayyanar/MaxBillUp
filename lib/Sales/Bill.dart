@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:intl/intl.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:provider/provider.dart';
 
@@ -2503,24 +2504,26 @@ class _PaymentPageState extends State<PaymentPage> {
                         Text(widget.totalAmount.toString(), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: kWhite, 
-                        borderRadius: BorderRadius.circular(20), 
+                    if (widget.paymentMode != 'Credit') ...[
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: kWhite, 
+                          borderRadius: BorderRadius.circular(20), 
+                        ),
+                        child: Column(
+                          children: [
+                            const Text('AMOUNT RECEIVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 1.0)),
+                            const SizedBox(height: 8),
+                            Text(
+                              _displayController.text, 
+                              style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: canPay ? primaryThemeColor : kBlack87, letterSpacing: -1, height: 1)
+                            ),
+                          ],
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          const Text('AMOUNT RECEIVED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 1.0)),
-                          const SizedBox(height: 8),
-                          Text(
-                            _displayController.text, 
-                            style: TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: canPay ? primaryThemeColor : kBlack87, letterSpacing: -1, height: 1)
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                     
                     if (widget.paymentMode != 'Credit') ...[
                       const SizedBox(height: 16),
@@ -2542,47 +2545,6 @@ class _PaymentPageState extends State<PaymentPage> {
                       ),
                     ],
 
-                    // Credit Due Date Selector
-                    if (widget.paymentMode == 'Credit') ...[
-                      const SizedBox(height: 16),
-                      InkWell(
-                        onTap: () => _selectCreditDueDate(context),
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                                child: const HeroIcon(HeroIcons.calendar, color: kWhite, size: 20),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('CREDIT DUE DATE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white70, letterSpacing: 0.5)),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      _creditDueDate != null
-                                          ? '${_creditDueDate!.day.toString().padLeft(2, '0')}-${_creditDueDate!.month.toString().padLeft(2, '0')}-${_creditDueDate!.year}'
-                                          : 'Select Date',
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kWhite),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const HeroIcon(HeroIcons.pencil, color: Colors.white70, size: 16),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ],
@@ -2597,7 +2559,13 @@ class _PaymentPageState extends State<PaymentPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Expanded(child: Center(child: _buildKeyPad())),
+                    Expanded(
+                      child: Center(
+                        child: widget.paymentMode == 'Credit' 
+                          ? _buildCreditDueDateMainSelector() 
+                          : _buildKeyPad()
+                      )
+                    ),
                     const SizedBox(height: 12),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
@@ -2640,86 +2608,104 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Future<void> _selectCreditDueDate(BuildContext context) async {
-    // Show dialog asking user if they want to set a date or skip
-    final shouldSetDate = await showDialog<bool>(
-      context: context,
-      builder: (BuildContext dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Credit Due Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kBlack87)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Would you like to set a due date for this credit?', style: TextStyle(fontSize: 13, color: kBlack54)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: kOrange.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: kOrange.withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  children: [
-                    const HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
-                    const SizedBox(width: 8),
-                    // Expanded(
-                    //   child: Text(
-                    //     'You can skip this and set it later',
-                    //     style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500),
-                    //   ),
-                    // ),
-                  ],
-                ),
-              ),
-            ],
+  Widget _buildCreditDueDateMainSelector() {
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 400),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Skip', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+        ],
+        border: Border.all(color: kOrange.withOpacity(0.2), width: 1.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: kOrange.withOpacity(0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Select Date', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700)),
+            child: Column(
+              children: [
+                const Text(
+                  'SET DUE DATE (OPTIONAL)',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _creditDueDate != null
+                      ? DateFormat('dd MMM yyyy').format(_creditDueDate!)
+                      : 'Not Selected',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: _creditDueDate != null ? kOrange : kBlack54,
+                  ),
+                ),
+              ],
             ),
-          ],
-        );
-      },
-    );
-
-    if (shouldSetDate == true) {
-      final DateTime? picked = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365)),
-        builder: (context, child) {
-          return Theme(
-            data: Theme.of(context).copyWith(
-              colorScheme: const ColorScheme.light(
-                primary: kPrimaryColor,
-                onPrimary: kWhite,
-                surface: kWhite,
+          ),
+          Theme(
+            data: ThemeData(
+              useMaterial3: true,
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: kOrange,
+                primary: kOrange,
+                onPrimary: Colors.white,
+                surface: Colors.white,
                 onSurface: kBlack87,
               ),
             ),
-            child: child!,
-          );
-        },
-      );
-      if (picked != null) {
-        setState(() {
-          _creditDueDate = picked;
-        });
-      }
+            child: Material(
+              color: Colors.transparent,
+              child: CalendarDatePicker(
+                key: ValueKey(_creditDueDate?.toIso8601String() ?? 'none'),
+                initialDate: _creditDueDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                currentDate: DateTime.now(),
+                onDateChanged: (DateTime date) {
+                  setState(() {
+                    _creditDueDate = date;
+                  });
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectCreditDueDate(BuildContext context) async {
+    // This method is now legacy as we use inline selection, 
+    // but kept for compatibility or manual triggers
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _creditDueDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+    if (picked != null) {
+      setState(() {
+        _creditDueDate = picked;
+      });
     }
   }
 

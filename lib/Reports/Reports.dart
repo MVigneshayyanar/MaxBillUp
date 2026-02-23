@@ -346,7 +346,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 Container(
                   width: 46, height: 46,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.08),
+                      color: color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: HeroIcon(icon, color: color, size: 22),
@@ -1257,16 +1257,16 @@ class ReportPdfGenerator {
               final openSettings = await showDialog<bool>(
                 context: context,
                 builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   title: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
+                          color: Colors.orange.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
+                        child: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 20),
                       ),
                       const SizedBox(width: 12),
                       const Expanded(child: Text('Permission Required', style: TextStyle(fontSize: 18))),
@@ -1408,7 +1408,7 @@ class ReportPdfGenerator {
           context: context,
           builder: (BuildContext dialogContext) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               backgroundColor: Colors.white,
               title: Row(
                 children: [
@@ -1421,7 +1421,7 @@ class ReportPdfGenerator {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: kIncomeGreen.withOpacity(0.3),
+                          color: kIncomeGreen.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1499,7 +1499,7 @@ class ReportPdfGenerator {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                        color: kIncomeGreen.withOpacity(0.1),
+                          color: kIncomeGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: kIncomeGreen.withOpacity(0.3)),
                       ),
@@ -1902,7 +1902,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   Widget _buildExecutiveRibbon(double revenue, int count) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -1972,7 +1972,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: child,
@@ -2011,7 +2011,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
         ),
         const SizedBox(height: 20),
         SizedBox(
-          height: 160,
+          height: 140,
           child: BarChart(
             BarChartData(
               gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withOpacity(0.15), strokeWidth: 1)),
@@ -2198,6 +2198,24 @@ class _DayBookPageState extends State<DayBookPage> {
   }
   String _txnFilter = 'All';
   final List<String> _txnFilterOptions = ['All', 'Cash', 'Online', 'Split', 'Credit'];
+
+  // Payment mode colors for differentiation
+  static const Map<String, Color> _paymentModeColors = {
+    'cash': Color(0xFF4CAF50),
+    'online': Color(0xFF2196F3),
+    'upi': Color(0xFF2196F3),
+    'card': Color(0xFF9C27B0),
+    'credit': Color(0xFFFF9800),
+    'split': Color(0xFF00BCD4),
+  };
+
+  Color _getPaymentModeColor(String mode) {
+    final m = mode.toLowerCase();
+    for (final entry in _paymentModeColors.entries) {
+      if (m.contains(entry.key)) return entry.value;
+    }
+    return const Color(0xFF4CAF50);
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final picked = await showDatePicker(
@@ -2753,7 +2771,7 @@ class _DayBookPageState extends State<DayBookPage> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: modeColor.withOpacity(0.05),
+              color: modeColor.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
@@ -2765,7 +2783,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: modeColor.withOpacity(0.15),
+                      color: modeColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -2802,7 +2820,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
@@ -2827,7 +2845,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: kPrimaryColor.withOpacity(0.1),
+                          color: kPrimaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.person_rounded, size: 16, color: kPrimaryColor),
@@ -2861,7 +2879,7 @@ class _DayBookPageState extends State<DayBookPage> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: kBackgroundColor.withOpacity(0.5),
+                      color: kBackgroundColor.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: kBorderColor.withOpacity(0.3)),
                     ),
@@ -2972,9 +2990,9 @@ class _DayBookPageState extends State<DayBookPage> {
 
           // Footer with Total
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: modeColor.withOpacity(0.05),
+              color: modeColor.withValues(alpha: 0.05),
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(16),
                 bottomRight: Radius.circular(16),
@@ -3012,7 +3030,7 @@ class _DayBookPageState extends State<DayBookPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
@@ -3041,115 +3059,116 @@ class _DayBookPageState extends State<DayBookPage> {
 
   // --- MODERN DAYBOOK UI COMPONENTS ---
 
-  Widget _buildDayBookDateSelector() {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [kPrimaryColor.withOpacity(0.85), const Color(0xFF00695C)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: kPrimaryColor.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Daybook',
+    Widget _buildDayBookDateSelector() {
+     return Container(
+       margin: const EdgeInsets.all(16),
+       padding: const EdgeInsets.all(20),
+       decoration: BoxDecoration(
+         gradient: LinearGradient(
+           colors: [kPrimaryColor.withOpacity(0.85), const Color(0xFF00695C)],
+           begin: Alignment.topLeft,
+           end: Alignment.bottomRight,
+         ),
+         borderRadius: BorderRadius.circular(16),
+         boxShadow: [
+           BoxShadow(
+               color: kPrimaryColor.withValues(alpha: 0.3),
+             blurRadius: 12,
+             offset: const Offset(0, 4),
+           ),
+         ],
+       ),
+       child: Column(
+         children: [
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               const Text(
+                 'Daybook',
+                // Keep title slightly larger but ensure minimum 11 elsewhere
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w900,
                   color: Colors.white70,
                   letterSpacing: 1.5,
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                    SizedBox(width: 6),
-                    Text(
-                      'LIVE',
+               ),
+               Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                 decoration: BoxDecoration(
+                   color: Colors.white.withValues(alpha: 0.2),
+                   borderRadius: BorderRadius.circular(12),
+                 ),
+                 child: Row(
+                   children: const [
+                     Icon(Icons.auto_awesome, color: Colors.white, size: 14),
+                     SizedBox(width: 6),
+                     Text(
+                       'LIVE',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: 0.5,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          InkWell(
-            onTap: () => _selectDate(context),
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: kPrimaryColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+                     ),
+                   ],
+                 ),
+               ),
+             ],
+           ),
+           const SizedBox(height: 16),
+           InkWell(
+             onTap: () => _selectDate(context),
+             borderRadius: BorderRadius.circular(12),
+             child: Container(
+               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+               decoration: BoxDecoration(
+                 color: Colors.white,
+                 borderRadius: BorderRadius.circular(12),
+                 boxShadow: [
+                   BoxShadow(
+                       color: Colors.black.withValues(alpha: 0.1),
+                     blurRadius: 8,
+                     offset: const Offset(0, 2),
+                   ),
+                 ],
+               ),
+               child: Row(
+                 children: [
+                   Container(
+                     padding: const EdgeInsets.all(8),
+                     decoration: BoxDecoration(
+                       color: kPrimaryColor.withValues(alpha: 0.1),
+                       borderRadius: BorderRadius.circular(8),
+                     ),
+                     child: const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 22),
+                   ),
+                   const SizedBox(width: 12),
+                   Column(
+                     crossAxisAlignment: CrossAxisAlignment.start,
+                     children: [
                       const Text(
                         'Selected Date',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kTextSecondary),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kTextSecondary),
                       ),
-                      const SizedBox(height: 2),
+                       const SizedBox(height: 2),
                       Text(
                         DateFormat('dd MMM yyyy, EEEE').format(_selectedDate),
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
                       ),
-                    ],
-                  ),
-                  const Spacer(),
-                  const Icon(Icons.arrow_forward_ios_rounded, color: kPrimaryColor, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+                     ],
+                   ),
+                   const Spacer(),
+                   const Icon(Icons.arrow_forward_ios_rounded, color: kPrimaryColor, size: 16),
+                 ],
+               ),
+             ),
+           ),
+         ],
+       ),
+     );
+     }
 
   Widget _buildDayBookSummaryCards(
     int salesCount, double salesAmount,
@@ -3180,7 +3199,7 @@ class _DayBookPageState extends State<DayBookPage> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: (netCashFlow >= 0 ? const Color(0xFF81C784) : const Color(0xFFE57373)).withOpacity(0.2),
+                  color: (netCashFlow >= 0 ? const Color(0xFF81C784) : const Color(0xFFE57373)).withValues(alpha: 0.2),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -3194,7 +3213,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
@@ -3352,12 +3371,12 @@ class _DayBookPageState extends State<DayBookPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: Colors.white, size: 24),
+              Icon(icon, color: Colors.white, size: 20),
               if (count > 0)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -3383,7 +3402,7 @@ class _DayBookPageState extends State<DayBookPage> {
           ),
           const SizedBox(height: 4),
           Text(
-            '${amount.toStringAsFixed(1)}',
+            '$_currencySymbol${amount.toStringAsFixed(1)}',
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -3404,7 +3423,7 @@ class _DayBookPageState extends State<DayBookPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -3414,18 +3433,18 @@ class _DayBookPageState extends State<DayBookPage> {
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
           ),
           Text(
-            '${amount.toStringAsFixed(1)}',
-            style: TextStyle(
+            '$_currencySymbol${amount.toStringAsFixed(1)}',
+            style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w900,
-              color: color,
+              color: Colors.black87,
             ),
           ),
         ],
@@ -3448,7 +3467,7 @@ class _DayBookPageState extends State<DayBookPage> {
         border: Border.all(color: kBorderColor.withOpacity(0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -3462,7 +3481,7 @@ class _DayBookPageState extends State<DayBookPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: kPrimaryColor.withOpacity(0.1),
+                  color: kPrimaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(Icons.payments_rounded, color: kPrimaryColor, size: 22),
@@ -3517,7 +3536,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Payment Out',
+                      'Expenses Analysis',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -3570,7 +3589,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Payment In',
+                      'Income Analysis',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -3608,14 +3627,14 @@ class _DayBookPageState extends State<DayBookPage> {
           child: Text(
             method,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.w600,
               color: kTextSecondary,
             ),
           ),
         ),
         Text(
-          '${amount.toStringAsFixed(0)}',
+          '$_currencySymbol${amount.toStringAsFixed(0)}',
           style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w800,
@@ -3626,7 +3645,7 @@ class _DayBookPageState extends State<DayBookPage> {
         Text(
           '${(percent * 100).toStringAsFixed(0)}%',
           style: const TextStyle(
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
             color: kTextSecondary,
           ),
@@ -3732,28 +3751,36 @@ class _DayBookPageState extends State<DayBookPage> {
                   ],
                 ),
 
-                // Filter chips row
+                // Filter tabs - single row
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Row(
                   children: _txnFilterOptions.map((opt) {
                     final selected = _txnFilter == opt;
-                    return ChoiceChip(
-                      label: Text(
-                        opt,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: selected ? Colors.white : kPrimaryColor,
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _txnFilter = opt),
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: selected ? kPrimaryColor : kSurfaceColor,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: selected ? kPrimaryColor : kBorderColor.withOpacity(0.5),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              opt,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: selected ? Colors.white : kPrimaryColor,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      selected: selected,
-                      selectedColor: kPrimaryColor,
-                      backgroundColor: kSurfaceColor,
-                      showCheckmark: false,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      onSelected: (_) => setState(() => _txnFilter = opt),
                     );
                   }).toList(),
                 ),
@@ -3802,6 +3829,7 @@ class _DayBookPageState extends State<DayBookPage> {
     final category = txn['category'].toString();
     final isIncome = category == 'Sale';
     final cashFlow = isIncome ? txn['cashIn'] as double : txn['cashOut'] as double;
+    final paymentMode = (txn['paymentMode'] ?? 'cash').toString();
 
     DateTime? dt;
     if (txn['timestamp'] != null) dt = (txn['timestamp'] as Timestamp).toDate();
@@ -3829,6 +3857,9 @@ class _DayBookPageState extends State<DayBookPage> {
       categoryIcon = Icons.credit_card_rounded;
     }
 
+    // Payment mode color for the badge
+    final pmColor = _getPaymentModeColor(paymentMode);
+
     return Container(
       decoration: BoxDecoration(
         color: bgColor,
@@ -3850,7 +3881,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     borderRadius: BorderRadius.circular(10),
                     boxShadow: [
                       BoxShadow(
-                        color: categoryColor.withOpacity(0.3),
+                          color: categoryColor.withValues(alpha: 0.3),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -4182,7 +4213,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                         ),
                       ),
                       SliverPadding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         sliver: SliverList(
                           delegate: SliverChildListDelegate([
                             // Top Profit Ribbon
@@ -4245,7 +4276,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.8)),
         boxShadow: [
           BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))
@@ -4277,7 +4308,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.08),
+              color: (isPositive ? kIncomeGreen : kExpenseRed).withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.2)),
             ),
@@ -4351,7 +4382,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: child,
@@ -4654,17 +4685,18 @@ class FullSalesHistoryPage extends StatelessWidget {
 
   // --- EXECUTIVE UI COMPONENTS ---
 
-  Widget _buildSectionHeader(String title) {
+    Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
+      // Enforce minimum font size 11 for better readability on product pages
+      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
-  }
+    }
 
   Widget _buildExecutiveHistoryHeader(double total, int count) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -4710,11 +4742,11 @@ class FullSalesHistoryPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 24, 20, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: SizedBox(
-        height: 160,
+        height: 140,
         child: LineChart(
           LineChartData(
             gridData: FlGridData(
@@ -5006,7 +5038,7 @@ class TopCustomersPage extends StatelessWidget {
   Widget _buildExecutiveCustomerHeader(double total, int count) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -5049,13 +5081,13 @@ class TopCustomersPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: Column(
         children: [
           SizedBox(
-            height: 160,
+            height: 140,
             child: BarChart(
               BarChartData(
                 gridData: FlGridData(
@@ -5137,7 +5169,7 @@ class TopCustomersPage extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            color: kBackgroundColor.withOpacity(0.5),
+              color: kBackgroundColor.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: const [
@@ -5716,7 +5748,7 @@ class ItemSalesPage extends StatelessWidget {
   Widget _buildExecutiveSalesHeader(int totalQty, int uniqueCount) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -5759,7 +5791,7 @@ class ItemSalesPage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: Column(
@@ -6057,7 +6089,7 @@ class _LowStockPageState extends State<LowStockPage> {
   Widget _buildExecutiveStockHeader(int low, int out) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -6076,7 +6108,7 @@ class _LowStockPageState extends State<LowStockPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: kExpenseRed.withOpacity(0.08),
+              color: kExpenseRed.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kExpenseRed.withOpacity(0.1)),
             ),
@@ -6368,15 +6400,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
                           SliverToBoxAdapter(
                             child: _buildContributionGraph(sortedProducts, 'amount', kPrimaryColor),
                           ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 20)),
-                          SliverPadding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            sliver: SliverToBoxAdapter(child: _buildSectionHeader("Quantity contribution")),
-                          ),
-                          const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                          SliverToBoxAdapter(
-                            child: _buildContributionGraph(sortedProducts, 'quantity', kWarningOrange),
-                          ),
+                          // Quantity contribution chart intentionally removed per UX request.
                         ],
 
                         const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -6427,7 +6451,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
   Widget _buildExecutiveProductHeader(double revenue, double profit) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -6446,7 +6470,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: kIncomeGreen.withOpacity(0.08),
+              color: kIncomeGreen.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: kIncomeGreen.withOpacity(0.1)),
             ),
@@ -6462,7 +6486,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
     );
   }
 
-  Widget _buildContributionGraph(List<MapEntry<String, Map<String, dynamic>>> data, String key, Color barColor) {
+    Widget _buildContributionGraph(List<MapEntry<String, Map<String, dynamic>>> data, String key, Color barColor) {
     // Top 6 products for chart clarity
     final chartData = data.take(6).toList();
     final double maxVal = _getMaxValue(chartData, key);
@@ -6472,7 +6496,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
       padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: Column(
@@ -6523,11 +6547,12 @@ class _TopProductsPageState extends State<TopProductsPage> {
                 ),
                 barGroups: chartData.asMap().entries.map((e) {
                   final colorIndex = e.key % kChartColorsList.length;
+                  // Each bar represents top product revenue
                   return BarChartGroupData(
-                    x: e.key,
-                    barRods: [
+                     x: e.key,
+                     barRods: [
                       BarChartRodData(
-                        toY: e.value.value[key],
+                        toY: (e.value.value[key] as double),
                         color: kChartColorsList[colorIndex],
                         width: 16,
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
@@ -6537,21 +6562,22 @@ class _TopProductsPageState extends State<TopProductsPage> {
                           color: kBorderColor.withValues(alpha: 0.1),
                         ),
                       )
-                    ],
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
+                     ],
+                   );
+                 }).toList(),
+               ),
+             ),
+           ),
+           const SizedBox(height: 8),
+          // Caption
           Text(
-              "Top selling products by ${key == 'Amount' ? 'Revenue Contribution' : 'Unit Quantity Sold'}",
-              style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold, letterSpacing: 0.5)
+            "Top products by revenue contribution",
+            style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold, letterSpacing: 0.5),
           ),
         ],
       ),
     );
-  }
+    }
 
   double _getMaxValue(List<MapEntry<String, Map<String, dynamic>>> data, String key) {
     if (data.isEmpty) return 100;
@@ -6562,32 +6588,73 @@ class _TopProductsPageState extends State<TopProductsPage> {
     return max == 0 ? 100 : max;
   }
 
-  Widget _buildHighDensityProductTable(List<MapEntry<String, Map<String, dynamic>>> rows) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
-      ),
-      child: Column(
-        children: [
-          Container(
-            color: kBackgroundColor.withOpacity(0.5),
+    Widget _buildHighDensityProductTable(List<MapEntry<String, Map<String, dynamic>>> rows) {
+     return Container(
+       width: double.infinity,
+       decoration: BoxDecoration(
+         color: kSurfaceColor,
+         border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
+       ),
+       child: Column(
+         children: [
+           Container(
+            color: kBackgroundColor.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: const [
-                Expanded(flex: 3, child: Text("Product Name", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 1, child: Text("Qty", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("Revenue", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
-                Expanded(flex: 2, child: Text("Profit", textAlign: TextAlign.right, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 1, child: Text("#", textAlign: TextAlign.left, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 4, child: Text("Product Name", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+                Expanded(flex: 2, child: Text("Qty", textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text("Price", textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text("Revenue", textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
               ],
             ),
           ),
-          ...rows.map((row) => _buildProductTableRow(row)).toList(),
+          ...rows.asMap().entries.map((entry) => _buildProductTableRowWithIndex(entry.key, entry.value)).toList(),
+         ],
+       ),
+     );
+     }
+
+    Widget _buildProductTableRowWithIndex(int index, MapEntry<String, Map<String, dynamic>> entry) {
+    final name = entry.key;
+    final qty = (entry.value['quantity'] as double);
+    final amount = (entry.value['amount'] as double);
+    final price = qty > 0 ? (amount / qty) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.3))),
+      ),
+      child: Row(
+        children: [
+          Expanded(flex: 1, child: Text('${index + 1}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kTextSecondary))),
+          Expanded(
+            flex: 4,
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.black87),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(qty.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(price.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(amount.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+          ),
         ],
       ),
     );
-  }
+    }
 
   Widget _buildProductTableRow(MapEntry<String, Map<String, dynamic>> entry) {
     return Container(
@@ -6850,7 +6917,7 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
   Widget _buildExecutiveCategoryHeader(double revenue, int count) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -6894,13 +6961,13 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
       padding: const EdgeInsets.fromLTRB(12, 20, 16, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
       ),
       child: Column(
         children: [
           SizedBox(
-            height: 160,
+            height: 140,
             child: BarChart(
               BarChartData(
                 gridData: FlGridData(
@@ -7037,29 +7104,74 @@ class _TopCategoriesPageState extends State<TopCategoriesPage> {
   }
 }
 
-class ExpenseReportPage extends StatelessWidget {
+class ExpenseReportPage extends StatefulWidget {
   final VoidCallback onBack;
-  final FirestoreService _firestoreService = FirestoreService();
 
-  ExpenseReportPage({super.key, required this.onBack});
+  const ExpenseReportPage({super.key, required this.onBack});
+
+  @override
+  State<ExpenseReportPage> createState() => _ExpenseReportPageState();
+}
+
+class _ExpenseReportPageState extends State<ExpenseReportPage> {
+  final FirestoreService _firestoreService = FirestoreService();
+  String _currencySymbol = '';
+
+  DateFilterOption _selectedFilter = DateFilterOption.thisMonth;
+  DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  DateTime _endDate = DateTime.now();
+
+  bool _showByCategory = false; 
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
+
+  void _onDateChanged(DateFilterOption filter, DateTime start, DateTime end) {
+    setState(() {
+      _selectedFilter = filter;
+      _startDate = start;
+      _endDate = end;
+    });
+  }
+
+  bool _isInRange(DateTime? dt, DateTime start, DateTime end) {
+    if (dt == null) return false;
+    final date = DateTime(dt.year, dt.month, dt.day);
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day);
+    return !date.isBefore(s) && !date.isAfter(e);
+  }
 
   void _downloadPdf(BuildContext context, List<Map<String, dynamic>> all, double totalOp, double totalStock) {
     final rows = all.map((e) => [
       e['title']?.toString() ?? 'N/A',
-      e['type']?.toString() ?? 'N/A',
-      "${(e['amount'] as double).toStringAsFixed(2)}",
+      e['category']?.toString() ?? e['type']?.toString() ?? 'N/A',
+      "$_currencySymbol${(e['amount'] as double).toStringAsFixed(2)}",
+      e['paymentMode']?.toString() ?? 'Cash'
     ]).toList();
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
       reportTitle: 'EXECUTIVE EXPENSE AUDIT - ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
-      headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT'],
+      headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT', 'PAYMENT MODE'],
       rows: rows,
       summaryTitle: 'TOTAL EXPENDITURE',
-      summaryValue: "${(totalOp + totalStock).toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${(totalOp + totalStock).toStringAsFixed(2)}",
       additionalSummary: {
-        'Operational': '${totalOp.toStringAsFixed(2)}',
-        'Stock Purchase': '${totalStock.toStringAsFixed(2)}',
+        'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
+        'Operational': '$_currencySymbol${totalOp.toStringAsFixed(2)}',
+        'Stock Purchase': '$_currencySymbol${totalStock.toStringAsFixed(2)}',
         'Audit Count': '${all.length} Records'
       },
     );
@@ -7077,7 +7189,7 @@ class ExpenseReportPage extends StatelessWidget {
         builder: (context, streams) {
           if (!streams.hasData) {
             return Scaffold(
-              appBar: _buildModernAppBar("Expense Ledger", onBack),
+              appBar: _buildModernAppBar("Expense Ledger", widget.onBack),
               body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
             );
           }
@@ -7089,7 +7201,7 @@ class ExpenseReportPage extends StatelessWidget {
                 builder: (ctx, stockSnap) {
                   if (!expSnap.hasData || !stockSnap.hasData) {
                     return Scaffold(
-                      appBar: _buildModernAppBar("Expense Ledger", onBack),
+                      appBar: _buildModernAppBar("Expense Ledger", widget.onBack),
                       body: const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
                     );
                   }
@@ -7098,89 +7210,155 @@ class ExpenseReportPage extends StatelessWidget {
                   double totalOp = 0;
                   double totalStock = 0;
 
+                  // Previous period calculations
+                  int periodDays = _endDate.difference(_startDate).inDays + 1;
+                  DateTime prevStart = _startDate.subtract(Duration(days: periodDays));
+                  DateTime prevEnd = _startDate.subtract(const Duration(days: 1));
+                  double prevTotal = 0;
+
+                  Map<String, double> categoryTotals = {};
+                  Map<int, double> timeTotals = {};
+
                   for (var d in expSnap.data!.docs) {
                     var data = d.data() as Map<String, dynamic>;
                     double amt = double.tryParse(data['amount'].toString()) ?? 0;
-                    totalOp += amt;
-                    all.add({
-                      'title': data['title'] ?? 'Operational Expense',
-                      'amount': amt,
-                      'type': 'Operational',
-                      'date': data['timestamp'] ?? data['date'],
-                    });
+                    DateTime? dt;
+                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                    if (_isInRange(dt, _startDate, _endDate)) {
+                      totalOp += amt;
+                      String category = data['category']?.toString() ?? 'Operational';
+                      categoryTotals[category] = (categoryTotals[category] ?? 0) + amt;
+                      
+                      if (periodDays <= 1 && dt != null) {
+                        timeTotals[dt.hour] = (timeTotals[dt.hour] ?? 0) + amt;
+                      } else if (dt != null) {
+                        timeTotals[dt.day] = (timeTotals[dt.day] ?? 0) + amt;
+                      }
+
+                      all.add({
+                        'title': data['title'] ?? 'Operational Expense',
+                        'amount': amt,
+                        'type': 'Operational',
+                        'category': category,
+                        'date': dt ?? DateTime.now(),
+                        'paymentMode': data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash'),
+                      });
+                    } else if (_isInRange(dt, prevStart, prevEnd)) {
+                      prevTotal += amt;
+                    }
                   }
+
                   for (var d in stockSnap.data!.docs) {
                     var data = d.data() as Map<String, dynamic>;
-                    double amt = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
-                    totalStock += amt;
-                    all.add({
-                      'title': 'Inventory Purchase',
-                      'amount': amt,
-                      'type': 'Stock',
-                      'date': data['timestamp'] ?? data['date'],
-                    });
+                    double amt = double.tryParse(data['totalAmount']?.toString() ?? data['total']?.toString() ?? '0') ?? 0;
+                    DateTime? dt;
+                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                    if (_isInRange(dt, _startDate, _endDate)) {
+                      totalStock += amt;
+                      String category = 'Inventory Purchase';
+                      categoryTotals[category] = (categoryTotals[category] ?? 0) + amt;
+                      
+                      if (periodDays <= 1 && dt != null) {
+                        timeTotals[dt.hour] = (timeTotals[dt.hour] ?? 0) + amt;
+                      } else if (dt != null) {
+                        timeTotals[dt.day] = (timeTotals[dt.day] ?? 0) + amt;
+                      }
+
+                      all.add({
+                        'title': 'Inventory Purchase',
+                        'amount': amt,
+                        'type': 'Stock',
+                        'category': category,
+                        'date': dt ?? DateTime.now(),
+                        'paymentMode': data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash'),
+                      });
+                    } else if (_isInRange(dt, prevStart, prevEnd)) {
+                      prevTotal += amt;
+                    }
                   }
 
                   // Sort by date newest first
-                  all.sort((a, b) => (b['date'] is Timestamp ? (b['date'] as Timestamp).toDate() : DateTime.now())
-                      .compareTo(a['date'] is Timestamp ? (a['date'] as Timestamp).toDate() : DateTime.now()));
+                  all.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+
+                  double currentTotal = totalOp + totalStock;
+                  double diff = currentTotal - prevTotal;
+                  double diffPercent = prevTotal > 0 ? (diff.abs() / prevTotal) * 100 : 0;
+                  bool isHigher = currentTotal > prevTotal; 
 
                   return Scaffold(
                     backgroundColor: kBackgroundColor,
                     appBar: _buildModernAppBar(
-                        "Expense Ledger",
-                        onBack,
-                        onDownload: () => _downloadPdf(context, all, totalOp, totalStock)
+                      "Expense Ledger",
+                      widget.onBack,
+                      onDownload: () => _downloadPdf(context, all, totalOp, totalStock)
                     ),
-                    body: Column(
-                      children: [
-                        _buildExecutiveRibbon(totalOp, totalStock, all.length),
-                        Expanded(
-                          child: CustomScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            slivers: [
-                              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                sliver: SliverToBoxAdapter(child: _buildSectionHeader("Spending Analysis")),
-                              ),
-                              const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                              SliverToBoxAdapter(
-                                child: _buildChartContainer(totalOp, totalStock),
-                              ),
-
-                              const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                sliver: SliverToBoxAdapter(
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildSectionHeader("Audit Trail"),
-                                      Text(
-                                        "${all.length} RECORDS FOUND",
-                                        style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kTextSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                sliver: SliverList(
-                                  delegate: SliverChildBuilderDelegate(
-                                        (context, index) => _buildHighDensityExpenseRow(all[index]),
-                                    childCount: all.length,
-                                  ),
-                                ),
-                              ),
-                              const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                            ],
+                    body: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: DateFilterWidget(
+                            selectedOption: _selectedFilter,
+                            startDate: _startDate,
+                            endDate: _endDate,
+                            onDateChanged: _onDateChanged,
                           ),
                         ),
+                        SliverToBoxAdapter(
+                          child: _buildExecutiveRibbon(totalOp, totalStock, all.length, diff, diffPercent, isHigher),
+                        ),
+                        SliverPadding(
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          sliver: SliverList(
+                            delegate: SliverChildListDelegate([
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildSectionHeader("Spending Analysis"),
+                                  _buildToggleViewSwitch(),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              _buildChartContainer(timeTotals, categoryTotals, periodDays <= 1),
+                              const SizedBox(height: 24),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _buildSectionHeader("Audit Trail"),
+                                  Text(
+                                    "${all.length} RECORDS FOUND",
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                            ]),
+                          ),
+                        ),
+                        if (all.isEmpty)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 40),
+                              child: Center(
+                                child: Text("No expenses found for this period", style: TextStyle(color: kTextSecondary, fontSize: 14)),
+                              ),
+                            ),
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) => _buildHighDensityExpenseRow(all[index]),
+                                childCount: all.length,
+                              ),
+                            ),
+                          ),
+                        const SliverToBoxAdapter(child: SizedBox(height: 40)),
                       ],
                     ),
                   );
@@ -7195,18 +7373,55 @@ class ExpenseReportPage extends StatelessWidget {
 
   // --- EXECUTIVE UI COMPONENTS ---
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
+  Widget _buildToggleViewSwitch() {
+    return Container(
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: kBorderColor),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _showByCategory = false),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: !_showByCategory ? kPrimaryColor.withValues(alpha: 0.1) : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(7)),
+              ),
+              child: Text("Time", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: !_showByCategory ? kPrimaryColor : kTextSecondary)),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => setState(() => _showByCategory = true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: _showByCategory ? kPrimaryColor.withValues(alpha: 0.1) : Colors.transparent,
+                borderRadius: const BorderRadius.horizontal(right: Radius.circular(7)),
+              ),
+              child: Text("Category", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _showByCategory ? kPrimaryColor : kTextSecondary)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildExecutiveRibbon(double op, double stock, int count) {
+  Widget _buildSectionHeader(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
+    );
+  }
+
+  Widget _buildExecutiveRibbon(double op, double stock, int count, double diff, double diffPercent, bool isHigher) {
     final total = op + stock;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -7214,13 +7429,26 @@ class ExpenseReportPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("TOTAL EXPENDITURE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 2),
-              Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kExpenseRed, letterSpacing: -1)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("TOTAL EXPENDITURE", style: TextStyle(color: kTextSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kExpenseRed, letterSpacing: -0.5)),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(isHigher ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: isHigher ? kExpenseRed : kIncomeGreen),
+                    const SizedBox(width: 4),
+                    Text(
+                      "${diffPercent.toStringAsFixed(1)}% vs prev period",
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isHigher ? kExpenseRed : kIncomeGreen),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
           Row(
             children: [
@@ -7238,67 +7466,154 @@ class ExpenseReportPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text("${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
-        Text(label, style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: kTextSecondary)),
+        Text("$_currencySymbol${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary)),
       ],
     );
   }
 
-  Widget _buildChartContainer(double op, double stock) {
-    final maxVal = op > stock ? op : stock;
+  Widget _buildChartContainer(Map<int, double> timeTotals, Map<String, double> categoryTotals, bool isHourly) {
+    if ((!_showByCategory && timeTotals.isEmpty) || (_showByCategory && categoryTotals.isEmpty)) {
+      return Container(
+        height: 140,
+        margin: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: kBorderColor.withValues(alpha: 0.6)),
+        ),
+        alignment: Alignment.center,
+        child: const Text("No visual data for this period", style: TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.bold)),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBorderColor.withOpacity(0.6)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.6)),
       ),
       child: Column(
         children: [
           SizedBox(
-            height: 120,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: maxVal > 0 ? maxVal * 1.2 : 100,
-                barTouchData: BarTouchData(enabled: true),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (v, m) {
-                        final label = v == 0 ? "OPERATIONAL" : "STOCK PURCHASE";
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
-                        );
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 32,
-                      getTitlesWidget: (v, m) {
-                        if (v == 0) return const SizedBox();
-                        return Text(v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}k' : v.toStringAsFixed(0), style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold));
-                      },
-                    ),
-                  ),
-                ),
-                gridData: FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 5000, getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withOpacity(0.15), strokeWidth: 1)),
-                borderData: FlBorderData(show: false),
-                barGroups: [
-                  _makeBarGroup(0, op, kChartRed),
-                  _makeBarGroup(1, stock, kChartOrange),
-                ],
-              ),
-            ),
+            height: 140,
+            child: !_showByCategory ? _buildTimeBarChart(timeTotals, isHourly) : _buildCategoryPieChart(categoryTotals),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryPieChart(Map<String, double> categoryTotals) {
+    List<PieChartSectionData> sections = [];
+    int colorIndex = 0;
+    categoryTotals.forEach((category, amount) {
+      if (amount > 0) {
+        sections.add(
+          PieChartSectionData(
+            color: kChartColorsList[colorIndex % kChartColorsList.length],
+            value: amount,
+            title: '',
+            radius: 20,
+          )
+        );
+        colorIndex++;
+      }
+    });
+
+    List<Widget> legendRow = [];
+    colorIndex = 0;
+    categoryTotals.forEach((category, amount) {
+      if (amount > 0) {
+        legendRow.add(
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: kChartColorsList[colorIndex % kChartColorsList.length], shape: BoxShape.circle)),
+                const SizedBox(width: 6),
+                Expanded(child: Text(category, style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                Text("$_currencySymbol${amount.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        );
+        colorIndex++;
+      }
+    });
+
+    return Row(
+      children: [
+        Expanded(
+          flex: 4,
+          child: PieChart(
+            PieChartData(
+              sectionsSpace: 2,
+              centerSpaceRadius: 35,
+              sections: sections,
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          flex: 6,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: legendRow,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeBarChart(Map<int, double> timeTotals, bool isHourly) {
+    if (timeTotals.isEmpty) return const SizedBox();
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        barTouchData: BarTouchData(enabled: true),
+        titlesData: FlTitlesData(
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (v, m) {
+                int val = v.toInt();
+                String labelStr = '';
+                if (isHourly) {
+                  if (val % 6 != 0) return const SizedBox();
+                  labelStr = '${val > 12 ? val - 12 : (val == 0 ? 12 : val)}${val >= 12 ? 'pm' : 'am'}';
+                } else {
+                  labelStr = val.toString();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(labelStr, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 32,
+              getTitlesWidget: (v, m) {
+                if (v == 0) return const SizedBox();
+                return Text(v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}k' : v.toStringAsFixed(0), style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold));
+              },
+            ),
+          ),
+        ),
+        gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withValues(alpha: 0.15), strokeWidth: 1)),
+        borderData: FlBorderData(show: false),
+        barGroups: timeTotals.entries.map((e) {
+          return _makeBarGroup(e.key, e.value, kChartRed);
+        }).toList(),
       ),
     );
   }
@@ -7310,9 +7625,8 @@ class ExpenseReportPage extends StatelessWidget {
         BarChartRodData(
           toY: y > 0 ? y : 1,
           color: color,
-          width: 32,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-          backDrawRodData: BackgroundBarChartRodData(show: true, toY: 0, color: kBorderColor.withValues(alpha: 0.1)),
+          width: 8,
+          borderRadius: BorderRadius.circular(2),
         ),
       ],
     );
@@ -7323,25 +7637,25 @@ class ExpenseReportPage extends StatelessWidget {
     final Color color = isStock ? kWarningOrange : kExpenseRed;
 
     String dateStr = '--/--';
-    if (data['date'] is Timestamp) {
-      dateStr = DateFormat('dd MMM').format((data['date'] as Timestamp).toDate());
-    } else if (data['date'] is String) {
-      dateStr = DateFormat('dd MMM').format(DateTime.parse(data['date']));
+    if (data['date'] is DateTime) {
+      dateStr = DateFormat('dd MMM').format(data['date'] as DateTime);
     }
+
+    String paymentMode = data['paymentMode'].toString().toUpperCase();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor.withOpacity(0.4)),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
             child: Icon(isStock ? Icons.inventory_2_outlined : Icons.outbox_rounded, color: color, size: 16),
           ),
           const SizedBox(width: 14),
@@ -7351,13 +7665,13 @@ class ExpenseReportPage extends StatelessWidget {
               children: [
                 Text(
                   data['title'].toString(),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black87),
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.black87),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                    "$dateStr • ${data['type'].toString()}",
-                    style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)
+                    "$dateStr • ${data['category']?.toString().toUpperCase() ?? data['type'].toString().toUpperCase()}",
+                    style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.bold)
                 ),
               ],
             ),
@@ -7365,8 +7679,8 @@ class ExpenseReportPage extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text("- ${(data['amount'] as double).toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color, letterSpacing: -0.5)),
-              const Text("SETTLED", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+              Text("$_currencySymbol${(data['amount'] as double).toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color, letterSpacing: -0.5)),
+              Text(paymentMode, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
             ],
           ),
         ],
@@ -7374,7 +7688,6 @@ class ExpenseReportPage extends StatelessWidget {
     );
   }
 }
-
 // ==========================================
 // UNIFIED TAX REPORT PAGE (Tax + GST Combined)
 // ==========================================
@@ -7389,9 +7702,25 @@ class TaxReportPage extends StatefulWidget {
 
 class _TaxReportPageState extends State<TaxReportPage> {
   final FirestoreService _firestoreService = FirestoreService();
+  String _currencySymbol = '';
+
   DateTime? _fromDate;
   DateTime? _toDate;
   bool _showReport = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrency();
+  }
+
+  void _loadCurrency() async {
+    final store = await FirestoreService().getCurrentStoreDoc();
+    if (store != null && store.exists && mounted) {
+      final data = store.data() as Map<String, dynamic>;
+      setState(() => _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']));
+    }
+  }
 
   Future<void> _selectFromDate() async {
     final picked = await showDatePicker(
@@ -7417,10 +7746,12 @@ class _TaxReportPageState extends State<TaxReportPage> {
     }
   }
 
-  bool _isInDateRange(DateTime? dt) {
-    if (dt == null || _fromDate == null || _toDate == null) return false;
-    return dt.isAfter(_fromDate!.subtract(const Duration(days: 1))) &&
-        dt.isBefore(_toDate!.add(const Duration(days: 1)));
+  bool _isInDateRange(DateTime? dt, DateTime start, DateTime end) {
+    if (dt == null) return false;
+    final date = DateTime(dt.year, dt.month, dt.day);
+    final s = DateTime(start.year, start.month, start.day);
+    final e = DateTime(end.year, end.month, end.day);
+    return !date.isBefore(s) && !date.isAfter(e);
   }
 
   void _downloadPdf({
@@ -7434,18 +7765,17 @@ class _TaxReportPageState extends State<TaxReportPage> {
     required double totalPurchaseGST,
     required double netLiability,
   }) {
-    // Create comprehensive tax rows combining sales tax and GST data
     final List<List<String>> allRows = [];
     
     // Add Sales Tax Data
     for (var d in taxableDocs) {
       allRows.add([
-        DateFormat('dd/MM/yy').format(d['timestamp'] is Timestamp ? (d['timestamp'] as Timestamp).toDate() : DateTime.now()),
+        DateFormat('dd/MM/yy').format(d['date'] ?? DateTime.now()),
         'TAX - SALES',
         d['invoiceNumber']?.toString() ?? 'N/A',
         d['customerName']?.toString() ?? 'Guest',
-        (double.tryParse(d['total']?.toString() ?? '0') ?? 0).toStringAsFixed(2),
-        (d['calculatedTax'] as double).toStringAsFixed(2),
+        "$_currencySymbol${(double.tryParse(d['total']?.toString() ?? '0') ?? 0).toStringAsFixed(2)}",
+        "$_currencySymbol${(d['calculatedTax'] as double).toStringAsFixed(2)}",
       ]);
     }
 
@@ -7456,8 +7786,8 @@ class _TaxReportPageState extends State<TaxReportPage> {
         'GST - ${row['category']}',
         row['invoice'],
         row['gstNumber'],
-        "${(row['amount'] as double).toStringAsFixed(2)}",
-        "${(row['gst'] as double).toStringAsFixed(2)}",
+        "$_currencySymbol${(row['amount'] as double).toStringAsFixed(2)}",
+        "$_currencySymbol${(row['gst'] as double).toStringAsFixed(2)}",
       ]);
     }
 
@@ -7468,8 +7798,8 @@ class _TaxReportPageState extends State<TaxReportPage> {
         'GST - ${row['category']}',
         row['invoice'],
         row['gstNumber'],
-        "${(row['amount'] as double).toStringAsFixed(2)}",
-        "${(row['gst'] as double).toStringAsFixed(2)}",
+        "$_currencySymbol${(row['amount'] as double).toStringAsFixed(2)}",
+        "$_currencySymbol${(row['gst'] as double).toStringAsFixed(2)}",
       ]);
     }
 
@@ -7479,14 +7809,13 @@ class _TaxReportPageState extends State<TaxReportPage> {
       headers: ['DATE', 'TYPE', 'INVOICE', 'PARTY', 'TOTAL', 'TAX/GST'],
       rows: allRows,
       summaryTitle: 'NET TAX LIABILITY',
-      summaryValue: "${(totalTaxAmount + netLiability).toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${(totalTaxAmount + netLiability).toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_fromDate!)} to ${DateFormat('dd/MM/yy').format(_toDate!)}',
-        'Sales Tax': '${totalTaxAmount.toStringAsFixed(2)}',
-        'Sales GST': '${totalSalesGST.toStringAsFixed(2)}',
-        'Purchase GST': '${totalPurchaseGST.toStringAsFixed(2)}',
-        'Net GST Liability': '${netLiability.toStringAsFixed(2)}',
-        'Transaction Count': '${taxableDocs.length + salesRows.length + purchaseRows.length}',
+        'Sales Tax': '$_currencySymbol${totalTaxAmount.toStringAsFixed(2)}',
+        'Sales GST': '$_currencySymbol${totalSalesGST.toStringAsFixed(2)}',
+        'Purchase GST': '$_currencySymbol${totalPurchaseGST.toStringAsFixed(2)}',
+        'Net GST Liability': '$_currencySymbol${netLiability.toStringAsFixed(2)}',
         'Audit Status': 'Verified'
       },
     );
@@ -7494,19 +7823,18 @@ class _TaxReportPageState extends State<TaxReportPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Show date selection screen if report not yet generated
     if (!_showReport) {
       return Scaffold(
         backgroundColor: kBackgroundColor,
         appBar: _buildModernAppBar("Tax Report Period", widget.onBack),
         body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 30),
-              _buildSectionHeader("Select Tax Report Duration"),
-              const SizedBox(height: 12),
+              const SizedBox(height: 32),
+              _buildSectionHeader("SELECT AUDIT DURATION"),
+              const SizedBox(height: 16),
               _buildDateTile("START DATE", _fromDate, _selectFromDate),
               const SizedBox(height: 12),
               _buildDateTile("END DATE", _toDate, _selectToDate),
@@ -7521,19 +7849,17 @@ class _TaxReportPageState extends State<TaxReportPage> {
                     backgroundColor: kPrimaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
                   ),
-                  child: const Text('GENERATE TAX REPORT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+                  child: const Text('GENERATE AUDIT REPORT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 32),
             ],
           ),
         ),
       );
     }
 
-    // Show comprehensive tax report
     return FutureBuilder<List<Stream<QuerySnapshot>>>(
       future: Future.wait([
         _firestoreService.getCollectionStream('sales'),
@@ -7545,18 +7871,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
         if (!streamsSnapshot.hasData) {
           return Scaffold(
             backgroundColor: kBackgroundColor,
-            appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-                onPressed: () => setState(() => _showReport = false),
-              ),
-              title: const Text('Tax Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-              backgroundColor: kPrimaryColor,
-              centerTitle: true,
-            ),
+            appBar: _buildModernAppBar("Tax Report", () => setState(() => _showReport = false)),
             body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
           );
         }
@@ -7574,13 +7889,26 @@ class _TaxReportPageState extends State<TaxReportPage> {
                       stream: streamsSnapshot.data![3],
                       builder: (context, creditNoteSnapshot) {
                         if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
-                          return const Scaffold(body: Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+                          return Scaffold(
+                            appBar: _buildModernAppBar("Tax Report", () => setState(() => _showReport = false)),
+                            body: const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+                          );
                         }
 
-                        // --- Process Sales Tax Data ---
+                        // --- Data Processing (Current Period) ---
                         double totalTaxAmount = 0;
                         Map<String, double> taxBreakdown = {};
                         var taxableDocs = <Map<String, dynamic>>[];
+                        
+                        List<Map<String, dynamic>> salesRows = [];
+                        double totalSalesGST = 0;
+
+                        // Comparison Variables (Last Month/Prev Period)
+                        int periodDays = _toDate!.difference(_fromDate!).inDays + 1;
+                        DateTime prevStart = _fromDate!.subtract(Duration(days: periodDays));
+                        DateTime prevEnd = _fromDate!.subtract(const Duration(days: 1));
+                        double prevTaxAmount = 0;
+                        double prevSalesGST = 0;
 
                         for (var d in salesSnapshot.data!.docs) {
                           var data = d.data() as Map<String, dynamic>;
@@ -7588,12 +7916,11 @@ class _TaxReportPageState extends State<TaxReportPage> {
                           if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
                           else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
-                          if (_isInDateRange(dt)) {
-                            // Skip cancelled or returned bills
-                            final String status = (data['status'] ?? '').toString().toLowerCase();
-                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                              continue;
-                            }
+                          final String status = (data['status'] ?? '').toString().toLowerCase();
+                          bool isCancelled = status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true;
+
+                          if (_isInDateRange(dt, _fromDate!, _toDate!)) {
+                            if (isCancelled) continue;
 
                             double saleTax = double.tryParse(data['totalTax']?.toString() ?? '0') ?? 0;
                             if (saleTax == 0) {
@@ -7603,8 +7930,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
                             if (saleTax > 0) {
                               totalTaxAmount += saleTax;
                               if (data['taxes'] != null && data['taxes'] is List) {
-                                List<dynamic> taxes = data['taxes'] as List<dynamic>;
-                                for (var taxItem in taxes) {
+                                for (var taxItem in (data['taxes'] as List)) {
                                   if (taxItem is Map<String, dynamic>) {
                                     String taxName = taxItem['name']?.toString() ?? 'Tax';
                                     double taxAmount = double.tryParse(taxItem['amount']?.toString() ?? '0') ?? 0;
@@ -7612,211 +7938,116 @@ class _TaxReportPageState extends State<TaxReportPage> {
                                   }
                                 }
                               } else {
-                                taxBreakdown['Tax'] = (taxBreakdown['Tax'] ?? 0) + saleTax;
+                                taxBreakdown['Sales Tax'] = (taxBreakdown['Sales Tax'] ?? 0) + saleTax;
                               }
                               data['calculatedTax'] = saleTax;
+                              data['date'] = dt;
                               taxableDocs.add(data);
                             }
-                          }
-                        }
 
-                        // --- Process GST Sales Data ---
-                        List<Map<String, dynamic>> salesRows = [];
-                        double totalSalesAmount = 0, totalSalesGST = 0;
-
-                        for (var doc in salesSnapshot.data!.docs) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          DateTime? dt;
-                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                          if (_isInDateRange(dt)) {
-                            final String status = (data['status'] ?? '').toString().toLowerCase();
-                            if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                              continue;
-                            }
-
-                            double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                            double gst = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
+                            // GST details
                             salesRows.add({
                               'date': dt,
                               'category': 'SALE',
                               'invoice': data['invoiceNumber']?.toString() ?? 'N/A',
                               'gstNumber': data['customerGST']?.toString() ?? '--',
-                              'amount': total,
-                              'gst': gst,
-                              'cancelled': false,
+                              'amount': double.tryParse(data['total']?.toString() ?? '0') ?? 0,
+                              'gst': saleTax,
                             });
-                            totalSalesAmount += total;
-                            totalSalesGST += gst;
+                            totalSalesGST += saleTax;
+
+                          } else if (_isInDateRange(dt, prevStart, prevEnd)) {
+                            if (isCancelled) continue;
+                            double saleTax = double.tryParse(data['totalTax']?.toString() ?? data['taxAmount']?.toString() ?? '0') ?? 0;
+                            prevTaxAmount += saleTax; 
+                            prevSalesGST += saleTax;
                           }
                         }
 
-                        // --- Process GST Inward Data (Purchases) ---
                         List<Map<String, dynamic>> purchaseRows = [];
-                        double totalPurchaseAmount = 0, totalPurchaseGST = 0;
+                        double totalPurchaseGST = 0;
 
-                        void addInward(QueryDocumentSnapshot doc, String cat, String amtKey, String gstKey, String gstNumKey) {
-                          final data = doc.data() as Map<String, dynamic>;
-                          DateTime? dt;
-                          if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                          else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                          if (_isInDateRange(dt)) {
-                            double amount = double.tryParse(data[amtKey]?.toString() ?? '0') ?? 0;
-                            double gst = double.tryParse(data[gstKey]?.toString() ?? '0') ?? 0;
-                            purchaseRows.add({
-                              'date': dt,
-                              'category': cat,
-                              'invoice': data['invoiceNumber']?.toString() ?? '--',
-                              'gstNumber': data[gstNumKey]?.toString() ?? '--',
-                              'amount': amount,
-                              'gst': gst,
-                              'cancelled': false,
-                            });
-                            totalPurchaseAmount += amount;
-                            totalPurchaseGST += gst;
+                        void processInward(QuerySnapshot snap, String cat, String amtKey, String gstKey, String gstNumKey) {
+                          for (var doc in snap.docs) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            DateTime? dt;
+                            if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                            else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                            
+                            if (_isInDateRange(dt, _fromDate!, _toDate!)) {
+                              double amount = double.tryParse(data[amtKey]?.toString() ?? '0') ?? 0;
+                              double gst = double.tryParse(data[gstKey]?.toString() ?? '0') ?? 0;
+                              purchaseRows.add({
+                                'date': dt,
+                                'category': cat,
+                                'invoice': data['invoiceNumber']?.toString() ?? '--',
+                                'gstNumber': data[gstNumKey]?.toString() ?? '--',
+                                'amount': amount,
+                                'gst': gst,
+                              });
+                              totalPurchaseGST += gst;
+                            }
                           }
                         }
 
-                        for (var doc in expenseSnapshot.data!.docs) {
-                          addInward(doc, 'EXPENSE', 'amount', 'gst', '--');
-                        }
-                        for (var doc in purchaseSnapshot.data!.docs) {
-                          addInward(doc, 'PURCHASE', 'totalAmount', 'gst', 'supplierGST');
-                        }
+                        processInward(expenseSnapshot.data!, 'EXPENSE', 'amount', 'gst', '--');
+                        processInward(purchaseSnapshot.data!, 'PURCHASE', 'totalAmount', 'gst', 'supplierGST');
                         if (creditNoteSnapshot.hasData) {
-                          for (var doc in creditNoteSnapshot.data!.docs) {
-                            addInward(doc, 'CREDIT NOTE', 'amount', 'gst', '--');
-                          }
+                          processInward(creditNoteSnapshot.data!, 'CREDIT NOTE', 'amount', 'gst', '--');
                         }
 
                         double gstNetLiability = totalSalesGST - totalPurchaseGST;
                         double totalNetTax = totalTaxAmount + gstNetLiability;
-                        var sortedTaxTypes = taxBreakdown.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
                         return Scaffold(
                           backgroundColor: kBackgroundColor,
-                          appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-                            leading: IconButton(
-                              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
-                              onPressed: () => setState(() => _showReport = false),
-                            ),
-                            title: const Text('Tax Report', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                            backgroundColor: kPrimaryColor,
-                            elevation: 0,
-                            centerTitle: true,
-                            actions: [
-                              IconButton(
-                                icon: const Icon(Icons.file_download_outlined, color: Colors.white),
-                                onPressed: () => _downloadPdf(
-                                  context: context,
-                                  taxableDocs: taxableDocs,
-                                  totalTaxAmount: totalTaxAmount,
-                                  taxBreakdown: taxBreakdown,
-                                  salesRows: salesRows,
-                                  purchaseRows: purchaseRows,
-                                  totalSalesGST: totalSalesGST,
-                                  totalPurchaseGST: totalPurchaseGST,
-                                  netLiability: gstNetLiability,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                            ],
+                          appBar: _buildModernAppBar(
+                            "Tax Report", 
+                            () => setState(() => _showReport = false),
+                            onDownload: () => _downloadPdf(
+                              context: context,
+                              taxableDocs: taxableDocs,
+                              totalTaxAmount: totalTaxAmount,
+                              taxBreakdown: taxBreakdown,
+                              salesRows: salesRows,
+                              purchaseRows: purchaseRows,
+                              totalSalesGST: totalSalesGST,
+                              totalPurchaseGST: totalPurchaseGST,
+                              netLiability: gstNetLiability
+                            )
                           ),
-                          body: Column(
-                            children: [
-                              _buildUnifiedTaxHeader(totalNetTax, totalTaxAmount, totalSalesGST, totalPurchaseGST, gstNetLiability),
+                          body: CustomScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: _buildUnifiedTaxHeader(totalNetTax, totalTaxAmount, totalSalesGST, totalPurchaseGST, gstNetLiability, prevTaxAmount + prevSalesGST),
+                              ),
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+                                sliver: SliverList(
+                                  delegate: SliverChildListDelegate([
+                                    _buildSectionHeader("GST COMPLIANCE SUMMARY"),
+                                    const SizedBox(height: 12),
+                                    _buildComprehensiveSummary(totalTaxAmount, totalSalesGST, totalPurchaseGST, gstNetLiability, totalNetTax),
+                                    const SizedBox(height: 32),
+                                    
+                                    if (taxBreakdown.isNotEmpty) ...[
+                                      _buildSectionHeader("TAX TYPE BREAKDOWN"),
+                                      const SizedBox(height: 12),
+                                      _buildBreakdownMatrix(taxBreakdown.entries.toList()),
+                                      const SizedBox(height: 32),
+                                    ],
 
-                              Expanded(
-                                child: CustomScrollView(
-                                  physics: const BouncingScrollPhysics(),
-                                  slivers: [
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
-                                      sliver: SliverList(
-                                        delegate: SliverChildListDelegate([
-                                          // Tax Type Breakdown Section
-                                          if (sortedTaxTypes.isNotEmpty) ...[
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                                              child: _buildSectionHeader("Tax Type Breakdown"),
-                                            ),
-                                            const SizedBox(height: 10),
-                                            _buildBreakdownMatrix(sortedTaxTypes),
-                                            const SizedBox(height: 24),
-                                          ],
+                                    _buildSectionHeader("GST ON OUTWARD SUPPLIES (SALES)"),
+                                    const SizedBox(height: 12),
+                                    _buildGstTable(salesRows),
+                                    const SizedBox(height: 32),
 
-                                          // Taxable Sales Ledger
-                                          if (taxableDocs.isNotEmpty) ...[
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  _buildSectionHeader("Sales Tax Ledger"),
-                                                  Text(
-                                                    "${taxableDocs.length} BILLS",
-                                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            ...taxableDocs.map((doc) => Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                                              child: _buildTaxLedgerRow(doc),
-                                            )).toList(),
-                                            const SizedBox(height: 24),
-                                          ],
-
-                                          // GST on Outward Supplies
-                                          if (salesRows.isNotEmpty) ...[
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                                              child: _buildSectionHeader("GST on Outward Supplies (Sales)"),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            _buildGstTable(salesRows),
-                                            const SizedBox(height: 24),
-                                          ],
-
-                                          // GST on Inward Supplies
-                                          if (purchaseRows.isNotEmpty) ...[
-                                            Padding(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                                              child: _buildSectionHeader("GST on Inward Supplies (Purchases)"),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            _buildGstTable(purchaseRows),
-                                            const SizedBox(height: 24),
-                                          ],
-
-                                          // Compliance Summary
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                                            child: _buildSectionHeader("Tax Compliance Summary"),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                                            child: _buildComprehensiveSummary(
-                                              totalTaxAmount,
-                                              totalSalesAmount,
-                                              totalSalesGST,
-                                              totalPurchaseAmount,
-                                              totalPurchaseGST,
-                                              gstNetLiability,
-                                              totalNetTax,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 40),
-                                        ]),
-                                      ),
-                                    ),
-                                  ],
+                                    _buildSectionHeader("GST ON INWARD SUPPLIES (PURCHASES)"),
+                                    const SizedBox(height: 12),
+                                    _buildGstTable(purchaseRows),
+                                    const SizedBox(height: 48),
+                                  ]),
                                 ),
                               ),
                             ],
@@ -7839,14 +8070,17 @@ class _TaxReportPageState extends State<TaxReportPage> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
+      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
   }
 
-  Widget _buildUnifiedTaxHeader(double totalNet, double salesTax, double salesGST, double purchaseGST, double gstNet) {
+  Widget _buildUnifiedTaxHeader(double totalNet, double salesTax, double salesGST, double purchaseGST, double gstNet, double prevTotal) {
+    bool isHigher = totalNet > prevTotal;
+    double diffPercent = prevTotal > 0 ? ((totalNet - prevTotal).abs() / prevTotal) * 100 : 0;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -7859,52 +8093,29 @@ class _TaxReportPageState extends State<TaxReportPage> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("TOTAL TAX LIABILITY", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  const SizedBox(height: 2),
-                  Text(" ${totalNet.toStringAsFixed(2)}", style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: totalNet >= 0 ? kIncomeGreen : kExpenseRed, letterSpacing: -1)),
+                  const Text("NET TAX LIABILITY", style: TextStyle(color: kTextSecondary, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  const SizedBox(height: 4),
+                  Text("$_currencySymbol${totalNet.toStringAsFixed(2)}", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: totalNet >= 0 ? kExpenseRed : kIncomeGreen, letterSpacing: -0.5)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(isHigher ? Icons.trending_up_rounded : Icons.trending_down_rounded, size: 14, color: isHigher ? kExpenseRed : kIncomeGreen),
+                      const SizedBox(width: 4),
+                      Text(
+                        "${diffPercent.toStringAsFixed(1)}% vs prev period",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isHigher ? kExpenseRed : kIncomeGreen),
+                      ),
+                    ],
+                  ),
                 ],
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text("SALES TAX: ${salesTax.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kIncomeGreen)),
-                  const SizedBox(height: 2),
-                  Text("GST NET: ${gstNet.toStringAsFixed(0)}", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: gstNet >= 0 ? kExpenseRed : kIncomeGreen)),
+                  _buildTag("SALES TAX: ${salesTax.toStringAsFixed(0)}", kIncomeGreen),
+                  const SizedBox(height: 6),
+                  _buildTag("GST NET: ${gstNet.toStringAsFixed(0)}", gstNet >= 0 ? kExpenseRed : kIncomeGreen),
                 ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: kIncomeGreen.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Text("GST OUT: ${salesGST.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kIncomeGreen)),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: kExpenseRed.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Text("GST IN: ${purchaseGST.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kExpenseRed)),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
@@ -7913,33 +8124,40 @@ class _TaxReportPageState extends State<TaxReportPage> {
     );
   }
 
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color)),
+    );
+  }
+
   Widget _buildBreakdownMatrix(List<MapEntry<String, double>> types) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.6)),
       ),
       child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
+        spacing: 12,
+        runSpacing: 12,
         children: types.map((entry) {
           return Container(
-            width: 160,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            width: (MediaQuery.of(context).size.width - 80) / 2,
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBackgroundColor.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
+              color: kBackgroundColor.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: kBorderColor.withOpacity(0.4)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.key, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
-                const SizedBox(height: 2),
-                Text(" ${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87)),
+                Text(entry.key.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
+                const SizedBox(height: 4),
+                Text("$_currencySymbol${entry.value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.black87)),
               ],
             ),
           );
@@ -7953,7 +8171,7 @@ class _TaxReportPageState extends State<TaxReportPage> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: kSurfaceColor,
           borderRadius: BorderRadius.circular(16),
@@ -7964,10 +8182,10 @@ class _TaxReportPageState extends State<TaxReportPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
-                const SizedBox(height: 4),
-                Text(date != null ? DateFormat('dd MMMM yyyy').format(date) : 'SELECT DATE',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
+                Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kTextSecondary, letterSpacing: 1)),
+                const SizedBox(height: 6),
+                Text(date != null ? DateFormat('dd MMMM yyyy').format(date) : 'SELECT AUDIT DATE',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: date != null ? Colors.black87 : kTextSecondary)),
               ],
             ),
             const Spacer(),
@@ -7983,27 +8201,27 @@ class _TaxReportPageState extends State<TaxReportPage> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.6)),
       ),
       child: Column(
         children: [
           Container(
-            color: kBackgroundColor.withOpacity(0.5),
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: kBackgroundColor.withValues(alpha: 0.5),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+            ),
             child: Row(
               children: const [
-                Expanded(flex: 2, child: Text("DATE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 3, child: Text("INVOICE/GSTIN", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 2, child: Text("TOTAL", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
-                Expanded(flex: 2, child: Text("GST", textAlign: TextAlign.right, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 3, child: Text("DATE / INVOICE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 3, child: Text("GSTIN", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
+                Expanded(flex: 2, child: Text("GST AMT", textAlign: TextAlign.right, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary))),
               ],
             ),
           ),
           if (rows.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(20),
-              child: Text("No data available", style: TextStyle(fontSize: 14, color: kTextSecondary)),
-            )
+            const Padding(padding: EdgeInsets.all(32), child: Text("No data available", style: TextStyle(fontSize: 13, color: kTextSecondary, fontWeight: FontWeight.bold)))
           else
             ...rows.map((row) => _buildGstTableRow(row)).toList(),
         ],
@@ -8014,462 +8232,57 @@ class _TaxReportPageState extends State<TaxReportPage> {
   Widget _buildGstTableRow(Map<String, dynamic> row) {
     final String gstin = row['gstNumber'].toString();
     final String inv = row['invoice'].toString();
+    final DateTime dt = row['date'] as DateTime;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.2))),
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: kBorderColor.withValues(alpha: 0.2)))),
       child: Row(
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              DateFormat('dd MMM yyyy').format(row['date']),
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.black87),
-            ),
-          ),
           Expanded(
             flex: 3,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  inv,
-                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kPrimaryColor),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  gstin == "--" ? "UNREGISTERED" : gstin,
-                  style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.bold),
-                ),
+                Text(inv, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                Text(DateFormat('dd MMM yy').format(dt), style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.bold)),
               ],
             ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(gstin == "--" ? "UNREGISTERED" : gstin, style: const TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.bold)),
           ),
           Expanded(
             flex: 2,
-            child: Text(
-              " ${(row['amount'] as double).toStringAsFixed(0)}",
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.black87),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              " ${(row['gst'] as double).toStringAsFixed(1)}",
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.black87),
-            ),
+            child: Text("$_currencySymbol${(row['gst'] as double).toStringAsFixed(0)}", textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.black87)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildComprehensiveSummary(
-    double salesTax,
-    double salesAmount,
-    double salesGST,
-    double purchaseAmount,
-    double purchaseGST,
-    double gstNet,
-    double totalNet,
-  ) {
+  Widget _buildComprehensiveSummary(double salesTax, double salesGST, double purchaseGST, double gstNet, double totalNet) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.6)),
       ),
       child: Column(
         children: [
-          _buildSummaryRow("Sales Tax Collected", salesTax),
-          const SizedBox(height: 8),
-          _buildSummaryRow("Sales GST (Outward)", salesGST),
-          const SizedBox(height: 8),
-          _buildSummaryRow("Purchase GST (Inward)", purchaseGST),
-          const Divider(height: 24),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: totalNet >= 0 ? [kIncomeGreen, kIncomeGreen.withOpacity(0.7)] : [kExpenseRed, kExpenseRed.withOpacity(0.7)],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Total Tax Liability", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.5)),
-                Text(" ${totalNet.toStringAsFixed(2)}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(String label, double amount) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kTextSecondary)),
-        Text(" ${amount.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-      ],
-    );
-  }
-
-  Widget _buildTaxLedgerRow(Map<String, dynamic> data) {
-    final double tax = data['calculatedTax'] ?? 0.0;
-    final double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0.0;
-
-    String taxDetailStr = '';
-    if (data['taxes'] != null && data['taxes'] is List) {
-      taxDetailStr = (data['taxes'] as List).map((t) => "${t['name']}: ${t['amount']}").join(" • ");
-    }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor.withOpacity(0.4)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kIncomeGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.description_outlined, color: kIncomeGreen, size: 16),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  (data['customerName'] ?? 'Guest').toString(),
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: Colors.black87),
-                  maxLines: 1,
-                ),
-                Text(
-                    "Invoice${data['invoiceNumber'] ?? 'N/A'} • ${_formatDate(data['date'])}",
-                    style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)
-                ),
-                if (taxDetailStr.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 2),
-                    child: Text(taxDetailStr, style: const TextStyle(fontSize: 7, color: kIncomeGreen, fontWeight: FontWeight.w900, letterSpacing: 0.2)),
-                  ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text("TAX: ${tax.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kIncomeGreen)),
-              Text("VAL: ${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(dynamic date) {
-    try {
-      if (date is Timestamp) return DateFormat('dd MMM yyyy').format(date.toDate());
-      if (date is String) return DateFormat('dd MMM yyyy').format(DateTime.parse(date));
-    } catch (e) {}
-    return '-- --- ----';
-  }
-}
-
-class StaffSaleReportPage extends StatefulWidget {
-  final VoidCallback onBack;
-
-  const StaffSaleReportPage({super.key, required this.onBack});
-
-  @override
-  State<StaffSaleReportPage> createState() => _StaffSaleReportPageState();
-}
-
-class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
-  final FirestoreService _firestoreService = FirestoreService();
-  DateFilterOption _selectedFilter = DateFilterOption.today;
-  DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now();
-  bool _isDescending = true;
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    _startDate = DateTime(now.year, now.month, now.day);
-    _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
-  }
-
-  void _onDateChanged(DateFilterOption option, DateTime start, DateTime end) {
-    setState(() {
-      _selectedFilter = option;
-      _startDate = start;
-      _endDate = end;
-    });
-  }
-
-  bool _isInDateRange(DateTime? dt) {
-    if (dt == null) return false;
-    return dt.isAfter(_startDate.subtract(const Duration(seconds: 1))) &&
-        dt.isBefore(_endDate.add(const Duration(seconds: 1)));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Staff Performance", widget.onBack),
-      body: FutureBuilder<Stream<QuerySnapshot>>(
-        future: _firestoreService.getCollectionStream('sales'),
-        builder: (context, streamSnapshot) {
-          if (!streamSnapshot.hasData) {
-            return const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2));
-          }
-          return StreamBuilder<QuerySnapshot>(
-            stream: streamSnapshot.data!,
-            builder: (context, snapshot) {
-              if (!snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-              }
-
-              // --- Process staff data ---
-              Map<String, Map<String, dynamic>> staffData = {};
-              double grandTotal = 0;
-              int grandBills = 0;
-
-              for (var doc in snapshot.data!.docs) {
-                final data = doc.data() as Map<String, dynamic>;
-                DateTime? dt;
-                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                if (_isInDateRange(dt)) {
-                  // Skip cancelled or returned bills
-                  final String status = (data['status'] ?? '').toString().toLowerCase();
-                  if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                    continue;
-                  }
-
-                  String staffName = data['staffName']?.toString() ?? 'owner';
-                  double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                  double discount = double.tryParse(data['discount']?.toString() ?? '0') ?? 0;
-                  String paymentMode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
-
-                  grandTotal += total;
-                  grandBills++;
-
-                  if (!staffData.containsKey(staffName)) {
-                    staffData[staffName] = {
-                      'salesCount': 0,
-                      'totalAmount': 0.0,
-                      'cashCount': 0,
-                      'cashAmount': 0.0,
-                      'onlineCount': 0,
-                      'onlineAmount': 0.0,
-                      'creditCount': 0,
-                      'creditAmount': 0.0,
-                      'creditNoteCount': 0,
-                      'creditNoteAmount': 0.0,
-                      'totalDiscount': 0.0,
-                    };
-                  }
-
-                  staffData[staffName]!['salesCount'] = (staffData[staffName]!['salesCount'] as int) + 1;
-                  staffData[staffName]!['totalAmount'] = (staffData[staffName]!['totalAmount'] as double) + total;
-                  staffData[staffName]!['totalDiscount'] = (staffData[staffName]!['totalDiscount'] as double) + discount;
-
-                  // Handle Split payments separately
-                  if (paymentMode == 'split') {
-                    double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
-                    double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
-                    double splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
-                    if (splitCash > 0) {
-                      staffData[staffName]!['cashCount'] = (staffData[staffName]!['cashCount'] as int) + 1;
-                      staffData[staffName]!['cashAmount'] = (staffData[staffName]!['cashAmount'] as double) + splitCash;
-                    }
-                    if (splitOnline > 0) {
-                      staffData[staffName]!['onlineCount'] = (staffData[staffName]!['onlineCount'] as int) + 1;
-                      staffData[staffName]!['onlineAmount'] = (staffData[staffName]!['onlineAmount'] as double) + splitOnline;
-                    }
-                    if (splitCredit > 0) {
-                      staffData[staffName]!['creditCount'] = (staffData[staffName]!['creditCount'] as int) + 1;
-                      staffData[staffName]!['creditAmount'] = (staffData[staffName]!['creditAmount'] as double) + splitCredit;
-                    }
-                  } else if (paymentMode.contains('online') || paymentMode.contains('upi') || paymentMode.contains('card')) {
-                    staffData[staffName]!['onlineCount'] = (staffData[staffName]!['onlineCount'] as int) + 1;
-                    staffData[staffName]!['onlineAmount'] = (staffData[staffName]!['onlineAmount'] as double) + total;
-                  } else if (paymentMode.contains('credit') && paymentMode.contains('note')) {
-                    staffData[staffName]!['creditNoteCount'] = (staffData[staffName]!['creditNoteCount'] as int) + 1;
-                    staffData[staffName]!['creditNoteAmount'] = (staffData[staffName]!['creditNoteAmount'] as double) + total;
-                  } else if (paymentMode.contains('credit')) {
-                    staffData[staffName]!['creditCount'] = (staffData[staffName]!['creditCount'] as int) + 1;
-                    staffData[staffName]!['creditAmount'] = (staffData[staffName]!['creditAmount'] as double) + total;
-                  } else {
-                    staffData[staffName]!['cashCount'] = (staffData[staffName]!['cashCount'] as int) + 1;
-                    staffData[staffName]!['cashAmount'] = (staffData[staffName]!['cashAmount'] as double) + total;
-                  }
-                }
-              }
-
-              var sortedEntries = staffData.entries.toList();
-              sortedEntries.sort((a, b) {
-                int result = (a.value['totalAmount'] as double).compareTo(b.value['totalAmount'] as double);
-                return _isDescending ? -result : result;
-              });
-
-              return Column(
-                children: [
-                  _buildStaffExecutiveHeader(grandTotal, grandBills),
-                  DateFilterWidget(
-                    selectedOption: _selectedFilter,
-                    startDate: _startDate,
-                    endDate: _endDate,
-                    onDateChanged: _onDateChanged,
-                    showSortButton: true,
-                    isDescending: _isDescending,
-                    onSortPressed: () => setState(() => _isDescending = !_isDescending),
-                  ),
-                  Expanded(
-                    child: sortedEntries.isEmpty
-                        ? const Center(child: Text("No staff sales recorded for this period", style: TextStyle(color: kTextSecondary)))
-                        : ListView.builder(
-                      physics: const BouncingScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      itemCount: sortedEntries.length,
-                      itemBuilder: (context, index) {
-                        final entry = sortedEntries[index];
-                        return _buildStaffPerformanceCard(entry.key, entry.value);
-                      },
-                    ),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  // --- EXECUTIVE UI COMPONENTS ---
-
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
-    );
-  }
-
-  Widget _buildStaffExecutiveHeader(double total, int bills) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("TOTAL STAFF REVENUE", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 1)),
-              const SizedBox(height: 2),
-              Text("${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: -1)),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: kPrimaryColor.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kPrimaryColor.withOpacity(0.1)),
-            ),
-            child: Column(
-              children: [
-                Text("$bills", style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                const Text("BILLS", style: TextStyle(color: kTextSecondary, fontSize: 7, fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStaffPerformanceCard(String name, Map<String, dynamic> data) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBorderColor.withOpacity(0.7)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          _buildSummaryRecord("Sales Tax Collected", salesTax, kIncomeGreen),
+          const SizedBox(height: 12),
+          _buildSummaryRecord("Total Sales GST", salesGST, kIncomeGreen),
+          const SizedBox(height: 12),
+          _buildSummaryRecord("Total Purchase GST", purchaseGST, kExpenseRed),
+          const Divider(height: 32),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: kPrimaryColor.withOpacity(0.1),
-                    child: Text(name[0], style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 14)),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Colors.black87)),
-                      Text("${data['salesCount']} TRANSACTIONS", style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text("${(data['totalAmount'] as double).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kPrimaryColor, letterSpacing: -0.5)),
-                  const Text("TOTAL CONTRIBUTION", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSectionHeader("Payment Breakdown"),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _buildMiniStatTile("CASH", data['cashAmount'], kIncomeGreen)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildMiniStatTile("ONLINE", data['onlineAmount'], kPrimaryColor)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildMiniStatTile("CREDIT", data['creditAmount'], kWarningOrange)),
-              const SizedBox(width: 8),
-              Expanded(child: _buildMiniStatTile("DISCOUNT", data['totalDiscount'], kExpenseRed)),
+              const Text("NET COMPLIANCE", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Colors.black87)),
+              Text("$_currencySymbol${totalNet.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: totalNet >= 0 ? kExpenseRed : kIncomeGreen)),
             ],
           ),
         ],
@@ -8477,30 +8290,16 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
     );
   }
 
-  Widget _buildMiniStatTile(String label, double val, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: kBackgroundColor.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorderColor.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kTextSecondary)),
-          Text("${val.toStringAsFixed(0)}", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color.withOpacity(0.8))),
-        ],
-      ),
+  Widget _buildSummaryRecord(String label, double val, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kTextSecondary)),
+        Text("$_currencySymbol${val.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: color)),
+      ],
     );
   }
 }
-
-
-
-// Helper for simple list-based reports to reduce boilerplate
-
-
 // ==========================================
 // INCOME SUMMARY PAGE (Enhanced with all features from screenshot)
 // ==========================================
@@ -8669,7 +8468,7 @@ class IncomeSummaryPage extends StatelessWidget {
     final net = income - expense;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -9074,7 +8873,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
   Widget _buildNetPositionStrip(double net, double income, double expense) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.5))),
@@ -9124,7 +8923,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: kBorderColor.withOpacity(0.6)),
       ),
       child: Column(
@@ -9248,7 +9047,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: themeColor.withOpacity(0.05),
+          color: themeColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: themeColor.withOpacity(0.2)),
       ),
@@ -9280,3 +9079,19 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
 // GST REPORT NOW MERGED INTO TAX REPORT
 // Use TaxReport for comprehensive tax and GST reporting
 // ==========================================
+
+class StaffSaleReportPage extends StatelessWidget {
+  final VoidCallback onBack;
+  const StaffSaleReportPage({super.key, required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: kBackgroundColor,
+      appBar: _buildModernAppBar("Staff Performance", onBack),
+      body: const EmptyStateWidget(
+        message: "Staff Performance report is coming soon.",
+      ),
+    );
+  }
+}
