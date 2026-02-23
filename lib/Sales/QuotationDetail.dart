@@ -42,131 +42,178 @@ class QuotationDetailPage extends StatelessWidget {
     final isActive = status == 'active' && billed != true;
 
     return Scaffold(
-      backgroundColor: kPrimaryColor,
+      backgroundColor: kGreyBg,
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
-        title: const Text('Quotation Info', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        title: const Text('Quotation Details', style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+        actions: [
+          if (isActive)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: kWhite, size: 22),
+              onPressed: () => _confirmDelete(context),
+            ),
+        ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15)]),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      body: Container(
+        width: double.infinity,
+        decoration: const BoxDecoration(
+          color: kGreyBg,
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Info Card
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: kWhite,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeaderRow('$quotationNumber', isActive),
-                    const SizedBox(height: 8), // Reduced gap
+                    const SizedBox(height: 12),
                     _buildDetailRow(Icons.person_rounded, 'Customer', customerName),
                     _buildDetailRow(Icons.badge_rounded, 'Created By', staffName),
                     _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', formattedDate),
-                    _buildDetailRow(Icons.shopping_bag_rounded, 'Items', '${items.length} units'),
-                    const Padding(padding: EdgeInsets.symmetric(vertical: 0), child: Divider(color: kGreyBg, thickness: 1)),
-                    const Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
-                    const SizedBox(height: 12),
-                    _buildPriceRow('Subtotal (Gross)', (quotationData['subtotal'] ?? 0.0).toDouble()),
-                    _buildPriceRow('Total Deductions', -(quotationData['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
-                    const Divider(height: 16, color: kGreyBg),
-                    _buildPriceRow('Final Net Total', total, isBold: true),
-                    const SizedBox(height: 16),
-                    if (isActive)
-                      Row(
+                    _buildDetailRow(Icons.shopping_bag_rounded, 'Items Count', '${items.length} units'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              const Text('ITEMS LIST', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
+              const SizedBox(height: 10),
+              ...items.map((item) {
+                final name = item['name'] ?? 'Unknown Item';
+                final qty = item['quantity'] ?? 1;
+                final price = (item['price'] ?? 0.0).toDouble();
+                final totalWithTax = (item['totalWithTax'] ?? item['total'] ?? 0.0).toDouble();
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kWhite,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: kGrey200),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
+                            const SizedBox(height: 4),
+                            Text('$qty  x  $currencySymbol${price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)),
+                          ],
+                        ),
+                      ),
+                      Text('$currencySymbol${totalWithTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kPrimaryColor)),
+                    ],
+                  ),
+                );
+              }).toList(),
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: kWhite,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+          border: const Border(top: BorderSide(color: kGrey200, width: 1)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Valuation Summary Section
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Column(
+                  children: [
+                    _buildPriceRow('Subtotal', (quotationData['subtotal'] ?? 0.0).toDouble()),
+                    _buildPriceRow('Discount', -(quotationData['discount'] ?? 0.0).toDouble(), valueColor: kErrorColor),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1, color: kGrey200, thickness: 1),
+                    ),
+                    _buildPriceRow('NET TOTAL', total, isBold: true),
+                  ],
+                ),
+              ),
+              // Action Buttons Section
+              Container(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: isActive
+                    ? Row(
                         children: [
                           Expanded(
-                            flex: 5,
+                            flex: 1,
                             child: SizedBox(
-                              height: 48,
+                              height: 52,
                               child: OutlinedButton(
                                 onPressed: () => _editQuotation(context),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: kPrimaryColor, side: const BorderSide(color: kPrimaryColor, width: 2),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4)
+                                  foregroundColor: kPrimaryColor,
+                                  side: const BorderSide(color: kPrimaryColor, width: 2),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                                 ),
-                                child: const Text('EDIT', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                                child: const Text('EDIT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 12),
                           Expanded(
-                            flex: 7,
+                            flex: 2,
                             child: SizedBox(
-                              height: 48,
+                              height: 52,
                               child: ElevatedButton(
                                 onPressed: () => _generateInvoice(context),
-                                style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0, padding: const EdgeInsets.symmetric(horizontal: 4)),
-                                child: const FittedBox(child: Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: kWhite))),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: kPrimaryColor,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                  elevation: 0,
+                                ),
+                                child: const Text('CONVERT TO INVOICE', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWhite, letterSpacing: 0.5)),
                               ),
                             ),
                           ),
                         ],
                       )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.08), borderRadius: BorderRadius.circular(16), border: Border.all(color: kGoogleGreen.withOpacity(0.15))),
+                    : Container(
+                        height: 54,
+                        margin: const EdgeInsets.only(bottom: 4),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(color: kGoogleGreen.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
-                            Icon(Icons.check_circle, color: kGoogleGreen, size: 20),
+                            Icon(Icons.check_circle, color: kGoogleGreen, size: 22),
                             SizedBox(width: 10),
-                            Text('Quotation Settled', style: TextStyle(fontSize: 14, color: kGoogleGreen, fontWeight: FontWeight.w800)),
+                            Text('Quotation Settled', style: TextStyle(fontSize: 15, color: kGoogleGreen, fontWeight: FontWeight.w800)),
                           ],
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    const Text('ITEMS', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
-                    const SizedBox(height: 8),
-                    ...items.map((item) {
-                      final name = item['name'] ?? 'Unknown Item';
-                      final qty = item['quantity'] ?? 1;
-                      final price = (item['price'] ?? 0.0).toDouble();
-                      final totalWithTax = (item['totalWithTax'] ?? item['total'] ?? 0.0).toDouble();
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: kGreyBg,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: kGrey200),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87)),
-                                  const SizedBox(height: 4),
-                                  Text('$qty  x  $currencySymbol${price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack54)),
-                                ],
-                              ),
-                            ),
-                            Text('$currencySymbol${totalWithTax.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kPrimaryColor)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    // Bottom padding to clear the navigation bar securely
-                    SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
-                  ],
-                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -249,5 +296,48 @@ class QuotationDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _confirmDelete(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: kWhite,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Quotation', style: TextStyle(fontWeight: FontWeight.w900, color: kBlack87)),
+        content: const Text('Are you sure you want to permanently delete this quotation?', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w500)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCEL', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w800)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteQuotation(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+            child: const Text('DELETE', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteQuotation(BuildContext context) async {
+    try {
+      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator(color: kPrimaryColor)));
+      await FirestoreService().deleteDocument('quotations', quotationId);
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading
+        Navigator.pop(context); // Pop detail page
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quotation Deleted Successfully'), backgroundColor: kErrorColor));
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Pop loading
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error deleting: $e'), backgroundColor: kErrorColor));
+      }
+    }
   }
 }

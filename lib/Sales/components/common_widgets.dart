@@ -106,18 +106,11 @@ class CommonWidgets {
                     Container(width: 1.5, height: 20, color: kWhite.withOpacity(0.3)),
                     const SizedBox(width: 10),
                     Text(
-                      context.tr('Bill').toUpperCase(),
-                      style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                      context.tr('Bill'),
+                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0),
                     ),
-                    const SizedBox(width: 10),
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: kWhite.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 16),
-                    ),
+                    // const SizedBox(width: 10),
+
                   ],
                 ),
               ),

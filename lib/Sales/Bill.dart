@@ -2783,9 +2783,9 @@ class SplitPaymentPage extends StatefulWidget {
 }
 
 class _SplitPaymentPageState extends State<SplitPaymentPage> {
-  final TextEditingController _cashController = TextEditingController(text: '0.00');
-  final TextEditingController _onlineController = TextEditingController(text: '0.00');
-  final TextEditingController _creditController = TextEditingController(text: '0.00');
+  final TextEditingController _cashController = TextEditingController(text: '0');
+  final TextEditingController _onlineController = TextEditingController(text: '0');
+  final TextEditingController _creditController = TextEditingController(text: '0');
 
   double _cashAmount = 0.0;
   double _onlineAmount = 0.0;
@@ -2815,6 +2815,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       setState(() {
         _creditAmount = double.tryParse(_creditController.text) ?? 0.0;
       });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateCreditAmount();
     });
   }
 
@@ -3055,7 +3058,13 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
     return Scaffold(
       backgroundColor: kGreyBg,
-      appBar: AppBar(title: const Text('Split Payment', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)), backgroundColor: kPrimaryColor, iconTheme: const IconThemeData(color: kWhite), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Split Payment', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+        centerTitle: true,
+        backgroundColor: kPrimaryColor,
+        iconTheme: const IconThemeData(color: kWhite),
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
         child: Column(
@@ -3082,11 +3091,11 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                            child: const Text('TOTAL DUE', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                            child: const Text('Total Amount', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                           ),
                         ],
                       ),
-                      if (widget.deliveryCharge > 0) ...[
+                      if (widget.deliveryCharge >0) ...[
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -3110,7 +3119,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                             padding: const EdgeInsets.only(bottom: 6, right: 4),
                             child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.w700)),
                           ),
-                          Text(widget.totalAmount.toString(), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
+                          Text(AmountFormatter.format(widget.totalAmount), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
                         ],
                       ),
                       const SizedBox(height: 24),
@@ -3351,7 +3360,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       decoration: BoxDecoration(
         color: enabled ? kWhite : kGrey100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: enabled && hasValue ? tintColor.withOpacity(0.5) : (enabled ? kGrey200 : kGrey100), width: hasValue ? 2.0 : 1.5),
+        border: Border.all(color: enabled && hasValue ? kBlack87.withOpacity(0.5) : (enabled ? kGrey200 : kGrey100), width: hasValue ? 2.0 : 1.5),
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -3385,10 +3394,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               enabled: enabled,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textAlign: TextAlign.right,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: enabled ? tintColor : kBlack54),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: enabled ? kBlack87 : kBlack54),
               decoration: InputDecoration(
-                prefixText: '$_currencySymbol ',
-                prefixStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: enabled ? tintColor.withOpacity(0.6) : kBlack54),
+                prefixStyle: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: enabled ? kBlack87 : kBlack54),
                 
                 isDense: true,
                 filled: true,
@@ -3396,18 +3404,18 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  borderSide: BorderSide(color: hasText ? kBlack87 : kGrey200, width: hasText ? 1.5 : 1.0),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                  borderSide: BorderSide(color: hasText ? kBlack87 : kGrey200, width: hasText ? 1.5 : 1.0),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                  borderSide: const BorderSide(color: kBlack87, width: 2.0),
                 ),
-                labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                labelStyle: TextStyle(color: hasText ? kBlack87 : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+                floatingLabelStyle: TextStyle(color: hasText ? kBlack87 : kBlack87, fontSize: 11, fontWeight: FontWeight.w900),
               ),
             
 );
