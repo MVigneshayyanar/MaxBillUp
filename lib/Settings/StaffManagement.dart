@@ -151,7 +151,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       if (cred.user?.emailVerified ?? false) {
         final updates = {'isEmailVerified': true, 'verifiedAt': FieldValue.serverTimestamp(), 'tempPassword': FieldValue.delete()};
         await _firestoreService.updateDocument('users', staffId, updates);
-        await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
+        await FirebaseFirestore.instance.collection('users').doc(staffId).set(updates, SetOptions(merge: true)).catchError((_) {});
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Verified! You can now approve.'), backgroundColor: kGoogleGreen));
       } else {
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('❌ Not verified yet.'), backgroundColor: kOrange));
@@ -428,7 +428,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
           );
           if (result != null) {
             await _firestoreService.updateDocument('users', staffId, {'permissions': result, 'updatedAt': FieldValue.serverTimestamp()});
-            await FirebaseFirestore.instance.collection('users').doc(staffId).update({'permissions': result}).catchError((_) {});
+            await FirebaseFirestore.instance.collection('users').doc(staffId).set({'permissions': result}, SetOptions(merge: true)).catchError((_) {});
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Permissions updated!'), backgroundColor: kGoogleGreen));
             }
@@ -650,7 +650,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               onPressed: () async {
                 final upd = {'name': nameC.text.trim(), 'role': role, 'updatedAt': FieldValue.serverTimestamp()};
                 await _firestoreService.updateDocument('users', sid, upd);
-                await FirebaseFirestore.instance.collection('users').doc(sid).update(upd).catchError((_) {});
+                await FirebaseFirestore.instance.collection('users').doc(sid).set(upd, SetOptions(merge: true)).catchError((_) {});
                 if(mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0),
@@ -667,14 +667,14 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   void _activateStaff(String staffId) async {
     final updates = {'isActive': true, 'approvedAt': FieldValue.serverTimestamp(), 'approvedBy': widget.uid};
     await _firestoreService.updateDocument('users', staffId, updates);
-    await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
+    await FirebaseFirestore.instance.collection('users').doc(staffId).set(updates, SetOptions(merge: true)).catchError((_) {});
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✅ Staff activated!'), backgroundColor: kGoogleGreen));
   }
 
   void _toggleStaffStatus(String staffId, bool newStatus) async {
     final updates = {'isActive': newStatus};
     await _firestoreService.updateDocument('users', staffId, updates);
-    await FirebaseFirestore.instance.collection('users').doc(staffId).update(updates).catchError((_) {});
+    await FirebaseFirestore.instance.collection('users').doc(staffId).set(updates, SetOptions(merge: true)).catchError((_) {});
   }
 
   Color _getRoleColor(String role) {
@@ -828,7 +828,7 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
     try {
       final updates = {'permissions': perms, 'updatedAt': FieldValue.serverTimestamp()};
       await FirestoreService().updateDocument('users', widget.staffId, updates);
-      await FirebaseFirestore.instance.collection('users').doc(widget.staffId).update(updates).catchError((_) {});
+      await FirebaseFirestore.instance.collection('users').doc(widget.staffId).set(updates, SetOptions(merge: true)).catchError((_) {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permissions updated successfully'), backgroundColor: kGoogleGreen));
         Navigator.pop(context);

@@ -2665,12 +2665,12 @@ class _PaymentPageState extends State<PaymentPage> {
                   children: [
                     const HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'You can skip this and set it later',
-                        style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500),
-                      ),
-                    ),
+                    // Expanded(
+                    //   child: Text(
+                    //     'You can skip this and set it later',
+                    //     style: TextStyle(fontSize: 11, color: kBlack87, fontWeight: FontWeight.w500),
+                    //   ),
+                    // ),
                   ],
                 ),
               ),
@@ -2679,7 +2679,7 @@ class _PaymentPageState extends State<PaymentPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Skip for Now', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+              child: const Text('Skip', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),
@@ -3307,7 +3307,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Skip for Now', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+              child: const Text('Skip', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(dialogContext, true),

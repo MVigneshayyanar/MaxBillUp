@@ -11,23 +11,80 @@ import 'package:maxbillup/utils/firestore_service.dart';
 class PermissionHelper {
   static Future<Map<String, dynamic>> getUserPermissions(String uid) async {
     try {
+      // 1. Try root users collection first
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
         final role = data['role'] ?? 'Staff';
 
         // Admin has all permissions
-        if (role.toLowerCase() == 'owner' || role.toLowerCase() == 'administrator') {
+        if (_isAdminRole(role)) {
           return {
             'role': role,
             'permissions': _getAllPermissions(),
           };
         }
 
-        return {
-          'role': role,
-          'permissions': data['permissions'] as Map<String, dynamic>? ?? {},
-        };
+        final permissions = data['permissions'] as Map<String, dynamic>?;
+        if (permissions != null && permissions.isNotEmpty) {
+          return {
+            'role': role,
+            'permissions': permissions,
+          };
+        }
+      }
+
+      // 2. Fallback: check store subcollection (store/{storeId}/users/{uid})
+      final storeId = await FirestoreService().getCurrentStoreId();
+      if (storeId != null) {
+        final storeUserDoc = await FirebaseFirestore.instance
+            .collection('store')
+            .doc(storeId)
+            .collection('users')
+            .doc(uid)
+            .get();
+
+        if (storeUserDoc.exists) {
+          final data = storeUserDoc.data() as Map<String, dynamic>;
+          final role = data['role'] ?? 'Staff';
+
+          if (_isAdminRole(role)) {
+            return {
+              'role': role,
+              'permissions': _getAllPermissions(),
+            };
+          }
+
+          final permissions = data['permissions'] as Map<String, dynamic>? ?? {};
+
+          // Sync permissions back to root users collection for future reads
+          try {
+            await FirebaseFirestore.instance.collection('users').doc(uid).set(
+              {'role': role, 'permissions': permissions},
+              SetOptions(merge: true),
+            );
+          } catch (_) {}
+
+          return {
+            'role': role,
+            'permissions': permissions,
+          };
+        }
+
+        // 3. Check if user is the store owner
+        final storeDoc = await FirebaseFirestore.instance
+            .collection('store')
+            .doc(storeId)
+            .get();
+        if (storeDoc.exists) {
+          final storeData = storeDoc.data() as Map<String, dynamic>;
+          if (storeData['ownerId'] == uid || storeData['ownerUid'] == uid) {
+            return {
+              'role': 'Owner',
+              'permissions': _getAllPermissions(),
+            };
+          }
+        }
       }
     } catch (e) {
       print('Error fetching permissions: $e');
@@ -37,6 +94,12 @@ class PermissionHelper {
       'role': 'Staff',
       'permissions': {},
     };
+  }
+
+  /// Check if a role string represents an admin/owner role.
+  static bool _isAdminRole(String role) {
+    final r = role.toLowerCase();
+    return r == 'owner' || r == 'administrator' || r == 'admin';
   }
 
   static Map<String, bool> _getAllPermissions() {
@@ -70,10 +133,20 @@ class PermissionHelper {
       'addProduct': true,
       'addCategory': true,
 
-      // Bill Actions (3)
+      // Invoice Actions (3) - standardized keys
+      'editInvoice': true,
+      'returnInvoice': true,
+      'cancelInvoice': true,
+
+      // Legacy keys (for backward compat)
       'saleReturn': true,
       'cancelBill': true,
       'editBill': true,
+
+      // Settings permissions (3)
+      'editBusinessProfile': true,
+      'receiptCustomization': true,
+      'taxSettings': true,
     };
   }
 
@@ -88,8 +161,8 @@ class PermissionHelper {
       final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;
-        final role = (data['role'] ?? '').toString().toLowerCase();
-        return role == 'owner' || role == 'administrator';
+        final role = (data['role'] ?? '').toString();
+        return _isAdminRole(role);
       }
     } catch (e) {
       print('Error checking admin status: $e');
@@ -131,7 +204,17 @@ class PermissionHelper {
       final storeData = storeDoc.data() as Map<String, dynamic>;
       final ownerId = storeData['ownerId'] as String?;
 
-      return currentUser.uid == ownerId;
+      // Check store ownership
+      if (currentUser.uid == ownerId) return true;
+
+      // Fallback: check user role in users collection
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(currentUser.uid).get();
+      if (userDoc.exists) {
+        final role = (userDoc.data()?['role'] ?? '').toString();
+        return _isAdminRole(role);
+      }
+
+      return false;
     } catch (e) {
       print('Error checking admin status: $e');
       return false;
@@ -148,11 +231,11 @@ class PermissionHelper {
       final storeId = await FirestoreService().getCurrentStoreId();
       if (storeId == null) return {};
 
-      // Get staff document
+      // Get staff document from 'users' subcollection (not 'staff')
       final staffDoc = await FirebaseFirestore.instance
           .collection('store')  // FIXED: Changed from 'stores' to 'store'
           .doc(storeId)
-          .collection('staff')
+          .collection('users')  // FIXED: Changed from 'staff' to 'users'
           .doc(currentUser.uid)
           .get();
 

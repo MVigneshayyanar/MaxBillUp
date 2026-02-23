@@ -185,7 +185,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget build(BuildContext context) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
+        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final isProviderReady = planProvider.isInitialized;
         final currentPlan = planProvider.cachedPlan;
 
@@ -530,7 +530,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
+        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final currentPlan = planProvider.cachedPlan;
 
         int planRank = 0;
@@ -592,7 +592,7 @@ class _MenuPageState extends State<MenuPage> {
   Widget _buildGridMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
-        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator';
+        bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final currentPlan = planProvider.cachedPlan;
 
         int planRank = 0;

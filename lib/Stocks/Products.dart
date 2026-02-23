@@ -105,7 +105,10 @@ class _ProductsPageState extends State<ProductsPage> {
   }
 
   bool _hasPermission(String permission) => _permissions[permission] == true;
-  bool get isAdmin => _role.toLowerCase().contains('owner');
+  bool get isAdmin {
+    final r = _role.toLowerCase();
+    return r == 'owner' || r == 'administrator' || r == 'admin';
+  }
 
   @override
   void dispose() {

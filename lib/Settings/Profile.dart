@@ -66,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
         setState(() {
           _permissions = data['permissions'] as Map<String, dynamic>? ?? {};
           _role = data['role'] as String? ?? '';
-          _isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'owner';
+          _isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         });
       } else {
         // If no user doc found, check if this is the store owner
