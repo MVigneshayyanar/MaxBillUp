@@ -3154,7 +3154,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final date = (d['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
       final total = (d['total'] ?? 0.0).toDouble();
       final mode = d['paymentMode'] ?? 'Unknown';
-      if (mode == 'Cash' || mode == 'Online') {
+      final isCancelled = d['status'] == 'cancelled';
+
+      if (isCancelled) {
+        entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (CANCELLED)", debit: 0, credit: 0, balanceImpact: 0));
+      } else if (mode == 'Cash' || mode == 'Online') {
         entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} ($mode)", debit: total, credit: 0, balanceImpact: 0));
       } else if (mode == 'Credit') {
         entries.add(LedgerEntry(date: date, type: 'INV', desc: "Invoice #${d['invoiceNumber']} (Credit)", debit: total, credit: total, balanceImpact: total));
@@ -3173,7 +3177,11 @@ class _CustomerLedgerPageState extends State<CustomerLedgerPage> {
       final amt = (d['amount'] ?? 0.0).toDouble();
       final type = d['type'] ?? '';
       final method = d['method'] ?? '';
-      if (type == 'payment_received') {
+      final isCancelled = d['status'] == 'cancelled';
+
+      if (isCancelled) {
+        entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Cancelled Payment (${method.isNotEmpty ? method : 'Cash'})", debit: 0, credit: 0, balanceImpact: 0));
+      } else if (type == 'payment_received') {
         entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Payment Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
       } else if (type == 'settlement') {
         entries.add(LedgerEntry(date: date, type: 'PAY', desc: "Credit Received (${method.isNotEmpty ? method : 'Cash'})", debit: amt, credit: 0, balanceImpact: -amt));
@@ -3276,12 +3284,13 @@ class CustomerBillsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+              final isCancelled = data['status'] == 'cancelled';
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
                 child: ListTile(
-                  title: Text("Invoice #${data['invoiceNumber']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 14)),
+                  title: Text("Invoice #${data['invoiceNumber']}${isCancelled ? ' (CANCELLED)' : ''}", style: TextStyle(fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : kPrimaryColor, fontSize: 14)),
                   subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                  trailing: Text("${data['total']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBlack87, fontSize: 15)),
+                  trailing: Text("${data['total']}", style: TextStyle(fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : kBlack87, fontSize: 15, decoration: isCancelled ? TextDecoration.lineThrough : null)),
                 ),
               );
             },
@@ -3322,14 +3331,15 @@ class CustomerCreditsPage extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = docs[index].data() as Map<String, dynamic>;
               bool isPayment = data['type'] == 'payment_received';
+              final isCancelled = data['status'] == 'cancelled';
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(backgroundColor: (isPayment ? kGoogleGreen : kErrorColor).withOpacity(0.1), radius: 18, child: Icon(isPayment ? Icons.arrow_downward : Icons.arrow_upward, color: isPayment ? kGoogleGreen : kErrorColor, size: 16)),
-                  title: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
+                  leading: CircleAvatar(backgroundColor: (isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor)).withOpacity(0.1), radius: 18, child: Icon(isCancelled ? Icons.close : (isPayment ? Icons.arrow_downward : Icons.arrow_upward), color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), size: 16)),
+                  title: Text("${isPayment ? "Payment Received" : "Credit Added"}${isCancelled ? " (CANCELLED)" : ""}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: isCancelled ? Colors.grey : kBlack87)),
                   subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isPayment ? kGoogleGreen : kErrorColor)),
+                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), decoration: isCancelled ? TextDecoration.lineThrough : null)),
                 ),
               );
             },
@@ -4746,6 +4756,9 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       if (snap.hasData) {
                         for (var doc in snap.data!.docs) {
                           final d = doc.data() as Map<String, dynamic>;
+                          final isCancelled = d['status'] == 'cancelled';
+                          if (isCancelled) continue;
+
                           final type = d['type'] ?? '';
                           final amt = (d['amount'] ?? 0.0).toDouble();
                           final isSettled = d['isSettled'] == true;
@@ -4806,9 +4819,10 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                           final data = d.data() as Map<String, dynamic>;
                           final type = data['type'] as String?;
                           final isSettled = data['isSettled'] == true;
+                          final isCancelled = data['status'] == 'cancelled';
                           final amount = (data['amount'] ?? 0.0).toDouble();
 
-                          if (isSettled) return false;
+                          if (isSettled || isCancelled) return false;
                           if (type == 'credit_sale') return true;
                           if (type == null && amount > 0 && data['invoiceNumber'] != null) return true;
                           return false;

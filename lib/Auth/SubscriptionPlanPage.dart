@@ -387,35 +387,56 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   Widget _buildHorizontalPlanSelector() {
     return Container(
-      height: 140,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       color: kWhite,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
       child: Row(
         children: plans.map((plan) {
           final isSelected = _selectedPlan == plan['name'];
+          final isCurrent = widget.currentPlan.toLowerCase() == plan['name'].toString().toLowerCase();
+          final themeColor = plan['themeColor'] as Color? ?? kPrimaryColor;
           
           final currentPrice = plan['price'][_selectedDuration.toString()] ?? 0;
-          final double dailyPrice = currentPrice > 0 ? (_selectedDuration == 12 ? currentPrice / 365.0 : currentPrice / 30.0) : 0;
-          final String dailyPriceStr = dailyPrice < 10? dailyPrice.toStringAsFixed(1) : dailyPrice.toStringAsFixed(0);
-          
-          final themeColor = plan['themeColor'] as Color? ?? kPrimaryColor;
+          final String durationLabel = currentPrice == 0 ? "Forever" : "/${_selectedDuration == 12 ? 'year' : 'month'}";
+          final String priceLabel = currentPrice == 0 ? "Free" : "$currentPrice";
 
           return Expanded(
             child: GestureDetector(
               onTap: () => setState(() => _selectedPlan = plan['name']),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 300),
                 margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
                 decoration: BoxDecoration(
-                  color: isSelected ? themeColor : kWhite,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isSelected ? themeColor : kGrey200, width: isSelected ? 2 : 1),
+                  color: isSelected ? themeColor.withOpacity(0.05) : kWhite,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isSelected ? themeColor : kGrey200,
+                    width: isSelected ? 2 : 1,
+                  ),
+                  boxShadow: isSelected 
+                      ? [BoxShadow(color: themeColor.withOpacity(0.12), blurRadius: 8, offset: const Offset(0, 4))]
+                      : [],
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    HeroIcon(plan['icon'] as HeroIcons, color: isSelected ? kWhite : themeColor, size: 25),
-                    const SizedBox(height: 4),
+                    // Status Badge
+                    Container(
+                      height: 14,
+                      alignment: Alignment.center,
+                      child: isCurrent 
+                        ? Text("Current", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kGoogleGreen, letterSpacing: 0.5))
+                        : (plan['popular'] == true 
+                            ? Text("Popular", style: TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: kOrange, letterSpacing: 0.5))
+                            : null),
+                    ),
+                    const SizedBox(height: 6),
+                    HeroIcon(
+                      plan['icon'] as HeroIcons, 
+                      color: isSelected ? themeColor : Colors.black,
+                      size: 22
+                    ),
+                    const SizedBox(height: 8),
                     Text(
                       plan['name'],
                       textAlign: TextAlign.center,
@@ -423,51 +444,32 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
                       overflow: TextOverflow.fade,
                       softWrap: false,
                       style: TextStyle(
-                        color: isSelected ? kWhite : kBlack87,
+                        fontSize: 11,
                         fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        color: isSelected ? themeColor : kBlack87,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      currentPrice == 0 ? "Free" : "$currentPrice",///${_selectedDuration == 12 ? 'yr' : 'mo'}
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
+                      priceLabel,
                       style: TextStyle(
-                        color: isSelected ? kWhite.withOpacity(0.9) : kBlack87,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      currentPrice == 0 ? "Forever" : "/${_selectedDuration == 12 ? 'year' : 'month'}",//$currentPrice
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.fade,
-                      softWrap: false,
-                      style: TextStyle(
-                        color: isSelected ? kWhite.withOpacity(0.9) : kBlack87,
-                        fontWeight: FontWeight.w800,
                         fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isSelected ? themeColor : kBlack87,
                       ),
                     ),
-
-                    // if (currentPrice > 0)
-                    //   Text(
-                    //     "$dailyPriceStr/day",
-                    //     textAlign: TextAlign.center,
-                    //     maxLines: 1,
-                    //     overflow: TextOverflow.fade,
-                    //     softWrap: false,
-                    //     style: TextStyle(
-                    //       color: isSelected ? kWhite.withOpacity(0.7) : kBlack54,
-                    //       fontWeight: FontWeight.w600,
-                    //       fontSize: 8,
-                    //     ),
-                    //   ),
+                    Text(
+                      durationLabel,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: kBlack54,
+                      ),
+                    ),
                   ],
                 ),
               ),
