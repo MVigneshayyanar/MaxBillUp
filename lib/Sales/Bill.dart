@@ -2638,7 +2638,7 @@ class _PaymentPageState extends State<PaymentPage> {
             child: Column(
               children: [
                 const Text(
-                  'SET DUE DATE (OPTIONAL)',
+                  'SET DUE DATE (OPTIONAL)74',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,

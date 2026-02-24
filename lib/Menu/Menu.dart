@@ -70,6 +70,7 @@ class _MenuPageState extends State<MenuPage> {
   String? _logoUrl;
   String _currencySymbol = 'Rs ';
   Map<String, dynamic> _permissions = {};
+  Stream<int>? _overdueCounterStream;
 
   // Slider State
   final PageController _headerController = PageController();
@@ -95,6 +96,35 @@ class _MenuPageState extends State<MenuPage> {
     _loadPermissions();
     _initStoreLogo();
     _startHeaderSlider();
+    _initOverdueCounter();
+  }
+
+  void _initOverdueCounter() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+
+    setState(() {
+      _overdueCounterStream = FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('sales')
+          .where('paymentStatus', isEqualTo: 'unsettled')
+          .snapshots()
+          .map((snapshot) {
+            final now = DateTime.now();
+            return snapshot.docs.where((doc) {
+              final data = doc.data();
+              // Skip cancelled bills
+              if (data['status'] == 'cancelled') return false;
+              
+              final dueDate = data['creditDueDate'] as Timestamp?;
+              if (dueDate == null) return false;
+              
+              // Only count if due date is before today
+              return dueDate.toDate().isBefore(DateTime(now.year, now.month, now.day));
+            }).length;
+          });
+    });
   }
 
   void _startHeaderSlider() {
@@ -258,7 +288,19 @@ class _MenuPageState extends State<MenuPage> {
                     _buildSectionLabel("SALES OPERATIONS"),
 
                     if (isFeatureAvailable('creditDetails', requiredRank: 2))
-                      _buildMenuTile('Credit & Dues', HeroIcons.bookOpen, const Color(0xFF00796B), 'CreditDetails', requiredRank: 2),
+                      StreamBuilder<int>(
+                        stream: _overdueCounterStream,
+                        builder: (context, snapshot) {
+                          return _buildMenuTile(
+                            'Credit & Dues', 
+                            HeroIcons.bookOpen, 
+                            const Color(0xFF00796B), 
+                            'CreditDetails', 
+                            requiredRank: 2,
+                            badgeCount: snapshot.data ?? 0,
+                          );
+                        }
+                      ),
 
                     if (isAdmin || _hasPermission('creditNotes'))
                       _buildMenuTile('Returns & Refunds', HeroIcons.ticket, kOrange, 'CreditNotes', requiredRank: 1),
@@ -527,7 +569,7 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
+  Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0, int badgeCount = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
@@ -578,6 +620,22 @@ class _MenuPageState extends State<MenuPage> {
                     Expanded(
                       child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
                     ),
+                    if (badgeCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: kErrorColor,
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: [
+                            BoxShadow(color: kErrorColor.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))
+                          ],
+                        ),
+                        child: Text(
+                          badgeCount > 99 ? '99+' : badgeCount.toString(),
+                          style: const TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    const SizedBox(width: 8),
                     const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
                   ],
                 ),
@@ -3762,6 +3820,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   String _searchQuery = '';
   bool _isSearching = false;
   String _currencySymbol = '';
+  Stream<List<QueryDocumentSnapshot>>? _overdueBillsStream;
 
   @override
   void initState() {
@@ -3850,6 +3909,41 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             ),
             centerTitle: true,
             actions: [
+              StreamBuilder<List<QueryDocumentSnapshot>>(
+                stream: _overdueBillsStream,
+                builder: (context, snapshot) {
+                  final list = snapshot.data ?? [];
+                  if (list.isEmpty) return const SizedBox.shrink();
+                  
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      IconButton(
+                        icon: const HeroIcon(HeroIcons.bell, size: 22, color: kWhite),
+                        onPressed: () => _showOverdueBillsSheet(context, list),
+                      ),
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: kErrorColor, 
+                            shape: BoxShape.circle, 
+                            border: Border.all(color: kPrimaryColor, width: 1.5)
+                          ),
+                          constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                          child: Text(
+                            list.length.toString(),
+                            style: const TextStyle(color: kWhite, fontSize: 8, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    ],
+                  );
+                }
+              ),
               IconButton(
                 icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
                 onPressed: () => setState(() {
@@ -4652,6 +4746,124 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   }
 
   Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+
+  void _initOverdueBillsStream() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null) return;
+
+    setState(() {
+      _overdueBillsStream = FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('sales')
+          .where('paymentStatus', isEqualTo: 'unsettled')
+          .snapshots()
+          .map((snapshot) {
+            final now = DateTime.now();
+            final overdue = snapshot.docs.where((doc) {
+              final data = doc.data();
+              if (data['status'] == 'cancelled') return false;
+              final dueDate = data['creditDueDate'] as Timestamp?;
+              if (dueDate == null) return false;
+              return dueDate.toDate().isBefore(DateTime(now.year, now.month, now.day));
+            }).toList();
+            overdue.sort((a, b) {
+              final da = (a.data() as Map<String, dynamic>)['creditDueDate'] as Timestamp;
+              final db = (b.data() as Map<String, dynamic>)['creditDueDate'] as Timestamp;
+              return da.compareTo(db);
+            });
+            return overdue;
+          });
+    });
+  }
+
+  void _showOverdueBillsSheet(BuildContext context, List<QueryDocumentSnapshot> bills) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
+          color: kWhite,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 24),
+                  const SizedBox(width: 12),
+                  const Text("Overdue Credit Bills", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+                  const Spacer(),
+                  Text("${bills.length} Bills", style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                itemCount: bills.length,
+                itemBuilder: (context, index) {
+                  final data = bills[index].data() as Map<String, dynamic>;
+                  final dueDate = (data['creditDueDate'] as Timestamp).toDate();
+                  final total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                  
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: kWhite,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: kErrorColor.withOpacity(0.1)),
+                    ),
+                    child: ListTile(
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(context, CupertinoPageRoute(builder: (_) => EditBillPage(documentId: bills[index].id, invoiceData: data)));
+                      },
+                      contentPadding: const EdgeInsets.all(12),
+                      leading: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: kErrorColor.withOpacity(0.05), shape: BoxShape.circle),
+                        child: const HeroIcon(HeroIcons.clock, color: kErrorColor, size: 20),
+                      ),
+                      title: Text(data['customerName'] ?? 'Guest Customer', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          Text("Invoice: ${data['invoiceNumber']}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                          Text("Due: ${DateFormat('dd MMM yyyy').format(dueDate)}", style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w800)),
+                        ],
+                      ),
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                          const Text("OVERDUE", style: TextStyle(color: kErrorColor, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ==========================================
