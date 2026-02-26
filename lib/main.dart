@@ -18,8 +18,11 @@ import 'services/sale_sync_service.dart';
 import 'services/local_stock_service.dart';
 import 'services/direct_notification_service.dart';
 import 'services/cart_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 void main() async {
+  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
 
   // Configure keyboard optimizations early (skip on web)

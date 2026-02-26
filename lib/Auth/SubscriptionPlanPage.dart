@@ -8,6 +8,8 @@ import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_provider.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Auth/PlanComparisonPage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 
 class SubscriptionPlanPage extends StatefulWidget {
   final String uid;
@@ -153,7 +155,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   @override
   void initState() {
     super.initState();
-    _initializeRazorpay();
+    _setupRazorpay();
     // Default to 'MAX Plus' if current plan is Starter or Free or not found
     final currentPlanLower = widget.currentPlan.toLowerCase();
     if (currentPlanLower.contains('starter') || currentPlanLower.contains('free')) {
@@ -168,14 +170,17 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     }
   }
 
-  void _initializeRazorpay() {
+  void _setupRazorpay() {
     try {
+      if (_razorpay != null) {
+        _razorpay!.clear();
+      }
       _razorpay = Razorpay();
       _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
       _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
       _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
     } catch (e) {
-      debugPrint('Error initializing Razorpay: $e');
+      debugPrint('Error setting up Razorpay: $e');
     }
   }
 
@@ -233,10 +238,11 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   }
 
   void _handlePaymentError(PaymentFailureResponse response) {
+    if (mounted) setState(() => _isPaymentInProgress = false);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${context.tr('payment_failed')}: ${response.message}'),
+          content: Text('${context.tr('payment_failed')}: ${response.message ?? "Unknown error"}'),
           backgroundColor: kErrorColor,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -247,61 +253,107 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
 
   void _handleExternalWallet(ExternalWalletResponse response) {}
 
-  void _startPayment() {
-    if (_razorpay == null) {
-      _initializeRazorpay();
-      if (_razorpay == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.tr('Payment service unavailable. Please try again.')),
-            backgroundColor: kErrorColor,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-        return;
-      }
+  void _startPayment() async {
+    if (_isPaymentInProgress) return;
+    
+    setState(() => _isPaymentInProgress = true);
+    
+    // Show immediate feedback to the user
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.tr('Preparing payment interface...')),
+          duration: const Duration(seconds: 2),
+          backgroundColor: kPrimaryColor,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
+    
+    // 1. FRESH SETUP: Essential to prevent background process hangs
 
-    final plan = plans.firstWhere(
-          (p) => p['name'] == _selectedPlan,
-      orElse: () => plans[2], // Default to MAX Plus
-    );
-    final amount = plan['price'][_selectedDuration.toString()] * 100;
 
-    if (amount <= 0) {
-      _showSuccessAndPop('FREE_ACTIVATION');
+    if (_razorpay == null) {
+      setState(() => _isPaymentInProgress = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('Payment service unavailable'))),
+        );
+      }
       return;
     }
 
+    // Get current plan data
+    final plan = plans.firstWhere(
+      (p) => p['name'] == _selectedPlan,
+      orElse: () => plans[2],
+    );
+    
+    final int amount = (plan['price'][_selectedDuration.toString()] * 100).toInt();
+    if (amount <= 0) {
+      _showSuccessAndPop('FREE_ACTIVATION');
+      setState(() => _isPaymentInProgress = false);
+      return;
+    }
+
+    // Fetch store details
+    String storeName = 'MAXmybill';
+    String contactEmail = 'maxmybillapp@gmail.com';
+    String contactPhone = '';
+    String? dynamicKey;
+
+    try {
+      final storeDoc = await FirestoreService().getCurrentStoreDoc();
+      if (storeDoc != null && storeDoc.exists) {
+        final data = storeDoc.data() as Map<String, dynamic>;
+        storeName = data['businessName'] ?? storeName;
+        contactEmail = data['ownerEmail'] ?? contactEmail;
+        contactPhone = data['ownerPhone'] ?? '';
+        dynamicKey = data['razorpayKey'];
+      }
+    } catch (e) {
+      debugPrint('Error fetching store details: $e');
+    }
+
+    // ENSURE KEY FORMAT: Razorpay loader hangs if the key has spaces or invalid prefix
+    // ✅ Replace with:
+    final String fallbackKey = dotenv.env['RAZORPAY_KEY'] ?? '';
+    final String baseKey = (dynamicKey?.isNotEmpty == true
+        ? dynamicKey!
+        : fallbackKey).trim();
+    final String razorpayKey = baseKey.startsWith('rzp_') ? baseKey : 'rzp_live_$baseKey';
+    // SUPER-LIGHTWEIGHT OPTIONS: 
+    // Removing 'modal', 'timeout', and 'backdrop' to prevent the "Null anb" GPU errors
     var options = {
-      'key': 'rzp_test_1DP5mmOlF5G5ag',
+      'key': razorpayKey,
       'amount': amount,
-      'name': 'MAXmybill',
-      'description': '$_selectedPlan Plan Upgrade',
-      // Multi-currency support - auto-detects user location
-      // Image removed - Razorpay shows professional "M" circle with brand color
+      'currency': 'INR',
+      'name': storeName.length > 20 ? storeName.substring(0, 20) : storeName,
+      'description': 'Plan: $_selectedPlan',
       'prefill': {
-        'contact': '',
-        'email': 'maxmybillapp@gmail.com'
+        'contact': contactPhone.isNotEmpty ? contactPhone : '9999999999',
+        'email': contactEmail.isNotEmpty ? contactEmail : 'customer@maxmybill.com',
       },
       'theme': {
         'color': '#2F7CF6'
-      }
+      },
+      'retry': {
+        'enabled': true,
+        'max_count': 1
+      },
+      'send_sms_hash': true
     };
 
     try {
+      debugPrint('Launching Ultra-Light Razorpay Interface...');
       _razorpay!.open(options);
     } catch (e) {
-      debugPrint('Razorpay open error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(context.tr('Failed to open payment. Please try again.')),
-          backgroundColor: kErrorColor,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+      debugPrint('Razorpay Opening Error: $e');
+    } finally {
+      // Small delay before allowing another click to ensure UI is stable
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _isPaymentInProgress = false);
+      });
     }
   }
 
@@ -690,8 +742,8 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
       buttonText = "ACTIVE PLAN";
       isEnabled = false;
     } else if (isUpgrade) {
-      buttonText = "UPGRADE NOW";
-      isEnabled = true;
+      buttonText = _isPaymentInProgress ? "PROCESSING..." : "UPGRADE NOW";
+      isEnabled = !_isPaymentInProgress;
     } else {
       buttonText = "LOCKED";
       isEnabled = false;

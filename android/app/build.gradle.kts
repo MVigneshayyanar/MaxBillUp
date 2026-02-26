@@ -74,10 +74,6 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics")
 }
 
-// Force specific Razorpay SDK version to fix NoSuchMethodError crash
-configurations.all {
-    resolutionStrategy {
-        force("com.razorpay:checkout:1.6.33")
-    }
-}
+// Razorpay version is now managed by the razorpay_flutter plugin
+
 

@@ -2,7 +2,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -21,6 +20,9 @@ import 'package:maxbillup/Admin/Home.dart';
 // --- UI CONSTANTS ---
 import 'package:maxbillup/Colors.dart';
 
+// Add math import for responsive sizing
+import 'dart:math' as math;
+
 // Web Client ID for Google Sign In
 // Get this from: https://console.cloud.google.com/ > APIs & Services > Credentials > OAuth 2.0 Client IDs (Web client)
 // Format: XXXXXXXXXXXX-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
@@ -37,16 +39,25 @@ class _LoginPageState extends State<LoginPage> {
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _auth = FirebaseAuth.instance;
-  final _firestoreService = FirestoreService();
+  final _firestore_service = FirestoreService();
+
+  // Scroll controller to ensure terms remain visible when keyboard opens
+  final ScrollController _scrollController = ScrollController();
 
   bool _isStaff = false;
   bool _hidePass = true;
   bool _loading = false;
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
     _emailCtrl.dispose();
     _passCtrl.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -142,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
       user = _auth.currentUser;
       final bool isAuthVerified = user?.emailVerified ?? false;
 
-      QuerySnapshot storeUserQuery = await (await _firestoreService.getStoreCollection('users'))
+      QuerySnapshot storeUserQuery = await (await _firestore_service.getStoreCollection('users'))
           .where('uid', isEqualTo: user!.uid)
           .limit(1)
           .get();
@@ -199,7 +210,7 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      await _firestoreService.notifyStoreDataChanged();
+      await _firestore_service.notifyStoreDataChanged();
       setState(() => _loading = false);
       _navigate(user.uid, user.email);
     } on FirebaseAuthException catch (e) {
@@ -281,7 +292,7 @@ class _LoginPageState extends State<LoginPage> {
 
           if (userDoc.exists) {
             // Existing business owner - proceed to app
-            await _firestoreService.notifyStoreDataChanged();
+            await _firestore_service.notifyStoreDataChanged();
             if (mounted) setState(() => _loading = false);
             _navigate(user.uid, user.email);
           } else {
@@ -331,26 +342,42 @@ class _LoginPageState extends State<LoginPage> {
         return Scaffold(
           backgroundColor: kWhite,
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                children: [
-                  //_buildLanguagePicker(langProvider),
-                  const SizedBox(height: 40),
-                  _buildHeader(context),
-                  const SizedBox(height: 48),
-                  _buildTabs(context),
-                  const SizedBox(height: 40),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    child: _isStaff ? _buildEmailForm(context) : _buildGoogleForm(context),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                // Keep content a readable width on wide screens, and leave small padding on narrow screens
+                final double contentWidth = math.min(420.0, screenWidth - 32.0);
+
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: contentWidth),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                       // Add bottom padding equal to keyboard inset so content (e.g. terms) is not hidden when keyboard is open.
+                       padding: EdgeInsets.fromLTRB(16, 20, 16, MediaQuery.of(context).viewInsets.bottom + 20),
+                       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const SizedBox(height: 24),
+                          _buildHeader(context, contentWidth),
+                          const SizedBox(height: 24),
+                          _buildTabs(context),
+                          const SizedBox(height: 20),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child: _isStaff ? _buildEmailForm(context) : _buildGoogleForm(context),
+                          ),
+                          const SizedBox(height: 20),
+                          _buildPrimaryActionBtn(context),
+                          const SizedBox(height: 28),
+                          _buildTerms(context),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 32),
-                  _buildPrimaryActionBtn(context),
-                  const SizedBox(height: 56),
-                  _buildTerms(context),
-                ],
-              ),
+                );
+              },
             ),
           ),
         );
@@ -358,47 +385,26 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  Widget _buildLanguagePicker(LanguageProvider langProvider) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: kGreyBg,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: kGrey200),
+  // Responsive header: scales image based on available content width
+  Widget _buildHeader(BuildContext context, double maxWidth) {
+    final double imgWidth = math.min(300.0, maxWidth * 0.75);
+    final double imgHeight = imgWidth * 0.58; // keep a nice aspect ratio
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(context.tr('welcome_to').toUpperCase(),
+            style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+        const SizedBox(height: 12),
+        Image.asset(
+          'assets/MAX_my_bill_mic.png',
+          width: imgWidth,
+          height: imgHeight,
+          fit: BoxFit.contain,
         ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: langProvider.currentLanguageCode,
-            icon: const HeroIcon(HeroIcons.language, color: kPrimaryColor, size: 18),
-            style: const TextStyle(fontSize: 12, color: kBlack87, fontWeight: FontWeight.w800),
-            onChanged: (newLang) { if (newLang != null) langProvider.changeLanguage(newLang); },
-            items: langProvider.languages.entries.map((entry) {
-              return DropdownMenuItem<String>(
-                value: entry.key,
-                child: Text(entry.value['native']?.toUpperCase() ?? entry.value['name']?.toUpperCase() ?? entry.key),
-              );
-            }).toList(),
-          ),
-        ),
-      ),
+      ],
     );
   }
-
-  Widget _buildHeader(BuildContext context) => Column(
-    children: [
-      Text(context.tr('welcome_to').toUpperCase(),
-          style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
-      const SizedBox(height: 12),
-      Image.asset(
-        'assets/MAX_my_bill_mic.png',
-        width: 300,
-        height: 175,
-        fit: BoxFit.contain,
-      ),
-    ],
-  );
 
   Widget _buildTabs(BuildContext context) => Container(
     padding: const EdgeInsets.all(4),
@@ -417,14 +423,34 @@ class _LoginPageState extends State<LoginPage> {
 
   Widget _tabItem(String txt, bool active, bool isCustomer) => Expanded(
     child: GestureDetector(
-      onTap: () => setState(() { _isStaff = !isCustomer; _loading = false; }),
+      onTap: () {
+        // Toggle tab and then scroll to bottom so the terms are visible when keyboard opens
+        setState(() {
+          _isStaff = !isCustomer;
+          _loading = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          try {
+            if (_scrollController.hasClients) {
+              await _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          } catch (_) {
+            // ignore scrolling errors
+          }
+        });
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         height: 44,
         decoration: BoxDecoration(
           color: active ? kPrimaryColor : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: active ? [BoxShadow(color: kPrimaryColor.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
+          // Avoid deprecated withOpacity; use withAlpha for consistent precision
+          boxShadow: active ? [BoxShadow(color: kPrimaryColor.withAlpha((0.3 * 255).round()), blurRadius: 10, offset: const Offset(0, 4))] : null,
         ),
         child: Center(
           child: Text(txt,
