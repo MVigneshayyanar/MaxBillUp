@@ -730,7 +730,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     );
     final selectedPlanData = plans.firstWhere(
           (p) => p['name'] == _selectedPlan,
-      orElse: () => plans[2], // Default to MAX Plus
+      orElse: () => plans[1], // Default to MAX Plus
     );
     final themeColor = selectedPlanData['themeColor'] as Color? ?? kPrimaryColor;
     final bool isUpgrade = selectedPlanData['rank'] > currentPlanData['rank'];
