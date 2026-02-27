@@ -219,9 +219,12 @@ class _ReportsPageState extends State<ReportsPage> {
         children: [
           // Analytics Overview Section
           if (hasAnalyticsItems) _buildSectionLabel(context.tr('analytics_overview')),
+          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFFFF5722), 'DayBook', subtitle: 'Daily transaction log'),
+          if (isFeatureAvailable('topProducts'))
+            _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('analytics'))
             _buildReportTile(context.tr('Business  Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
-          _buildReportTile(context.tr('daybook_today'), HeroIcons.bookOpen, const Color(0xFFFF5722), 'DayBook', subtitle: 'Daily transaction log'),
+
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Summary', HeroIcons.documentText,   kPrimaryColor, 'Summary', subtitle: 'Income, expense & dues'),
           if (isFeatureAvailable('salesSummary'))
@@ -252,8 +255,7 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildReportTile(context.tr('stock_report'), HeroIcons.archiveBox, const Color(0xFF5C6BC0), 'StockReport', subtitle: 'Full inventory valuation'),
           if (isFeatureAvailable('lowStockProduct'))
             _buildReportTile(context.tr('low_stock_products'), HeroIcons.clipboardDocumentList, kOrange, 'LowStock', subtitle: 'Restock action required'),
-          if (isFeatureAvailable('topProducts'))
-            _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
+
           if (isFeatureAvailable('topCategory'))
             _buildReportTile(context.tr('top_categories'), HeroIcons.tag, CupertinoColors.systemPurple, 'TopCategories', subtitle: 'Department performance'),
 
@@ -2537,8 +2539,8 @@ class _DayBookPageState extends State<DayBookPage> {
                       return Column(
                         children: [
                           // Date Selector
-                          _buildDayBookDateSelector(),
 
+                          _buildDayBookDateSelector(),
                           Expanded(
                             child: SingleChildScrollView(
                               physics: const BouncingScrollPhysics(),
@@ -3059,279 +3061,319 @@ class _DayBookPageState extends State<DayBookPage> {
 
   // --- MODERN DAYBOOK UI COMPONENTS ---
 
-    Widget _buildDayBookDateSelector() {
-     return Container(
-       margin: const EdgeInsets.all(16),
-       padding: const EdgeInsets.all(20),
-       decoration: BoxDecoration(
-         gradient: LinearGradient(
-           colors: [kPrimaryColor.withOpacity(0.85), const Color(0xFF00695C)],
-           begin: Alignment.topLeft,
-           end: Alignment.bottomRight,
-         ),
-         borderRadius: BorderRadius.circular(16),
-         boxShadow: [
-           BoxShadow(
-               color: kPrimaryColor.withValues(alpha: 0.3),
-             blurRadius: 12,
-             offset: const Offset(0, 4),
-           ),
-         ],
-       ),
-       child: Column(
-         children: [
-           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               const Text(
-                 'Daybook',
-                // Keep title slightly larger but ensure minimum 11 elsewhere
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white70,
-                  letterSpacing: 1.5,
-                ),
-               ),
-               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                 decoration: BoxDecoration(
-                   color: Colors.white.withValues(alpha: 0.2),
-                   borderRadius: BorderRadius.circular(12),
-                 ),
-                 child: Row(
-                   children: const [
-                     Icon(Icons.auto_awesome, color: Colors.white, size: 14),
-                     SizedBox(width: 6),
-                     Text(
-                       'LIVE',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                     ),
-                   ],
-                 ),
-               ),
-             ],
-           ),
-           const SizedBox(height: 16),
-           InkWell(
-             onTap: () => _selectDate(context),
-             borderRadius: BorderRadius.circular(12),
-             child: Container(
-               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-               decoration: BoxDecoration(
-                 color: Colors.white,
-                 borderRadius: BorderRadius.circular(12),
-                 boxShadow: [
-                   BoxShadow(
-                       color: Colors.black.withValues(alpha: 0.1),
-                     blurRadius: 8,
-                     offset: const Offset(0, 2),
-                   ),
-                 ],
-               ),
-               child: Row(
-                 children: [
-                   Container(
-                     padding: const EdgeInsets.all(8),
-                     decoration: BoxDecoration(
-                       color: kPrimaryColor.withValues(alpha: 0.1),
-                       borderRadius: BorderRadius.circular(8),
-                     ),
-                     child: const Icon(Icons.calendar_month_rounded, color: kPrimaryColor, size: 22),
-                   ),
-                   const SizedBox(width: 12),
-                   Column(
-                     crossAxisAlignment: CrossAxisAlignment.start,
-                     children: [
-                      const Text(
-                        'Selected Date',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kTextSecondary),
-                      ),
-                       const SizedBox(height: 2),
-                      Text(
-                        DateFormat('dd MMM yyyy, EEEE').format(_selectedDate),
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.black87),
-                      ),
-                     ],
-                   ),
-                   const Spacer(),
-                   const Icon(Icons.arrow_forward_ios_rounded, color: kPrimaryColor, size: 16),
-                 ],
-               ),
-             ),
-           ),
-         ],
-       ),
-     );
-     }
+// =====================================================
+//  COMPLETELY REDESIGNED UI BODY SECTION
+//  AppBar (_buildModernAppBar) is NOT changed.
+// =====================================================
 
-  Widget _buildDayBookSummaryCards(
-    int salesCount, double salesAmount,
-    int expensesCount, double expensesAmount,
-    int purchasesCount, double purchasesAmount,
-    double saleCreditGiven, double saleCreditReceived,
-    double purchaseCreditAdded, double purchaseCreditPaid,
-  ) {
-    final netCashFlow = salesAmount - expensesAmount - purchasesAmount;
+// ─── DATE SELECTOR ───────────────────────────────────
+  Widget _buildDayBookDateSelector() {
+    final isToday = DateFormat('yyyy-MM-dd').format(_selectedDate) ==
+        DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
         children: [
-          // Net Cash Flow Highlight Card
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: netCashFlow >= 0
-                  ? [const Color(0xFF81C784), const Color(0xFF66BB6A)]  // Soft green
-                  : [const Color(0xFFE57373), const Color(0xFFEF5350)],  // Soft red
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: (netCashFlow >= 0 ? const Color(0xFF81C784) : const Color(0xFFE57373)).withValues(alpha: 0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        netCashFlow >= 0 ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Net Cash Flow',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
+          // Prev Day
+          _buildNavArrowButton(
+            icon: Icons.chevron_left_rounded,
+            onTap: () {
+              setState(() {
+                _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+              });
+            },
+          ),
+          const SizedBox(width: 10),
+
+          // Date Pill (center)
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _selectDate(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: kSurfaceColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: kPrimaryColor.withOpacity(0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 3),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  '$_currencySymbol${netCashFlow.abs().toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w900,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.calendar_today_rounded,
+                        size: 16, color: kPrimaryColor),
+                    const SizedBox(width: 8),
+                    Text(
+                      isToday
+                          ? 'Today — ${DateFormat('dd MMM yyyy').format(_selectedDate)}'
+                          : DateFormat('EEE, dd MMM yyyy').format(_selectedDate),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 18, color: kPrimaryColor),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+          // Next Day
+          _buildNavArrowButton(
+            icon: Icons.chevron_right_rounded,
+            onTap: _selectedDate.isBefore(DateTime.now())
+                ? () {
+              setState(() {
+                _selectedDate =
+                    _selectedDate.add(const Duration(days: 1));
+              });
+            }
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNavArrowButton(
+      {required IconData icon, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: onTap != null ? kPrimaryColor.withOpacity(0.1) : kBorderColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: onTap != null
+                  ? kPrimaryColor.withOpacity(0.3)
+                  : kBorderColor),
+        ),
+        child: Icon(icon,
+            color: onTap != null ? kPrimaryColor : kTextSecondary, size: 22),
+      ),
+    );
+  }
+
+// ─── SUMMARY CARDS ────────────────────────────────────
+  Widget _buildDayBookSummaryCards(
+      int salesCount,
+      double salesAmount,
+      int expensesCount,
+      double expensesAmount,
+      int purchasesCount,
+      double purchasesAmount,
+      double saleCreditGiven,
+      double saleCreditReceived,
+      double purchaseCreditAdded,
+      double purchaseCreditPaid,
+      ) {
+    final netCashFlow =
+        salesAmount - expensesAmount - purchasesAmount;
+    final isPositive = netCashFlow >= 0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          // ── Net Cashflow banner ──
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            decoration: BoxDecoration(
+              color: isPositive
+                  ? kGoogleGreen
+                  : kGoogleRed,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: (isPositive
+                      ? kGoogleGreen
+                      : kGoogleRed)
+                      .withOpacity(0.25),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Icon bubble
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    isPositive
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
                     color: Colors.white,
-                    height: 1.0,
+                    size: 26,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  netCashFlow >= 0 ? 'Positive Balance' : 'Negative Balance',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isPositive ? 'Positive Net Cashflow' : 'Negative Net Cashflow',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withOpacity(0.75),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$_currencySymbol${netCashFlow.abs().toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Count badge
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        '$salesCount',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        'Sales',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 14),
 
-          // Main Transaction Cards Grid
+          // ── 2×2 metric grid ──
           Row(
             children: [
               Expanded(
-                child: _buildModernSummaryCard(
-                  'Sales',
-                  salesAmount,
-                  salesCount,
-                  Icons.point_of_sale_rounded,
-                  const Color(0xFF64B5F6),  // Soft blue
-                  const Color(0xFF42A5F5),  // Mild blue
+                child: _buildMetricTile(
+                  label: 'Sales',
+                  amount: salesAmount,
+                  count: salesCount,
+                  icon: Icons.point_of_sale_rounded,
+                  iconBg: const Color(0xFFE3F2FD),
+                  iconColor: kPrimaryColor,
+                  amountColor: kPrimaryColor,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
-                child: _buildModernSummaryCard(
-                  'Expenses',
-                  expensesAmount,
-                  expensesCount,
-                  Icons.shopping_cart_rounded,
-                  const Color(0xFFEF9A9A),  // Soft red/pink
-                  const Color(0xFFE57373),  // Mild red
+                child: _buildMetricTile(
+                  label: 'Expenses',
+                  amount: expensesAmount,
+                  count: expensesCount,
+                  icon: Icons.shopping_cart_outlined,
+                  iconBg: const Color(0xFFFFEBEE),
+                  iconColor: kGoogleRed,
+                  amountColor: kGoogleRed,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Purchases',
+                  amount: purchasesAmount,
+                  count: purchasesCount,
+                  icon: Icons.inventory_2_outlined,
+                  iconBg: const Color(0xFFFFF3E0),
+                  iconColor: const Color(0xFFE65100),
+                  amountColor: const Color(0xFFE65100),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildMetricTile(
+                  label: 'Credit',
+                  amount: saleCreditGiven + purchaseCreditAdded,
+                  count: 0,
+                  icon: Icons.account_balance_wallet_outlined,
+                  iconBg: const Color(0xFFF3E5F5),
+                  iconColor: const Color(0xFF6A1B9A),
+                  amountColor: const Color(0xFF6A1B9A),
                 ),
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          Row(
-            children: [
-              Expanded(
-                child: _buildModernSummaryCard(
-                  'Purchases',
-                  purchasesAmount,
-                  purchasesCount,
-                  Icons.inventory_2_rounded,
-                  const Color(0xFFFFB74D),  // Soft orange
-                  const Color(0xFFFFA726),  // Mild orange
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildModernSummaryCard(
-                  'Credit',
-                  saleCreditGiven + purchaseCreditAdded,
-                  0,
-                  Icons.account_balance_wallet_rounded,
-                  const Color(0xFFBA68C8),  // Soft purple
-                  const Color(0xFFAB47BC),  // Mild purple
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Credit Details Expansion
+          // ── Credit breakdown table ──
           Container(
             decoration: BoxDecoration(
               color: kSurfaceColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: kBorderColor.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: kBorderColor.withOpacity(0.4)),
             ),
             child: Column(
               children: [
-                _buildCreditDetailRow('Sale On Credit', saleCreditGiven, Icons.arrow_upward_rounded, const Color(0xFFEF9A9A)),  // Soft red
-                Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Sale Credit Collected', saleCreditReceived, Icons.arrow_downward_rounded, const Color(0xFF81C784)),  // Soft green
-                Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Purchase Credit', purchaseCreditAdded, Icons.add_circle_outline_rounded, const Color(0xFFFFB74D)),  // Soft orange
-                Divider(height: 1, color: kBorderColor.withOpacity(0.3)),
-                _buildCreditDetailRow('Purchase Credit Paid', purchaseCreditPaid, Icons.check_circle_outline_rounded, const Color(0xFF64B5F6)),  // Soft blue
+                _buildCreditDetailRow(
+                    'Sale On Credit', saleCreditGiven,
+                    Icons.arrow_upward_rounded, kGoogleRed),
+                _divider(),
+                _buildCreditDetailRow(
+                    'Credit Collected', saleCreditReceived,
+                    Icons.arrow_downward_rounded, kGoogleGreen),
+                _divider(),
+                _buildCreditDetailRow(
+                    'Purchase Credit', purchaseCreditAdded,
+                    Icons.add_rounded, const Color(0xFFE65100)),
+                _divider(),
+                _buildCreditDetailRow(
+                    'Purchase Credit Paid', purchaseCreditPaid,
+                    Icons.check_rounded, kPrimaryColor,
+                )
               ],
             ),
           ),
@@ -3340,30 +3382,25 @@ class _DayBookPageState extends State<DayBookPage> {
     );
   }
 
-  Widget _buildModernSummaryCard(
-    String label,
-    double amount,
-    int count,
-    IconData icon,
-    Color color1,
-    Color color2,
-  ) {
+  Widget _divider() =>
+      Divider(height: 1, thickness: 0.8, color: kBorderColor.withOpacity(0.3));
+
+  Widget _buildMetricTile({
+    required String label,
+    required double amount,
+    required int count,
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required Color amountColor,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color1, color2],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: color1.withOpacity(0.15),  // Very soft shadow
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: iconColor.withOpacity(0.15)),
+
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3371,20 +3408,26 @@ class _DayBookPageState extends State<DayBookPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, color: Colors.white, size: 20),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                    color: iconBg, borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: iconColor, size: 18),
+              ),
               if (count > 0)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.3),
-                    borderRadius: BorderRadius.circular(12),
+                    color: iconColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '$count',
-                    style: const TextStyle(
-                      fontSize: 14,
+                    style: TextStyle(
+                      fontSize: 11,
                       fontWeight: FontWeight.w900,
-                      color: Colors.white,
+                      color: iconColor,
                     ),
                   ),
                 ),
@@ -3393,21 +3436,19 @@ class _DayBookPageState extends State<DayBookPage> {
           const SizedBox(height: 12),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: 0.8,
+              color: kTextSecondary,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            '$_currencySymbol${amount.toStringAsFixed(1)}',
-            style: const TextStyle(
-              fontSize: 18,
+            '$_currencySymbol${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 15,
               fontWeight: FontWeight.w900,
-              color: Colors.white,
-              height: 1.0,
+              color: amountColor,
             ),
           ),
         ],
@@ -3415,36 +3456,37 @@ class _DayBookPageState extends State<DayBookPage> {
     );
   }
 
-  Widget _buildCreditDetailRow(String label, double amount, IconData icon, Color color) {
+  Widget _buildCreditDetailRow(
+      String label, double amount, IconData icon, Color color) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
+              color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
           ),
           Text(
-            '$_currencySymbol${amount.toStringAsFixed(1)}',
-            style: const TextStyle(
-              fontSize: 14,
+            '$_currencySymbol${amount.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 13,
               fontWeight: FontWeight.w900,
-              color: Colors.black87,
+              color: color,
             ),
           ),
         ],
@@ -3452,360 +3494,267 @@ class _DayBookPageState extends State<DayBookPage> {
     );
   }
 
-  Widget _buildDayBookPaymentBreakdown(double outCash, double outOnline, double inCash, double inOnline) {
-    final totalOut = outCash + outOnline;
-    final totalIn = inCash + inOnline;
-    final outCashPercent = totalOut > 0 ? (outCash / totalOut) : 0.0;
-    final inCashPercent = totalIn > 0 ? (inCash / totalIn) : 0.0;
+// ─── PAYMENT BREAKDOWN ────────────────────────────────
+  Widget _buildDayBookPaymentBreakdown(
+      double outCash, double outOnline, double inCash, double inOnline) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: kBorderColor.withOpacity(0.35)),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Section header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                      color: kPrimaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.payments_outlined,
+                      color: kPrimaryColor, size: 20),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Payment Breakdown',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kPrimaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.payments_rounded, color: kPrimaryColor, size: 22),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Payment Breakdown',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.black87,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              // Payment Out
-              Expanded(
-                child: Column(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: CircularProgressIndicator(
-                            value: outCashPercent,
-                            strokeWidth: 10,
-                            backgroundColor: const Color(0xFFFFE0B2),  // Keep soft peach background
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB74D)),  // Soft orange
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            const Icon(Icons.arrow_circle_up_rounded, color: Color(0xFFFFB74D), size: 28),  // Soft orange
-                            const SizedBox(height: 4),
-                            Text(
-                              '${totalOut.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Expenses Analysis',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFFFFB74D),  // Soft orange
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPaymentMethodRow('Cash', outCash, const Color(0xFFFFB74D), outCashPercent),  // Soft orange
-                    const SizedBox(height: 6),
-                    _buildPaymentMethodRow('Online', outOnline, const Color(0xFFFFA726), 1 - outCashPercent),  // Mild orange
-                  ],
-                ),
-              ),
-
-              const SizedBox(width: 24),
-
-              // Payment In
-              Expanded(
-                child: Column(
-                  children: [
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: CircularProgressIndicator(
-                            value: inCashPercent,
-                            strokeWidth: 10,
-                            backgroundColor: const Color(0xFFC8E6C9),  // Keep soft green background
-                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF81C784)),  // Soft green
-                          ),
-                        ),
-                        Column(
-                          children: [
-                            const Icon(Icons.arrow_circle_down_rounded, color: Color(0xFF81C784), size: 28),  // Soft green
-                            const SizedBox(height: 4),
-                            Text(
-                              '${totalIn.toStringAsFixed(0)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Income Analysis',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF81C784),  // Soft green
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildPaymentMethodRow('Cash', inCash, const Color(0xFF81C784), inCashPercent),  // Soft green
-                    const SizedBox(height: 6),
-                    _buildPaymentMethodRow('Online', inOnline, const Color(0xFF66BB6A), 1 - inCashPercent),  // Mild green
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+            // In / Out rows
+            _buildBreakdownSection(
+              title: 'Money IN',
+              cash: inCash,
+              online: inOnline,
+              color: kGoogleGreen,
+              icon: Icons.south_west_rounded,
+            ),
+            const SizedBox(height: 14),
+            _buildBreakdownSection(
+              title: 'Money OUT',
+              cash: outCash,
+              online: outOnline,
+              color: kGoogleRed,
+              icon: Icons.north_east_rounded,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPaymentMethodRow(String method, double amount, Color color, double percent) {
-    return Row(
+  Widget _buildBreakdownSection({
+    required String title,
+    required double cash,
+    required double online,
+    required Color color,
+    required IconData icon,
+  }) {
+    final total = cash + online;
+    final cashPct = total > 0 ? (cash / total) : 0.0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            method,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: kTextSecondary,
+        Row(
+          children: [
+            Icon(icon, color: color, size: 16),
+            const SizedBox(width: 6),
+            Text(title,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: color,
+                    letterSpacing: 0.4)),
+            const Spacer(),
+            Text(
+              '$_currencySymbol${total.toStringAsFixed(2)}',
+              style: TextStyle(
+                  fontSize: 14, fontWeight: FontWeight.w900, color: color),
             ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Segmented bar
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Row(
+            children: [
+              Flexible(
+                flex: (cashPct * 100).round(),
+                child: Container(height: 8, color: color),
+              ),
+              Flexible(
+                flex: ((1 - cashPct) * 100).round(),
+                child: Container(height: 8, color: color.withOpacity(0.25)),
+              ),
+            ],
           ),
         ),
-        Text(
-          '$_currencySymbol${amount.toStringAsFixed(0)}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          '${(percent * 100).toStringAsFixed(0)}%',
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-            color: kTextSecondary,
-          ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            _buildPaymentChip('Cash', cash, color),
+            const SizedBox(width: 10),
+            _buildPaymentChip('Online', online, color.withOpacity(0.6)),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildDayBookTransactionTable(List<Map<String, dynamic>> transactions) {
-    // Apply selected transaction filter
+  Widget _buildPaymentChip(String label, double amount, Color color) {
+    return Row(
+      children: [
+        Container(
+            width: 8, height: 8,
+            decoration:
+            BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 5),
+        Text(
+          '$label  $_currencySymbol${amount.toStringAsFixed(0)}',
+          style: TextStyle(
+              fontSize: 11, fontWeight: FontWeight.w700, color: kTextSecondary),
+        ),
+      ],
+    );
+  }
+
+// ─── TRANSACTION TIMELINE TABLE ───────────────────────
+  Widget _buildDayBookTransactionTable(
+      List<Map<String, dynamic>> transactions) {
     final filteredTransactions = transactions.where((txn) {
       if (_txnFilter == 'All') return true;
-
       final pm = (txn['paymentMode'] ?? '').toString().toLowerCase();
       final category = txn['category']?.toString().toLowerCase() ?? '';
-
       switch (_txnFilter) {
         case 'Cash':
           return pm.contains('cash');
         case 'Online':
-          return pm.contains('online') || pm.contains('upi') || pm.contains('card');
+          return pm.contains('online') ||
+              pm.contains('upi') ||
+              pm.contains('card');
         case 'Split':
           return pm.contains('split');
         case 'Credit':
-          // credit may appear in paymentMode or category names
           return pm.contains('credit') || category.contains('credit');
         default:
           return true;
       }
     }).toList();
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [kPrimaryColor.withOpacity(0.1), kPrimaryColor.withOpacity(0.05)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Title row
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: kPrimaryColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Transaction Timeline',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black87,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${filteredTransactions.length} of ${transactions.length} Transactions',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: kTextSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          // ── Header ──
+          Row(
+            children: [
+              const Text(
+                'Transactions',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black87,
                 ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: kPrimaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${filteredTransactions.length}',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                    color: kPrimaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-                // Filter tabs - single row
-                const SizedBox(height: 12),
-                Row(
-                  children: _txnFilterOptions.map((opt) {
-                    final selected = _txnFilter == opt;
-                    return Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _txnFilter = opt),
-                        child: Container(
-                          margin: const EdgeInsets.only(right: 4),
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: selected ? kPrimaryColor : kSurfaceColor,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: selected ? kPrimaryColor : kBorderColor.withOpacity(0.5),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              opt,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: selected ? Colors.white : kPrimaryColor,
-                              ),
-                            ),
-                          ),
-                        ),
+          // ── Filter chips ──
+          SizedBox(
+            height: 34,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: _txnFilterOptions.map((opt) {
+                final selected = _txnFilter == opt;
+                return GestureDetector(
+                  onTap: () => setState(() => _txnFilter = opt),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected ? kPrimaryColor : kSurfaceColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: selected
+                            ? kPrimaryColor
+                            : kBorderColor.withOpacity(0.5),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
+                    ),
+                    child: Text(
+                      opt,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? Colors.white : kPrimaryColor,
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
 
-          // Transactions List
+          const SizedBox(height: 16),
+
+          // ── List / Empty state ──
           if (filteredTransactions.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(40),
-              child: Center(
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
                 child: Column(
                   children: [
-                    Icon(Icons.receipt_long_outlined, size: 48, color: kTextSecondary.withOpacity(0.3)),
+                    Icon(Icons.inbox_rounded,
+                        size: 52, color: kTextSecondary.withOpacity(0.25)),
                     const SizedBox(height: 12),
                     Text(
                       _txnFilter == 'All'
-                        ? 'No transactions for this date'
-                        : 'No $_txnFilter transactions found',
+                          ? 'No transactions for this date'
+                          : 'No $_txnFilter transactions',
                       style: const TextStyle(
-                        color: kTextSecondary,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: kTextSecondary),
                     ),
                   ],
                 ),
@@ -3815,202 +3764,162 @@ class _DayBookPageState extends State<DayBookPage> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
               itemCount: filteredTransactions.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) => _buildDayBookTransactionCard(filteredTransactions[index]),
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              itemBuilder: (context, index) =>
+                  _buildDayBookTransactionCard(filteredTransactions[index]),
             ),
         ],
       ),
     );
   }
 
+// ─── SINGLE TRANSACTION CARD ──────────────────────────
   Widget _buildDayBookTransactionCard(Map<String, dynamic> txn) {
     final category = txn['category'].toString();
-    final isIncome = category == 'Sale';
-    final cashFlow = isIncome ? txn['cashIn'] as double : txn['cashOut'] as double;
     final paymentMode = (txn['paymentMode'] ?? 'cash').toString();
 
     DateTime? dt;
-    if (txn['timestamp'] != null) dt = (txn['timestamp'] as Timestamp).toDate();
+    if (txn['timestamp'] != null)
+      dt = (txn['timestamp'] as Timestamp).toDate();
     final timeStr = dt != null ? DateFormat('hh:mm a').format(dt) : 'N/A';
 
-    Color categoryColor = const Color(0xFF81C784);  // Soft green
-    Color bgColor = const Color(0xFFE8F5E9);
-    IconData categoryIcon = Icons.point_of_sale_rounded;
-
-    if (category == 'Expense') {
-      categoryColor = const Color(0xFFEF9A9A);  // Soft red/pink
-      bgColor = const Color(0xFFFFEBEE);
-      categoryIcon = Icons.shopping_cart_rounded;
-    } else if (category == 'Purchase') {
-      categoryColor = const Color(0xFFFFB74D);  // Soft orange
-      bgColor = const Color(0xFFFFF3E0);
-      categoryIcon = Icons.inventory_2_rounded;
-    } else if (category == 'Credit Received') {
-      categoryColor = const Color(0xFF81C784);  // Soft green
-      bgColor = const Color(0xFFE8F5E9);
-      categoryIcon = Icons.account_balance_wallet_rounded;
-    } else if (category == 'Purchase Credit') {
-      categoryColor = const Color(0xFFBA68C8);  // Soft purple
-      bgColor = const Color(0xFFF3E5F5);
-      categoryIcon = Icons.credit_card_rounded;
+    // Per-category theming
+    Color accent;
+    IconData categoryIcon;
+    switch (category) {
+      case 'Expense':
+        accent = kGoogleRed;
+        categoryIcon = Icons.shopping_cart_outlined;
+        break;
+      case 'Purchase':
+        accent = const Color(0xFFE65100);
+        categoryIcon = Icons.inventory_2_outlined;
+        break;
+      case 'Credit Received':
+        accent = kGoogleGreen;
+        categoryIcon = Icons.account_balance_wallet_outlined;
+        break;
+      case 'Purchase Credit':
+        accent = const Color(0xFF6A1B9A);
+        categoryIcon = Icons.credit_card_outlined;
+        break;
+      default: // Sale
+        accent = const Color(0xFF1565C0);
+        categoryIcon = Icons.point_of_sale_rounded;
     }
 
-    // Payment mode color for the badge
-    final pmColor = _getPaymentModeColor(paymentMode);
+    final isIncome = category == 'Sale' || category == 'Credit Received';
+    final amount = (txn['total'] as double);
 
     return Container(
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: categoryColor.withOpacity(0.2)),
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent.withOpacity(0.15)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon & Timeline
-            Column(
+      child: Row(
+        children: [
+          // Left icon
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: accent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(categoryIcon, color: accent, size: 20),
+          ),
+          const SizedBox(width: 12),
+
+          // Middle: name / ref / mode
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: categoryColor,
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                          color: categoryColor.withValues(alpha: 0.3),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+                Text(
+                  txn['name'].toString(),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black87),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  txn['particulars'].toString(),
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: kTextSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    // Category tag
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: accent.withOpacity(0.2)),
                       ),
-                    ],
-                  ),
-                  child: Icon(categoryIcon, color: Colors.white, size: 20),
+                      child: Text(
+                        category.toUpperCase(),
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: accent,
+                            letterSpacing: 0.5),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    // Payment mode
+                    Text(
+                      paymentMode,
+                      style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: kTextSecondary),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
 
-            const SizedBox(width: 14),
-
-            // Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          category,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: categoryColor,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: categoryColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          timeStr,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: categoryColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    txn['name'].toString(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    txn['particulars'].toString(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: kTextSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Payment Mode Badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: categoryColor.withOpacity(0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              txn['paymentMode'].toString().contains('cash')
-                                ? Icons.money_rounded
-                                : Icons.credit_card_rounded,
-                              size: 12,
-                              color: categoryColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              txn['paymentMode'].toString(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: categoryColor,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Amount
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$_currencySymbol${(txn['total'] as double).toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+          // Right: time + amount
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                timeStr,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: kTextSecondary),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 6),
+              Text(
+                '${isIncome ? '+' : '-'}$_currencySymbol${amount.toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  color: isIncome ? kGoogleGreen : kGoogleRed,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
+
 }
 
 // ==========================================
