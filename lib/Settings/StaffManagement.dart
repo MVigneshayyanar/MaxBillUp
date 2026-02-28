@@ -404,7 +404,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
 
   Widget _buildPopupMenu(BuildContext context, String staffId, String name, String phone, String email, bool isActive, bool isVerified, Map<String, dynamic> permissions, String role) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert_rounded, color: kGrey400, size: 20),
+      icon: Icon(Icons.more_vert_rounded, color: kPrimaryColor, size: 20),
       elevation: 0,
       offset: const Offset(0, 42),
       color: kWhite, // Changed background to white
@@ -629,7 +629,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
       context: ctx,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
           backgroundColor: kWhite,
           title: const Text('Edit Staff Details', style: TextStyle(fontWeight: FontWeight.w800, fontFamily: 'NotoSans')),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -694,31 +694,31 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
   Widget _buildSectionLabel(String text) => Align(alignment: Alignment.centerLeft, child: Padding(padding: const EdgeInsets.only(bottom: 8, left: 4), child: Text(text, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5, fontFamily: 'NotoSans'))));
 
   Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text, bool isPassword = false}) {
-    return ValueListenableBuilder(
-      valueListenable: ctrl, // Fixed: Changed 'value_listenable' to 'valueListenable'
-      builder: (context, val, child) {
-        bool filled = ctrl.text.isNotEmpty;
-        return Container(
-          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
-          child: ValueListenableBuilder<TextEditingValue>(
+    return ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
-        return TextField(
-            controller: ctrl, keyboardType: type, obscureText: isPassword,
+        // Use the TextField's decoration borders to show colored border on focus and when filled.
+        // Avoid an outer border so there are not multiple visible borders at once.
+        return Container(
+          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(24)),
+          child: TextField(
+            controller: ctrl,
+            keyboardType: type,
+            obscureText: isPassword,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87, fontFamily: 'Lato'),
-            decoration: InputDecoration(hintText: label, prefixIcon: Icon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18),
+            decoration: InputDecoration(
+              hintText: label,
+              prefixIcon: Icon(icon, color: hasText ? kPrimaryColor : kBlack54, size: 18),
               filled: true,
               fillColor: const Color(0xFFF8F9FA),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-              ),
+              // When not focused: if filled -> primary color, else grey
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
               ),
+              // When focused: always primary color
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
@@ -726,10 +726,7 @@ class _StaffManagementPageState extends State<StaffManagementPage> {
               labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
               floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
-          
-);
-      },
-    ),
+          ),
         );
       },
     );
@@ -923,3 +920,4 @@ class _StaffPermissionsPageState extends State<StaffPermissionsPage> {
     );
   }
 }
+

@@ -1724,7 +1724,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                 ),
                                 Expanded(
                                   flex: 3,
-                                  child: Text('${rate is double ? rate.toStringAsFixed(0) : rate}', style: const TextStyle(fontSize: 12, color: kBlack87), textAlign: TextAlign.center),
+                                  child: Text('$currency${rate is double ? rate.toStringAsFixed(0) : rate}', style: const TextStyle(fontSize: 12, color: kBlack87), textAlign: TextAlign.center),
                                 ),
                                 if (_a4ShowTaxColumn)
                                   Expanded(
@@ -1733,7 +1733,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                   ),
                                 Expanded(
                                   flex: 3,
-                                  child: Text('${total is double ? total.toStringAsFixed(2) : total}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87), textAlign: TextAlign.right),
+                                  child: Text('$currency${total is double ? total.toStringAsFixed(2) : total}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBlack87), textAlign: TextAlign.right),
                                 ),
                               ],
                             ),
@@ -1794,7 +1794,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                                     '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}',
                                   )),
                             if (widget.deliveryCharge > 0)
-                              _buildA4PreviewTotalRow('Delivery Charge', '+${widget.deliveryCharge.toStringAsFixed(2)}'),
+                              _buildA4PreviewTotalRow('Delivery Charge', '+$currency${widget.deliveryCharge.toStringAsFixed(2)}'),
                             const Divider(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -3013,6 +3013,12 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   }
 
   Future<pw.Document> _generatePdf() async {
+    // Load fonts for currency symbol support
+    final fontData = await rootBundle.load("fonts/NotoSans-Regular.ttf");
+    final ttf = pw.Font.ttf(fontData);
+    final fontBoldData = await rootBundle.load("fonts/NotoSans-Bold.ttf");
+    final ttfBold = pw.Font.ttf(fontBoldData);
+
     final pdf = pw.Document();
     final a4Colors = _getA4ThemeColors();
     final currency = _currencySymbol;
@@ -3034,6 +3040,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
+        theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
         build: (pw.Context context) {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -3144,8 +3151,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 data: widget.items.map((item) => [
                   item['name'] ?? 'Item',
                   '${item['quantity'] ?? 1}',
-                  '${(item['price'] ?? 0.0).toStringAsFixed(2)}',
-                  '${(item['total'] ?? 0.0).toStringAsFixed(2)}',
+                  '$currency${(item['price'] ?? 0.0).toStringAsFixed(2)}',
+                  '$currency${(item['total'] ?? 0.0).toStringAsFixed(2)}',
                 ]).toList(),
               ),
               pw.SizedBox(height: 20),

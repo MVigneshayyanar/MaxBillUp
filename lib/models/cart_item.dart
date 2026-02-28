@@ -4,6 +4,7 @@ class CartItem {
   double price; // Changed from final to allow editing
   double quantity; // Changed from int to double to support weights
 
+  final double cost;
   // Tax information
   final String? taxName;
   final double? taxPercentage;
@@ -13,6 +14,7 @@ class CartItem {
     required this.productId,
     required this.name,
     required this.price,
+    this.cost = 0.0,
     this.quantity = 1.0,
     this.taxName,
     this.taxPercentage,

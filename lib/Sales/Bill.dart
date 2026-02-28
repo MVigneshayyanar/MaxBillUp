@@ -2251,7 +2251,7 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _saveDataInBackground(String invoiceNumber, List<Map<String, dynamic>> taxList, double totalTax) async {
     try {
       final baseSaleData = {
-        'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
+        'invoiceNumber': invoiceNumber, 'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'cost': e.cost, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
         'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed, 'discount': widget.discountAmount, 'creditUsed': widget.actualCreditUsed, 'total': widget.totalAmount, 'taxes': taxList, 'totalTax': totalTax,
         'paymentMode': widget.paymentMode, 'cashReceived': _cashReceived, 'change': _change > 0 ? _change : 0.0,
         if (widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount) ...{

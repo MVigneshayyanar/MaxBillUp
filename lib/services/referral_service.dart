@@ -114,7 +114,7 @@ class ReferralService {
 
                 // Title
                 const Text(
-                  'Enjoying MAXmybill?',
+                  'Growing with MAXmybill?',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
@@ -148,7 +148,7 @@ class ReferralService {
                     },
                     icon: const Icon(Icons.share_rounded, size: 20),
                     label: const Text(
-                      'SHARE MAXMYBILL',
+                      'SHARE MAXmybill ',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -187,21 +187,21 @@ class ReferralService {
                 ),
 
                 // Don't show again
-                TextButton(
-                  onPressed: () async {
-                    await markReferralDismissed();
-                    Navigator.pop(context);
-                  },
-                  child: const Text(
-                    "Don't show again",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: kBlack54,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
+                // TextButton(
+                //   onPressed: () async {
+                //     await markReferralDismissed();
+                //     Navigator.pop(context);
+                //   },
+                //   child: const Text(
+                //     "Don't show again",
+                //     style: TextStyle(
+                //       fontSize: 12,
+                //       fontWeight: FontWeight.w500,
+                //       color: kBlack54,
+                //       decoration: TextDecoration.underline,
+                //     ),
+                //   ),
+                // ),
               ],
             ),
           ),

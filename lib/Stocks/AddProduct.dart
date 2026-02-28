@@ -74,6 +74,8 @@ class _AddProductPageState extends State<AddProductPage> {
       _loadExistingData();
     } else {
       _generateProductCode();
+      // Ensure new products have a default cost of 0 so reports can calculate safely
+      _costPriceController.text = '0';
     }
   }
 
@@ -731,7 +733,7 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kGreyBg,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
@@ -805,6 +807,7 @@ class _AddProductPageState extends State<AddProductPage> {
                           icon: HeroIcons.shoppingCart,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           hint: "0.00",
+                          // Add a helper text to educate user
                         ),
                         const SizedBox(height: 16),
                         _buildModernTextField(
@@ -1532,7 +1535,8 @@ class _AddProductPageState extends State<AddProductPage> {
     final d = widget.existingData!;
     _itemNameController.text = d['itemName'] ?? '';
     _priceController.text = d['price']?.toString() ?? '';
-    _costPriceController.text = d['costPrice']?.toString() ?? '';
+    // If costPrice is missing or null, show 0 so downstream reports treat it as zero
+    _costPriceController.text = d['costPrice']?.toString() ?? '0';
     _mrpController.text = d['mrp']?.toString() ?? '';
     _productCodeController.text = d['productCode'] ?? '';
     _hsnController.text = d['hsn'] ?? '';
@@ -1603,6 +1607,7 @@ class _AddProductPageState extends State<AddProductPage> {
     final pData = {
       'itemName': _itemNameController.text.trim(),
       'price': double.tryParse(_priceController.text) ?? 0.0,
+      // Ensure costPrice is always a number; default to 0.0 when empty
       'costPrice': double.tryParse(_costPriceController.text) ?? 0.0,
       'mrp': double.tryParse(_mrpController.text) ?? 0.0,
       'category': _selectedCategory ?? 'General',
@@ -1628,4 +1633,3 @@ class _AddProductPageState extends State<AddProductPage> {
     if (mounted) Navigator.pop(context);
   }
 }
-

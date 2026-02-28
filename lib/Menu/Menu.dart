@@ -85,8 +85,9 @@ class _MenuPageState extends State<MenuPage> {
     'assets/View_Report.png',
   ];
 
-  StreamSubscription<DocumentSnapshot>? _userSubscription;
-  StreamSubscription<DocumentSnapshot>? _storeSubscription;
+     StreamSubscription<DocumentSnapshot>? _userSubscription;
+     StreamSubscription<DocumentSnapshot>? _storeSubscription;
+     bool _permissionsLoaded = false; // track when permissions are loaded to avoid flicker of locks
 
   @override
   void initState() {
@@ -190,15 +191,16 @@ class _MenuPageState extends State<MenuPage> {
     });
   }
 
-  void _loadPermissions() async {
-    final userData = await PermissionHelper.getUserPermissions(widget.uid);
-    if (mounted) {
-      setState(() {
-        _permissions = userData['permissions'] as Map<String, dynamic>? ?? {};
-        _role = userData['role'] as String? ?? "staff";
-      });
-    }
-  }
+     void _loadPermissions() async {
+     final userData = await PermissionHelper.getUserPermissions(widget.uid);
+     if (mounted) {
+       setState(() {
+         _permissions = userData['permissions'] as Map<String, dynamic>? ?? {};
+         _role = userData['role'] as String? ?? "staff";
+         _permissionsLoaded = true;
+       });
+     }
+     }
 
   @override
   void dispose() {
@@ -218,19 +220,32 @@ class _MenuPageState extends State<MenuPage> {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final isProviderReady = planProvider.isInitialized;
         final currentPlan = planProvider.cachedPlan;
+        // Wait until both provider and permissions are loaded before showing locks/upgrade prompts
+        final isFullyLoaded = isProviderReady && _permissionsLoaded;
 
-        int planRank = isProviderReady ? 0 : 3;
-        final planLower = currentPlan.toLowerCase();
-        if (planLower.contains('lite')) planRank = 1;
-        else if (planLower.contains('plus')) planRank = 2;
-        else if (planLower.contains('pro')) planRank = 3;
-        else if (planLower.contains('starter') || planLower.contains('free')) planRank = 0;
-
+        int planRank = 0;
+        if (isProviderReady) {
+          final planLower = currentPlan.toLowerCase();
+          if (planLower.contains('lite')) planRank = 1;
+          else if (planLower.contains('plus')) planRank = 2;
+          else if (planLower.contains('pro')) planRank = 3;
+          else if (planLower.contains('starter') || planLower.contains('free')) planRank = 0;
+        }
 
         bool isFeatureAvailable(String permission, {int requiredRank = 0}) {
+          // Until both provider and permission data are loaded, allow features to be visible (avoid flicker of locks)
+          if (!isFullyLoaded) return true;
+          if (permission == 'DayBook') return true; // always available
           if (isAdmin) return true;
-          if (planRank < requiredRank) return false;
-          return _hasPermission(permission);
+
+          // If the current user explicitly has permission, grant access regardless of plan rank.
+          if (_hasPermission(permission)) return true;
+
+          // Otherwise enforce plan-based rank requirements (paid features)
+          if (requiredRank > 0 && planRank < requiredRank) return false;
+
+          // Default: deny access
+          return false;
         }
 
         if (_currentView != null) {
@@ -292,10 +307,10 @@ class _MenuPageState extends State<MenuPage> {
                         stream: _overdueCounterStream,
                         builder: (context, snapshot) {
                           return _buildMenuTile(
-                            'Credit & Dues', 
-                            HeroIcons.bookOpen, 
-                            const Color(0xFF00796B), 
-                            'CreditDetails', 
+                            'Credit & Dues',
+                            HeroIcons.bookOpen,
+                            const Color(0xFF00796B),
+                            'CreditDetails',
                             requiredRank: 2,
                             badgeCount: snapshot.data ?? 0,
                           );
@@ -569,16 +584,20 @@ class _MenuPageState extends State<MenuPage> {
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.5)),
   );
 
-  Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0, int badgeCount = 0}) {
+    Widget _buildMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0, int badgeCount = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final currentPlan = planProvider.cachedPlan;
+        final isProviderReady = planProvider.isInitialized; // only enforce rank checks when ready
 
         int planRank = 0;
-        if (currentPlan.toLowerCase().contains('lite')) planRank = 1;
-        else if (currentPlan.toLowerCase().contains('plus')) planRank = 2;
-        else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+        if (isProviderReady) {
+          final planLower = currentPlan.toLowerCase();
+          if (planLower.contains('lite')) planRank = 1;
+          else if (planLower.contains('plus')) planRank = 2;
+          else if (planLower.contains('pro') || planLower.contains('premium')) planRank = 3;
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -595,16 +614,31 @@ class _MenuPageState extends State<MenuPage> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                if (requiredRank > 0 && planRank < requiredRank) {
-                  if (isAdmin) {
-                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                    return;
-                  }
-                  if (!_hasPermission(_getPermissionKeyFromView(viewKey))) {
-                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                    return;
-                  }
+                // If provider is not ready yet, allow navigation (avoid flicker/false blocks)
+                if (!isProviderReady) {
+                  setState(() => _currentView = viewKey);
+                  return;
                 }
+
+                // If user explicitly has permission, allow even if plan rank is low
+                final permKey = _getPermissionKeyFromView(viewKey);
+                if (_hasPermission(permKey) || isAdmin) {
+                  setState(() => _currentView = viewKey);
+                  return;
+                }
+
+                // Otherwise enforce plan-rank gating
+                if (requiredRank > 0 && planRank < requiredRank) {
+                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                  return;
+                }
+
+                // Finally, deny if no permission
+                if (!_hasPermission(permKey)) {
+                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                  return;
+                }
+
                 setState(() => _currentView = viewKey);
               },
               child: Padding(
@@ -647,16 +681,20 @@ class _MenuPageState extends State<MenuPage> {
     );
   }
 
-  Widget _buildGridMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
+    Widget _buildGridMenuTile(String title, HeroIcons icon, Color color, String viewKey, {int requiredRank = 0}) {
     return Consumer<PlanProvider>(
       builder: (context, planProvider, child) {
         bool isAdmin = _role.toLowerCase() == 'owner' || _role.toLowerCase() == 'administrator' || _role.toLowerCase() == 'admin';
         final currentPlan = planProvider.cachedPlan;
+        final isProviderReady = planProvider.isInitialized; // only enforce rank checks when ready
 
         int planRank = 0;
-        if (currentPlan.toLowerCase().contains('lite')) planRank = 1;
-        else if (currentPlan.toLowerCase().contains('plus')) planRank = 2;
-        else if (currentPlan.toLowerCase().contains('pro') || currentPlan.toLowerCase().contains('premium')) planRank = 3;
+        if (isProviderReady) {
+          final planLower = currentPlan.toLowerCase();
+          if (planLower.contains('lite')) planRank = 1;
+          else if (planLower.contains('plus')) planRank = 2;
+          else if (planLower.contains('pro') || planLower.contains('premium')) planRank = 3;
+        }
 
         return Container(
           decoration: BoxDecoration(
@@ -672,16 +710,27 @@ class _MenuPageState extends State<MenuPage> {
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: () {
-                if (requiredRank > 0 && planRank < requiredRank) {
-                  if (isAdmin) {
-                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                    return;
-                  }
-                  if (!_hasPermission(_getPermissionKeyFromView(viewKey))) {
-                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                    return;
-                  }
+                if (!isProviderReady) {
+                  setState(() => _currentView = viewKey);
+                  return;
                 }
+
+                final permKey = _getPermissionKeyFromView(viewKey);
+                if (_hasPermission(permKey) || isAdmin) {
+                  setState(() => _currentView = viewKey);
+                  return;
+                }
+
+                if (requiredRank > 0 && planRank < requiredRank) {
+                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                  return;
+                }
+
+                if (!_hasPermission(permKey)) {
+                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                  return;
+                }
+
                 setState(() => _currentView = viewKey);
               },
               child: Padding(

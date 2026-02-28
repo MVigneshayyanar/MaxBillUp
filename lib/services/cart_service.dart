@@ -88,8 +88,9 @@ class CartService extends ChangeNotifier {
           .map((item) => CartItem(
                 productId: item['productId'] ?? '',
                 name: item['name'] ?? '',
-                price: (item['price'] ?? 0).toDouble(),
-                quantity: item['quantity'] ?? 1,
+                price: (item['price'] ?? 0.0).toDouble(),
+                cost: (item['cost'] ?? 0.0).toDouble(),
+                quantity: (item['quantity'] ?? 1).toDouble(),
                 taxName: item['taxName'],
                 taxPercentage: item['taxPercentage']?.toDouble(),
                 taxType: item['taxType'],

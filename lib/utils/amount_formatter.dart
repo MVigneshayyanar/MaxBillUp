@@ -1,3 +1,5 @@
+import 'package:maxbillup/services/currency_service.dart';
+
 /// Utility class for consistent amount/decimal formatting across the app
 /// This ensures no rounding of decimal values - displays exact values as stored
 
@@ -39,14 +41,15 @@ class AmountFormatter {
     return formatted;
   }
 
-  /// Formats amount with currency symbol (₹)
-  static String formatWithSymbol(dynamic value, {int maxDecimals = 4, String symbol = '₹'}) {
-    return '$symbol${format(value, maxDecimals: maxDecimals)}';
+  /// Formats amount with currency symbol
+  static String formatWithSymbol(dynamic value, {int maxDecimals = 4, String? symbol}) {
+    final currencySymbol = symbol ?? CurrencyService().symbol;
+    return '$currencySymbol${format(value, maxDecimals: maxDecimals)}';
   }
 
-  /// Formats amount with "Rs " prefix
+  /// Formats amount with currency prefix
   static String formatWithRs(dynamic value, {int maxDecimals = 4}) {
-    return 'Rs ${format(value, maxDecimals: maxDecimals)}';
+    return '${CurrencyService().symbolWithSpace}${format(value, maxDecimals: maxDecimals)}';
   }
 
   /// Formats for display in lists (compact format)

@@ -290,8 +290,8 @@ class CommonWidgets {
             child: HeroIcon(icon, color: kPrimaryColor, size: 18),
           ),
           labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
-          
-          
+
+
         ),
       ),
     );

@@ -85,7 +85,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
   int _animationCounter = 0;
 
   // Currency symbol
-  String _currencySymbol = 'Rs ';
+  String _currencySymbol = '';
 
   @override
   void initState() {
@@ -116,6 +116,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             productId: item['productId'] ?? '',
             name: item['name'] ?? '',
             price: (item['price'] ?? 0.0).toDouble(),
+            cost: (item['cost'] ?? 0.0).toDouble(),
             quantity: (item['quantity'] ?? 1).toDouble(),
             taxName: item['taxName'] as String?,
             taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
@@ -129,7 +130,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
 
-    // Load currency symbol from store settings
+    // Load currency symbol
+    _currencySymbol = CurrencyService().symbolWithSpace;
     _loadCurrencySymbol();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -249,7 +251,8 @@ class _SaleAllPageState extends State<SaleAllPage> {
             productId: item['productId'] ?? '',
             name: item['name'] ?? '',
             price: (item['price'] ?? 0.0).toDouble(),
-            quantity: item['quantity'] ?? 1,
+            cost: (item['cost'] ?? 0.0).toDouble(),
+            quantity: (item['quantity'] ?? 1).toDouble(),
           ));
         }
       }
@@ -264,7 +267,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     return name[0].toUpperCase() + name.substring(1).toLowerCase();
   }
 
-  void _showWeightInputDialog(String id, String name, double price, bool stockEnabled, double stock,
+  void _showWeightInputDialog(String id, String name, double price, double cost, bool stockEnabled, double stock,
       {String? taxName, double? taxPercentage, String? taxType}) {
     final gramController = TextEditingController();
     final kgController = TextEditingController();
@@ -446,7 +449,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     ),
                   ),
                   Text(
-                    AmountFormatter.format(price),
+                    '${CurrencyService().symbol}${AmountFormatter.format(price)}',
                     style: const TextStyle(
                       color: kPrimaryColor,
                       fontSize: 15,
@@ -521,7 +524,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               }
 
               Navigator.pop(ctx);
-              _addToCart(id, name, price, stockEnabled, stock, finalQuantity,
+              _addToCart(id, name, price, cost, stockEnabled, stock, finalQuantity,
                   taxName: taxName, taxPercentage: taxPercentage, taxType: taxType);
             },
             style: ElevatedButton.styleFrom(
@@ -543,7 +546,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
     );
   }
 
-  void _addToCart(String id, String name, double price, bool stockEnabled, double stock, double quantity,
+  void _addToCart(String id, String name, double price, double cost, bool stockEnabled, double stock, double quantity,
       {String? taxName, double? taxPercentage, String? taxType}) {
     final idx = _cart.indexWhere((item) => item.productId == id);
 
@@ -568,6 +571,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
         productId: id,
         name: name,
         price: price,
+        cost: cost,
         quantity: quantity,
         taxName: taxName,
         taxPercentage: taxPercentage,
@@ -615,6 +619,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       final id = doc.id;
       final name = data['itemName'] ?? context.tr('unnamed');
       final price = (data['price'] ?? 0.0).toDouble();
+      final cost = (data['costPrice'] ?? 0.0).toDouble();
       final stockEnabled = data['stockEnabled'] ?? false;
       final firestoreStock = (data['currentStock'] ?? 0.0).toDouble();
       final unit = data['stockUnit'] ?? '';
@@ -633,6 +638,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             id,
             name,
             price,
+            cost,
             stockEnabled,
             stock,
             taxName: data['taxName'],
@@ -645,6 +651,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             id,
             name,
             price,
+            cost,
             stockEnabled,
             stock,
             1.0,
@@ -1127,12 +1134,14 @@ class _SaleAllPageState extends State<SaleAllPage> {
               return;
             }
             if (price > 0) {
+              final cost = (data['costPrice'] ?? 0.0).toDouble();
               // Only show weight dialog for kg unit items
               if (unit.toLowerCase() == 'kg' || unit.toLowerCase() == 'kilogram') {
                 _showWeightInputDialog(
                   id,
                   name,
                   price,
+                  cost,
                   stockEnabled,
                   stock,
                   taxName: data['taxName'],
@@ -1145,6 +1154,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                   id,
                   name,
                   price,
+                  cost,
                   stockEnabled,
                   stock,
                   1.0,

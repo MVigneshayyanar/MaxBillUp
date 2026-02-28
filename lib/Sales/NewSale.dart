@@ -1048,11 +1048,11 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)
                               )),
-                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.priceWithTax), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.formatWithSymbol(item.priceWithTax), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
                               Expanded(
                                 flex: 2,
                                 child: Text(
-                                  AmountFormatter.format(item.totalWithTax),
+                                  AmountFormatter.formatWithSymbol(item.totalWithTax),
                                   textAlign: TextAlign.right,
                                   style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
                                 ),
