@@ -229,9 +229,21 @@ class _ReportsPageState extends State<ReportsPage> {
             _buildReportTile(context.tr('Business  Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
 
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Summary', HeroIcons.documentText,   kPrimaryColor, 'Summary', subtitle: 'Income, expense & dues'),
+            _buildReportTile('Business Insights', HeroIcons.documentText,   kPrimaryColor, 'Summary', subtitle: 'Income, expense & dues'),
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile(context.tr('Sales Report'), HeroIcons.chartPie, const Color(0xFFE91E63), 'SalesSummary', subtitle: 'Sales performance'),
+
+          // Financials & Tax Section
+
+          if (hasFinancialsItems) ...[
+            const SizedBox(height: 12),
+            _buildSectionLabel(context.tr('financials_tax')),
+          ],
+          if (isFeatureAvailable('expensesReport'))
+            _buildReportTile(context.tr('expense_report'), HeroIcons.wallet, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
+          if (isFeatureAvailable('taxReport'))
+            _buildReportTile(context.tr('tax_report'), HeroIcons.receiptPercent, const Color(0xFF43A047), 'TaxReport', subtitle: 'Taxable sales compliance'),
+
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Payment Summary', HeroIcons.banknotes,kGoogleGreen , 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
@@ -262,18 +274,7 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('topCategory'))
             _buildReportTile(context.tr('top_categories'), HeroIcons.tag, CupertinoColors.systemPurple, 'TopCategories', subtitle: 'Department performance'),
 
-          // Financials & Tax Section
-          if (hasFinancialsItems) ...[
-            const SizedBox(height: 12),
-            _buildSectionLabel(context.tr('financials_tax')),
-          ],
-          if (isFeatureAvailable('expensesReport'))
-            _buildReportTile(context.tr('expense_report'), HeroIcons.wallet, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
-          if (isFeatureAvailable('taxReport'))
-            _buildReportTile(context.tr('tax_report'), HeroIcons.receiptPercent, const Color(0xFF43A047), 'TaxReport', subtitle: 'Taxable sales compliance'),
-          //if (isFeatureAvailable('taxReport'))
-           // _buildReportTile('GST Report', Icons.description_rounded, const Color(0xFF4455DF), 'GSTReport', subtitle: 'GST on sales & purchases'),
-          const SizedBox(height: 40),
+
         ],
       ),
       bottomNavigationBar: CommonBottomNav(
@@ -4029,7 +4030,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Financial Insights", widget.onBack, onDownload: () => _downloadPdf(context)),
+      appBar: _buildModernAppBar("Sales Report", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -6472,30 +6473,30 @@ class _TopProductsPageState extends State<TopProductsPage> {
                   Text("${revenue.toStringAsFixed(2)}", style:TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kPrimaryColor  , letterSpacing: -1)),
                   const SizedBox(width: 8),
                   // Green info icon with black explanatory text
-                  Tooltip(
-                    message: 'Profit is calculated based on the Total Cost Price',
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: kIncomeGreen.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.info_outline, color: kIncomeGreen, size: 16),
-                          const SizedBox(width: 6),
-                          const Text(
-                            'Profit is calculated based on the Total Cost Price',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // Tooltip(
+                  //   message: 'Profit is calculated based on the Total Cost Price',
+                  //   child: Container(
+                  //     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  //     decoration: BoxDecoration(
+                  //       color: kIncomeGreen.withOpacity(0.12),
+                  //       borderRadius: BorderRadius.circular(8),
+                  //     ),
+                  //     child: Row(
+                  //       children: [
+                  //         const Icon(Icons.info_outline, color: kIncomeGreen, size: 16),
+                  //         const SizedBox(width: 6),
+                  //         const Text(
+                  //           'Profit is calculated based on the Total Cost Price',
+                  //           style: TextStyle(
+                  //             color: Colors.black,
+                  //             fontSize: 12,
+                  //             fontWeight: FontWeight.w700,
+                  //           ),
+                  //         ),
+                  //       ],
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ],
@@ -8809,7 +8810,7 @@ class IncomeSummaryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Financial Summary", onBack),
+      appBar: _buildModernAppBar("Business  Insights", onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -9649,8 +9650,17 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
               double grandTotal = 0;
               int grandBills = 0;
 
+              // Keep track of processed invoice identifiers to avoid duplicate counting
+              final Set<String> _processedInvoices = <String>{};
+
               for (var doc in snapshot.data!.docs) {
                 final data = doc.data() as Map<String, dynamic>;
+                // Resolve an invoice identifier (prefer explicit invoiceNumber, fallback to doc id)
+                final String invoiceId = (data['invoiceNumber'] ?? data['invoice'] ?? doc.id).toString();
+
+                // Skip duplicate invoice entries if they appear multiple times in the snapshot
+                if (_processedInvoices.contains(invoiceId)) continue;
+                _processedInvoices.add(invoiceId);
                 DateTime? dt;
                 if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
                 else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());

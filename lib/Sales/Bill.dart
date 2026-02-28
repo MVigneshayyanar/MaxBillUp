@@ -189,7 +189,7 @@ class _BillPageState extends State<BillPage> {
     _discountAmount = customerDiscountAmount + _additionalDiscount;
   }
 
-  void _proceedToPayment(String paymentMode) {
+  Future<void> _proceedToPayment(String paymentMode) async {
     // Credit payment requires a customer to be selected
     if (paymentMode == 'Credit' && (_selectedCustomerPhone == null || _selectedCustomerPhone!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,61 +224,78 @@ class _BillPageState extends State<BillPage> {
     // Total discount for payment page = customer discount + additional discount
     final totalDiscountAmount = customerDiscountAmount + _additionalDiscount;
 
-    Navigator.push(
-      context,
-      CupertinoPageRoute(
-        builder: (context) => paymentMode == 'Split'
-            ? SplitPaymentPage(
-          uid: _uid,
-          userEmail: widget.userEmail,
-          cartItems: cartItems,
-          totalAmount: finalAmount,
-          customerPhone: _selectedCustomerPhone,
-          customerName: _selectedCustomerName,
-          customerGST: _selectedCustomerGST,
-          discountAmount: totalDiscountAmount,
-          creditNote: _creditNote,
-          customNote: _notesController.text.trim(),
-          deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
-          savedOrderId: widget.savedOrderId,
-          selectedCreditNotes: _selectedCreditNotes,
-          quotationId: widget.quotationId,
-          existingInvoiceNumber: _existingInvoiceNumber,
-          unsettledSaleId: _unsettledSaleId,
-          businessName: _businessName,
-          businessLocation: _businessLocation,
-          businessPhone: _businessPhone,
-          staffName: _staffName,
-          actualCreditUsed: actualCreditUsed,
-          deliveryCharge: _deliveryCharge,
-        )
-            : PaymentPage(
-          uid: _uid,
-          userEmail: widget.userEmail,
-          cartItems: cartItems,
-          totalAmount: finalAmount,
-          paymentMode: paymentMode,
-          customerPhone: _selectedCustomerPhone,
-          customerName: _selectedCustomerName,
-          customerGST: _selectedCustomerGST,
-          discountAmount: totalDiscountAmount,
-          creditNote: _creditNote,
-          customNote: _notesController.text.trim(),
-          deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
-          savedOrderId: widget.savedOrderId,
-          selectedCreditNotes: _selectedCreditNotes,
-          quotationId: widget.quotationId,
-          existingInvoiceNumber: _existingInvoiceNumber,
-          unsettledSaleId: _unsettledSaleId,
-          businessName: _businessName,
-          businessLocation: _businessLocation,
-          businessPhone: _businessPhone,
-          staffName: _staffName,
-          actualCreditUsed: actualCreditUsed,
-          deliveryCharge: _deliveryCharge,
+    if (paymentMode == 'Split') {
+      final result = await Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => SplitPaymentPage(
+            uid: _uid,
+            userEmail: widget.userEmail,
+            cartItems: cartItems,
+            totalAmount: finalAmount,
+            customerPhone: _selectedCustomerPhone,
+            customerName: _selectedCustomerName,
+            customerGST: _selectedCustomerGST,
+            discountAmount: totalDiscountAmount,
+            creditNote: _creditNote,
+            customNote: _notesController.text.trim(),
+            deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
+            savedOrderId: widget.savedOrderId,
+            selectedCreditNotes: _selectedCreditNotes,
+            quotationId: widget.quotationId,
+            existingInvoiceNumber: _existingInvoiceNumber,
+            unsettledSaleId: _unsettledSaleId,
+            businessName: _businessName,
+            businessLocation: _businessLocation,
+            businessPhone: _businessPhone,
+            staffName: _staffName,
+            actualCreditUsed: actualCreditUsed,
+            deliveryCharge: _deliveryCharge,
+          ),
         ),
-      ),
-    );
+      );
+
+      // If we are in edit mode and the update was successful, go back to history
+      if (result != null && result is Map && result['success'] == true && _unsettledSaleId != null) {
+        if (mounted) Navigator.pop(context, true);
+      }
+    } else {
+      final result = await Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => PaymentPage(
+            uid: _uid,
+            userEmail: widget.userEmail,
+            cartItems: cartItems,
+            totalAmount: finalAmount,
+            paymentMode: paymentMode,
+            customerPhone: _selectedCustomerPhone,
+            customerName: _selectedCustomerName,
+            customerGST: _selectedCustomerGST,
+            discountAmount: totalDiscountAmount,
+            creditNote: _creditNote,
+            customNote: _notesController.text.trim(),
+            deliveryAddress: _deliveryAddressController.text.trim().isNotEmpty ? _deliveryAddressController.text.trim() : null,
+            savedOrderId: widget.savedOrderId,
+            selectedCreditNotes: _selectedCreditNotes,
+            quotationId: widget.quotationId,
+            existingInvoiceNumber: _existingInvoiceNumber,
+            unsettledSaleId: _unsettledSaleId,
+            businessName: _businessName,
+            businessLocation: _businessLocation,
+            businessPhone: _businessPhone,
+            staffName: _staffName,
+            actualCreditUsed: actualCreditUsed,
+            deliveryCharge: _deliveryCharge,
+          ),
+        ),
+      );
+
+      // Handle successful update for non-split payments too
+      if (result != null && result is Map && result['success'] == true && _unsettledSaleId != null) {
+        if (mounted) Navigator.pop(context, true);
+      }
+    }
   }
 
   void _clearOrder() {
@@ -892,7 +909,7 @@ class _BillPageState extends State<BillPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: kGoogleGreen.withOpacity(0.1),
+                      color: kGoogleGreen.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: kGoogleGreen.withOpacity(0.3)),
                     ),
@@ -1146,9 +1163,9 @@ class _BillPageState extends State<BillPage> {
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: hasCustomer ? kPrimaryColor.withOpacity(0.08) : kWhite,
+            color: hasCustomer ? kPrimaryColor.withOpacity(0.15) : kWhite,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: hasCustomer ? kPrimaryColor.withOpacity(0.2) : kOrange, width: 1.5),
+            border: Border.all(color: hasCustomer ? kPrimaryColor.withOpacity(0.15) : kOrange, width: 1.5),
           ),
           child: Row(
             children: [
@@ -1173,7 +1190,7 @@ class _BillPageState extends State<BillPage> {
                   behavior: HitTestBehavior.opaque,
                   child: Container(
                     padding: const EdgeInsets.all(6), margin: const EdgeInsets.only(right: 8),
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: kBlack87.withOpacity(0.05)),
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: kBlack87.withOpacity(0.15)),
                     child: const HeroIcon(HeroIcons.xMark, size: 14, color: kBlack54),
                   ),
                 ),
@@ -1235,7 +1252,7 @@ class _BillPageState extends State<BillPage> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.1),
+                color: kPrimaryColor.withOpacity(0.15),
                 shape: BoxShape.circle,
               ),
               child: const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 18),
@@ -1280,7 +1297,7 @@ class _BillPageState extends State<BillPage> {
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
                       hintText: hint,
-                      hintStyle: TextStyle(color: kBlack54.withValues(alpha: 0.5), fontSize: 13),
+                      hintStyle: TextStyle(color: kBlack54.withOpacity(0.15), fontSize: 13),
                       filled: true,
                       fillColor: const Color(0xFFF8F9FA),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1469,9 +1486,9 @@ class _BillPageState extends State<BillPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           decoration: BoxDecoration(
-                            color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.08) : kGreyBg,
+                            color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.15): kGreyBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.3) : kGrey200),
+                            border: Border.all(color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.15) : kGrey200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1491,9 +1508,9 @@ class _BillPageState extends State<BillPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           decoration: BoxDecoration(
-                            color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.08) : kGreyBg,
+                            color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.15) : kGreyBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.3) : kGrey200),
+                            border: Border.all(color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.15) : kGrey200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1513,9 +1530,9 @@ class _BillPageState extends State<BillPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                           decoration: BoxDecoration(
-                            color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.08) : kGreyBg,
+                            color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.15) : kGreyBg,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.3) : kGrey200),
+                            border: Border.all(color: _deliveryCharge > 0 ? kGoogleGreen.withOpacity(0.15) : kGrey200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -1605,11 +1622,11 @@ class _BillPageState extends State<BillPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text('Checkout', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kWhite, letterSpacing: 0.3)),
+                        Text(_unsettledSaleId != null ? 'Update' : 'Checkout', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: kWhite, letterSpacing: 0.3)),
                         const SizedBox(width: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
                           child: Text('$_currencySymbol${AmountFormatter.format(finalAmount)}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kWhite)),
                         ),
                       ],
@@ -1704,7 +1721,7 @@ class _BillPageState extends State<BillPage> {
               Container(
                 width: 42,
                 height: 42,
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color.withOpacity(0.15), shape: BoxShape.circle),
                 child: Center(child: HeroIcon(icon, color: color, size: 20)),
               ),
               const SizedBox(width: 14),
@@ -1752,9 +1769,9 @@ class _BillPageState extends State<BillPage> {
               aspectRatio: 1.0, // Make it a perfect square
               child: Container(
                 decoration: BoxDecoration(
-                  color: themeColor.withOpacity(0.06),
+                  color: themeColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: themeColor.withOpacity(0.25), width: 1.5),
+                  border: Border.all(color: themeColor.withOpacity(0.15), width: 1.5),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1763,7 +1780,7 @@ class _BillPageState extends State<BillPage> {
                       width: 56, // Increased size
                       height: 56, // Increased size
                       decoration: BoxDecoration(
-                        color: themeColor.withOpacity(0.12),
+                        color: themeColor.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -2122,7 +2139,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
                           final balance = (data['balance'] ?? 0.0) as num;
                           return ListTile(
                             onTap: () { widget.onCustomerSelected(data['phone'], data['name'], data['gst']); Navigator.pop(context); },
-                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), child: Text(data['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900))),
+                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.15), child: Text(data['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900))),
                             title: Text(data['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                             subtitle: Text(data['phone'], style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
                             trailing: Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
@@ -2146,7 +2163,7 @@ class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
       borderRadius: BorderRadius.circular(10),
       child: Container(
         height: 48, width: 48,
-        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
+        decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.15))),
         child: HeroIcon(icon, color: color, size: 20),
       ),
     );
@@ -2232,16 +2249,20 @@ class _PaymentPageState extends State<PaymentPage> {
     final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
 
     // Navigate immediately - don't wait for Firebase
-    if (mounted) {
+  if (mounted) {
+    if (widget.unsettledSaleId != null) {
+      Navigator.pop(context, {'success': true});
+    } else {
       Navigator.popUntil(context, (route) => route.isFirst);
       Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
           uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
-          items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
+          items: widget.cartItems.map((e)=>{'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
           subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: widget.paymentMode, cashReceived: _cashReceived,
           cashReceived_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? _cashReceived : null,
           creditIssued_partial: widget.paymentMode == 'Credit' && _cashReceived > 0 && _cashReceived < widget.totalAmount ? widget.totalAmount - _cashReceived : null,
           customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
     }
+  }
 
     // Fire-and-forget: Run all Firebase operations in background
     _saveDataInBackground(invoiceNumber, taxList, totalTax);
@@ -2455,7 +2476,7 @@ class _PaymentPageState extends State<PaymentPage> {
             decoration: BoxDecoration(
               color: primaryThemeColor,
               borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-              boxShadow: [BoxShadow(color: primaryThemeColor.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
+              boxShadow: [BoxShadow(color: primaryThemeColor.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 8))],
             ),
             child: Stack(
               children: [
@@ -2471,25 +2492,25 @@ class _PaymentPageState extends State<PaymentPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
                           child: const Text('TOTAL DUE', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                         ),
                       ],
                     ),
                     if (widget.deliveryCharge > 0) ...[
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.local_shipping_outlined, size: 12, color: kWhite),
-                            const SizedBox(width: 4),
-                            Text('+${widget.deliveryCharge.toStringAsFixed(2)} del.', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kWhite)),
-                          ],
-                        ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                    child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.local_shipping_outlined, size: 12, color: kWhite),
+                          const SizedBox(width: 4),
+                          Text('+${widget.deliveryCharge.toStringAsFixed(2)} del.', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kWhite)),
+                        ],
                       ),
+                    ),
                     ],
                     const SizedBox(height: 16),
                     const SizedBox(height: 16),
@@ -2499,7 +2520,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(bottom: 6, right: 4),
-                          child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.w700)),
+                          child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 20, fontWeight: FontWeight.w700)),
                         ),
                         Text(widget.totalAmount.toString(), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
                       ],
@@ -2531,7 +2552,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.black.withOpacity(0.2),
+                            color: Colors.black.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -2585,12 +2606,12 @@ class _PaymentPageState extends State<PaymentPage> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(canPay ? 'CONFIRM PAYMENT' : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                            Text(canPay ? (widget.unsettledSaleId != null ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
                             if (canPay) ...[
                               const SizedBox(width: 12),
                               Container(
                                 padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                                decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), shape: BoxShape.circle),
                                 child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 18),
                               ),
                             ]
@@ -2623,7 +2644,7 @@ class _PaymentPageState extends State<PaymentPage> {
             offset: const Offset(0, 8),
           ),
         ],
-        border: Border.all(color: kOrange.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: kOrange.withOpacity(0.15), width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -2632,7 +2653,7 @@ class _PaymentPageState extends State<PaymentPage> {
             padding: const EdgeInsets.symmetric(vertical: 16),
             width: double.infinity,
             decoration: BoxDecoration(
-              color: kOrange.withOpacity(0.05),
+              color: kOrange.withOpacity(0.15),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
             ),
             child: Column(
@@ -2764,7 +2785,40 @@ class SplitPaymentPage extends StatefulWidget {
   final double actualCreditUsed;
   final double deliveryCharge;
 
-  const SplitPaymentPage({super.key, required this.uid, this.userEmail, required this.cartItems, required this.totalAmount, this.customerPhone, this.customerName, this.customerGST, required this.discountAmount, required this.creditNote, this.customNote = '', this.deliveryAddress, this.savedOrderId, this.selectedCreditNotes = const [], this.quotationId, this.existingInvoiceNumber, this.unsettledSaleId, required this.businessName, required this.businessLocation, required this.businessPhone, required this.staffName, required this.actualCreditUsed, this.deliveryCharge = 0.0});
+  // Add fields for edit mode prefill
+  final double? cashReceived_split;
+  final double? onlineReceived_split;
+  final double? creditIssued_split;
+
+  const SplitPaymentPage({
+    super.key,
+    required this.uid,
+    this.userEmail,
+    required this.cartItems,
+    required this.totalAmount,
+    this.customerPhone,
+    this.customerName,
+    this.customerGST,
+    required this.discountAmount,
+    required this.creditNote,
+    this.customNote = '',
+    this.deliveryAddress,
+    this.savedOrderId,
+    this.selectedCreditNotes = const [],
+    this.quotationId,
+    this.existingInvoiceNumber,
+    this.unsettledSaleId,
+    required this.businessName,
+    required this.businessLocation,
+    required this.businessPhone,
+    required this.staffName,
+    required this.actualCreditUsed,
+    this.deliveryCharge = 0.0,
+    this.cashReceived_split,
+    this.onlineReceived_split,
+    this.creditIssued_split,
+  });
+
   @override State<SplitPaymentPage> createState() => _SplitPaymentPageState();
 }
 
@@ -2781,10 +2835,21 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   DateTime? _creditDueDate;
   String _currencySymbol = 'Rs '; // Default currency
 
+  bool get isEditMode => widget.unsettledSaleId != null;
+
   @override
   void initState() {
     super.initState();
     _loadCurrency();
+    // Prefill values if editing
+    if (isEditMode) {
+      _cashAmount = widget.cashReceived_split ?? 0.0;
+      _onlineAmount = widget.onlineReceived_split ?? 0.0;
+      _creditAmount = widget.creditIssued_split ?? 0.0;
+      _cashController.text = _cashAmount.toStringAsFixed(2);
+      _onlineController.text = _onlineAmount.toStringAsFixed(2);
+      _creditController.text = _creditAmount.toStringAsFixed(2);
+    }
     _cashController.addListener(() {
       setState(() {
         _cashAmount = double.tryParse(_cashController.text) ?? 0.0;
@@ -2835,7 +2900,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
-  Future<void> _processSplitSale() async {
+    Future<void> _processSplitSale() async {
     // Calculate change - overpayment
     final paidAmount = _cashAmount + _onlineAmount;
     final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
@@ -2921,16 +2986,27 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
 
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop();
-        Navigator.popUntil(context, (route) => route.isFirst);
-        Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
-            uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
-            items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-            subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
-            cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
-            customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
+        if (widget.unsettledSaleId != null) {
+          // Return results to BillPage as requested
+          Navigator.pop(context, {
+            'success': true,
+            'cash': _cashAmount,
+            'online': _onlineAmount,
+            'credit': _creditAmount,
+            'dueDate': _creditDueDate,
+          });
+        } else {
+          Navigator.popUntil(context, (route) => route.isFirst);
+          Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
+              uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
+              items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
+              subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
+              cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
+              customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
+        }
       }
     } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
-  }
+    }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber, DateTime? creditDueDate) async {
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
@@ -3058,15 +3134,15 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: kPrimaryColor,
-                borderRadius: BorderRadius.circular(24),
-              ),
+            decoration: BoxDecoration(
+              color: kPrimaryColor,
+              borderRadius: BorderRadius.circular(24),
+            ),
               child: Stack(
                 children: [
                   Positioned(
                     right: -15, top: -15,
-                    child: HeroIcon(HeroIcons.receiptPercent, color: Colors.white.withOpacity(0.1), size: 100),
+                    child: HeroIcon(HeroIcons.receiptPercent, color: Colors.white.withOpacity(0.15), size: 100),
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -3076,8 +3152,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-                            child: const Text('Total Amount', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                              child: const Text('Total Amount', style: TextStyle(color: kWhite, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                           ),
                         ],
                       ),
@@ -3085,8 +3161,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
-                          child: Row(
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(6)),
+                        child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(Icons.local_shipping_outlined, size: 12, color: kWhite),
@@ -3103,7 +3179,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(bottom: 6, right: 4),
-                            child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 20, fontWeight: FontWeight.w700)),
+                              child: Text(_currencySymbol, style: TextStyle(color: Colors.white.withOpacity(0.15), fontSize: 20, fontWeight: FontWeight.w700)),
                           ),
                           Text(AmountFormatter.format(widget.totalAmount), style: const TextStyle(color: kWhite, fontSize: 40, fontWeight: FontWeight.w900, height: 1)),
                         ],
@@ -3116,7 +3192,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _buildSummaryItem('PAID', _totalPaid, Colors.white),
-                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.2)),
+                            Container(width: 1, height: 30, color: Colors.white.withOpacity(0.15)),
                             _buildSummaryItem('REMAINING', _dueAmount > 0 ? _dueAmount : 0.0, const Color(0xFFFFB74D)),
                           ],
                         ),
@@ -3136,16 +3212,16 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF34A853).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF34A853).withOpacity(0.3), width: 1.5),
-                ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF34A853).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF34A853).withOpacity(0.15), width: 1.5),
+                    ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: const Color(0xFF34A853).withOpacity(0.2), shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: const Color(0xFF34A853).withOpacity(0.15), shape: BoxShape.circle),
                       child: const HeroIcon(HeroIcons.banknotes, color: Color(0xFF34A853), size: 24),
                     ),
                     const SizedBox(width: 16),
@@ -3174,9 +3250,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    color: kOrange.withOpacity(0.05),
+                    color: kOrange.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: kOrange.withOpacity(0.3), width: 1.5),
+                    border: Border.all(color: kOrange.withOpacity(0.15), width: 1.5),
                   ),
                   child: Row(
                     children: [
@@ -3203,7 +3279,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
                       ),
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]),
+                        decoration: BoxDecoration(color: kWhite, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 4, offset: const Offset(0, 2))]),
                         child: const HeroIcon(HeroIcons.pencil, color: kOrange, size: 16),
                       ),
                     ],
@@ -3215,44 +3291,25 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-          decoration: const BoxDecoration(color: kGreyBg),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            height: 60,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              color: canPay ? kPrimaryColor : kGrey200,
-              boxShadow: canPay ? [BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
             child: ElevatedButton(
               onPressed: canPay ? _processSplitSale : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                shadowColor: Colors.transparent,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                backgroundColor: kPrimaryColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 0,
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(canPay ? 'CONFIRM PAYMENT' : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
-                  if (canPay) ...[
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                      child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 18),
-                    ),
-                  ]
-                ],
-              ),
+              child: Text(isEditMode ? 'UPDATE' : 'COMPLETE', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: Colors.white, fontSize: 14)),
             ),
           ),
         ),
       ),
     );
-  }
+    }
 
   Future<void> _selectCreditDueDate(BuildContext context) async {
     // Show dialog asking user if they want to set a date or skip
@@ -3271,9 +3328,9 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: kOrange.withValues(alpha: 0.1),
+                  color: kOrange.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: kOrange.withValues(alpha: 0.3)),
+                  border: Border.all(color: kOrange.withOpacity(0.15)),
                 ),
                 child: Row(
                   children: [
@@ -3346,7 +3403,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
       decoration: BoxDecoration(
         color: enabled ? kWhite : kGrey100,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: enabled && hasValue ? kBlack87.withOpacity(0.5) : (enabled ? kGrey200 : kGrey100), width: hasValue ? 2.0 : 1.5),
+        border: Border.all(color: enabled && hasValue ? kBlack87.withOpacity(0.15) : (enabled ? kGrey200 : kGrey100), width: hasValue ? 2.0 : 1.5),
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -3354,7 +3411,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: enabled ? tintColor.withOpacity(0.1) : kGrey200,
+              color: enabled ? tintColor.withOpacity(0.15) : kGrey200,
               shape: BoxShape.circle,
             ),
             child: HeroIcon(icon, color: enabled ? tintColor : kBlack54, size: 24),

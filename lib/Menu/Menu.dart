@@ -2688,6 +2688,7 @@ class SalesDetailPage extends StatelessWidget {
               return;
             }
             if (await PlanPermissionHelper.canEditBill()) {
+              // Always open the edit page; the user can switch to Split within EditBillPage.
               if (context.mounted) Navigator.push(context, CupertinoPageRoute(builder: (_) => EditBillPage(documentId: documentId, invoiceData: data)));
             } else {
               if (context.mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill', uid: uid);
@@ -7030,14 +7031,19 @@ class _EditBillPageState extends State<EditBillPage> {
   late String _selectedPaymentMode;
   late String? _selectedCustomerPhone;
   late String? _selectedCustomerName;
-  late List<Map<String, dynamic>> _items;
-  List<Map<String, dynamic>> _selectedCreditNotes = [];
-  double _creditNotesAmount = 0.0;
-  bool _isSaving = false;
-  String _currencySymbol = 'Rs ';
+    late List<Map<String, dynamic>> _items;
+    List<Map<String, dynamic>> _selectedCreditNotes = [];
+    double _creditNotesAmount = 0.0;
+    bool _isSaving = false;
+    /// Split payment edit tracking
+    bool _isSplitEdited = false;
+    double _splitCash = 0.0;
+    double _splitOnline = 0.0;
+    double _splitCredit = 0.0;
+    String _currencySymbol = 'Rs ';
 
-  @override
-  void initState() {
+    @override
+    void initState() {
     super.initState();
     _loadCurrency();
     _discountController = TextEditingController(
@@ -7057,7 +7063,16 @@ class _EditBillPageState extends State<EditBillPage> {
       _selectedCreditNotes = selectedNotes.map((n) => Map<String, dynamic>.from(n)).toList();
       _creditNotesAmount = _selectedCreditNotes.fold(0.0, (sum, cn) => sum + ((cn['amount'] ?? 0) as num).toDouble());
     }
-  }
+
+    // Prefill split payment amounts if present on invoice (edit mode)
+    try {
+      _splitCash = ((widget.invoiceData['cashReceived_split'] ?? 0) as num).toDouble();
+      _splitOnline = ((widget.invoiceData['onlineReceived_split'] ?? 0) as num).toDouble();
+      _splitCredit = ((widget.invoiceData['creditIssued_split'] ?? 0) as num).toDouble();
+    } catch (_) {
+      _splitCash = 0.0; _splitOnline = 0.0; _splitCredit = 0.0;
+    }
+    }
 
   void _loadCurrency() async {
     final storeId = await FirestoreService().getCurrentStoreId();
@@ -7527,28 +7542,114 @@ class _EditBillPageState extends State<EditBillPage> {
             const SizedBox(height: 16),
             _buildPaymentModeSelector(),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _isSaving ? null : _updateBill,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kHeaderColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: _isSaving
-                    ? const CircularProgressIndicator(color: kWhite)
-                    : const Text('Confirm updates', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+             SizedBox(
+               width: double.infinity,
+               height: 56,
+               child: ElevatedButton(
+                 onPressed: _isSaving ? null : _onConfirmPressed,
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: kHeaderColor,
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                   elevation: 0,
+                 ),
+                 child: _isSaving
+                     ? const CircularProgressIndicator(color: kWhite)
+                     : const Text('Confirm updates', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: kWhite, fontSize: 14)),
+               ),
+             ),
+           ],
+         ),
+       ),
+     );
+     }
 
-  Widget _buildSummaryRow(String label, String value, {Color? color, bool isClickable = false, VoidCallback? onTap}) {
+    Future<void> _onConfirmPressed() async {
+    // If Split payment selected, navigate to SplitPaymentPage with prefilled values
+    if (_selectedPaymentMode == 'Split') {
+      // Convert current editable items to CartItem list
+      final List<CartItem> cartItems = _items.map((item) {
+        final qty = (item['quantity'] is int)
+            ? (item['quantity'] as int).toDouble()
+            : (item['quantity'] is double ? item['quantity'] as double : double.tryParse(item['quantity'].toString()) ?? 1.0);
+        return CartItem(
+          productId: item['productId'] ?? '',
+          name: item['name'] ?? '',
+          price: (item['price'] ?? 0).toDouble(),
+          quantity: qty,
+          taxName: item['taxName'],
+          taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
+          taxType: item['taxType'],
+        );
+      }).toList();
+
+      // Extract fields from invoiceData as available (fallbacks to sensible defaults)
+      final String uid = (widget.invoiceData['staffId'] ?? widget.invoiceData['staff'] ?? '')?.toString() ?? '';
+      final String? userEmail = widget.invoiceData['userEmail']?.toString();
+      final String? customerPhone = _selectedCustomerPhone ?? widget.invoiceData['customerPhone']?.toString();
+      final String? customerName = _selectedCustomerName ?? widget.invoiceData['customerName']?.toString();
+      final String customerGST = widget.invoiceData['customerGST']?.toString() ?? '';
+      final double discountAmount = discount;
+      final String creditNote = widget.invoiceData['creditNote']?.toString() ?? '';
+      final String customNote = widget.invoiceData['customNote']?.toString() ?? '';
+      final String businessName = widget.invoiceData['businessName']?.toString() ?? '';
+      final String businessLocation = widget.invoiceData['businessLocation']?.toString() ?? '';
+      final String businessPhone = widget.invoiceData['businessPhone']?.toString() ?? '';
+      final String staffName = widget.invoiceData['staffName']?.toString() ?? widget.invoiceData['staff']?.toString() ?? '';
+      final String? existingInvoiceNumber = widget.invoiceData['invoiceNumber']?.toString();
+      final String? unsettledSaleId = widget.invoiceData['unsettledSaleId']?.toString() ?? widget.invoiceData['unsettledId']?.toString();
+      final double deliveryCharge = (widget.invoiceData['deliveryCharge'] ?? 0).toDouble();
+
+      // Prefill previously recorded split amounts if present
+      final double? cashPrefill = widget.invoiceData['cashReceived_split'] != null ? (widget.invoiceData['cashReceived_split'] as num).toDouble() : null;
+      final double? onlinePrefill = widget.invoiceData['onlineReceived_split'] != null ? (widget.invoiceData['onlineReceived_split'] as num).toDouble() : null;
+      final double? creditPrefill = widget.invoiceData['creditIssued_split'] != null ? (widget.invoiceData['creditIssued_split'] as num).toDouble() : null;
+
+      // Navigate to SplitPaymentPage and await result
+      final result = await Navigator.push(
+        context,
+        CupertinoPageRoute(
+          builder: (context) => SplitPaymentPage(
+            uid: uid,
+            userEmail: userEmail,
+            cartItems: cartItems,
+            totalAmount: finalTotal,
+            customerPhone: customerPhone,
+            customerName: customerName,
+            customerGST: customerGST,
+            discountAmount: discountAmount,
+            creditNote: creditNote,
+            customNote: customNote,
+            deliveryAddress: widget.invoiceData['deliveryAddress']?.toString(),
+            savedOrderId: widget.invoiceData['savedOrderId']?.toString(),
+            selectedCreditNotes: _selectedCreditNotes,
+            quotationId: widget.invoiceData['quotationId']?.toString(),
+            existingInvoiceNumber: existingInvoiceNumber,
+            unsettledSaleId: unsettledSaleId,
+            businessName: businessName,
+            businessLocation: businessLocation,
+            businessPhone: businessPhone,
+            staffName: staffName,
+            actualCreditUsed: _creditNotesAmount,
+            deliveryCharge: deliveryCharge,
+            cashReceived_split: cashPrefill,
+            onlineReceived_split: onlinePrefill,
+            creditIssued_split: creditPrefill,
+          ),
+        ),
+      );
+
+      // If split page returned success, pop this edit page with success to refresh history
+      if (result != null && result is Map && result['success'] == true) {
+        if (mounted) Navigator.pop(context, true);
+      }
+      return;
+    }
+
+    // Otherwise fall back to normal update flow
+    await _updateBill();
+    }
+
+    Widget _buildSummaryRow(String label, String value, {Color? color, bool isClickable = false, VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,
       child: Padding(

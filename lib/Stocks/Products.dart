@@ -430,7 +430,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       // Delete button
 
                       const SizedBox(width: 8),
-                      const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
+                      const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 14),
                     ],
                   ),
               ],
