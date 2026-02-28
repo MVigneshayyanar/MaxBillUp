@@ -2426,14 +2426,15 @@ class _DayBookPageState extends State<DayBookPage> {
                         });
                       }
 
-                      // Process Credits (for Sale Credit Received)
+                      // Process Credits (for Sale Credit Received and Manual Additions)
                       for (var doc in filteredCredits) {
                         final data = doc.data() as Map<String, dynamic>;
                         final type = (data['type'] ?? '').toString().toLowerCase();
                         final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
                         final method = (data['method'] ?? 'Cash').toString().toLowerCase();
 
-                        if (type == 'payment_received') {
+                        // Commonly 'payment_received', 'credit_payment', or 'settlement'
+                        if (type.contains('payment') || type.contains('received') || type == 'settlement') {
                           // Customer paid back credit
                           saleCreditReceived += amount;
 
@@ -2445,7 +2446,7 @@ class _DayBookPageState extends State<DayBookPage> {
                           }
 
                           allTransactions.add({
-                            'category': 'Credit Received',
+                            'category': 'Credit Collected',
                             'particulars': data['invoiceNumber']?.toString() ?? 'Payment',
                             'name': data['customerName']?.toString() ?? 'Customer',
                             'total': amount,
@@ -2453,6 +2454,20 @@ class _DayBookPageState extends State<DayBookPage> {
                             'cashOut': 0.0,
                             'timestamp': data['timestamp'],
                             'paymentMode': method,
+                          });
+                        } else if (type == 'add_credit') {
+                           // Manual credit added from customer profile
+                           saleCreditGiven += amount;
+                           
+                           allTransactions.add({
+                            'category': 'Sale On Credit',
+                            'particulars': 'Manual Entry',
+                            'name': data['customerName']?.toString() ?? 'Customer',
+                            'total': amount,
+                            'cashIn': 0.0,
+                            'cashOut': 0.0,
+                            'timestamp': data['timestamp'],
+                            'paymentMode': 'credit',
                           });
                         }
                       }
@@ -2465,7 +2480,7 @@ class _DayBookPageState extends State<DayBookPage> {
                         final status = (data['status'] ?? '').toString().toLowerCase();
                         final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
 
-                        if (type.contains('purchase') || type.contains('expense')) {
+                        if (type.contains('purchase') || type.contains('expense') || type.isEmpty || doc.reference.path.contains('purchaseCreditNotes')) {
                           // Purchase on credit
                           purchaseCreditAdded += amount;
 
@@ -2473,18 +2488,31 @@ class _DayBookPageState extends State<DayBookPage> {
                           if (paidAmount > 0) {
                             purchaseCreditPaid += paidAmount;
                             paymentOutCash += paidAmount; // Assume cash payment
+
+                            allTransactions.add({
+                              'category': 'Purchase Credit Paid',
+                              'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
+                              'name': data['supplierName']?.toString() ?? 'Supplier',
+                              'total': paidAmount,
+                              'cashIn': 0.0,
+                              'cashOut': paidAmount,
+                              'timestamp': data['timestamp'],
+                              'paymentMode': 'cash',
+                            });
                           }
 
-                          allTransactions.add({
-                            'category': 'Purchase Credit',
-                            'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
-                            'name': data['supplierName']?.toString() ?? 'Supplier',
-                            'total': amount,
-                            'cashIn': 0.0,
-                            'cashOut': paidAmount,
-                            'timestamp': data['timestamp'],
-                            'paymentMode': 'credit',
-                          });
+                          if (amount > paidAmount) {
+                            allTransactions.add({
+                              'category': 'Purchase Credit',
+                              'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
+                              'name': data['supplierName']?.toString() ?? 'Supplier',
+                              'total': amount - paidAmount,
+                              'cashIn': 0.0,
+                              'cashOut': 0.0,
+                              'timestamp': data['timestamp'],
+                              'paymentMode': 'credit',
+                            });
+                          }
                         }
                       }
 
@@ -3221,16 +3249,16 @@ class _DayBookPageState extends State<DayBookPage> {
                   ? kGoogleGreen
                   : kGoogleRed,
               borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(
-                  color: (isPositive
-                      ? kGoogleGreen
-                      : kGoogleRed)
-                      .withOpacity(0.25),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+              // boxShadow: [
+              //   BoxShadow(
+              //     color: (isPositive
+              //         ? kGoogleGreen
+              //         : kGoogleRed)
+              //         .withOpacity(0.25),
+              //     blurRadius: 16,
+              //     offset: const Offset(0, 6),
+              //   ),
+              // ],
             ),
             child: Row(
               children: [
