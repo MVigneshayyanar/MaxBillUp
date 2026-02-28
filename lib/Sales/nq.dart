@@ -713,7 +713,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         decoration: BoxDecoration(
           color: kWhite,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: kOrange, width: 2),
+          border: Border.all(color: Color(0xffffab36), width: 2),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
         ),
         child: Column(
@@ -721,7 +721,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
             Container(
               padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 8 : 12),
               decoration: const BoxDecoration(
-                color: kOrange,
+                color: Color(0xffffab36),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: Row(

@@ -312,7 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildProfileCard() {
     final name = _storeData?['businessName'] ?? _userData?['businessName'] ?? _userData?['name'] ?? 'Business Owner';
     final email = _userData?['email'] ?? widget.userEmail ?? '';
-    final logoUrl = _storeData?['logoUrl'] ?? '';
+    final logoUrl = (_storeData?['logoUrl'] as String?) ?? '';
 
     // Use Consumer to automatically rebuild when plan changes
     return Consumer<PlanProvider>(
@@ -376,10 +376,30 @@ class _SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     color: kGreyBg,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: kGrey200, width: 2),
-                    image: logoUrl.isNotEmpty ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) : null,
                   ),
-                  child: logoUrl.isEmpty ? const HeroIcon(HeroIcons.buildingStorefront, size: 28, color: kGrey400) : null,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: logoUrl.isNotEmpty
+                              ? Image.network(logoUrl, fit: BoxFit.cover, key: ValueKey(logoUrl))
+                              : Container(
+                                  alignment: Alignment.center,
+                                  child: const HeroIcon(HeroIcons.buildingStorefront, size: 28, color: kGrey400),
+                                ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: kGrey200, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -1102,7 +1122,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                                 ? Image.file(_selectedImage!, fit: BoxFit.cover)
                                 : _logoUrl != null && _logoUrl!.isNotEmpty
                                 ? Image.network(_logoUrl!, fit: BoxFit.cover, key: ValueKey(_logoUrl))
-                                : const Icon(Icons.add_business_rounded, size: 40, color: kGrey400),
+                                : const Center(child: HeroIcon(HeroIcons.buildingStorefront, size: 40, color: kGrey400)),
                           ),
                         ),
                         // Edit/Add button with premium restriction

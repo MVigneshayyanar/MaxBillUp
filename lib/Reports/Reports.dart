@@ -242,10 +242,10 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('expensesReport'))
             _buildReportTile(context.tr('expense_report'), HeroIcons.wallet, kErrorColor, 'ExpenseReport', subtitle: 'Operating costs tracking'),
           if (isFeatureAvailable('taxReport'))
-            _buildReportTile(context.tr('tax_report'), HeroIcons.receiptPercent, const Color(0xFF43A047), 'TaxReport', subtitle: 'Taxable sales compliance'),
+            _buildReportTile(context.tr('tax_report'), HeroIcons.receiptPercent, kGoogleGreen, 'TaxReport', subtitle: 'Taxable sales compliance'),
 
           if (isFeatureAvailable('salesSummary'))
-            _buildReportTile('Payment Summary', HeroIcons.banknotes,kGoogleGreen , 'PaymentReport', subtitle: 'Cash & online breakdown'),
+            _buildReportTile('Payment Summary', HeroIcons.banknotes,kWarningOrange , 'PaymentReport', subtitle: 'Cash & online breakdown'),
 
           // Sales & Transactions Section
           if (hasSalesItems) ...[
@@ -7939,14 +7939,13 @@ class _TaxReportPageState extends State<TaxReportPage> {
       reportTitle: 'COMPREHENSIVE TAX REPORT',
       headers: ['DATE', 'TYPE', 'INVOICE', 'PARTY', 'TOTAL', 'TAX AMOUNT'],
       rows: allRows,
-      summaryTitle: 'NET TAX LIABILITY',
-      summaryValue: "$_currencySymbol${(totalTaxAmount + netLiability).toStringAsFixed(2)}",
+      summaryTitle: 'TAX BREAKDOWN',
+      summaryValue: "",
+
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_fromDate!)} to ${DateFormat('dd/MM/yy').format(_toDate!)}',
         'Sales Tax': '$_currencySymbol${totalTaxAmount.toStringAsFixed(2)}',
-        'Sales Tax (Tax rows)': '$_currencySymbol${totalSalesGST.toStringAsFixed(2)}',
-        'Purchase Tax (Tax rows)': '$_currencySymbol${totalPurchaseGST.toStringAsFixed(2)}',
-        'Net Tax Liability (Tax net)': '$_currencySymbol${netLiability.toStringAsFixed(2)}',
+        'Purchase Tax': '$_currencySymbol${totalPurchaseGST.toStringAsFixed(2)}',
         'Audit Status': 'Verified'
       },
     );
@@ -7959,41 +7958,43 @@ class _TaxReportPageState extends State<TaxReportPage> {
         backgroundColor: kBackgroundColor,
         appBar: _buildModernAppBar("Tax Report Period", widget.onBack),
         // In build(), replace the !_showReport body:
-body: Padding(
-  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _buildSectionHeader("SELECT AUDIT DURATION"),
-      const SizedBox(height: 10),
-      _buildDateTile("START DATE", _fromDate, _selectFromDate),
-      const SizedBox(height: 8),
-      _buildDateTile("END DATE", _toDate, _selectToDate),
-      const Spacer(),
-      SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: (_fromDate != null && _toDate != null)
-              ? () => setState(() => _showReport = true)
-              : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kPrimaryColor,
-            padding: const EdgeInsets.symmetric(vertical: 13),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-          child: const Text(
-            'GENERATE AUDIT REPORT',
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.8),
+body: SafeArea(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader("SELECT AUDIT DURATION"),
+        const SizedBox(height: 10),
+        _buildDateTile("START DATE", _fromDate, _selectFromDate),
+        const SizedBox(height: 8),
+        _buildDateTile("END DATE", _toDate, _selectToDate),
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: (_fromDate != null && _toDate != null)
+                ? () => setState(() => _showReport = true)
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kPrimaryColor,
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text(
+              'GENERATE AUDIT REPORT',
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.8),
+            ),
           ),
         ),
-      ),
-      const SizedBox(height: 16),
-    ],
+        const SizedBox(height: 16),
+      ],
+    ),
   ),
 ),
 
@@ -8213,59 +8214,68 @@ body: Padding(
                                netLiability: gstNetLiability
                              )
                           ),
-                          // Pin the tax summary at the bottom with a smaller fixed height so content stays visible on small screens
-                          bottomNavigationBar: SizedBox(
-                            height: 120, // reduced summary height
-                            child: SafeArea(
-                              top: false,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                color: kSurfaceColor,
-                                child: _buildTaxSummary(salesRows, purchaseRows),
-                              ),
-                            ),
-                          ),
-                          body: CustomScrollView(
-                             physics: const BouncingScrollPhysics(),
-                             slivers: [
-                               SliverToBoxAdapter(
-                                 child: _buildUnifiedTaxHeader(totalNetTax, totalTaxAmount, totalSalesGST, totalPurchaseGST, gstNetLiability, prevTaxAmount + prevSalesGST),
-                               ),
-                            SliverPadding(
-                             padding: EdgeInsets.only(
-                               left: 12,
-                               right: 12,
-                               top: 12,
-                               // make room for the reduced fixed summary bar (120) + small spacer
-                               bottom: MediaQuery.of(context).viewPadding.bottom + 136,
+                           bottomNavigationBar: SafeArea(
+                             child: Container(
+                               height: 130,
+                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                               color: kSurfaceColor,
+                               child: _buildTaxSummary(salesRows, purchaseRows),
                              ),
+                           ),
+                           body: CustomScrollView(
+                              physics: const BouncingScrollPhysics(),
+                              slivers: [
+                             SliverPadding(
+                              padding: const EdgeInsets.only(
+                                left: 12, right: 12, top: 12,
+                                bottom: 120, // Enough to clear the floating bottom bar if it overlap
+                              ),
                              sliver: SliverList(
                                delegate: SliverChildListDelegate([
-                                    // Rename section to Tax Compliance - inline summary removed because summary is pinned at bottom
-                                    _buildSectionHeader("TAX COMPLIANCE SUMMARY"),
-                                    const SizedBox(height: 12),
-                                    // comprehensive summary is displayed in the fixed bottom summary bar
-                                    const SizedBox(height: 4),
+                                    // Date range card
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      margin: const EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: kSurfaceColor,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: kBorderColor.withOpacity(0.4)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(children: [
+                                            const Text('From', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black54, letterSpacing: 0.3)),
+                                            const SizedBox(width: 8),
+                                            const Text(':', style: TextStyle(color: Colors.black54)),
+                                            const SizedBox(width: 8),
+                                            Text(DateFormat('dd-MM-yyyy').format(_fromDate!), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
+                                          ]),
+                                          const SizedBox(height: 6),
+                                          Row(children: [
+                                            const Text('To      ', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black54, letterSpacing: 0.3)),
+                                            const SizedBox(width: 8),
+                                            const Text(':', style: TextStyle(color: Colors.black54)),
+                                            const SizedBox(width: 8),
+                                            Text(DateFormat('dd-MM-yyyy').format(_toDate!), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
+                                          ]),
+                                        ],
+                                      ),
+                                    ),
 
-                                    if (taxBreakdown.isNotEmpty) ...[
-                                       _buildSectionHeader("TAX TYPE BREAKDOWN"),
-                                       const SizedBox(height: 12),
-                                       _buildBreakdownMatrix(taxBreakdown.entries.toList()),
-                                       const SizedBox(height: 32),
-                                     ],
-                                    _buildSectionHeader("TAX ON OUTWARD SUPPLIES (SALES)"),
-                                     const SizedBox(height: 12),
+                                    _buildSectionHeader("TAX ON SALES"),
+                                    const SizedBox(height: 12),
                                     _buildGstTable(salesRows),
-                                     const SizedBox(height: 32),
-                                    _buildSectionHeader("TAX ON INWARD SUPPLIES (PURCHASES)"),
-                                     const SizedBox(height: 12),
+                                    const SizedBox(height: 24),
+                                    _buildSectionHeader("TAX ON PURCHASES"),
+                                    const SizedBox(height: 12),
                                     _buildGstTable(purchaseRows),
-                                     const SizedBox(height: 32),
+                                    const SizedBox(height: 24),
                                   ]),
-                                ),
-                              ),
-                            ],
-                          ),
+                               ),
+                             ),
+                           ],
+                         ),
                         );
                       },
                     );
@@ -8345,80 +8355,7 @@ Widget _buildDateTile(String label, DateTime? date, VoidCallback onTap) {
 }
 
 // ─── UNIFIED TAX HEADER ──────────────────────────────
-Widget _buildUnifiedTaxHeader(double totalNet, double salesTax,
-    double salesGST, double purchaseGST, double gstNet, double prevTotal) {
-  final bool isHigher = totalNet > prevTotal;
-  final double diffPct =
-      prevTotal > 0 ? ((totalNet - prevTotal).abs() / prevTotal) * 100 : 0;
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-    decoration: BoxDecoration(
-      color: kSurfaceColor,
-      border: Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.4))),
-    ),
-    child: Row(
-      children: [
-        // Left — net liability
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("NET TAX LIABILITY",
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: kTextSecondary,
-                      letterSpacing: 0.8)),
-              const SizedBox(height: 3),
-              Text(
-                "$_currencySymbol${totalNet.toStringAsFixed(2)}",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    color: totalNet >= 0 ? kExpenseRed : kIncomeGreen,
-                    letterSpacing: -0.5),
-              ),
-              const SizedBox(height: 3),
-              Row(
-                children: [
-                  Icon(
-                    isHigher
-                        ? Icons.trending_up_rounded
-                        : Icons.trending_down_rounded,
-                    size: 12,
-                    color: isHigher ? kExpenseRed : kIncomeGreen,
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    "${diffPct.toStringAsFixed(1)}% vs prev",
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: isHigher ? kExpenseRed : kIncomeGreen),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        // Right — tags
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _buildTag(
-                "Sales Tax: ${salesTax.toStringAsFixed(0)}", kIncomeGreen),
-            const SizedBox(height: 5),
-            _buildTag(
-                "GST Net: ${gstNet.toStringAsFixed(0)}",
-                gstNet >= 0 ? kExpenseRed : kIncomeGreen),
-          ],
-        ),
-      ],
-    ),
-  );
-}
 
 Widget _buildTag(String label, Color color) {
   return Container(
@@ -8702,7 +8639,7 @@ Widget _buildTaxSummary(List<Map<String, dynamic>> salesRows,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('SALES',
+              const Text('TAX ON SALES',
                   style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
@@ -8730,7 +8667,7 @@ Widget _buildTaxSummary(List<Map<String, dynamic>> salesRows,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('PURCHASES',
+              const Text('TAX ON PURCHASES',
                   style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
@@ -8747,34 +8684,34 @@ Widget _buildTaxSummary(List<Map<String, dynamic>> salesRows,
       const SizedBox(width: 8),
 
       // Net
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: kBackgroundColor,
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: kBorderColor.withOpacity(0.3))),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('NET',
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: kPrimaryColor)),
-              const SizedBox(height: 5),
-              cell('Net GST',
-                  '$_currencySymbol${netGst.toStringAsFixed(0)}',
-                  highlight: true,
-                  color: netGst >= 0 ? kExpenseRed : kIncomeGreen),
-              const SizedBox(height: 4),
-              cell('Advice',
-                  netGst >= 0 ? 'Pay Govt' : 'Claim Refund'),
-            ],
-          ),
-        ),
-      ),
+      // Expanded(
+      //   child: Container(
+      //     padding: const EdgeInsets.all(8),
+      //     decoration: BoxDecoration(
+      //         color: kBackgroundColor,
+      //         borderRadius: BorderRadius.circular(8),
+      //         border:
+      //             Border.all(color: kBorderColor.withOpacity(0.3))),
+      //     child: Column(
+      //       crossAxisAlignment: CrossAxisAlignment.start,
+      //       children: [
+      //         const Text('NET TAX DUE',
+      //             style: TextStyle(
+      //                 fontSize: 9,
+      //                 fontWeight: FontWeight.w900,
+      //                 color: kPrimaryColor)),
+      //         const SizedBox(height: 5),
+      //         cell('Total Tax Due',
+      //             '$_currencySymbol${netGst.toStringAsFixed(0)}',
+      //             highlight: true,
+      //             color: netGst >= 0 ? kExpenseRed : kIncomeGreen),
+      //         const SizedBox(height: 4),
+      //         cell('Advice',
+      //             netGst >= 0 ? 'Pay Govt' : 'Claim Refund'),
+      //       ],
+      //     ),
+      //   ),
+      // ),
     ],
   );
 }

@@ -2835,7 +2835,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
   DateTime? _creditDueDate;
   String _currencySymbol = 'Rs '; // Default currency
 
-  bool get isEditMode => widget.unsettledSaleId != null;
+  // Treat as edit mode when either unsettledSaleId is provided OR an existingInvoiceNumber is provided
+  bool get isEditMode => widget.unsettledSaleId != null || (widget.existingInvoiceNumber != null && widget.existingInvoiceNumber!.isNotEmpty);
 
   @override
   void initState() {
@@ -2900,113 +2901,120 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
-    Future<void> _processSplitSale() async {
-    // Calculate change - overpayment
-    final paidAmount = _cashAmount + _onlineAmount;
-    final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
+      Future<void> _processSplitSale() async {
+        // Calculate change - overpayment
+        final paidAmount = _cashAmount + _onlineAmount;
+        final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
 
-    // Allow payment if exact match OR overpayment (change > 0)
-    if (_dueAmount > 0.01 && changeAmount == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient')));
-      return;
-    }
-    if (_creditAmount > 0 && widget.customerPhone == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit')));
-      return;
-    }
-
-    try {
-      showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-
-      // Generate invoice number with prefix
-      String invoiceNumber;
-      if (widget.existingInvoiceNumber != null) {
-        invoiceNumber = widget.existingInvoiceNumber!;
-      } else {
-        final prefix = await NumberGeneratorService.getInvoicePrefix();
-        final number = await NumberGeneratorService.generateInvoiceNumber();
-        invoiceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
-      }
-
-      final Map<String, double> taxMap = {};
-      for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
-      final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
-      final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
-
-      final baseSaleData = {
-        'invoiceNumber': invoiceNumber,
-        'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
-        'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed,
-        'discount': widget.discountAmount,
-        'creditUsed': widget.actualCreditUsed,
-        'total': widget.totalAmount,
-        'taxes': taxList,
-        'totalTax': totalTax,
-        'paymentMode': 'Split',
-        'cashReceived': _totalPaid - _creditAmount,
-        'change': changeAmount > 0 ? changeAmount : 0.0, // Add change field
-        'cashReceived_split': _cashAmount,
-        'onlineReceived_split': _onlineAmount,
-        'creditIssued_split': _creditAmount,
-        'customerPhone': widget.customerPhone,
-        'customerName': widget.customerName,
-        'customerGST': widget.customerGST,
-        'creditNote': widget.creditNote,
-        'customNote': widget.customNote, 'deliveryCharge': widget.deliveryCharge,
-        'deliveryAddress': widget.deliveryAddress,
-        'date': DateTime.now().toIso8601String(),
-        'staffId': widget.uid,
-        'staffName': widget.staffName,
-        'businessName': widget.businessName,
-        'businessLocation': widget.businessLocation,
-        'businessPhone': widget.businessPhone,
-        'timestamp': FieldValue.serverTimestamp(),
-      };
-
-      if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber, _creditDueDate);
-
-      // Update customer totalSales and add payment log entry for split payment when customer is linked
-      if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
-        await _updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount);
-        await _addSplitPaymentLogEntry(widget.customerPhone!, widget.customerName, _cashAmount, _onlineAmount, _creditAmount, invoiceNumber);
-      }
-
-      if (widget.unsettledSaleId != null) {
-        await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
-      } else {
-        await FirestoreService().addDocument('sales', baseSaleData);
-        await _updateProductStock();
-      }
-
-      if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
-      if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed);
-      if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
-        await FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
-      }
-
-      if (mounted) {
-        Navigator.of(context, rootNavigator: true).pop();
-        if (widget.unsettledSaleId != null) {
-          // Return results to BillPage as requested
-          Navigator.pop(context, {
-            'success': true,
-            'cash': _cashAmount,
-            'online': _onlineAmount,
-            'credit': _creditAmount,
-            'dueDate': _creditDueDate,
-          });
-        } else {
-          Navigator.popUntil(context, (route) => route.isFirst);
-          Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
-              uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
-              items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
-              subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
-              cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
-              customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
+        // Allow payment if exact match OR overpayment (change > 0)
+        if (_dueAmount > 0.01 && changeAmount == 0) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment insufficient')));
+          return;
         }
+        if (_creditAmount > 0 && widget.customerPhone == null) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Customer required for Credit')));
+          return;
+        }
+
+        try {
+          showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
+          // Generate invoice number with prefix
+          String invoiceNumber;
+          if (widget.existingInvoiceNumber != null && widget.existingInvoiceNumber!.isNotEmpty) {
+            invoiceNumber = widget.existingInvoiceNumber!;
+          } else {
+            final prefix = await NumberGeneratorService.getInvoicePrefix();
+            final number = await NumberGeneratorService.generateInvoiceNumber();
+            invoiceNumber = prefix.isNotEmpty ? '$prefix$number' : number;
+          }
+
+          final Map<String, double> taxMap = {};
+          for (var item in widget.cartItems) { if (item.taxAmount > 0 && item.taxName != null) taxMap[item.taxName!] = (taxMap[item.taxName!] ?? 0.0) + item.taxAmount; }
+          final taxList = taxMap.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
+          final totalTax = taxMap.values.fold(0.0, (a, b) => a + b);
+
+          final baseSaleData = {
+            'invoiceNumber': invoiceNumber,
+            'items': widget.cartItems.map((e)=> {'productId':e.productId, 'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.total, 'taxPercentage': e.taxPercentage ?? 0, 'taxAmount': e.taxAmount, 'taxName': e.taxName, 'taxType': e.taxType}).toList(),
+            'subtotal': widget.totalAmount + widget.discountAmount + widget.actualCreditUsed,
+            'discount': widget.discountAmount,
+            'creditUsed': widget.actualCreditUsed,
+            'total': widget.totalAmount,
+            'taxes': taxList,
+            'totalTax': totalTax,
+            'paymentMode': 'Split',
+            'cashReceived': _totalPaid - _creditAmount,
+            'change': changeAmount > 0 ? changeAmount : 0.0, // Add change field
+            'cashReceived_split': _cashAmount,
+            'onlineReceived_split': _onlineAmount,
+            'creditIssued_split': _creditAmount,
+            'customerPhone': widget.customerPhone,
+            'customerName': widget.customerName,
+            'customerGST': widget.customerGST,
+            'creditNote': widget.creditNote,
+            'customNote': widget.customNote, 'deliveryCharge': widget.deliveryCharge,
+            'deliveryAddress': widget.deliveryAddress,
+            'date': DateTime.now().toIso8601String(),
+            'staffId': widget.uid,
+            'staffName': widget.staffName,
+            'businessName': widget.businessName,
+            'businessLocation': widget.businessLocation,
+            'businessPhone': widget.businessPhone,
+            'timestamp': FieldValue.serverTimestamp(),
+          };
+
+          if (_creditAmount > 0) await _updateCustomerCredit(widget.customerPhone!, _creditAmount, invoiceNumber, _creditDueDate);
+
+          // Update customer totalSales and add payment log entry for split payment when customer is linked
+          if (widget.customerPhone != null && widget.customerPhone!.isNotEmpty) {
+            await _updateCustomerTotalSales(widget.customerPhone!, widget.totalAmount);
+            await _addSplitPaymentLogEntry(widget.customerPhone!, widget.customerName, _cashAmount, _onlineAmount, _creditAmount, invoiceNumber);
+          }
+
+          // Decide whether to update existing sale or create new
+          final salesCollection = await FirestoreService().getStoreCollection('sales');
+
+          if (widget.unsettledSaleId != null) {
+            await FirestoreService().updateDocument('sales', widget.unsettledSaleId!, {...baseSaleData, 'paymentStatus': 'settled', 'settledAt': FieldValue.serverTimestamp()});
+          } else if (widget.existingInvoiceNumber != null && widget.existingInvoiceNumber!.isNotEmpty) {
+            // Try to find sale by invoiceNumber and update it
+            final query = await salesCollection.where('invoiceNumber', isEqualTo: widget.existingInvoiceNumber).get();
+            if (query.docs.isNotEmpty) {
+              await salesCollection.doc(query.docs.first.id).update(baseSaleData);
+            } else {
+              await salesCollection.add(baseSaleData);
+              await _updateProductStock();
+            }
+          } else {
+            await salesCollection.add(baseSaleData);
+            await _updateProductStock();
+          }
+
+          if (widget.savedOrderId != null) await FirestoreService().deleteDocument('savedOrders', widget.savedOrderId!);
+          if (widget.selectedCreditNotes.isNotEmpty) await _markCreditNotesAsUsed(invoiceNumber, widget.selectedCreditNotes, widget.actualCreditUsed);
+          if (widget.quotationId != null && widget.quotationId!.isNotEmpty) {
+            await FirestoreService().updateDocument('quotations', widget.quotationId!, {'status': 'settled', 'billed': true, 'settledAt': FieldValue.serverTimestamp()});
+          }
+
+          if (mounted) {
+            Navigator.of(context, rootNavigator: true).pop();
+            if (isEditMode) {
+              // Return to caller (Edit page) with success so it can refresh
+              Navigator.pop(context, {'success': true});
+            } else {
+              // For regular flow, show invoice page as before
+              Navigator.popUntil(context, (route) => route.isFirst);
+              Navigator.push(context, CupertinoPageRoute(builder: (_) => InvoicePage(
+                  uid: widget.uid, userEmail: widget.userEmail, businessName: widget.businessName, businessLocation: widget.businessLocation, businessPhone: widget.businessPhone, invoiceNumber: invoiceNumber, dateTime: DateTime.now(),
+                  items: widget.cartItems.map((e)=> {'name':e.name, 'quantity':e.quantity, 'price':e.price, 'total':e.totalWithTax, 'taxPercentage':e.taxPercentage ?? 0, 'taxAmount':e.taxAmount}).toList(),
+                  subtotal: widget.totalAmount + widget.discountAmount + widget.actualCreditUsed - totalTax, discount: widget.discountAmount, taxes: taxList, total: widget.totalAmount, paymentMode: 'Split', cashReceived: _totalPaid - _creditAmount,
+                  cashReceived_split: _cashAmount, onlineReceived_split: _onlineAmount, creditIssued_split: _creditAmount,
+                  customerName: widget.customerName, customerPhone: widget.customerPhone, customNote: widget.customNote, deliveryAddress: widget.deliveryAddress, deliveryCharge: widget.deliveryCharge)));
+            }
+          }
+        } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
       }
-    } catch (e) { if (mounted) { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red)); } }
-    }
 
   Future<void> _updateCustomerCredit(String phone, double amount, String invoiceNumber, DateTime? creditDueDate) async {
     final customerRef = await FirestoreService().getDocumentReference('customers', phone);
@@ -3112,8 +3120,8 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
+    @override
+    Widget build(BuildContext context) {
     final paidAmount = _cashAmount + _onlineAmount;
     final changeAmount = paidAmount > widget.totalAmount && _creditAmount == 0 ? paidAmount - widget.totalAmount : 0.0;
     bool canPay = (_dueAmount <= 0.01 && _dueAmount >= -0.01) || changeAmount > 0;
@@ -3121,7 +3129,7 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
     return Scaffold(
       backgroundColor: kGreyBg,
       appBar: AppBar(
-        title: const Text('Split Payment', style: TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
+        title: Text(isEditMode ? 'Update Split Payment' : 'Split Payment', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w600)),
         centerTitle: true,
         backgroundColor: kPrimaryColor,
         iconTheme: const IconThemeData(color: kWhite),
@@ -3291,19 +3299,38 @@ class _SplitPaymentPageState extends State<SplitPaymentPage> {
         ),
       ),
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            height: 56,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+          decoration: const BoxDecoration(color: kGreyBg),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: 60,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: canPay ? kPrimaryColor : kGrey200,
+              boxShadow: canPay ? [BoxShadow(color: kPrimaryColor.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 6))] : [],
+            ),
             child: ElevatedButton(
               onPressed: canPay ? _processSplitSale : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                elevation: 0,
+                backgroundColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
-              child: Text(isEditMode ? 'UPDATE' : 'COMPLETE', style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1, color: Colors.white, fontSize: 14)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(canPay ? (isEditMode ? 'UPDATE' : 'CONFIRM PAYMENT') : 'INCOMPLETE PAYMENT', style: TextStyle(color: canPay ? kWhite : kBlack54, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.0)),
+                  if (canPay) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                      child: const HeroIcon(HeroIcons.arrowRight, color: kWhite, size: 18),
+                    ),
+                  ]
+                ],
+              ),
             ),
           ),
         ),

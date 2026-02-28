@@ -102,28 +102,34 @@ class _MenuPageState extends State<MenuPage> {
 
   void _initOverdueCounter() async {
     final storeId = await FirestoreService().getCurrentStoreId();
-    if (storeId == null) return;
+    if (storeId == null || !mounted) return;
 
     setState(() {
       _overdueCounterStream = FirebaseFirestore.instance
           .collection('store')
           .doc(storeId)
-          .collection('sales')
-          .where('paymentStatus', isEqualTo: 'unsettled')
+          .collection('credits')
+          .where('type', isEqualTo: 'credit_sale')
+          .where('isSettled', isEqualTo: false)
           .snapshots()
           .map((snapshot) {
-            final now = DateTime.now();
-            return snapshot.docs.where((doc) {
+            final now = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+            // Count unique customers with overdue credit bills
+            final uniqueCustomers = <String>{};
+            for (var doc in snapshot.docs) {
               final data = doc.data();
-              // Skip cancelled bills
-              if (data['status'] == 'cancelled') return false;
-              
-              final dueDate = data['creditDueDate'] as Timestamp?;
-              if (dueDate == null) return false;
-              
-              // Only count if due date is before today
-              return dueDate.toDate().isBefore(DateTime(now.year, now.month, now.day));
-            }).length;
+              final dueDateRaw = data['creditDueDate'];
+              if (dueDateRaw == null) continue;
+              try {
+                final dueDate = DateTime.parse(dueDateRaw.toString());
+                final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+                if (dueDateOnly.isBefore(now)) {
+                  final customerId = (data['customerId'] ?? '').toString().trim();
+                  if (customerId.isNotEmpty) uniqueCustomers.add(customerId);
+                }
+              } catch (_) {}
+            }
+            return uniqueCustomers.length;
           });
     });
   }
@@ -183,8 +189,8 @@ class _MenuPageState extends State<MenuPage> {
         final data = snapshot.data() as Map<String, dynamic>?;
         if (data != null) {
           setState(() {
-            _logoUrl = data['logoUrl'] as String?;
-            _currencySymbol = CurrencyService.getSymbolWithSpace(data['currency']);
+            _logoUrl = (data?.containsKey('logoUrl') ?? false) ? data!['logoUrl'] as String? : null;
+            _currencySymbol = CurrencyService.getSymbolWithSpace(data?['currency']);
           });
         }
       }
@@ -2428,7 +2434,7 @@ class SalesDetailPage extends StatelessWidget {
                               ),
                             ),
                           ),
-                          _buildFixedBottomArea(context, data),
+                          _buildFixedBottomArea(context, data, documentId: documentId),
                         ],
                       ),
                     ),
@@ -2602,7 +2608,7 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFixedBottomArea(BuildContext context, Map<String, dynamic> data) {
+    Widget _buildFixedBottomArea(BuildContext context, Map<String, dynamic> data, {required String documentId}) {
     final bool hasReturns = (data['returnAmount'] ?? 0.0) > 0;
     final double returnAmount = (data['returnAmount'] ?? 0.0).toDouble();
     final double currentTotal = (data['total'] ?? 0.0).toDouble();
@@ -2654,20 +2660,20 @@ class SalesDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             // Row 2: Square Action Buttons (Reordered)
-            _buildActionGrid(context, data),
-          ],
-        ),
-      ),
-    );
-  }
+              _buildActionGrid(context, data, documentId: documentId, uid: uid),
+           ],
+         ),
+       ),
+     );
+     }
 
-  Widget _buildActionGrid(BuildContext context, Map<String, dynamic> data) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _getUserPermissions(),
-      builder: (context, permSnap) {
-        if (!permSnap.hasData) return const SizedBox.shrink();
-        final perms = permSnap.data!;
-        final bool isCancelled = data['status'] == 'cancelled';
+    Widget _buildActionGrid(BuildContext context, Map<String, dynamic> data, {required String documentId, required String uid}) {
+     return FutureBuilder<Map<String, dynamic>>(
+       future: _getUserPermissions(),
+       builder: (context, permSnap) {
+         if (!permSnap.hasData) return const SizedBox.shrink();
+         final perms = permSnap.data!;
+         final bool isCancelled = data['status'] == 'cancelled';
 
         // Check if items list has items
         final items = data['items'] as List<dynamic>? ?? [];
@@ -2697,7 +2703,7 @@ class SalesDetailPage extends StatelessWidget {
         }
 
         // 3. Return - only show if there are items and not cancelled
-        if (hasItems && !isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
+          if (hasItems && !isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
           actions.add(_squareActionButton(Icons.keyboard_return_rounded, 'Return', kPrimaryColor, () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SaleReturnPage(documentId: documentId, invoiceData: data)))));
         }
 
@@ -2845,17 +2851,64 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
   String _searchQuery = '';
   String _filterStatus = 'All';
   String _currencySymbol = 'Rs ';
+  // Stream that provides overdue credit bills for the notification bell (state-scoped)
+  Stream<List<QueryDocumentSnapshot>>? _overdueBillsStream;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadCurrency();
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
-      });
-    });
-  }
+      @override
+      void initState() {
+        super.initState();
+        _loadCurrency();
+        _searchController.addListener(() {
+          setState(() {
+            _searchQuery = _searchController.text.toLowerCase();
+          });
+        });
+        // Initialize stream that provides overdue credit bills for the notification bell
+        _initOverdueBillsStream();
+      }
+
+      // Initialize a state-scoped stream of overdue (unsettled and past due) credit bills
+      void _initOverdueBillsStream() async {
+        final storeId = await FirestoreService().getCurrentStoreId();
+        if (storeId == null || !mounted) return;
+
+        setState(() {
+          _overdueBillsStream = FirebaseFirestore.instance
+              .collection('store')
+              .doc(storeId)
+              .collection('credits')
+              .where('type', isEqualTo: 'credit_sale')
+              .where('isSettled', isEqualTo: false)
+              .snapshots()
+              .map((snapshot) {
+            final now = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+            final overdue = snapshot.docs.where((doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              final dueDateRaw = data['creditDueDate'];
+              if (dueDateRaw == null) return false;
+              try {
+                final dueDate = DateTime.parse(dueDateRaw.toString());
+                final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+                return dueDateOnly.isBefore(now);
+              } catch (_) {
+                return false;
+              }
+            }).toList();
+
+            // Sort by due date ascending
+            overdue.sort((a, b) {
+              try {
+                final da = DateTime.parse((a.data() as Map<String, dynamic>)['creditDueDate'].toString());
+                final db = DateTime.parse((b.data() as Map<String, dynamic>)['creditDueDate'].toString());
+                return da.compareTo(db);
+              } catch (_) {
+                return 0;
+              }
+            });
+            return overdue;
+          });
+        });
+      }
 
   void _loadCurrency() async {
     final storeId = await FirestoreService().getCurrentStoreId();
@@ -3872,8 +3925,8 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
   String _currencySymbol = '';
   Stream<List<QueryDocumentSnapshot>>? _overdueBillsStream;
 
-  @override
-  void initState() {
+    @override
+    void initState() {
     super.initState();
     _loadCurrency();
     _searchController.addListener(() {
@@ -3881,7 +3934,51 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
-  }
+    // Initialize overdue bills stream for notification bell
+    _initOverdueBillsStream();
+    }
+
+    // Prepare a stream that emits list of overdue credit entries (unsettled and past due)
+    void _initOverdueBillsStream() async {
+    final storeId = await FirestoreService().getCurrentStoreId();
+    if (storeId == null || !mounted) return;
+
+    setState(() {
+      _overdueBillsStream = FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('credits')
+          .where('type', isEqualTo: 'credit_sale')
+          .where('isSettled', isEqualTo: false)
+          .snapshots()
+          .map((snapshot) {
+        final now = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+        final overdue = snapshot.docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final dueDateRaw = data['creditDueDate'];
+          if (dueDateRaw == null) return false;
+          try {
+            final dueDate = DateTime.parse(dueDateRaw.toString());
+            final dueDateOnly = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            return dueDateOnly.isBefore(now);
+          } catch (_) {
+            return false;
+          }
+        }).toList();
+
+        overdue.sort((a, b) {
+          try {
+            final da = DateTime.parse((a.data() as Map<String, dynamic>)['creditDueDate'].toString());
+            final db = DateTime.parse((b.data() as Map<String, dynamic>)['creditDueDate'].toString());
+            return da.compareTo(db);
+          } catch (_) {
+            return 0;
+          }
+        });
+        return overdue;
+      });
+    });
+    }
 
   void _loadCurrency() async {
     final store = await FirestoreService().getCurrentStoreDoc();
@@ -3927,10 +4024,10 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         return TextField(
               controller: _searchController,
               autofocus: true,
-              style: const TextStyle(color: kWhite, fontSize: 16),
+              style: const TextStyle(color: kBlack87, fontSize: 16),
               decoration: InputDecoration(
                 hintText: "Search name or contact...",
-                hintStyle: TextStyle(color: Colors.white70),
+                hintStyle: const TextStyle(color: kBlack54),
                 filled: true,
                 fillColor: const Color(0xFFF8F9FA),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -3964,12 +4061,21 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 builder: (context, snapshot) {
                   final list = snapshot.data ?? [];
                   if (list.isEmpty) return const SizedBox.shrink();
-                  
+
+                  // compute unique customer phones
+                  final Set<String> uniquePhones = <String>{};
+                  for (var doc in list) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    final phone = (data['customerPhone'] ?? data['customerId'] ?? '').toString().trim();
+                    if (phone.isNotEmpty) uniquePhones.add(phone);
+                  }
+                  final int badgeCount = uniquePhones.length;
+
                   return Stack(
                     alignment: Alignment.center,
                     children: [
                       IconButton(
-                        icon: const HeroIcon(HeroIcons.bell, size: 22, color: kWhite),
+                        icon: const Icon(Icons.notifications, size: 22, color: kWhite),
                         onPressed: () => _showOverdueBillsSheet(context, list),
                       ),
                       Positioned(
@@ -3978,13 +4084,13 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: BoxDecoration(
-                            color: kErrorColor, 
-                            shape: BoxShape.circle, 
-                            border: Border.all(color: kPrimaryColor, width: 1.5)
+                            color: kErrorColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: kPrimaryColor, width: 1.5),
                           ),
                           constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
                           child: Text(
-                            list.length.toString(),
+                            badgeCount.toString(),
                             style: const TextStyle(color: kWhite, fontSize: 8, fontWeight: FontWeight.bold),
                             textAlign: TextAlign.center,
                           ),
@@ -4288,6 +4394,144 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showOverdueBillsSheet(BuildContext context, List<QueryDocumentSnapshot> docs) {
+    if (docs.isEmpty) return;
+
+    // Group by customerId
+    final Map<String, Map<String, dynamic>> overdueCustomers = {};
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final customerId = (data['customerId'] ?? '').toString().trim();
+      if (customerId.isEmpty) continue;
+
+      if (!overdueCustomers.containsKey(customerId)) {
+        overdueCustomers[customerId] = {
+          'name': data['customerName'] ?? 'Unknown',
+          'phone': customerId,
+          'totalDue': 0.0,
+          'billCount': 0,
+          'earliestDue': data['creditDueDate']?.toString() ?? '',
+        };
+      }
+
+      final amount = ((data['amount'] ?? 0.0) as num).toDouble();
+      overdueCustomers[customerId]!['totalDue'] += amount;
+      overdueCustomers[customerId]!['billCount'] =
+          (overdueCustomers[customerId]!['billCount'] as int) + 1;
+
+      // Track the earliest due date for this customer
+      final existingDue = overdueCustomers[customerId]!['earliestDue'] as String;
+      final newDue = data['creditDueDate']?.toString() ?? '';
+      if (existingDue.isEmpty || (newDue.isNotEmpty && newDue.compareTo(existingDue) < 0)) {
+        overdueCustomers[customerId]!['earliestDue'] = newDue;
+      }
+    }
+
+    // Sort by earliest due date
+    final customers = overdueCustomers.values.toList()
+      ..sort((a, b) {
+        final da = a['earliestDue'] as String;
+        final db = b['earliestDue'] as String;
+        return da.compareTo(db);
+      });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: kWhite,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2)),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 24),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Overdue Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kErrorColor)),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: kErrorColor, borderRadius: BorderRadius.circular(10)),
+                      child: Text('${customers.length}', style: const TextStyle(color: kWhite, fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: customers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final c = customers[index];
+                    final dueStr = c['earliestDue'] as String;
+                    String dueLabel = '';
+                    try {
+                      final dueDate = DateTime.parse(dueStr);
+                      dueLabel = DateFormat('dd MMM yyyy').format(dueDate);
+                    } catch (_) {}
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: kGreyBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kErrorColor.withOpacity(0.15)),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: const Color(0xFFFBE9E7),
+                          child: Text(
+                            (c['name'] as String).isNotEmpty ? (c['name'] as String)[0].toUpperCase() : '?',
+                            style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        title: Text(c['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87)),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(c['phone'] as String, style: const TextStyle(fontSize: 11, color: kBlack54)),
+                            if (dueLabel.isNotEmpty)
+                              Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '$_currencySymbol${(c['totalDue'] as double).toStringAsFixed(2)}',
+                              style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
+                            ),
+                            Text('${c['billCount']} bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -4795,125 +5039,10 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     ]));
   }
 
-  Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+    Widget _buildLoading() => const Center(child: CircularProgressIndicator(color: kPrimaryColor));
 
-  void _initOverdueBillsStream() async {
-    final storeId = await FirestoreService().getCurrentStoreId();
-    if (storeId == null) return;
+    // Duplicate _initOverdueBillsStream removed — single implementation retained elsewhere in this file
 
-    setState(() {
-      _overdueBillsStream = FirebaseFirestore.instance
-          .collection('store')
-          .doc(storeId)
-          .collection('sales')
-          .where('paymentStatus', isEqualTo: 'unsettled')
-          .snapshots()
-          .map((snapshot) {
-            final now = DateTime.now();
-            final overdue = snapshot.docs.where((doc) {
-              final data = doc.data();
-              if (data['status'] == 'cancelled') return false;
-              final dueDate = data['creditDueDate'] as Timestamp?;
-              if (dueDate == null) return false;
-              return dueDate.toDate().isBefore(DateTime(now.year, now.month, now.day));
-            }).toList();
-            overdue.sort((a, b) {
-              final da = (a.data() as Map<String, dynamic>)['creditDueDate'] as Timestamp;
-              final db = (b.data() as Map<String, dynamic>)['creditDueDate'] as Timestamp;
-              return da.compareTo(db);
-            });
-            return overdue;
-          });
-    });
-  }
-
-  void _showOverdueBillsSheet(BuildContext context, List<QueryDocumentSnapshot> bills) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: kWhite,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: kGrey200, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 24),
-                  const SizedBox(width: 12),
-                  const Text("Overdue Credit Bills", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-                  const Spacer(),
-                  Text("${bills.length} Bills", style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold, fontSize: 13)),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                itemCount: bills.length,
-                itemBuilder: (context, index) {
-                  final data = bills[index].data() as Map<String, dynamic>;
-                  final dueDate = (data['creditDueDate'] as Timestamp).toDate();
-                  final total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                  
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: kWhite,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: kErrorColor.withOpacity(0.1)),
-                    ),
-                    child: ListTile(
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.push(context, CupertinoPageRoute(builder: (_) => EditBillPage(documentId: bills[index].id, invoiceData: data)));
-                      },
-                      contentPadding: const EdgeInsets.all(12),
-                      leading: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: kErrorColor.withOpacity(0.05), shape: BoxShape.circle),
-                        child: const HeroIcon(HeroIcons.clock, color: kErrorColor, size: 20),
-                      ),
-                      title: Text(data['customerName'] ?? 'Guest Customer', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 4),
-                          Text("Invoice: ${data['invoiceNumber']}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                          Text("Due: ${DateFormat('dd MMM yyyy').format(dueDate)}", style: const TextStyle(color: kErrorColor, fontSize: 11, fontWeight: FontWeight.w800)),
-                        ],
-                      ),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
-                          const Text("OVERDUE", style: TextStyle(color: kErrorColor, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ==========================================

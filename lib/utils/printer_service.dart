@@ -137,7 +137,7 @@ class PrinterService {
                     if (gstin != null) ...[
                       pw.SizedBox(height: 2),
                       pw.Text(
-                        'GSTIN: $gstin',
+                        'Tax: $gstin',
                         style: const pw.TextStyle(fontSize: 8),
                       ),
                     ],
