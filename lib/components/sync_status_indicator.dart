@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import '../services/sale_sync_service.dart';
 
 /// Widget to display offline sales sync status
@@ -20,12 +21,12 @@ class SyncStatusIndicator extends StatelessWidget {
         }
 
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          padding: const EdgeInsets.all(12),
+          margin: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 8)),
+          padding: R.all(context, 12),
           decoration: BoxDecoration(
             color: Colors.orange.shade50,
             border: Border.all(color: Colors.orange.shade300),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: R.radius(context, 12),
           ),
           child: Row(
             children: [
@@ -40,12 +41,13 @@ class SyncStatusIndicator extends StatelessWidget {
                       style: TextStyle(
                        fontWeight: FontWeight.bold,
                         color: Colors.orange.shade900,
+                        fontSize: R.sp(context, 14),
                       ),
                     ),
                     Text(
                       'Will sync automatically when online',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: R.sp(context, 12),
                         color: Colors.orange.shade700,
                       ),
                     ),
@@ -83,9 +85,9 @@ class SyncStatusDialog extends StatelessWidget {
     final unsyncedSales = saleSyncService.getUnsyncedSales();
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: R.all(context, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -102,17 +104,17 @@ class SyncStatusDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             if (unsyncedSales.isEmpty)
-              const Center(
+              Center(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 20),
                   child: Column(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 48),
-                      SizedBox(height: 12),
+                      const Icon(Icons.check_circle, color: Colors.green, size: 48),
+                      const SizedBox(height: 12),
                       Text(
                         'All sales synced!',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: R.sp(context, 16),
                          fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -153,7 +155,7 @@ class SyncStatusDialog extends StatelessWidget {
                                 ? 'Error: ${sale.syncError}'
                                 : 'Created: ${sale.createdAt.toString().split('.')[0]}',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: R.sp(context, 11),
                                 color: hasError ? Colors.red.shade700 : null,
                               ),
                             ),
@@ -179,7 +181,7 @@ class SyncStatusDialog extends StatelessWidget {
                       icon: const Icon(Icons.sync),
                       label: const Text('Sync All Now'),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: EdgeInsets.symmetric(vertical: R.sp(context, 12)),
                       ),
                     ),
                   ),

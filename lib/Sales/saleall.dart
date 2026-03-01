@@ -14,6 +14,7 @@ import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/services/local_stock_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/sale_sync_service.dart';
@@ -279,27 +280,27 @@ class _SaleAllPageState extends State<SaleAllPage> {
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: R.all(context, 8),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const HeroIcon(HeroIcons.scale, color: kPrimaryColor, size: 24),
+              child: HeroIcon(HeroIcons.scale, color: kPrimaryColor, size: R.sp(context, 24)),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: R.sp(context, 12)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Enter Weight',
-                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                    style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, 18)),
                   ),
                   Text(
                     name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 14,
+                      fontSize: R.sp(context, 14),
                       color: kPrimaryColor,
                     ),
                     maxLines: 1,
@@ -317,7 +318,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             Container(
               decoration: BoxDecoration(
                 color: kGreyBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: R.radius(context, 12),
                 border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
@@ -327,33 +328,33 @@ class _SaleAllPageState extends State<SaleAllPage> {
         return TextField(
                 controller: gramController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 16)),
                 decoration: InputDecoration(
                   labelText: 'Grams',
                   
                   suffixText: 'g',
-                  suffixStyle: const TextStyle(
+                  suffixStyle: TextStyle(
                     color: kPrimaryColor,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: R.sp(context, 14),
                   ),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
                 onChanged: (value) {
                   if (value.isNotEmpty && kgController.text.isNotEmpty) {
@@ -365,22 +366,22 @@ class _SaleAllPageState extends State<SaleAllPage> {
       },
     ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: R.sp(context, 12)),
             // OR text
-            const Text(
+            Text(
               'OR',
               style: TextStyle(
                 color: kBlack54,
                 fontWeight: FontWeight.w700,
-                fontSize: 12,
+                fontSize: R.sp(context, 12),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: R.sp(context, 12)),
             // Kilogram input
             Container(
               decoration: BoxDecoration(
                 color: kGreyBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: R.radius(context, 12),
                 border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
@@ -390,33 +391,33 @@ class _SaleAllPageState extends State<SaleAllPage> {
         return TextField(
                 controller: kgController,
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 16)),
                 decoration: InputDecoration(
                   labelText: 'Kilograms',
                   
                   suffixText: 'kg',
-                  suffixStyle: const TextStyle(
+                  suffixStyle: TextStyle(
                     color: kPrimaryColor,
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
+                    fontSize: R.sp(context, 14),
                   ),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
                 onChanged: (value) {
                   if (value.isNotEmpty && gramController.text.isNotEmpty) {
@@ -428,31 +429,31 @@ class _SaleAllPageState extends State<SaleAllPage> {
       },
     ),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: R.sp(context, 16)),
             // Price info
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: R.all(context, 12),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: R.radius(context, 8),
                 border: Border.all(color: kPrimaryColor.withOpacity(0.2)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     'Price per kg: ',
                     style: TextStyle(
                       color: kBlack54,
-                      fontSize: 13,
+                      fontSize: R.sp(context, 13),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
                     '${CurrencyService().symbol}${AmountFormatter.format(price)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: kPrimaryColor,
-                      fontSize: 15,
+                      fontSize: R.sp(context, 15),
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -803,10 +804,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
         children: [
           Expanded(
             child: Container(
-              height: 46,
+              height: R.sp(context, 46),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: R.radius(context, 12),
                 border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
@@ -816,17 +817,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
         return TextField(
                 controller: _searchCtrl,
                 focusNode: _searchFocusNode,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: kBlack87),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 14), color: kBlack87),
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                  hintStyle: TextStyle(color: kBlack54, fontSize: R.sp(context, 14)),
+                  prefixIcon: Padding(
+                    padding: R.all(context, 12),
+                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: R.sp(context, 20)),
                   ),
                   suffixIcon: _searchFocusNode.hasFocus
                       ? IconButton(
-                    icon: const HeroIcon(HeroIcons.xMark, color: kPrimaryColor, size: 20),
+                    icon: HeroIcon(HeroIcons.xMark, color: kPrimaryColor, size: R.sp(context, 20)),
                     onPressed: () {
                       _searchCtrl.clear();
                       _searchFocusNode.unfocus();
@@ -835,21 +836,21 @@ class _SaleAllPageState extends State<SaleAllPage> {
                       : null,
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
               
 );
@@ -857,15 +858,15 @@ class _SaleAllPageState extends State<SaleAllPage> {
     ),
             ),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: R.sp(context, 12)),
           GestureDetector(
             onTap: _openScanner,
             child: Container(
-              height: 46,
-              width: 46,
+              height: R.sp(context, 46),
+              width: R.sp(context, 46),
               decoration: BoxDecoration(
                 color: kPrimaryColor,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: R.radius(context, 12),
               ),
               child: const HeroIcon(HeroIcons.qrCode, color: kWhite, size: 22),
             ),
@@ -905,18 +906,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.only(right: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                margin: EdgeInsets.only(right: R.sp(context, 10)),
+                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16)),
                 decoration: BoxDecoration(
                   color: isSelected ? kPrimaryColor : kGreyBg,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: R.radius(context, 10),
                   border: Border.all(color: isSelected ? kPrimaryColor : kGrey200),
                 ),
                 child: Center(
                   child: cat == 'Favorite'
                       ? HeroIcon(
                     HeroIcons.heart,
-                    size: 16,
+                    size: R.sp(context, 16),
                     color: isSelected ? kWhite : kPrimaryColor,
                     style: isSelected ? HeroIconStyle.solid : HeroIconStyle.outline,
                   )
@@ -925,7 +926,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                     style: TextStyle(
                       color: isSelected ? kWhite : kBlack54,
                       fontWeight: FontWeight.w700,
-                      fontSize: 12,
+                      fontSize: R.sp(context, 12),
                     ),
                   ),
                 ),
@@ -985,11 +986,11 @@ class _SaleAllPageState extends State<SaleAllPage> {
         });
 
         return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 8), R.sp(context, 16), R.sp(context, 100)),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: w > 600 ? 220 : (w > 400 ? 130 : 115),
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 10,
+            maxCrossAxisExtent: w > 600 ? 220 : (w > 400 ? R.sp(context, 130) : R.sp(context, 115)),
+            crossAxisSpacing: R.sp(context, 8),
+            mainAxisSpacing: R.sp(context, 10),
             childAspectRatio: 1.0,
           ),
           itemCount: filtered.length,
@@ -1006,38 +1007,38 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: R.all(context, 24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 120,
-              height: 120,
+              width: R.sp(context, 120),
+              height: R.sp(context, 120),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const HeroIcon(
+              child: HeroIcon(
                 HeroIcons.archiveBox,
-                size: 60,
+                size: R.sp(context, 60),
                 color: kPrimaryColor,
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            SizedBox(height: R.sp(context, 24)),
+            Text(
               "No Products Yet",
               style: TextStyle(
-                fontSize: 22,
+                fontSize: R.sp(context, 22),
                 fontWeight: FontWeight.w800,
                 color: kBlack87,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: R.sp(context, 12)),
             Text(
               "Add your first product and\ngrow your business",
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: R.sp(context, 15),
                 color: kBlack54,
                 height: 1.5,
               ),
@@ -1169,7 +1170,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.all(8),
+                padding: R.all(context, 8),
                 decoration: BoxDecoration(
                   color: isExpired
                       ? Colors.black.withOpacity(0.05)
@@ -1178,7 +1179,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           : isLowStock
                               ? lowStockColor.withOpacity(0.05)
                               : (isAnimating ? kGoogleGreen.withOpacity(0.1) : kWhite),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: R.radius(context, 12),
                   border: Border.all(
                     color: isExpired
                         ? Colors.black.withOpacity(0.5)
@@ -1203,19 +1204,19 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             name,
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: R.sp(context, 13),
                               height: 1.1,
                               color: kBlack87,
                             ),
                           ),
                         ),
                         if (isFavorite)
-                          const HeroIcon(
+                          HeroIcon(
                             HeroIcons.heart,
                             color: kPrimaryColor,
-                            size: 13,
+                            size: R.sp(context, 13),
                             style: HeroIconStyle.outline,
                           ),
                       ],
@@ -1232,28 +1233,28 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             children: [
                               Text(
                                 formatCategory(category),
-                                style: const TextStyle(
-                                  fontSize: 9,
+                                style: TextStyle(
+                                  fontSize: R.sp(context, 9),
                                   fontWeight: FontWeight.w700,
                                   color: kOrange,
                                   letterSpacing: 0.3,
                                 ),
                               ),
-                              const SizedBox(height: 3),
+                              SizedBox(height: R.sp(context, 3)),
                               Text(
                                 '$_currencySymbol${AmountFormatter.format(price)}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 12,
+                                  fontSize: R.sp(context, 12),
                                   color: kPrimaryColor,
                                 ),
                               ),
                               if (stockEnabled) ...[
-                                const SizedBox(height: 2),
+                                SizedBox(height: R.sp(context, 2)),
                                 Text(
                                   '${AmountFormatter.format(stock)} $unit',
                                   style: TextStyle(
-                                    fontSize: 8,
+                                    fontSize: R.sp(context, 8),
                                     fontWeight: FontWeight.w900,
                                     color: isOutOfStock
                                         ? kErrorColor
@@ -1267,7 +1268,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                           ),
                         ),
                         if (isLowStock && !isOutOfStock)
-                          const HeroIcon(HeroIcons.exclamationTriangle, size: 16, color: lowStockColor),
+                          HeroIcon(HeroIcons.exclamationTriangle, size: R.sp(context, 16), color: lowStockColor),
                       ],
                     ),
                   ],
@@ -1290,17 +1291,17 @@ class _SaleAllPageState extends State<SaleAllPage> {
                             scale: 1 + (value * 0.5),
                             child: Center(
                               child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 4),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: R.sp(context, 10), vertical: R.sp(context, 4)),
                                 decoration: BoxDecoration(
                                   color: kOrange,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: R.radius(context, 20),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   '+1',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 20,
+                                    fontSize: R.sp(context, 20),
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
@@ -1316,18 +1317,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
               /// LOW STOCK badge - bottom right
               if (isLowStock && !isOutOfStock)
                 Positioned(
-                  bottom: 4,
-                  right: 4,
+                  bottom: R.sp(context, 4),
+                  right: R.sp(context, 4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(context, 6), vertical: R.sp(context, 3)),
                     decoration: BoxDecoration(
                       color: lowStockColor,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: R.radius(context, 6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'LOW STOCK',
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,
                         color: kWhite,
                       ),
@@ -1338,18 +1339,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
               /// OUT OF STOCK badge - bottom right
               if (isOutOfStock)
                 Positioned(
-                  bottom: 4,
-                  right: 4,
+                  bottom: R.sp(context, 4),
+                  right: R.sp(context, 4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(context, 6), vertical: R.sp(context, 3)),
                     decoration: BoxDecoration(
                       color: kErrorColor,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: R.radius(context, 6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'OUT OF STOCK',
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,
                         color: kWhite,
                       ),
@@ -1360,18 +1361,18 @@ class _SaleAllPageState extends State<SaleAllPage> {
               /// EXPIRED badge - bottom right
               if (isExpired)
                 Positioned(
-                  bottom: 4,
-                  right: 4,
+                  bottom: R.sp(context, 4),
+                  right: R.sp(context, 4),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(context, 6), vertical: R.sp(context, 3)),
                     decoration: BoxDecoration(
                       color: Colors.black,
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: R.radius(context, 6),
                     ),
-                    child: const Text(
+                    child: Text(
                       'EXPIRED',
                       style: TextStyle(
-                        fontSize: 8,
+                        fontSize: R.sp(context, 7),
                         fontWeight: FontWeight.w900,
                         color: kWhite,
                       ),
@@ -1391,22 +1392,22 @@ class _SaleAllPageState extends State<SaleAllPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
         title: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: R.all(context, 8),
               decoration: BoxDecoration(
                 color: kOrange.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const HeroIcon(HeroIcons.exclamationTriangle, color: kOrange, size: 24),
+              child: HeroIcon(HeroIcons.exclamationTriangle, color: kOrange, size: R.sp(context, 24)),
             ),
-            const SizedBox(width: 12),
-            const Expanded(
+            SizedBox(width: R.sp(context, 12)),
+            Expanded(
               child: Text(
                 'Product Expired',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, 18)),
               ),
             ),
           ],
@@ -1417,12 +1418,12 @@ class _SaleAllPageState extends State<SaleAllPage> {
           children: [
             Text(
               productName,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: kOrange),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 16), color: kOrange),
             ),
-            const SizedBox(height: 12),
-            const Text(
+            SizedBox(height: R.sp(context, 12)),
+            Text(
               'This product has expired and cannot be added to the cart. Please update the product details or remove it from inventory.',
-              style: TextStyle(color: kBlack54, fontSize: 14),
+              style: TextStyle(color: kBlack54, fontSize: R.sp(context, 14)),
             ),
           ],
         ),

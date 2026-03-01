@@ -295,6 +295,11 @@ class PlanProvider extends ChangeNotifier {
     return !_isPlanFree(plan);
   }
 
+  Future<bool> canRemoveWatermarkAsync() async {
+    final plan = await getCurrentPlan();
+    return !_isPlanFree(plan);
+  }
+
   Future<bool> canAccessStaffManagementAsync() async {
     final plan = await getCurrentPlan();
     final planLower = plan.toLowerCase();
@@ -358,6 +363,7 @@ class PlanProvider extends ChangeNotifier {
   bool canUseLogoOnBill() => !_isFreePlan();
   bool canImportContacts() => !_isFreePlan();
   bool canUseBulkInventory() => !_isFreePlan();
+  bool canRemoveWatermark() => !_isFreePlan();
   bool canAccessStaffManagement() {
     final planLower = _cachedPlan.toLowerCase();
     return planLower == 'max one' || planLower == 'max lite' || planLower == 'max plus' || planLower == 'max pro';

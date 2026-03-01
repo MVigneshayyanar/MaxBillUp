@@ -7,6 +7,7 @@ import 'package:maxbillup/Stocks/Stock.dart' as stock;
 import 'package:maxbillup/Reports/Reports.dart' hide kPrimaryColor;
 import 'package:maxbillup/Menu/Menu.dart' hide kWhite, kPrimaryColor;
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/Colors.dart';
 
 class CommonBottomNav extends StatelessWidget {
@@ -33,15 +34,15 @@ class CommonBottomNav extends StatelessWidget {
       decoration: BoxDecoration(
         color: kWhite,
         // Add rounded top-left and top-right corners with 24 radius
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 24))),
         border: Border(
           top: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
       ),
       child: SafeArea(
         child: Container(
-          height: 68, // Increased height for standard modern mobile feel
-          padding: const EdgeInsets.only(bottom: 4),
+          height: R.sp(context, 68),
+          padding: EdgeInsets.only(bottom: R.sp(context, 4)),
           child: Stack(
             children: [
               // Sliding animated indicator bar (Flat design)
@@ -92,17 +93,17 @@ class CommonBottomNav extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 6),
+            SizedBox(height: R.sp(context, 6)),
             HeroIcon(
               icon,
               color: isSelected ? kPrimaryColor : Colors.grey[700],
-              size: 26, // Slightly larger icon to balance increased height
+              size: R.sp(context, 26),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: R.sp(context, 4)),
             Text(
               label, // Enterprise standard uppercase
               style: TextStyle(
-                fontSize: 12,
+                fontSize: R.sp(context, 12),
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected ? kPrimaryColor : Colors.grey[700],
                 letterSpacing: 0.5,

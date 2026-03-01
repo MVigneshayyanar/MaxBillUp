@@ -6,6 +6,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/Sales/QuotationDetail.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/services/currency_service.dart';
 import 'nq.dart'; // Import for NewQuotationPage
 
@@ -115,18 +116,18 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
       child: Scaffold(
         backgroundColor: kGreyBg,
         appBar: AppBar(
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(R.sp(context, 24))),
         ),
           backgroundColor: kPrimaryColor,
           centerTitle: true,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            icon: Icon(Icons.arrow_back, color: kWhite, size: R.sp(context, 22)),
             onPressed: widget.onBack,
           ),
           title: Text(context.tr('quotations'),
-              style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+              style: TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: R.sp(context, 18))),
         ),
       body: Column(
         children: [
@@ -146,9 +147,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                     if (processedList.isEmpty) return _buildNoResults();
 
                     return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 12)),
                       itemCount: processedList.length,
-                      separatorBuilder: (c, i) => const SizedBox(height: 10),
+                      separatorBuilder: (c, i) => SizedBox(height: R.sp(context, 10)),
                       itemBuilder: (c, i) => _buildCard(processedList[i]),
                     );
                   },
@@ -181,20 +182,19 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
 
   Widget _buildHeaderSection() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 8), R.sp(context, 16), R.sp(context, 12)),
       decoration: const BoxDecoration(
         color: kWhite,
-        // Removed BoxShadow
         border: Border(bottom: BorderSide(color: kGrey200)),
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              height: 46,
+              height: R.sp(context, 46),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: R.radius(context, 12),
                 border: Border.all(color: kGrey200),
               ),
               child: ValueListenableBuilder<TextEditingValue>(
@@ -205,25 +205,25 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                 controller: _searchController,
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
-                  hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  hintStyle: TextStyle(color: kBlack54, fontSize: R.sp(context, 14)),
+                  prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: R.sp(context, 20)),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                     borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
                   ),
-                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
                 ),
               
 );
@@ -231,9 +231,9 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
     ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: R.sp(context, 10)),
           _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
-          const SizedBox(width: 8),
+          SizedBox(width: R.sp(context, 8)),
           _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
         ],
       ),
@@ -243,16 +243,16 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   Widget _buildHeaderActionBtn(IconData icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: R.radius(context, 12),
       child: Container(
-        height: 46,
-        width: 46,
+        height: R.sp(context, 46),
+        width: R.sp(context, 46),
         decoration: BoxDecoration(
           color: kPrimaryColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           border: Border.all(color: kGrey200),
         ),
-        child: Icon(icon, color: kPrimaryColor, size: 22),
+        child: Icon(icon, color: kPrimaryColor, size: R.sp(context, 22)),
       ),
     );
   }
@@ -266,9 +266,8 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: R.radius(context, 12),
         border: Border.all(color: kGrey200),
-        // Removed BoxShadow
       ),
       child: Material(
         color: Colors.transparent,
@@ -282,41 +281,41 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
                       quotationId: doc.id,
                       quotationData: data,
                       currencySymbol: _currencySymbol))),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: R.sp(context, 14), vertical: R.sp(context, 12)),
             child: Column(
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text("${data['quotationNumber']}",
-                      style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                      style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: R.sp(context, 13))),
                   Text(
                       data['date'] != null
                           ? DateFormat('dd MMM yyyy • hh:mm a').format(DateTime.parse(data['date']))
                           : '',
-                      style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500))
+                      style: TextStyle(fontSize: R.sp(context, 10), color: kBlack54, fontWeight: FontWeight.w500))
                 ]),
-                const SizedBox(height: 10),
+                SizedBox(height: R.sp(context, 10)),
                 Row(children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: R.all(context, 6),
                     decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                    child: const Icon(Icons.person_rounded, size: 16, color: kBlack54),
+                    child: Icon(Icons.person_rounded, size: R.sp(context, 16), color: kBlack54),
                   ),
-                  const SizedBox(width: 10),
+                  SizedBox(width: R.sp(context, 10)),
                   Expanded(
                       child: Text(data['customerName'] ?? 'Guest',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange))),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 14), color: kOrange))),
                   Text("$_currencySymbol${total.toStringAsFixed(2)}",
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), color: kPrimaryColor)),
                 ]),
-                const Divider(height: 20, color: kGreyBg),
+                Divider(height: R.sp(context, 20), color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text("Quoted by",
-                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    Text("Quoted by",
+                        style: TextStyle(fontSize: R.sp(context, 9), fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(quotedBy,
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87))
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 10), color: kBlack87))
                   ]),
                   _badge(billed)
                 ]),
@@ -329,32 +328,31 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
   }
 
   Widget _badge(bool billed) {
-    // Logic: OPEN is Green, BILLED (Closed) is Red
     final Color statusColor = billed ? kErrorColor : kGoogleGreen;
 
     return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: EdgeInsets.symmetric(horizontal: R.sp(context, 10), vertical: R.sp(context, 4)),
         decoration: BoxDecoration(
             color: statusColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: R.radius(context, 12),
             border: Border.all(color: statusColor.withOpacity(0.2))),
         child: Text(billed ? "BILLED" : "OPEN",
-            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: statusColor)));
+            style: TextStyle(fontSize: R.sp(context, 9), fontWeight: FontWeight.w900, color: statusColor)));
   }
 
   void _showSortMenu() {
     showModalBottomSheet(
       context: context,
       backgroundColor: kWhite,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 20)))),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: R.all(context, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Sort Quotations', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 16),
+            Text('Sort Quotations', style: TextStyle(fontSize: R.sp(context, 18), fontWeight: FontWeight.w900, color: kBlack87)),
+            SizedBox(height: R.sp(context, 16)),
             _sortItem("Newest First", SortOption.dateNewest),
             _sortItem("Oldest First", SortOption.dateOldest),
             _sortItem("Amount: High to Low", SortOption.amountHigh),
@@ -382,15 +380,15 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: kWhite,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 20)))),
       builder: (context) => Padding(
-        padding: const EdgeInsets.all(24),
+        padding: R.all(context, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Filter Status', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
-            const SizedBox(height: 16),
+            Text('Filter Status', style: TextStyle(fontSize: R.sp(context, 18), fontWeight: FontWeight.w900, color: kBlack87)),
+            SizedBox(height: R.sp(context, 16)),
             _filterItem("All Quotations", FilterStatus.all),
             _filterItem("Open Only", FilterStatus.available),
             _filterItem("Billed Only", FilterStatus.settled),
@@ -415,17 +413,18 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
 
   Widget _buildEmpty() => Center(
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.description_outlined, size: 64, color: kGrey300),
-        const SizedBox(height: 16),
+        Icon(Icons.description_outlined, size: R.sp(context, 64), color: kGrey300),
+        SizedBox(height: R.sp(context, 16)),
         Text(context.tr('no_quotations_found'),
-            style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))
+            style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: R.sp(context, 14)))
       ]));
 
   Widget _buildNoResults() => Center(
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.search_off_rounded, size: 64, color: kGrey300),
-        const SizedBox(height: 16),
-        const Text("No matches found for your search",
-            style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))
+        Icon(Icons.search_off_rounded, size: R.sp(context, 64), color: kGrey300),
+        SizedBox(height: R.sp(context, 16)),
+        Text("No matches found for your search",
+            style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: R.sp(context, 14)))
       ]));
 }
+

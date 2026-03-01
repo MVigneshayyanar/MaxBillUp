@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:heroicons/heroicons.dart';
 
 class StockAppBar extends StatelessWidget {
@@ -33,10 +34,10 @@ class StockAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    const double tabHeight = 44.0;
+    final double tabHeight = R.sp(context, 44);
 
     return Container(
-      padding: EdgeInsets.only(top: topPadding + 10, bottom: 12),
+      padding: EdgeInsets.only(top: topPadding + R.sp(context, 10), bottom: R.sp(context, 12)),
       decoration: const BoxDecoration(
         color: kWhite,
         border: Border(bottom: BorderSide(color: kGrey200, width: 1)),
@@ -45,13 +46,13 @@ class StockAppBar extends StatelessWidget {
         children: [
           // ENTERPRISE FLAT TABS
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16)),
             child: Container(
-              height: tabHeight + 8,
-              padding: const EdgeInsets.all(4),
+              height: tabHeight + R.sp(context, 8),
+              padding: R.all(context, 4),
               decoration: BoxDecoration(
                 color: kGreyBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: R.radius(context, 14),
                 border: Border.all(color: kPrimaryColor, width: 1),
               ),
               child: Stack(
@@ -66,7 +67,7 @@ class StockAppBar extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: kPrimaryColor,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: R.radius(context, 10),
                           boxShadow: [
                             BoxShadow(
                               color: kPrimaryColor.withOpacity(0.15),
@@ -129,24 +130,23 @@ class StockAppBar extends StatelessWidget {
                         label,
                         style: TextStyle(
                           color: isSelected ? kWhite : kBlack54,
-
-                          fontSize: 13,
+                          fontSize: R.sp(context, 13),
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
                           letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: R.sp(context, 6)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: EdgeInsets.symmetric(horizontal: R.sp(context, 6), vertical: R.sp(context, 2)),
                         decoration: BoxDecoration(
                           color: isSelected ? kWhite.withOpacity(0.2) : kPrimaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: R.radius(context, 6),
                         ),
                         child: Text(
                           '$count',
                           style: TextStyle(
                             color: isSelected ? kWhite : kPrimaryColor,
-                            fontSize: 9,
+                            fontSize: R.sp(context, 9),
                             fontWeight: FontWeight.w900,
                           ),
                         ),

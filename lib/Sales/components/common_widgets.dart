@@ -9,6 +9,7 @@ import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:intl/intl.dart';
 
 class CommonWidgets {
@@ -17,10 +18,10 @@ class CommonWidgets {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+        content: Text(message, style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13))),
         backgroundColor: bgColor ?? kPrimaryColor,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
         duration: const Duration(milliseconds: 1500),
       ),
     );
@@ -50,7 +51,7 @@ class CommonWidgets {
           color: kWhite,
           border: Border(top: BorderSide(color: kGrey200, width: 1)),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+        padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 6), R.sp(context, 16), R.sp(context, 6)),
         child: Row(
           children: [
             // Save order button with order name display
@@ -61,8 +62,9 @@ class CommonWidgets {
               onSaveOrder,
               savedOrderName != null && savedOrderName.isNotEmpty ? kOrange : kPrimaryColor,
               savedOrderName,
+              context,
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: R.sp(context, 10)),
 
             // Customer button
             if (onCustomer != null) ...[
@@ -70,8 +72,9 @@ class CommonWidgets {
                 customerName != null && customerName.isNotEmpty ? HeroIcons.user : HeroIcons.userPlus,
                 onCustomer,
                 customerName != null && customerName.isNotEmpty ? kOrange : kPrimaryColor,
+                context,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: R.sp(context, 10)),
             ],
 
             const Spacer(),
@@ -80,11 +83,11 @@ class CommonWidgets {
             GestureDetector(
               onTap: onBill,
               child: Container(
-                height: 60,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                height: R.sp(context, 60),
+                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 20)),
                 decoration: BoxDecoration(
                   color: kPrimaryColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: R.radius(context, 16),
                   boxShadow: [
                     BoxShadow(
                       color: kPrimaryColor.withOpacity(0.3),
@@ -96,18 +99,18 @@ class CommonWidgets {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const HeroIcon(HeroIcons.banknotes, color: kWhite, size: 18),
-                    const SizedBox(width: 10),
+                    HeroIcon(HeroIcons.banknotes, color: kWhite, size: R.sp(context, 18)),
+                    SizedBox(width: R.sp(context, 10)),
                     Text(
                       "$currencySymbol${AmountFormatter.format(totalBill)}",
-                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                      style: TextStyle(color: kWhite, fontSize: R.sp(context, 18), fontWeight: FontWeight.w900),
                     ),
-                    const SizedBox(width: 10),
-                    Container(width: 1.5, height: 20, color: kWhite.withOpacity(0.3)),
-                    const SizedBox(width: 10),
+                    SizedBox(width: R.sp(context, 10)),
+                    Container(width: 1.5, height: R.sp(context, 20), color: kWhite.withOpacity(0.3)),
+                    SizedBox(width: R.sp(context, 10)),
                     Text(
                       context.tr('Bill'),
-                      style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                      style: TextStyle(color: kWhite, fontSize: R.sp(context, 18), fontWeight: FontWeight.w900, letterSpacing: 1.0),
                     ),
                     // const SizedBox(width: 10),
 
@@ -121,51 +124,51 @@ class CommonWidgets {
     );
   }
 
-  static Widget _buildActionIconButton(HeroIcons icon, VoidCallback onTap, Color color) {
+  static Widget _buildActionIconButton(HeroIcons icon, VoidCallback onTap, Color color, BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: R.radius(context, 12),
       child: Container(
-        height: 50,
-        width: 50,
+        height: R.sp(context, 50),
+        width: R.sp(context, 50),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           border: Border.all(color: color.withOpacity(0.2), width: 1.5),
         ),
-        child: HeroIcon(icon, color: color, size: 22),
+        child: HeroIcon(icon, color: color, size: R.sp(context, 22)),
       ),
     );
   }
 
-  static Widget _buildActionIconButtonWithText(HeroIcons icon, VoidCallback onTap, Color color, String? text) {
+  static Widget _buildActionIconButtonWithText(HeroIcons icon, VoidCallback onTap, Color color, String? text, BuildContext context) {
     if (text == null || text.isEmpty) {
-      return _buildActionIconButton(icon, onTap, color);
+      return _buildActionIconButton(icon, onTap, color, context);
     }
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: R.radius(context, 12),
       child: Container(
-        height: 50,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        height: R.sp(context, 50),
+        padding: EdgeInsets.symmetric(horizontal: R.sp(context, 12)),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           border: Border.all(color: color.withOpacity(0.2), width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            HeroIcon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
+            HeroIcon(icon, color: color, size: R.sp(context, 20)),
+            SizedBox(width: R.sp(context, 8)),
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 120),
+              constraints: BoxConstraints(maxWidth: R.sp(context, 120)),
               child: Text(
                 text,
                 style: TextStyle(
                   color: color,
-                  fontSize: 13,
+                  fontSize: R.sp(context, 13),
                   fontWeight: FontWeight.w800,
                 ),
                 maxLines: 1,
@@ -200,9 +203,9 @@ class CommonWidgets {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
         title: Text(savedOrderId != null ? 'Update Order' : 'Save Order',
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87)),
+            style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 16), color: kBlack87)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -210,10 +213,10 @@ class CommonWidgets {
               savedOrderId != null
                   ? 'Update the saved order with new items'
                   : 'Enter a name for this order',
-              style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(color: kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: R.sp(context, 16)),
             _buildDialogField(
               controller: orderNameCtrl,
               label: 'Order Name',
@@ -272,26 +275,26 @@ class CommonWidgets {
   }
 
   static Widget _buildDialogField({required TextEditingController controller, required String label, required HeroIcons icon, TextInputType? keyboardType, Function(String)? onChanged}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: kGreyBg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kGrey200),
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        onChanged: onChanged,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: HeroIcon(icon, color: kPrimaryColor, size: 18),
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: kGreyBg,
+          borderRadius: R.radius(context, 12),
+          border: Border.all(color: kGrey200),
+        ),
+        child: TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          onChanged: onChanged,
+          style: TextStyle(fontSize: R.sp(context, 14), fontWeight: FontWeight.w600, color: kBlack87),
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Padding(
+              padding: R.all(context, 12),
+              child: HeroIcon(icon, color: kPrimaryColor, size: R.sp(context, 18)),
+            ),
+            labelStyle: TextStyle(color: kBlack54, fontSize: R.sp(context, 13)),
           ),
-          labelStyle: const TextStyle(color: kBlack54, fontSize: 13),
-
-
         ),
       ),
     );
@@ -394,33 +397,33 @@ class CommonWidgets {
         builder: (ctx, setDialogState) {
           return Dialog(
             backgroundColor: kWhite,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(borderRadius: R.radius(context, 20)),
             child: Container(
-              height: 580,
-              padding: const EdgeInsets.all(20),
+              height: R.dialogHeight(context, pct: 72),
+              padding: R.all(context, 20),
               child: Column(
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('SELECT CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+                      Text('SELECT CUSTOMER', style: TextStyle(fontSize: R.sp(context, 16), fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
                       IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: R.sp(context, 12)),
                   Row(
                     children: [
                       Expanded(
                         child: Container(
-                          decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                          decoration: BoxDecoration(color: kGreyBg, borderRadius: R.radius(context, 12), border: Border.all(color: kGrey200)),
                           child: TextField(
                             controller: searchController,
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                            decoration: const InputDecoration(
+                            style: TextStyle(fontSize: R.sp(context, 14), fontWeight: FontWeight.w600),
+                            decoration: InputDecoration(
                               hintText: 'Search...',
                               prefixIcon: Padding(
-                                padding: EdgeInsets.all(12.0),
-                                child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
+                                padding: R.all(context, 12),
+                                child: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
                               ),
                               
                               
@@ -429,22 +432,22 @@ class CommonWidgets {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      _squareActionBtn(HeroIcons.userPlus, () { Navigator.pop(ctx); _showAddCustomerDialog(context, onCustomerSelected); }, kPrimaryColor),
-                      const SizedBox(width: 8),
-                      _squareActionBtn(HeroIcons.phone, () { Navigator.pop(ctx); _importFromContacts(context, onCustomerSelected); }, kGoogleGreen),
+                      SizedBox(width: R.sp(context, 10)),
+                      _squareActionBtn(HeroIcons.userPlus, () { Navigator.pop(ctx); _showAddCustomerDialog(context, onCustomerSelected); }, kPrimaryColor, context),
+                      SizedBox(width: R.sp(context, 8)),
+                      _squareActionBtn(HeroIcons.phone, () { Navigator.pop(ctx); _importFromContacts(context, onCustomerSelected); }, kGoogleGreen, context),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: R.sp(context, 12)),
                   if (selectedCustomerPhone != null && selectedCustomerPhone.isNotEmpty)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
+                      padding: EdgeInsets.symmetric(vertical: R.sp(context, 10), horizontal: R.sp(context, 16)),
                       child: InkWell(
                         onTap: () { onCustomerSelected('', '', null); Navigator.pop(ctx); },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                          decoration: BoxDecoration(color: kErrorColor.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-                          child: const Row(children: [HeroIcon(HeroIcons.link, size: 16, color: kErrorColor), SizedBox(width: 12), Text('Remove Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12))]),
+                          padding: EdgeInsets.symmetric(vertical: R.sp(context, 10), horizontal: R.sp(context, 16)),
+                          decoration: BoxDecoration(color: kErrorColor.withOpacity(0.08), borderRadius: R.radius(context, 8)),
+                          child: Row(children: [const HeroIcon(HeroIcons.link, size: 16, color: kErrorColor), SizedBox(width: R.sp(context, 12)), Text('Remove Customer', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: R.sp(context, 12)))]),
                         ),
                       ),
                     ),
@@ -466,7 +469,7 @@ class CommonWidgets {
                             }).toList();
 
                             return ListView.separated(
-                              padding: const EdgeInsets.only(top: 10),
+                              padding: EdgeInsets.only(top: R.sp(context, 10)),
                               itemCount: customers.length,
                               separatorBuilder: (ctx, i) => const Divider(height: 1, color: kGrey100),
                               itemBuilder: (context, index) {
@@ -478,7 +481,7 @@ class CommonWidgets {
 
                                 return ListTile(
                                   onTap: () { onCustomerSelected(phone, data['name'] ?? 'Unknown', data['gst']); Navigator.pop(ctx); },
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 8), vertical: R.sp(context, 4)),
                                   leading: CircleAvatar(
                                     backgroundColor: isSelected ? kPrimaryColor : kGreyBg,
                                     child: Text((data['name'] ?? 'U')[0].toUpperCase(), style: TextStyle(color: isSelected ? kWhite : kPrimaryColor, fontWeight: FontWeight.w900)),
@@ -486,13 +489,13 @@ class CommonWidgets {
                                   title: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14), overflow: TextOverflow.ellipsis),
+                                      Text(data['name'] ?? 'Unknown', style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)), overflow: TextOverflow.ellipsis),
                                       if (rating > 0) ...[
-                                        const SizedBox(height: 2),
+                                        SizedBox(height: R.sp(context, 2)),
                                         Row(
                                           children: List.generate(5, (i) => HeroIcon(
                                             HeroIcons.star,
-                                            size: 12,
+                                            size: R.sp(context, 12),
                                             color: i < rating ? kOrange : kGrey300,
                                             style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
                                           )),
@@ -501,15 +504,15 @@ class CommonWidgets {
                                     ],
                                   ),
                                   subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 4),
-                                    child: Text(phone, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
+                                    padding: EdgeInsets.only(top: R.sp(context, 4)),
+                                    child: Text(phone, style: TextStyle(fontSize: R.sp(context, 11), color: kBlack54, fontWeight: FontWeight.w500)),
                                   ),
                                   trailing: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment: CrossAxisAlignment.end,
                                     children: [
-                                      Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: 13)),
-                                      const Text('Balance', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54)),
+                                      Text('${balance.toStringAsFixed(0)}', style: TextStyle(fontWeight: FontWeight.w900, color: balance > 0 ? kErrorColor : kGoogleGreen, fontSize: R.sp(context, 13))),
+                                      Text('Balance', style: TextStyle(fontSize: R.sp(context, 8), fontWeight: FontWeight.w800, color: kBlack54)),
                                     ],
                                   ),
                                 );
@@ -529,14 +532,14 @@ class CommonWidgets {
     );
   }
 
-  static Widget _squareActionBtn(HeroIcons icon, VoidCallback onTap, Color color) {
+  static Widget _squareActionBtn(HeroIcons icon, VoidCallback onTap, Color color, BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: R.radius(context, 10),
       child: Container(
-        height: 48, width: 48,
-        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: color.withOpacity(0.2))),
-        child: HeroIcon(icon, color: color, size: 20),
+        height: R.sp(context, 48), width: R.sp(context, 48),
+        decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: R.radius(context, 10), border: Border.all(color: color.withOpacity(0.2))),
+        child: HeroIcon(icon, color: color, size: R.sp(context, 20)),
       ),
     );
   }
@@ -554,8 +557,8 @@ class CommonWidgets {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('NEW CUSTOMER', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
+          title: Text('NEW CUSTOMER', style: TextStyle(fontSize: R.sp(context, 16), fontWeight: FontWeight.w900, letterSpacing: 0.5)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -588,39 +591,39 @@ class CommonWidgets {
                     }
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: R.sp(context, 12)),
                 if (isLoading)
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
+                  Padding(
+                    padding: R.all(context, 8),
+                    child: const CircularProgressIndicator(strokeWidth: 3, color: kPrimaryColor),
                   )
                 else ...[
                   if (customerExists)
                     Container(
-                      padding: const EdgeInsets.all(8),
-                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: R.all(context, 8),
+                      margin: EdgeInsets.only(bottom: R.sp(context, 12)),
                       decoration: BoxDecoration(
                         color: kOrange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: R.radius(context, 8),
                         border: Border.all(color: kOrange.withOpacity(0.3)),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          HeroIcon(HeroIcons.informationCircle, color: kOrange, size: 18),
-                          SizedBox(width: 8),
+                          HeroIcon(HeroIcons.informationCircle, color: kOrange, size: R.sp(context, 18)),
+                          SizedBox(width: R.sp(context, 8)),
                           Expanded(
                             child: Text(
                               'Customer exists! Fields auto-filled.',
-                              style: TextStyle(color: kOrange, fontSize: 11, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: kOrange, fontSize: R.sp(context, 11), fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
                       ),
                     ),
                   _buildDialogField(controller: nameCtrl, label: 'Full Name', icon: HeroIcons.user),
-                  const SizedBox(height: 12),
+                  SizedBox(height: R.sp(context, 12)),
                   _buildDialogField(controller: gstCtrl, label: 'GST Number (Optional)', icon: HeroIcons.documentText),
-                  const SizedBox(height: 12),
+                  SizedBox(height: R.sp(context, 12)),
                   _buildDialogField(controller: balanceCtrl, label: 'Last Due Amount', icon: HeroIcons.wallet, keyboardType: const TextInputType.numberWithOptions(decimal: true)),
                 ],
               ],
@@ -692,17 +695,17 @@ class CommonWidgets {
         return StatefulBuilder(
           builder: (ctx, setDialogState) => Dialog(
             backgroundColor: kWhite,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(borderRadius: R.radius(context, 20)),
             child: Container(
-              height: 550, padding: const EdgeInsets.all(20),
+              height: R.dialogHeight(context, pct: 70), padding: R.all(context, 20),
               child: Column(
                 children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('IMPORT CONTACT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15)), IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark))]),
-                  Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12)), child: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Search...', prefixIcon: Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
+                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text('IMPORT CONTACT', style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 15))), IconButton(onPressed: () => Navigator.pop(ctx), icon: const HeroIcon(HeroIcons.xMark))]),
+                  Container(decoration: BoxDecoration(color: kGreyBg, borderRadius: R.radius(context, 12)), child: TextField(controller: ctrl, decoration: InputDecoration(hintText: 'Search...', prefixIcon: Padding(
+                    padding: R.all(context, 12),
+                    child: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor),
                   )))),
-                  const SizedBox(height: 12),
+                  SizedBox(height: R.sp(context, 12)),
                   Expanded(
                     child: ListView.separated(
                       itemCount: filtered.length,
@@ -711,10 +714,10 @@ class CommonWidgets {
                         final c = filtered[i];
                         final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(RegExp(r'[^0-9+]'), '') : '';
                         return ListTile(
-                          title: Text(c.displayName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          subtitle: Text(phone, style: const TextStyle(fontSize: 12, color: kBlack54)),
+                          title: Text(c.displayName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14))),
+                          subtitle: Text(phone, style: TextStyle(fontSize: R.sp(context, 12), color: kBlack54)),
                           onTap: phone.isNotEmpty ? () { Navigator.pop(ctx); _showAddCustomerDialogWithPrefill(context, onCustomerSelected, prefillName: c.displayName, prefillPhone: phone); } : null,
-                          trailing: const HeroIcon(HeroIcons.chevronRight, size: 18, color: kGrey400),
+                          trailing: HeroIcon(HeroIcons.chevronRight, size: R.sp(context, 18), color: kGrey400),
                         );
                       },
                     ),
@@ -761,8 +764,8 @@ class CommonWidgets {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: kWhite,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
+          title: Text('VERIFY CUSTOMER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 16))),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [

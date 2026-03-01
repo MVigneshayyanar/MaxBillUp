@@ -607,6 +607,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
               paymentMode: method,
               currentCredit: currentCredit,
               currency: CurrencyService.getSymbolWithSpace(storeData?['currency']),
+              isManualCredit: true,
             ),
           ),
         );

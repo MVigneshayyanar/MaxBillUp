@@ -9,6 +9,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:intl/intl.dart';
 import 'AddCategoryPopup.dart';
 import 'package:maxbillup/services/excel_import_service.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 import 'package:heroicons/heroicons.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -188,7 +189,15 @@ class _AddProductPageState extends State<AddProductPage> {
     if (result != null && mounted) setState(() => _barcodeController.text = result);
   }
 
-  void _showImportExcelDialog() {
+  void _showImportExcelDialog() async {
+    // Plan check - Bulk Product Upload requires paid plan
+    final canBulkUpload = await PlanPermissionHelper.canUseBulkInventory();
+    if (!canBulkUpload) {
+      if (mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Bulk Product Upload');
+      return;
+    }
+    if (!mounted) return;
+
     // IMPORTANT: Capture State's context BEFORE showing any dialog
     final stateContext = context;
     final stateNavigator = Navigator.of(context, rootNavigator: true);

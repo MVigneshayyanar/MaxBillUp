@@ -333,7 +333,7 @@ class _MenuPageState extends State<MenuPage> {
                     _buildSectionLabel("HELP & SUPPORT"),
                     _buildMenuTile('How to - Videos', HeroIcons.playCircle, const Color(0xFF2F7CF6), 'VideoTutorial'),
                     _buildMenuTile('Knowledge Base', HeroIcons.academicCap, const Color(0xFFE6AE00), 'Knowledge'),
-                    _buildMenuTile('Help & Support', HeroIcons.chatBubbleLeftRight, kPrimaryColor, 'Support'),
+                    _buildMenuTile('Help & Support', HeroIcons.chatBubbleLeftRight, kPrimaryColor, 'Support', requiredRank: 1),
 
                     const SizedBox(height: 100),
                   ],

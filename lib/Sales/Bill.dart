@@ -18,6 +18,7 @@ import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/plan_permission_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import '../utils/amount_formatter.dart';
 import 'package:heroicons/heroicons.dart';
 
@@ -300,25 +301,25 @@ class _BillPageState extends State<BillPage> {
 
   void _clearOrder() {
     showDialog(context: context, builder: (context) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
       child: Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: R.all(context, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 40),
-            const SizedBox(height: 16),
-            const Text('Clear Order?', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
-            const SizedBox(height: 12),
-            const Text('Are you sure you want to discard this bill? All progress will be lost.', textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 13, height: 1.5, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 24),
+            HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: R.sp(context, 40)),
+            SizedBox(height: R.sp(context, 16)),
+            Text('Clear Order?', style: TextStyle(fontSize: R.sp(context, 18), fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+            SizedBox(height: R.sp(context, 12)),
+            Text('Are you sure you want to discard this bill? All progress will be lost.', textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: R.sp(context, 13), height: 1.5, fontWeight: FontWeight.w500)),
+            SizedBox(height: R.sp(context, 24)),
             Row(
               children: [
-                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54, fontSize: 12)))),
-                const SizedBox(width: 12),
+                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: Text('CANCEL', style: TextStyle(fontWeight: FontWeight.w800, color: kBlack54, fontSize: R.sp(context, 12))))),
+                SizedBox(width: R.sp(context, 12)),
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: R.radius(context, 8))),
                     onPressed: () {
                       // Clear the cart using CartService
                       final cartService = Provider.of<CartService>(context, listen: false);
@@ -327,7 +328,7 @@ class _BillPageState extends State<BillPage> {
                       Navigator.pop(context); // Close dialog
                       Navigator.pop(context); // Go back to previous screen
                     },
-                    child: const Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 12)),
+                    child: Text('DISCARD', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 12))),
                   ),
                 ),
               ],
@@ -414,11 +415,11 @@ class _BillPageState extends State<BillPage> {
         return StatefulBuilder(builder: (context, setDialogState) {
           return AlertDialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(borderRadius: R.radius(context, 20)),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 18))),
                 IconButton(
                   icon: const HeroIcon(HeroIcons.xMark, color: Colors.grey),
                   onPressed: () => Navigator.of(context).pop(),
@@ -669,54 +670,69 @@ class _BillPageState extends State<BillPage> {
               ),
             ),
             actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _removeCartItem(idx);
-                    },
-                    icon: const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
-                    label: const Text('Remove', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700)),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      final newName = nameController.text.trim();
-                      final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
-                      final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 4), vertical: R.sp(context, 4)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          final newName = nameController.text.trim();
+                          final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
+                          final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
 
-                      if (newQty <= 0) {
-                        Navigator.of(context).pop();
-                        _removeCartItem(idx);
-                      } else {
-                        // Get tax details
-                        String? taxName;
-                        double? taxPercentage;
-                        String? taxType;
+                          if (newQty <= 0) {
+                            Navigator.of(context).pop();
+                            _removeCartItem(idx);
+                          } else {
+                            String? taxName;
+                            double? taxPercentage;
+                            String? taxType;
 
-                        if (selectedTaxId != null) {
-                          final selectedTax = availableTaxes.firstWhere(
-                                (tax) => tax['id'] == selectedTaxId,
-                            orElse: () => {},
-                          );
-                          taxName = selectedTax['name'];
-                          taxPercentage = selectedTax['percentage'];
-                          taxType = selectedTaxType;
-                        }
+                            if (selectedTaxId != null) {
+                              final selectedTax = availableTaxes.firstWhere(
+                                    (tax) => tax['id'] == selectedTaxId,
+                                orElse: () => {},
+                              );
+                              taxName = selectedTax['name'];
+                              taxPercentage = selectedTax['percentage'];
+                              taxType = selectedTaxType;
+                            }
 
-                        _updateCartItemWithTax(idx, newName, newPrice, newQty, taxName, taxPercentage, taxType);
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kPrimaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
+                            _updateCartItemWithTax(idx, newName, newPrice, newQty, taxName, taxPercentage, taxType);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kPrimaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(vertical: R.sp(context, 14)),
+                        ),
+                        child: Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: R.sp(context, 15))),
+                      ),
                     ),
-                    child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                  ),
-                ],
+                    SizedBox(height: R.sp(context, 8)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _removeCartItem(idx);
+                        },
+                        icon: HeroIcon(HeroIcons.trash, color: kErrorColor, size: R.sp(context, 18)),
+                        label: Text('Remove Item', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w700, fontSize: R.sp(context, 14))),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: kErrorColor.withOpacity(0.4)),
+                          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
+                          padding: EdgeInsets.symmetric(vertical: R.sp(context, 12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           );
@@ -727,8 +743,8 @@ class _BillPageState extends State<BillPage> {
 
   Widget _buildDialogLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack54)),
+      padding: EdgeInsets.only(bottom: R.sp(context, 8)),
+      child: Text(text, style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 13), color: kBlack54)),
     );
   }
 
@@ -736,7 +752,7 @@ class _BillPageState extends State<BillPage> {
     return Container(
       decoration: BoxDecoration(
         color: kGreyBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: R.radius(context, 12),
         border: Border.all(color: kGrey200),
       ),
       child: ValueListenableBuilder<TextEditingValue>(
@@ -747,26 +763,26 @@ class _BillPageState extends State<BillPage> {
         controller: controller,
         keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         onChanged: (v) => setDialogState(() {}),
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 14)),
         decoration: InputDecoration(
           hintText: hint,
           filled: true,
           fillColor: const Color(0xFFF8F9FA),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: R.radius(context, 12),
             borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: R.radius(context, 12),
             borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: R.radius(context, 12),
             borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
           ),
-          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
         ),
       
 );
@@ -1118,8 +1134,8 @@ class _BillPageState extends State<BillPage> {
           backgroundColor: kPrimaryColor,
           elevation: 0,
           centerTitle: true,
-          title: Text(context.tr('Bill Summary').toUpperCase(), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
-          leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: () {
+          title: Text(context.tr('Bill Summary').toUpperCase(), style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), letterSpacing: 1.0)),
+          leading: IconButton(icon: HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: R.sp(context, 18)), onPressed: () {
             // Clear cart when going back from quotation to prevent items persisting
             if (_isFromQuotation) {
               final cartService = Provider.of<CartService>(context, listen: false);
@@ -1127,16 +1143,16 @@ class _BillPageState extends State<BillPage> {
             }
             Navigator.pop(context);
           }),
-          actions: [IconButton(icon: const HeroIcon(HeroIcons.trash, color: kWhite, size: 22), onPressed: _clearOrder)],
+          actions: [IconButton(icon: HeroIcon(HeroIcons.trash, color: kWhite, size: R.sp(context, 22)), onPressed: _clearOrder)],
         ),
       body: Column(
         children: [
           _buildCustomerSection(),
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+              padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 16), R.sp(context, 16), R.sp(context, 100)),
               itemCount: cartItems.length,
-              separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+              separatorBuilder: (ctx, i) => SizedBox(height: R.sp(context, 10)),
               itemBuilder: (ctx, i) => _buildItemRow(cartItems[i], i),
             ),
           ),
@@ -1155,26 +1171,26 @@ class _BillPageState extends State<BillPage> {
     return Container(
       width: double.infinity,
       decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 8)),
       child: InkWell(
         onTap: _showCustomerDialog,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: R.radius(context, 16),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: EdgeInsets.symmetric(horizontal: R.sp(context, 14), vertical: R.sp(context, 10)),
           decoration: BoxDecoration(
             color: hasCustomer ? kPrimaryColor.withOpacity(0.15) : kWhite,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: R.radius(context, 16),
             border: Border.all(color: hasCustomer ? kPrimaryColor.withOpacity(0.15) : kOrange, width: 1.5),
           ),
           child: Row(
             children: [
               Container(
-                width: 38, height: 38,
+                width: R.sp(context, 38), height: R.sp(context, 38),
                 decoration: BoxDecoration(color: hasCustomer ? kPrimaryColor : kOrange.withOpacity(0.15), shape: BoxShape.circle),
-                child: HeroIcon(hasCustomer ? HeroIcons.user : HeroIcons.userPlus, color: hasCustomer ? kWhite : kOrange, size: 20),
+                child: HeroIcon(hasCustomer ? HeroIcons.user : HeroIcons.userPlus, color: hasCustomer ? kWhite : kOrange, size: R.sp(context, 20)),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: R.sp(context, 12)),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1474,7 +1490,7 @@ class _BillPageState extends State<BillPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 12)),
             child: Column(
               children: [
                 // Note Buttons Row
@@ -1484,39 +1500,39 @@ class _BillPageState extends State<BillPage> {
                       child: GestureDetector(
                         onTap: () => _showNoteBottomSheet(context, _notesController, 'Bill Note', 'Add bill notes / description...'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          padding: EdgeInsets.symmetric(horizontal: R.sp(context, 8), vertical: R.sp(context, 10)),
                           decoration: BoxDecoration(
                             color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.15): kGreyBg,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: R.radius(context, 10),
                             border: Border.all(color: _notesController.text.isNotEmpty ? kPrimaryColor.withOpacity(0.15) : kGrey200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              HeroIcon(_notesController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54, size: 14),
-                              const SizedBox(width: 4),
-                              Flexible(child: Text(_notesController.text.isNotEmpty ? 'Note ✓' : 'Note', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54), overflow: TextOverflow.ellipsis)),
+                              HeroIcon(_notesController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54, size: R.sp(context, 14)),
+                              SizedBox(width: R.sp(context, 4)),
+                              Flexible(child: Text(_notesController.text.isNotEmpty ? 'Note ✓' : 'Note', style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w700, color: _notesController.text.isNotEmpty ? kPrimaryColor : kBlack54), overflow: TextOverflow.ellipsis)),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: R.sp(context, 6)),
                     Expanded(
                       child: GestureDetector(
                         onTap: () => _showNoteBottomSheet(context, _deliveryAddressController, 'Customer Note', 'Add customer note...'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          padding: EdgeInsets.symmetric(horizontal: R.sp(context, 8), vertical: R.sp(context, 10)),
                           decoration: BoxDecoration(
                             color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.15) : kGreyBg,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: R.radius(context, 10),
                             border: Border.all(color: _deliveryAddressController.text.isNotEmpty ? kOrange.withOpacity(0.15) : kGrey200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              HeroIcon(_deliveryAddressController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _deliveryAddressController.text.isNotEmpty ? kOrange : kBlack54, size: 14),
-                              const SizedBox(width: 4),
+                              HeroIcon(_deliveryAddressController.text.isNotEmpty ? HeroIcons.checkCircle : HeroIcons.plus, color: _deliveryAddressController.text.isNotEmpty ? kOrange : kBlack54, size: R.sp(context, 14)),
+                              SizedBox(width: R.sp(context, 4)),
                               Flexible(child: Text(_deliveryAddressController.text.isNotEmpty ? 'Cust. Note ✓' : 'Cust. Note', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _deliveryAddressController.text.isNotEmpty ? kOrange : kBlack54), overflow: TextOverflow.ellipsis)),
                             ],
                           ),

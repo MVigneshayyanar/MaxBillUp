@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 
 /// Helper class to optimize keyboard performance and behavior
 class KeyboardHelper {
@@ -10,23 +11,27 @@ class KeyboardHelper {
     Widget? prefixIcon,
     Widget? suffixIcon,
     BorderRadius? borderRadius,
+    BuildContext? context,
   }) {
+    final radius = context != null
+        ? R.radius(context, 8)
+        : BorderRadius.circular(8);
+    final padding = context != null
+        ? EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 12))
+        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+
     return InputDecoration(
       labelText: labelText,
       hintText: hintText,
       prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
-      border: OutlineInputBorder(
-        borderRadius: borderRadius ?? BorderRadius.circular(8),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: borderRadius ?? BorderRadius.circular(8),
-      ),
+      border: OutlineInputBorder(borderRadius: borderRadius ?? radius),
+      enabledBorder: OutlineInputBorder(borderRadius: borderRadius ?? radius),
       focusedBorder: OutlineInputBorder(
-        borderRadius: borderRadius ?? BorderRadius.circular(8),
+        borderRadius: borderRadius ?? radius,
         borderSide: const BorderSide(color: Color(0xFF2F7CF6), width: 2),
       ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      contentPadding: padding,
       // Disable dense mode for better performance
       isDense: false,
     );
@@ -159,4 +164,3 @@ mixin KeyboardOptimizationMixin<T extends StatefulWidget> on State<T> {
     KeyboardHelper.hideKeyboard(context);
   }
 }
-

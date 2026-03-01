@@ -13,6 +13,7 @@ import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/services/currency_service.dart';
 
 class NewQuotationPage extends StatefulWidget {
@@ -185,9 +186,9 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
 
           return Dialog(
             backgroundColor: kWhite,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: R.all(context, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,14 +196,14 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(context.tr('edit_item'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
-                      GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, color: kBlack54, size: 24)),
+                      Text(context.tr('edit_item'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, 18), color: kBlack87)),
+                      GestureDetector(onTap: () => Navigator.pop(context), child: HeroIcon(HeroIcons.xMark, color: kBlack54, size: R.sp(context, 24))),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: R.sp(context, 24)),
                   _dialogLabel(context.tr('item_name')),
                   _dialogInput(nameController, 'Enter product name'),
-                  const SizedBox(height: 16),
+                  SizedBox(height: R.sp(context, 16)),
                   Row(
                     children: [
                       Expanded(
@@ -215,7 +216,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                           ],
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: R.sp(context, 12)),
                       Expanded(
                         flex: 3,
                         child: Column(
@@ -223,12 +224,18 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                           children: [
                             _dialogLabel(context.tr('quantity')),
                             Container(
-                              height: 48,
-                              decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                              height: R.sp(context, 48),
+                              decoration: BoxDecoration(
+                                color: kGreyBg,
+                                borderRadius: R.radius(context, 10),
+                                border: Border.all(color: kGrey200),
+                              ),
+                              clipBehavior: Clip.hardEdge,
                               child: Row(
                                 children: [
-                                  IconButton(
-                                    onPressed: () {
+                                  // Minus / Trash button
+                                  GestureDetector(
+                                    onTap: () {
                                       int current = int.tryParse(qtyController.text) ?? 1;
                                       if (current > 1) {
                                         setDialogState(() => qtyController.text = (current - 1).toString());
@@ -237,53 +244,60 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                         _removeSingleItem(idx);
                                       }
                                     },
-                                    icon: HeroIcon(
-                                      (int.tryParse(qtyController.text) ?? 1) <= 1 ? HeroIcons.trash : HeroIcons.minus,
-                                      color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kPrimaryColor,
-                                      size: 20,
+                                    child: Container(
+                                      width: R.sp(context, 42),
+                                      height: double.infinity,
+                                      color: (int.tryParse(qtyController.text) ?? 1) <= 1
+                                          ? kErrorColor.withOpacity(0.08)
+                                          : kPrimaryColor.withOpacity(0.07),
+                                      child: Center(
+                                        child: HeroIcon(
+                                          (int.tryParse(qtyController.text) ?? 1) <= 1
+                                              ? HeroIcons.trash
+                                              : HeroIcons.minus,
+                                          color: (int.tryParse(qtyController.text) ?? 1) <= 1
+                                              ? kErrorColor
+                                              : kPrimaryColor,
+                                          size: R.sp(context, 18),
+                                        ),
+                                      ),
                                     ),
                                   ),
+                                  // Divider
+                                  Container(width: 1, height: double.infinity, color: kGrey200),
+                                  // Quantity TextField (no border)
                                   Expanded(
-                                    child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: qtyController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
+                                    child: TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
-                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kBlack87),
-                                      decoration: InputDecoration( isDense: true,
-                                        filled: true,
-                                        fillColor: const Color(0xFFF8F9FA),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                                        ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                                        ),
-                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: R.sp(context, 15),
+                                        color: kBlack87,
                                       ),
-                                    
-);
-      },
-    ),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: R.sp(context, 4),
+                                          vertical: R.sp(context, 12),
+                                        ),
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                      ),
+                                    ),
                                   ),
-                                  IconButton(
-                                    onPressed: () {
+                                  // Divider
+                                  Container(width: 1, height: double.infinity, color: kGrey200),
+                                  // Plus button
+                                  GestureDetector(
+                                    onTap: () {
                                       int current = int.tryParse(qtyController.text) ?? 0;
                                       int newQty = current + 1;
-
-                                      // Check stock limit
                                       if (stockEnabled && newQty > availableStock) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
@@ -295,34 +309,44 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                         );
                                         return;
                                       }
-
                                       setDialogState(() => qtyController.text = newQty.toString());
                                     },
-                                    icon: const HeroIcon(HeroIcons.plus, color: kPrimaryColor, size: 20),
+                                    child: Container(
+                                      width: R.sp(context, 42),
+                                      height: double.infinity,
+                                      color: kPrimaryColor.withOpacity(0.07),
+                                      child: Center(
+                                        child: HeroIcon(
+                                          HeroIcons.plus,
+                                          color: kPrimaryColor,
+                                          size: R.sp(context, 18),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             // Stock warning
                             if (exceedsStock) ...[
-                              const SizedBox(height: 8),
+                              SizedBox(height: R.sp(context, 8)),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 8), vertical: R.sp(context, 6)),
                                 decoration: BoxDecoration(
                                   color: kErrorColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: R.radius(context, 8),
                                   border: Border.all(color: kErrorColor.withOpacity(0.3)),
                                 ),
                                 child: Row(
                                   children: [
-                                    const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 16),
-                                    const SizedBox(width: 6),
+                                    HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: R.sp(context, 16)),
+                                    SizedBox(width: R.sp(context, 6)),
                                     Expanded(
                                       child: Text(
                                         'Only ${availableStock.toInt()} available in stock',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: kErrorColor,
-                                          fontSize: 11,
+                                          fontSize: R.sp(context, 11),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -336,17 +360,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       ),
                     ],
                   ),
-                  const SizedBox(height: 32),
+                  SizedBox(height: R.sp(context, 32)),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           onPressed: () { Navigator.pop(context); _removeSingleItem(idx); },
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                          child: Text(context.tr('remove'), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 12)),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: kErrorColor), padding: EdgeInsets.symmetric(vertical: R.sp(context, 14)), shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12))),
+                          child: Text(context.tr('remove'), style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: R.sp(context, 12))),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      SizedBox(width: R.sp(context, 12)),
                       Expanded(
                         child: ElevatedButton(
                           onPressed: exceedsStock ? null : () {
@@ -375,11 +399,11 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: exceedsStock ? kGrey300 : kPrimaryColor,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: EdgeInsets.symmetric(vertical: R.sp(context, 14)),
+                            shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
                             elevation: 0
                           ),
-                          child: Text(context.tr('save'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: 12)),
+                          child: Text(context.tr('save'), style: TextStyle(color: kWhite, fontWeight: FontWeight.w800, fontSize: R.sp(context, 12))),
                         ),
                       ),
                     ],
@@ -397,27 +421,27 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: R.all(context, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 40),
-              const SizedBox(height: 16),
-              Text(context.tr('clear_cart'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: kBlack87)),
-              const SizedBox(height: 12),
-              const Text('Are you sure you want to clear this quotation? All line items will be removed.', textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: 14, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 24),
+              HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: R.sp(context, 40)),
+              SizedBox(height: R.sp(context, 16)),
+              Text(context.tr('clear_cart'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, 18), color: kBlack87)),
+              SizedBox(height: R.sp(context, 12)),
+              Text('Are you sure you want to clear this quotation? All line items will be removed.', textAlign: TextAlign.center, style: TextStyle(color: kBlack54, fontSize: R.sp(context, 14), fontWeight: FontWeight.w500)),
+              SizedBox(height: R.sp(context, 24)),
               Row(
                 children: [
                   Expanded(child: TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)))),
-                  const SizedBox(width: 12),
+                  SizedBox(width: R.sp(context, 12)),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                      child: Text(context.tr('clear'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 12)),
+                      style: ElevatedButton.styleFrom(backgroundColor: kErrorColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: R.radius(context, 8))),
+                      child: Text(context.tr('clear'), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: R.sp(context, 12))),
                     ),
                   ),
                 ],
@@ -443,8 +467,8 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
   }
 
   Widget _dialogLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
+    padding: EdgeInsets.only(bottom: R.sp(context, 8), left: R.sp(context, 4)),
+    child: Text(text, style: TextStyle(fontSize: R.sp(context, 10), fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)),
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
@@ -456,26 +480,26 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       controller: ctrl,
       enabled: enabled,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: enabled ? kBlack87 : Colors.black45),
+      style: TextStyle(fontSize: R.sp(context, 15), fontWeight: FontWeight.w700, color: enabled ? kBlack87 : Colors.black45),
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
         fillColor: const Color(0xFFF8F9FA),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
         ),
-        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
       ),
     
 );
@@ -582,20 +606,20 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         color: kWhite,
         border: Border(top: BorderSide(color: kGrey200, width: 1)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 12), R.sp(context, 16), R.sp(context, 8)),
       child: SafeArea(
         child: Row(
           children: [
             // Enterprise Customer Action Icon
             InkWell(
               onTap: _showCustomerSelectionDialog,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: R.radius(context, 12),
               child: Container(
-                height: 56,
-                width: 56,
+                height: R.sp(context, 56),
+                width: R.sp(context, 56),
                 decoration: BoxDecoration(
                   color: kPrimaryColor.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: R.radius(context, 12),
                   border: Border.all(color: kPrimaryColor.withOpacity(0.2), width: 1.5),
                 ),
                 child: HeroIcon(
@@ -603,36 +627,36 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       ? HeroIcons.user
                       : HeroIcons.userPlus,
                   color: kPrimaryColor,
-                  size: 26,
+                  size: R.sp(context, 26),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: R.sp(context, 16)),
             // High-Density Quotation Button
             Expanded(
               child: GestureDetector(
                 onTap: _createQuotation,
                 child: Container(
-                  height: 56,
+                  height: R.sp(context, 56),
                   decoration: BoxDecoration(
                     color: kPrimaryColor,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: R.radius(context, 12),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const HeroIcon(HeroIcons.documentText, color: kWhite, size: 20),
-                      const SizedBox(width: 12),
+                      HeroIcon(HeroIcons.documentText, color: kWhite, size: R.sp(context, 20)),
+                      SizedBox(width: R.sp(context, 12)),
                       Text(
                         "$_currencySymbol${AmountFormatter.format(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0)}",
-                        style: const TextStyle(color: kWhite, fontSize: 18, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: kWhite, fontSize: R.sp(context, 18), fontWeight: FontWeight.w900),
                       ),
-                      const SizedBox(width: 10),
-                      Container(width: 1, height: 16, color: kWhite.withOpacity(0.3)),
-                      const SizedBox(width: 10),
+                      SizedBox(width: R.sp(context, 10)),
+                      Container(width: 1, height: R.sp(context, 16), color: kWhite.withOpacity(0.3)),
+                      SizedBox(width: R.sp(context, 10)),
                       Text(
                         widget.editQuotationId != null ? context.tr('UPDATE') : context.tr('QUOTE'),
-                        style: const TextStyle(color: kWhite, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 0.5),
+                        style: TextStyle(color: kWhite, fontSize: R.sp(context, 13), fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
                   ),
@@ -709,27 +733,27 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeInOut,
         height: currentHeight,
-        margin: const EdgeInsets.symmetric(horizontal: 12),
+        margin: EdgeInsets.symmetric(horizontal: R.sp(context, 12)),
         decoration: BoxDecoration(
           color: kWhite,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: R.radius(context, 20),
           border: Border.all(color: Color(0xffffab36), width: 2),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 8))],
         ),
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 8 : 12),
-              decoration: const BoxDecoration(
+              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 8) : R.sp(context, 12)),
+              decoration: BoxDecoration(
                 color: Color(0xffffab36),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 18))),
               ),
               child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text(context.tr('Product'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
-                  Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 4, child: Text(context.tr('Product'), style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('QTY'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Price'), textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
+                  Expanded(flex: 2, child: Text(context.tr('Total'), textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87, letterSpacing: 0.5))),
                 ],
               ),
             ),
@@ -749,7 +773,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                         onTap: () => _showEditCartItemDialog(idx),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 400),
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
+                          padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 10)),
                           decoration: BoxDecoration(
                             color: isHighlighted ? _highlightAnimation!.value : Colors.transparent,
                           ),
@@ -759,15 +783,15 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                                 flex: 4,
                                 child: Row(
                                   children: [
-                                    Expanded(child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
-                                    const SizedBox(width: 4),
-                                    const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 20),
+                                    Expanded(child: Text(item.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13), color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                                    SizedBox(width: R.sp(context, 4)),
+                                    HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: R.sp(context, 20)),
                                   ],
                                 ),
                               ),
-                              Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14, color: kBlack87))),
-                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.price), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w600))),
-                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.total), textAlign: TextAlign.right, style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 14))),
+                              Expanded(flex: 2, child: Text('${item.quantity}', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, 14), color: kBlack87))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.price), textAlign: TextAlign.center, style: TextStyle(fontSize: R.sp(context, 12), color: kBlack54, fontWeight: FontWeight.w600))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.format(item.total), textAlign: TextAlign.right, style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: R.sp(context, 14)))),
                             ],
                           ),
                         ),
@@ -778,10 +802,10 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
               ),
             ),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: isSearchFocused ? 6 : 10),
+              padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 10)),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.03),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(R.sp(context, 18))),
                 border: const Border(top: BorderSide(color: kGrey200)),
               ),
               child: Row(
@@ -791,17 +815,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                     onTap: _handleClearCart,
                     child: Row(
                       children: [
-                        const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
-                        const SizedBox(width: 4),
-                        Text(context.tr('clear'), style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: 11)),
+                        HeroIcon(HeroIcons.trash, color: kErrorColor, size: R.sp(context, 18)),
+                        SizedBox(width: R.sp(context, 4)),
+                        Text(context.tr('clear'), style: TextStyle(color: kErrorColor, fontWeight: FontWeight.w800, fontSize: R.sp(context, 11))),
                       ],
                     ),
                   ),
-                  const HeroIcon(HeroIcons.bars3, color: kGrey300, size: 24),
+                  HeroIcon(HeroIcons.bars3, color: kGrey300, size: R.sp(context, 24)),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
-                    child: Text('${_sharedCartItems?.length ?? 0} Items', style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(context, 10), vertical: R.sp(context, 4)),
+                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: R.radius(context, 12)),
+                    child: Text('${_sharedCartItems?.length ?? 0} Items', style: TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: R.sp(context, 10), letterSpacing: 0.5)),
                   ),
                 ],
               ),

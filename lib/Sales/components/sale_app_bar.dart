@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/Colors.dart';
 
 class SaleAppBar extends StatelessWidget {
@@ -31,7 +32,7 @@ class SaleAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final horizontalPadding = screenWidth * 0.04;
-    const double tabHeight = 44.0;
+    final double tabHeight = R.sp(context, 44);
 
     // Helper to determine alignment for the sliding pill
     double getAlignment() {
@@ -46,32 +47,32 @@ class SaleAppBar extends StatelessWidget {
 
     return Container(
       color: kWhite,
-      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, 16, 0),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, 0, R.sp(context, 16), 0),
       child: Row(
         children: [
           if (showBackButton) ...[
             GestureDetector(
               onTap: () => Navigator.of(context).pop(),
               child: Container(
-                padding: const EdgeInsets.all(10),
+                padding: R.all(context, 10),
                 decoration: BoxDecoration(
                   color: kGreyBg,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: R.radius(context, 12),
                   border: Border.all(color: kGrey200),
                 ),
-                child: const HeroIcon(HeroIcons.arrowLeft, color: kBlack87, size: 16),
+                child: HeroIcon(HeroIcons.arrowLeft, color: kBlack87, size: R.sp(context, 16)),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: R.sp(context, 12)),
           ],
 
           Expanded(
             child: Container(
-              height: tabHeight + 8,
-              padding: const EdgeInsets.all(4),
+              height: tabHeight + R.sp(context, 8),
+              padding: R.all(context, 4),
               decoration: BoxDecoration(
                 color: kGreyBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: R.radius(context, 14),
                 border: Border.all(color: kPrimaryColor, width: 1),
               ),
               child: Stack(
@@ -86,7 +87,7 @@ class SaleAppBar extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           color: kPrimaryColor,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: R.radius(context, 10),
                           boxShadow: [
                             BoxShadow(
                               color: kPrimaryColor.withOpacity(0.15),
@@ -98,6 +99,7 @@ class SaleAppBar extends StatelessWidget {
                       ),
                     ),
                   ),
+
                   // Tab Labels
                   Row(
                     children: [
@@ -126,42 +128,44 @@ class SaleAppBar extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onTabChanged(index),
         behavior: HitTestBehavior.opaque,
-        child: Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                text,
-                style: TextStyle(
-                  color: isSelected ? kWhite : Colors.black,
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              if (showBadge) ...[
-                const SizedBox(width: 6),
-                Container(
-                  width: 18,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: isSelected ? kWhite : kPrimaryColor,
-                    shape: BoxShape.circle,
+        child: Builder(
+          builder: (context) => Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  text,
+                  style: TextStyle(
+                    color: isSelected ? kWhite : Colors.black,
+                    fontSize: R.sp(context, 13),
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w700,
+                    letterSpacing: 0.5,
                   ),
-                  child: Center(
-                    child: Text(
-                      savedOrderCount > 99 ? '99' : savedOrderCount.toString(),
-                      style: TextStyle(
-                        color: isSelected ? kPrimaryColor : kWhite,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
+                ),
+                if (showBadge) ...[
+                  SizedBox(width: R.sp(context, 6)),
+                  Container(
+                    width: R.sp(context, 18),
+                    height: R.sp(context, 18),
+                    decoration: BoxDecoration(
+                      color: isSelected ? kWhite : kPrimaryColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        savedOrderCount > 99 ? '99' : savedOrderCount.toString(),
+                        style: TextStyle(
+                          color: isSelected ? kPrimaryColor : kWhite,
+                          fontSize: R.sp(context, 9),
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

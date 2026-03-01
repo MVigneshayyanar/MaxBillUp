@@ -7,6 +7,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/services/excel_import_service.dart';
+import 'package:maxbillup/utils/plan_permission_helper.dart';
 
 // --- UI CONSTANTS ---
 const Color _primaryColor = kPrimaryColor;
@@ -213,6 +214,12 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   }
 
   Future<void> _importFromContacts() async {
+    // Plan check
+    final canImport = await PlanPermissionHelper.canImportContacts();
+    if (!canImport) {
+      if (mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Import Contacts');
+      return;
+    }
     try {
       if (!await FlutterContacts.requestPermission()) {
         if (mounted) {
@@ -282,6 +289,12 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   }
 
   Future<void> _importFromExcel() async {
+    // Plan check
+    final canImport = await PlanPermissionHelper.canImportContacts();
+    if (!canImport) {
+      if (mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Import Customers');
+      return;
+    }
     _showImportExcelDialog();
   }
 
@@ -925,7 +938,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         ] : [
           IconButton(
             icon: const HeroIcon(HeroIcons.documentArrowUp, color: Colors.white, size: 22),
-            onPressed: () => _showImportExcelDialog(),
+            onPressed: () => _importFromExcel(),
             tooltip: 'Import from Excel',
           ),
           PopupMenuButton<String>(

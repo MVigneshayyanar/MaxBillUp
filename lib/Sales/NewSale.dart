@@ -10,6 +10,7 @@ import 'package:maxbillup/models/cart_item.dart';
 import 'package:maxbillup/Colors.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/services/cart_service.dart';
 import 'package:maxbillup/services/referral_service.dart';
 
@@ -214,15 +215,15 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: kWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Customer Information',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 16)),
+        title: Text('Customer Information',
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 16))),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Please provide customer name or phone number',
-                style: TextStyle(color: kBlack54, fontSize: 13)),
-            const SizedBox(height: 16),
+            Text('Please provide customer name or phone number',
+                style: TextStyle(color: kBlack54, fontSize: R.sp(context, 13))),
+            SizedBox(height: R.sp(context, 16)),
             ValueListenableBuilder<TextEditingValue>(
       valueListenable: nameController,
       builder: (context, value, _) {
@@ -474,7 +475,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+                Text('Edit Cart Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 18))),
                 IconButton(
                   icon: const HeroIcon(HeroIcons.xMark, color: Colors.grey),
                   onPressed: () => Navigator.of(context).pop(),
@@ -511,15 +512,17 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                           children: [
                             _dialogLabel('Quantity'),
                             Container(
+                              height: R.sp(context, 48),
                               decoration: BoxDecoration(
                                 color: kGreyBg,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: R.radius(context, 10),
                                 border: Border.all(color: kGrey300),
                               ),
                               child: Row(
                                 children: [
-                                  IconButton(
-                                    onPressed: () {
+                                  // Minus button
+                                  GestureDetector(
+                                    onTap: () {
                                       double current = double.tryParse(qtyController.text) ?? 1.0;
                                       if (current > 0.1) {
                                         double newQty = current >= 1 ? current - 1 : current - 0.1;
@@ -530,59 +533,68 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                         _removeSingleItem(idx);
                                       }
                                     },
-                                    icon: HeroIcon(
-                                      (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? HeroIcons.trash : HeroIcons.minus,
-                                      color: (double.tryParse(qtyController.text) ?? 1.0) <= 0.1 ? kErrorColor : kPrimaryColor,
-                                      size: 20,
+                                    child: Container(
+                                      width: R.sp(context, 42),
+                                      height: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: kGreyBg,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: Radius.circular(R.sp(context, 9)),
+                                          bottomLeft: Radius.circular(R.sp(context, 9)),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: HeroIcon(
+                                          (double.tryParse(qtyController.text) ?? 1.0) <= 0.1
+                                              ? HeroIcons.trash
+                                              : HeroIcons.minus,
+                                          color: (double.tryParse(qtyController.text) ?? 1.0) <= 0.1
+                                              ? kErrorColor
+                                              : kPrimaryColor,
+                                          size: R.sp(context, 18),
+                                        ),
+                                      ),
                                     ),
                                   ),
+                                  // Divider
+                                  Container(width: 1, color: kGrey300),
+                                  // Quantity TextField (no border)
                                   Expanded(
-                                    child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: qtyController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
+                                    child: TextField(
                                       controller: qtyController,
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                       textAlign: TextAlign.center,
                                       onChanged: (v) => setDialogState(() {}),
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: R.sp(context, 16),
+                                        color: kBlack87,
+                                      ),
                                       decoration: InputDecoration(
-                                        
                                         isDense: true,
                                         filled: true,
-                                        fillColor: const Color(0xFFF8F9FA),
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                                        fillColor: Colors.white,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: R.sp(context, 4),
+                                          vertical: R.sp(context, 12),
                                         ),
-                                        enabledBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                                        ),
-                                        focusedBorder: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                          borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                                        ),
-                                        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                                        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+                                        border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
                                       ),
-                                    
-);
-      },
-    ),
+                                    ),
                                   ),
-                                  IconButton(
-                                    onPressed: () {
+                                  // Divider
+                                  Container(width: 1, color: kGrey300),
+                                  // Plus button
+                                  GestureDetector(
+                                    onTap: () {
                                       double current = double.tryParse(qtyController.text) ?? 0.0;
                                       double newQty = current >= 1 ? current + 1 : current + 0.1;
-
-                                      // Check stock limit
                                       if (stockEnabled && newQty > availableStock) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('Maximum stock available: ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg'),
+                                            content: Text('Maximum stock available: ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)}'),
                                             backgroundColor: kErrorColor,
                                             behavior: SnackBarBehavior.floating,
                                             duration: const Duration(seconds: 2),
@@ -590,34 +602,49 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                         );
                                         return;
                                       }
-
                                       setDialogState(() => qtyController.text = newQty.toStringAsFixed(newQty < 1 ? 3 : 1).replaceAll(RegExp(r'\.?0+$'), ''));
                                     },
-                                    icon: const HeroIcon(HeroIcons.plus, color: kPrimaryColor, size: 20),
+                                    child: Container(
+                                      width: R.sp(context, 42),
+                                      height: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color: kGreyBg,
+                                        borderRadius: BorderRadius.only(
+                                          topRight: Radius.circular(R.sp(context, 9)),
+                                          bottomRight: Radius.circular(R.sp(context, 9)),
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: HeroIcon(
+                                          HeroIcons.plus,
+                                          color: kPrimaryColor,
+                                          size: R.sp(context, 18),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
-                            // Stock warning
                             if (exceedsStock) ...[
-                              const SizedBox(height: 8),
+                              SizedBox(height: R.sp(context, 8)),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 8), vertical: R.sp(context, 6)),
                                 decoration: BoxDecoration(
                                   color: kErrorColor.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: R.radius(context, 8),
                                   border: Border.all(color: kErrorColor.withOpacity(0.3)),
                                 ),
                                 child: Row(
                                   children: [
-                                    const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 16),
-                                    const SizedBox(width: 6),
+                                    HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: R.sp(context, 16)),
+                                    SizedBox(width: R.sp(context, 6)),
                                     Expanded(
                                       child: Text(
                                         'Only ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg available in stock',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: kErrorColor,
-                                          fontSize: 11,
+                                          fontSize: R.sp(context, 11),
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -636,61 +663,76 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
               ),
             ),
             actions: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      _removeSingleItem(idx);
-                    },
-                    icon: const HeroIcon(HeroIcons.trash, color: kErrorColor, size: 18),
-                    label: const Text('Remove', style: TextStyle(color: kErrorColor,fontWeight: FontWeight.bold)),
-                  ),
-                  ElevatedButton(
-                    onPressed: exceedsStock ? null : () {
-                      final newName = nameController.text.trim();
-                      final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
-                      final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 4), vertical: R.sp(context, 4)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: exceedsStock ? null : () {
+                          final newName = nameController.text.trim();
+                          final newPrice = double.tryParse(priceController.text.trim()) ?? item.price;
+                          final newQty = double.tryParse(qtyController.text.trim()) ?? 1.0;
 
-                      // Final stock validation
-                      if (stockEnabled && newQty > availableStock) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Cannot save: Only ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg available in stock'),
-                            backgroundColor: kErrorColor,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        return;
-                      }
+                          if (stockEnabled && newQty > availableStock) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Cannot save: Only ${availableStock.toStringAsFixed(availableStock % 1 == 0 ? 0 : 2)} kg available in stock'),
+                                backgroundColor: kErrorColor,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                            return;
+                          }
 
-                      if (newQty <= 0) {
-                        Navigator.of(context).pop();
-                        _removeSingleItem(idx);
-                      } else {
-                        final updatedItems = List<CartItem>.from(_sharedCartItems!);
-                        updatedItems[idx] = CartItem(
-                          productId: item.productId,
-                          name: newName,
-                          price: newPrice,
-                          quantity: newQty,
-                          taxName: item.taxName,
-                          taxPercentage: item.taxPercentage,
-                          taxType: item.taxType,
-                        );
-                        _updateCartItems(updatedItems);
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: exceedsStock ? kGrey300 : kPrimaryColor,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
+                          if (newQty <= 0) {
+                            Navigator.of(context).pop();
+                            _removeSingleItem(idx);
+                          } else {
+                            final updatedItems = List<CartItem>.from(_sharedCartItems!);
+                            updatedItems[idx] = CartItem(
+                              productId: item.productId,
+                              name: newName,
+                              price: newPrice,
+                              quantity: newQty,
+                              taxName: item.taxName,
+                              taxPercentage: item.taxPercentage,
+                              taxType: item.taxType,
+                            );
+                            _updateCartItems(updatedItems);
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: exceedsStock ? kGrey300 : kPrimaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
+                          elevation: 0,
+                          padding: EdgeInsets.symmetric(vertical: R.sp(context, 14)),
+                        ),
+                        child: Text('Save Changes', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: R.sp(context, 15))),
+                      ),
                     ),
-                    child: const Text('Save Changes', style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold)),
-                  ),
-                ],
+                    SizedBox(height: R.sp(context, 8)),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _removeSingleItem(idx);
+                        },
+                        icon: HeroIcon(HeroIcons.trash, color: kErrorColor, size: R.sp(context, 18)),
+                        label: Text('Remove Item', style: TextStyle(color: kErrorColor, fontWeight: FontWeight.bold, fontSize: R.sp(context, 14))),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: kErrorColor.withOpacity(0.4)),
+                          shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
+                          padding: EdgeInsets.symmetric(vertical: R.sp(context, 12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           );
@@ -756,8 +798,8 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
   }
 
   Widget _dialogLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 6, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black54)),
+    padding: EdgeInsets.only(bottom: R.sp(context, 6), left: R.sp(context, 4)),
+    child: Text(text, style: TextStyle(fontSize: R.sp(context, 12), fontWeight: FontWeight.w800, color: Colors.black54)),
   );
 
   Widget _dialogInput(TextEditingController ctrl, String hint, {bool isNumber = false, bool enabled = true}) {
@@ -770,7 +812,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
       enabled: enabled,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       style: TextStyle(
-        fontSize: 15,
+        fontSize: R.sp(context, 15),
        fontWeight: FontWeight.bold,
         color: enabled ? Colors.black : Colors.black45,
       ),
@@ -778,21 +820,21 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         hintText: hint,
         filled: true,
         fillColor: const Color(0xFFF8F9FA),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 14)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: R.radius(context, 12),
           borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
         ),
-        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+        labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: R.sp(context, 13), fontWeight: FontWeight.w600),
+        floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: R.sp(context, 11), fontWeight: FontWeight.w900),
       ),
     
 );
@@ -981,26 +1023,26 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         margin: const EdgeInsets.symmetric(horizontal: 16).copyWith(bottom: 0),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: R.radius(context, 20),
           border: Border.all(color: Color(0xffffab36), width: 2),
         ),
         child: Column(
           children: [
             Container(
               padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: isSearchFocused ? 6 : 12, // Reduced padding in search mode
+                horizontal: R.sp(context, 16),
+                vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 12),
               ),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Color(0xffffab36),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 18))),
               ),
               child: Row(
                 children: [
-                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
-                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: isSearchFocused ? 11 : 12, color: Colors.black))),
+                  Expanded(flex: 4, child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
+                  Expanded(flex: 2, child: Text('QTY', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Price', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
+                  Expanded(flex: 2, child: Text('Total', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: R.sp(context, isSearchFocused ? 11 : 12), color: Colors.black))),
                 ],
               ),
             ),
@@ -1036,25 +1078,25 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      child: Text(item.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)), maxLines: 1, overflow: TextOverflow.ellipsis),
                                     ),
-                                    const SizedBox(width: 4),
-                                    const HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: 20),
+                                    SizedBox(width: R.sp(context, 4)),
+                                    HeroIcon(HeroIcons.pencil, color: kPrimaryColor, size: R.sp(context, 16)),
                                   ],
                                 ),
                               ),
                               Expanded(flex: 2, child: Text(
                                 item.quantity % 1 == 0 ? '${item.quantity.toInt()}' : '${item.quantity.toStringAsFixed(item.quantity < 1 ? 3 : 2).replaceAll(RegExp(r'\.?0+$'), '')}',
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: R.sp(context, 13))
                               )),
-                              Expanded(flex: 2, child: Text(AmountFormatter.formatWithSymbol(item.priceWithTax), textAlign: TextAlign.center, style: const TextStyle(fontSize: 13))),
+                              Expanded(flex: 2, child: Text(AmountFormatter.formatWithSymbol(item.priceWithTax), textAlign: TextAlign.center, style: TextStyle(fontSize: R.sp(context, 12)))),
                               Expanded(
                                 flex: 2,
                                 child: Text(
                                   AmountFormatter.formatWithSymbol(item.totalWithTax),
                                   textAlign: TextAlign.right,
-                                  style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: 14),
+                                  style: TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w600, fontSize: R.sp(context, 13)),
                                 ),
                               ),
                             ],
@@ -1068,12 +1110,12 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
             ),
             Container(
               padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: isSearchFocused ? 4 : 8, // Reduced padding in search mode
+                horizontal: R.sp(context, 16),
+                vertical: isSearchFocused ? R.sp(context, 4) : R.sp(context, 8),
               ),
               decoration: BoxDecoration(
                 color: kPrimaryColor.withOpacity(0.03),
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(R.sp(context, 18))),
                 border: Border(top: BorderSide(color: kGrey300.withOpacity(0.5))),
               ),
               child: Row(
@@ -1083,19 +1125,19 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                     onTap: _handleClearCart,
                     child: Row(
                       children: [
-                        const HeroIcon(HeroIcons.trash, color: Colors.redAccent, size: 18),
-                        const SizedBox(width: 4),
-                        Text('Clear', style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontWeight: FontWeight.w800, fontSize: 13)),
+                        HeroIcon(HeroIcons.trash, color: Colors.redAccent, size: R.sp(context, 18)),
+                        SizedBox(width: R.sp(context, 4)),
+                        Text('Clear', style: TextStyle(color: Colors.redAccent.withOpacity(0.8), fontWeight: FontWeight.w800, fontSize: R.sp(context, 13))),
                       ],
                     ),
                   ),
-                  const HeroIcon(HeroIcons.bars3, color: Colors.grey, size: 24),
+                  HeroIcon(HeroIcons.bars3, color: Colors.grey, size: R.sp(context, 24)),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(12)),
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(context, 10), vertical: R.sp(context, 4)),
+                    decoration: BoxDecoration(color: kPrimaryColor, borderRadius: R.radius(context, 12)),
                     child: Text(
                       '${_sharedCartItems?.length ?? 0} Items',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: R.sp(context, 12)),
                     ),
                   ),
                 ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Added for HapticFeedback and Keyboard events
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
+import 'package:maxbillup/utils/responsive_helper.dart';
 import 'package:maxbillup/Colors.dart'; // Using your theme colors
 import 'dart:math' as math;
 
@@ -118,7 +119,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
             Expanded(
               child: Text(
                 '${context.tr('product_added_scanned')}: $barcode',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 13)),
               ),
             ),
           ],
@@ -126,8 +127,8 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
         backgroundColor: kPrimaryColor,
         duration: const Duration(milliseconds: 1200),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.only(bottom: 110, left: 24, right: 24),
+        shape: RoundedRectangleBorder(borderRadius: R.radius(context, 12)),
+        margin: EdgeInsets.only(bottom: R.sp(context, 110), left: R.sp(context, 24), right: R.sp(context, 24)),
       ),
     );
 
@@ -166,7 +167,7 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
         ),
         title: Text(
             context.tr('scanbarcode'),
-            style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 18)
+            style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: R.sp(context, 18))
         ),
         backgroundColor: kPrimaryColor,
         elevation: 0,
@@ -256,16 +257,16 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
 
           // 4. Scanner Connection Status Indicator
           Positioned(
-            top: 20,
+            top: R.sp(context, 20),
             left: 0,
             right: 0,
             child: Center(
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: EdgeInsets.symmetric(horizontal: R.sp(context, 16), vertical: R.sp(context, 8)),
                 decoration: BoxDecoration(
                   color: _isExternalScannerConnected ? Colors.green.withOpacity(0.9) : Colors.orange.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: R.radius(context, 20),
                   boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
                 ),
                 child: Row(
@@ -274,14 +275,14 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
                     Icon(
                       _isExternalScannerConnected ? Icons.usb : Icons.usb_off,
                       color: Colors.white,
-                      size: 18,
+                      size: R.sp(context, 18),
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: R.sp(context, 8)),
                     Text(
                       _isExternalScannerConnected
                           ? context.tr('External Scanner Ready')
                           : context.tr('Connect External Scanner'),
-                      style: const TextStyle(color: Colors.white,fontWeight: FontWeight.bold, fontSize: 12),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: R.sp(context, 12)),
                     ),
                   ],
                 ),
@@ -298,44 +299,44 @@ class _BarcodeScannerPageState extends State<BarcodeScannerPage> with SingleTick
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 30),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  margin: EdgeInsets.symmetric(horizontal: R.sp(context, 30)),
+                  padding: EdgeInsets.symmetric(horizontal: R.sp(context, 20), vertical: R.sp(context, 16)),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: R.radius(context, 20),
                     border: Border.all(color: Colors.white.withOpacity(0.15)),
                   ),
                   child: Column(
                     children: [
                       Text(
                         context.tr('scan_multiple_products'),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14,
+                          fontSize: R.sp(context, 14),
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.3,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: R.sp(context, 6)),
                       Text(
                         "You can also connect the external scanner and scan through it",
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
-                          fontSize: 11,
+                          fontSize: R.sp(context, 11),
                           fontWeight: FontWeight.w400,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
-                      const Row(
+                      SizedBox(height: R.sp(context, 12)),
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.barcode_reader, color: Colors.white54, size: 16),
-                          SizedBox(width: 12),
-                          Icon(Icons.qr_code_2, color: Colors.white54, size: 16),
-                          SizedBox(width: 12),
-                          Icon(Icons.keyboard, color: Colors.white54, size: 16),
+                          Icon(Icons.barcode_reader, color: Colors.white54, size: R.sp(context, 16)),
+                          SizedBox(width: R.sp(context, 12)),
+                          Icon(Icons.qr_code_2, color: Colors.white54, size: R.sp(context, 16)),
+                          SizedBox(width: R.sp(context, 12)),
+                          Icon(Icons.keyboard, color: Colors.white54, size: R.sp(context, 16)),
                         ],
                       )
                     ],
