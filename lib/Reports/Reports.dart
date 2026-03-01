@@ -226,7 +226,7 @@ class _ReportsPageState extends State<ReportsPage> {
           if (isFeatureAvailable('topProducts'))
             _buildReportTile(context.tr('Product Summary'), HeroIcons.arrowTrendingUp, const Color(0xFF00796B), 'TopProducts', subtitle: 'Most sold items'),
           if (isFeatureAvailable('analytics'))
-            _buildReportTile(context.tr('Business  Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
+            _buildReportTile(context.tr('Business Summary'), HeroIcons.presentationChartLine, const Color(0xFF9C27B0), 'Analytics', subtitle: 'MAX Plus & data trends'),
 
           if (isFeatureAvailable('salesSummary'))
             _buildReportTile('Business Insights', HeroIcons.documentText,   kPrimaryColor, 'Summary', subtitle: 'Income, expense & dues'),
@@ -2405,13 +2405,37 @@ class _DayBookPageState extends State<DayBookPage> {
                         totalSalesCount++;
                         totalSalesAmount += total;
 
-                        // Track cash in
-                        if (mode.contains('cash')) {
+                        // Track cash in — handle each payment mode correctly
+                        if (mode.contains('split')) {
+                          // Split: read individual cash & online amounts saved in Firestore
+                          final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                          final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                          final splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
+                          paymentInCash += splitCash;
+                          paymentInOnline += splitOnline;
+                          if (splitCredit > 0) saleCreditGiven += splitCredit;
+                        } else if (mode.contains('cash')) {
                           paymentInCash += total;
                         } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
                           paymentInOnline += total;
                         } else if (mode.contains('credit')) {
-                          saleCreditGiven += total;
+                          // Full credit sale — partial cash portion tracked separately
+                          final partialCash = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
+                          final creditIssued = double.tryParse(data['creditIssued_partial']?.toString() ?? '0') ?? total;
+                          if (partialCash > 0) paymentInCash += partialCash;
+                          saleCreditGiven += creditIssued;
+                        }
+
+                        // cashIn = actual cash/online received (not the credit portion)
+                        double cashInAmount;
+                        if (mode.contains('split')) {
+                          final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                          final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                          cashInAmount = splitCash + splitOnline;
+                        } else if (mode.contains('credit')) {
+                          cashInAmount = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
+                        } else {
+                          cashInAmount = total;
                         }
 
                         allTransactions.add({
@@ -2419,7 +2443,7 @@ class _DayBookPageState extends State<DayBookPage> {
                           'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
                           'name': data['customerName']?.toString() ?? 'Guest',
                           'total': total,
-                          'cashIn': mode.contains('credit') ? 0.0 : total,
+                          'cashIn': cashInAmount,
                           'cashOut': 0.0,
                           'timestamp': data['timestamp'],
                           'paymentMode': mode,
@@ -2433,8 +2457,13 @@ class _DayBookPageState extends State<DayBookPage> {
                         final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
                         final method = (data['method'] ?? 'Cash').toString().toLowerCase();
 
-                        // Commonly 'payment_received', 'credit_payment', or 'settlement'
-                        if (type.contains('payment') || type.contains('received') || type == 'settlement') {
+                        // Skip entries that are payment-log entries created alongside a sale
+                        // ('sale_payment' = Cash/Online sale log, 'credit_sale' = credit sale log)
+                        // These are already fully counted from the 'sales' collection above.
+                        if (type == 'sale_payment' || type == 'credit_sale') continue;
+
+                        // 'payment_received', 'credit_payment', 'settlement' = customer repaid credit
+                        if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
                           // Customer paid back credit
                           saleCreditReceived += amount;
 
@@ -3845,11 +3874,17 @@ class _DayBookPageState extends State<DayBookPage> {
         accent = const Color(0xFFE65100);
         categoryIcon = Icons.inventory_2_outlined;
         break;
+      case 'Credit Collected':
       case 'Credit Received':
         accent = kGoogleGreen;
         categoryIcon = Icons.account_balance_wallet_outlined;
         break;
+      case 'Sale On Credit':
+        accent = kWarningOrange;
+        categoryIcon = Icons.credit_score_outlined;
+        break;
       case 'Purchase Credit':
+      case 'Purchase Credit Paid':
         accent = const Color(0xFF6A1B9A);
         categoryIcon = Icons.credit_card_outlined;
         break;
@@ -3858,7 +3893,7 @@ class _DayBookPageState extends State<DayBookPage> {
         categoryIcon = Icons.point_of_sale_rounded;
     }
 
-    final isIncome = category == 'Sale' || category == 'Credit Received';
+    final isIncome = category == 'Sale' || category == 'Credit Collected' || category == 'Credit Received';
     final amount = (txn['total'] as double);
 
     return Container(
@@ -8775,7 +8810,7 @@ class IncomeSummaryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Business  Insights", onBack),
+      appBar: _buildModernAppBar("Business Insights", onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -8858,7 +8893,7 @@ class IncomeSummaryPage extends StatelessWidget {
                       return Column(
                         children: [
                           // Executive Status Header
-                          _buildDailyCashStrip(incomeToday, expenseToday),
+                          // _buildDailyCashStrip(incomeToday, expenseToday),
 
                           Expanded(
                             child: CustomScrollView(

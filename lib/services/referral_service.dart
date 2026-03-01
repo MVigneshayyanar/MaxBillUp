@@ -221,7 +221,7 @@ I've been using MAXmybill for my business and it's amazing!
 ✅ Inventory management
 ✅ Customer tracking
 ✅ Sales reports & insights
-✅ GST compliant
+✅ TAX compliant
 
 Download now: www.maxmybill.com
 
