@@ -251,4 +251,25 @@ class NumberGeneratorService {
       return 'PCN$_defaultStartNumber';
     }
   }
+
+  /// PEEK: Read the next number WITHOUT incrementing (for display/preview only)
+  static Future<String> peekInvoiceNumber() async {
+    return (await _getCustomStartNumber('nextInvoiceNumber')).toString();
+  }
+
+  static Future<String> peekQuotationNumber() async {
+    return (await _getCustomStartNumber('nextQuotationNumber')).toString();
+  }
+
+  static Future<String> peekExpenseNumber() async {
+    return (await _getCustomStartNumber('nextExpenseNumber')).toString();
+  }
+
+  static Future<String> peekPurchaseNumber() async {
+    return (await _getCustomStartNumber('nextPurchaseNumber')).toString();
+  }
+
+  static Future<String> peekPaymentReceiptNumber() async {
+    return (await _getCustomStartNumber('nextPaymentReceiptNumber')).toString();
+  }
 }

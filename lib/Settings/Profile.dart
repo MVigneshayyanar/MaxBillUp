@@ -3121,12 +3121,21 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
   final _quotationNumberCtrl = TextEditingController(text: '100001');
   final _purchaseNumberCtrl = TextEditingController(text: '100001');
   final _expenseNumberCtrl = TextEditingController(text: '100001');
+  final _receiptNumberCtrl = TextEditingController(text: '100001');
+
+  // Prefix controllers
+  final _invoicePrefixCtrl = TextEditingController();
+  final _quotationPrefixCtrl = TextEditingController();
+  final _purchasePrefixCtrl = TextEditingController();
+  final _expensePrefixCtrl = TextEditingController();
+  final _receiptPrefixCtrl = TextEditingController();
 
   // Live current numbers (what will actually be used next)
   String _liveInvoiceNumber = '...';
   String _liveQuotationNumber = '...';
   String _livePurchaseNumber = '...';
   String _liveExpenseNumber = '...';
+  String _liveReceiptNumber = '...';
   bool _loadingLiveNumbers = true;
 
   @override
@@ -3141,10 +3150,11 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
     setState(() => _loadingLiveNumbers = true);
     try {
       final results = await Future.wait([
-        NumberGeneratorService.generateInvoiceNumber(),
-        NumberGeneratorService.generateQuotationNumber(),
-        NumberGeneratorService.generateExpenseNumber(),
-        NumberGeneratorService.generatePurchaseNumber(),
+        NumberGeneratorService.peekInvoiceNumber(),
+        NumberGeneratorService.peekQuotationNumber(),
+        NumberGeneratorService.peekExpenseNumber(),
+        NumberGeneratorService.peekPurchaseNumber(),
+        NumberGeneratorService.peekPaymentReceiptNumber(),
       ]);
       if (mounted) {
         setState(() {
@@ -3152,6 +3162,7 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           _liveQuotationNumber = results[1];
           _liveExpenseNumber = results[2];
           _livePurchaseNumber = results[3];
+          _liveReceiptNumber = results[4];
           _loadingLiveNumbers = false;
         });
       }
@@ -3189,6 +3200,12 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
             _quotationNumberCtrl.text = (data['nextQuotationNumber'] ?? data['quotationCounter'] ?? 100001).toString();
             _purchaseNumberCtrl.text = (data['nextPurchaseNumber'] ?? data['purchaseCounter'] ?? 100001).toString();
             _expenseNumberCtrl.text = (data['nextExpenseNumber'] ?? data['expenseCounter'] ?? 100001).toString();
+            _receiptNumberCtrl.text = (data['nextPaymentReceiptNumber'] ?? 100001).toString();
+            _invoicePrefixCtrl.text = data['invoicePrefix']?.toString() ?? '';
+            _quotationPrefixCtrl.text = data['quotationPrefix']?.toString() ?? '';
+            _purchasePrefixCtrl.text = data['purchasePrefix']?.toString() ?? '';
+            _expensePrefixCtrl.text = data['expensePrefix']?.toString() ?? '';
+            _receiptPrefixCtrl.text = data['paymentReceiptPrefix']?.toString() ?? '';
           });
         }
       }
@@ -3221,8 +3238,9 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
       final quotationNum = int.tryParse(_quotationNumberCtrl.text) ?? 100001;
       final purchaseNum = int.tryParse(_purchaseNumberCtrl.text) ?? 100001;
       final expenseNum = int.tryParse(_expenseNumberCtrl.text) ?? 100001;
+      final receiptNum = int.tryParse(_receiptNumberCtrl.text) ?? 100001;
 
-      debugPrint('💾 Saving document numbers: Invoice=$invoiceNum, Quotation=$quotationNum, Purchase=$purchaseNum, Expense=$expenseNum');
+      debugPrint('💾 Saving document numbers: Invoice=$invoiceNum, Quotation=$quotationNum, Purchase=$purchaseNum, Expense=$expenseNum, Receipt=$receiptNum');
 
       await FirebaseFirestore.instance.collection('store').doc(storeId).update({
         'invoiceSettings.template': _selectedTemplateIndex,
@@ -3242,6 +3260,13 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
         'nextQuotationNumber': quotationNum,
         'nextPurchaseNumber': purchaseNum,
         'nextExpenseNumber': expenseNum,
+        'nextPaymentReceiptNumber': receiptNum,
+        // Prefixes
+        'invoicePrefix': _invoicePrefixCtrl.text.trim(),
+        'quotationPrefix': _quotationPrefixCtrl.text.trim(),
+        'purchasePrefix': _purchasePrefixCtrl.text.trim(),
+        'expensePrefix': _expensePrefixCtrl.text.trim(),
+        'paymentReceiptPrefix': _receiptPrefixCtrl.text.trim(),
       });
     }
 
@@ -3315,12 +3340,24 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
 
                 const SizedBox(height: 32),
 
+                // Document Prefixes
+                _buildSettingsSection("Document Prefixes", [
+                  _buildPrefixField(_invoicePrefixCtrl, "Invoice Prefix", "e.g. INV-", Icons.receipt_long_rounded, kPrimaryColor),
+                  _buildPrefixField(_quotationPrefixCtrl, "Quotation Prefix", "e.g. QT-", Icons.request_quote_rounded, Colors.orange),
+                  _buildPrefixField(_purchasePrefixCtrl, "Purchase Prefix", "e.g. PO-", Icons.shopping_cart_rounded, Colors.green),
+                  _buildPrefixField(_expensePrefixCtrl, "Expense Prefix", "e.g. EXP-", Icons.account_balance_wallet_rounded, Colors.purple),
+                  _buildPrefixField(_receiptPrefixCtrl, "Payment Receipt Prefix", "e.g. PR-", Icons.payment_rounded, Colors.teal),
+                ]),
+
+                const SizedBox(height: 32),
+
                 // Current Document Numbers with Edit Option
                 _buildSettingsSection("Current Document Numbers", [
                   _buildEditableNumberField(_invoiceNumberCtrl, "Next Invoice Number", Icons.receipt_long_rounded, kPrimaryColor, _liveInvoiceNumber),
                   _buildEditableNumberField(_quotationNumberCtrl, "Next Quotation Number", Icons.request_quote_rounded, Colors.orange, _liveQuotationNumber),
                   _buildEditableNumberField(_purchaseNumberCtrl, "Next Purchase Number", Icons.shopping_cart_rounded, Colors.green, _livePurchaseNumber),
                   _buildEditableNumberField(_expenseNumberCtrl, "Next Expense Number", Icons.account_balance_wallet_rounded, Colors.purple, _liveExpenseNumber),
+                  _buildEditableNumberField(_receiptNumberCtrl, "Next Receipt Number", Icons.payment_rounded, Colors.teal, _liveReceiptNumber),
                 ]),
                 const SizedBox(height: 40),
               ],
@@ -3372,6 +3409,56 @@ class _ReceiptCustomizationPageState extends State<ReceiptCustomizationPage> {
           ),
         );
       }),
+    );
+  }
+
+  Widget _buildPrefixField(TextEditingController ctrl, String label, String hint, IconData icon, Color color) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [BoxShadow(color: Colors.black.withAlpha(10), blurRadius: 8, offset: const Offset(0, 3))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withAlpha(25), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54)),
+                const SizedBox(height: 4),
+                TextField(
+                  controller: ctrl,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color),
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: InputBorder.none,
+                    hintText: hint,
+                    hintStyle: const TextStyle(fontSize: 13, color: kGrey400, fontWeight: FontWeight.w400),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
+            ),
+          ),
+          if (ctrl.text.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: color.withAlpha(20), borderRadius: BorderRadius.circular(8)),
+              child: Text('${ctrl.text}100001',
+                  style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)),
+            ),
+        ],
+      ),
     );
   }
 
