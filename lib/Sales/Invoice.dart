@@ -2668,24 +2668,26 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       bytes.addAll([esc, 0x21, 0x00]); // Reset to normal
 
       if (_showLocation && businessLocation.isNotEmpty) {
-        bytes.addAll(utf8.encode(_truncateText(businessLocation, lineWidth)));
-        bytes.add(lf);
+        for (final line in _wrapText(businessLocation, lineWidth)) {
+          bytes.addAll(utf8.encode(line));
+          bytes.add(lf);
+        }
       }
       if (_showPhone && businessPhone.isNotEmpty) {
-        bytes.addAll(utf8.encode('PHONE: $businessPhone'));
+        bytes.addAll(utf8.encode(_truncateText('PHONE: $businessPhone', lineWidth)));
         bytes.add(lf);
       }
       // Tax Type (GSTIN/PAN/VAT etc.) - uses the name from profile
       if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty) {
         bytes.addAll([esc, 0x21, 0x08]);
-        bytes.addAll(utf8.encode('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN'));
+        bytes.addAll(utf8.encode(_truncateText('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN', lineWidth)));
         bytes.addAll([esc, 0x21, 0x00]);
         bytes.add(lf);
       }
       // License (FSSAI/Drug License etc.) - uses the name from profile
       if (_thermalShowLicense && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty) {
         bytes.addAll([esc, 0x21, 0x08]);
-        bytes.addAll(utf8.encode('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber'));
+        bytes.addAll(utf8.encode(_truncateText('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber', lineWidth)));
         bytes.addAll([esc, 0x21, 0x00]);
         bytes.add(lf);
       }
@@ -2769,22 +2771,30 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // Bill Notes (if provided)
       if (widget.customNote != null && widget.customNote!.isNotEmpty) {
         bytes.addAll([esc, 0x61, 0x00]); // Left align
-        bytes.addAll(utf8.encode('Note: ${widget.customNote}'));
-        bytes.add(lf);
+        for (final line in _wrapText('Note: ${widget.customNote}', lineWidth)) {
+          bytes.addAll(utf8.encode(line));
+          bytes.add(lf);
+        }
       }
 
       // Delivery Address (if provided)
       if (widget.deliveryAddress != null && widget.deliveryAddress!.isNotEmpty) {
         bytes.addAll([esc, 0x61, 0x00]); // Left align
-        bytes.addAll(utf8.encode('Delivery: ${widget.deliveryAddress}'));
-        bytes.add(lf);
+        for (final line in _wrapText('Delivery: ${widget.deliveryAddress}', lineWidth)) {
+          bytes.addAll(utf8.encode(line));
+          bytes.add(lf);
+        }
       }
 
       // Footer
       bytes.addAll([esc, 0x61, 0x01]); // Center
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x08]);
-      bytes.addAll(utf8.encode('Thank You'));
+      final footerStr = _thermalSaleInvoiceText.isNotEmpty ? _thermalSaleInvoiceText : 'Thank You';
+      for (final line in _wrapText(footerStr, lineWidth)) {
+        bytes.addAll(utf8.encode(line));
+        bytes.add(lf);
+      }
       bytes.addAll([esc, 0x21, 0x00]);
       bytes.add(lf);
       bytes.add(lf);
@@ -2824,77 +2834,107 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     return '${text.substring(0, maxWidth - 1)}.';
   }
 
+  /// Prints left text left-aligned and right text right-aligned on the same line.
+  /// Always right-aligns [right]; [left] is truncated if needed to make room.
   String _formatTwoColumns(String left, String right, int lineWidth) {
-    final space = lineWidth - left.length - right.length;
-    if (space < 1) return '$left $right';
-    return '$left${' ' * space}$right';
+    // Clamp right to lineWidth
+    final safeRight = right.length > lineWidth ? right.substring(0, lineWidth) : right;
+    final availLeft = lineWidth - safeRight.length - 1; // at least 1 space separator
+
+    if (availLeft <= 0) {
+      // Right side alone fills the line — just print right flush-right
+      return safeRight.padLeft(lineWidth);
+    }
+
+    final safeLeft = left.length > availLeft
+        ? '${left.substring(0, availLeft - 1)}.'
+        : left;
+
+    final spaces = lineWidth - safeLeft.length - safeRight.length;
+    return '$safeLeft${' ' * spaces}$safeRight';
   }
+
+  // ── Column-width helpers (shared by header + item rows) ────────────────────
+  // 58mm paper → lineWidth = 32 chars total
+  //   sn=2  item=13  qty=4  price=7  amt=6   (2+13+4+7+6 = 32)
+  // 80mm paper → lineWidth = 48 chars total
+  //   sn=2  item=22  qty=4  price=10  amt=10  (2+22+4+10+10 = 48)
+  int _snW(int lw)    => 2;
+  int _qtyW(int lw)   => 4;
+  int _priceW(int lw) => lw <= 32 ? 7 : 10;
+  int _amtW(int lw)   => lw <= 32 ? 6 : 10;
+  int _itemW(int lw)  => lw - _snW(lw) - _qtyW(lw) - _priceW(lw) - _amtW(lw);
 
   String _formatTableRow(String sn, String item, String qty, String price, String amt, int lineWidth) {
-    final snW = 3;
-    final qtyW = 4;
-    final priceW = 7;
-    final amtW = 7;
-    final itemW = lineWidth - snW - qtyW - priceW - amtW;
+    final snW    = _snW(lineWidth);
+    final itemW  = _itemW(lineWidth);
+    final qtyW   = _qtyW(lineWidth);
+    final priceW = _priceW(lineWidth);
+    final amtW   = _amtW(lineWidth);
 
-    String snStr = sn.padRight(snW);
+    // Truncate item name if too long for header row
     String itemStr = item.length > itemW ? '${item.substring(0, itemW - 1)}.' : item.padRight(itemW);
-    String qtyStr = qty.padLeft(qtyW);
-    String priceStr = price.padLeft(priceW);
-    String amtStr = amt.padLeft(amtW);
 
-    return '$snStr$itemStr$qtyStr$priceStr$amtStr';
+    return '${sn.padRight(snW)}'
+        '$itemStr'
+        '${qty.padLeft(qtyW)}'
+        '${price.padLeft(priceW)}'
+        '${amt.padLeft(amtW)}';
   }
 
-  /// Format table row with full item name support (wraps to multiple lines)
+  /// Format table row with full item name support (wraps to multiple lines).
+  /// Layout:
+  ///   • If name fits on one line  → single row: [SN][NAME_____][QTY][PRICE][AMT]
+  ///   • If name is too long       → name wraps across rows inside the item column
+  ///                                  first line  : [SN][name chunk 1          ]
+  ///                                  middle lines: [  ][name chunk n          ]
+  ///                                  last values : [  ][                ][QTY][PRICE][AMT]
   List<String> _formatTableRowMultiLine(String sn, String item, String qty, String price, String amt, int lineWidth) {
-    final snW = 3;
-    final qtyW = 4;
-    final priceW = 7;
-    final amtW = 7;
-    final itemW = lineWidth - snW - qtyW - priceW - amtW;
+    final snW    = _snW(lineWidth);
+    final itemW  = _itemW(lineWidth);
+    final qtyW   = _qtyW(lineWidth);
+    final priceW = _priceW(lineWidth);
+    final amtW   = _amtW(lineWidth);
 
     List<String> lines = [];
 
-    // If item name fits in one line
     if (item.length <= itemW) {
-      String snStr = sn.padRight(snW);
-      String itemStr = item.padRight(itemW);
-      String qtyStr = qty.padLeft(qtyW);
-      String priceStr = price.padLeft(priceW);
-      String amtStr = amt.padLeft(amtW);
-      lines.add('$snStr$itemStr$qtyStr$priceStr$amtStr');
+      // ── Single line ──────────────────────────────────────────────────────────
+      lines.add(
+        '${sn.padRight(snW)}'
+        '${item.padRight(itemW)}'
+        '${qty.padLeft(qtyW)}'
+        '${price.padLeft(priceW)}'
+        '${amt.padLeft(amtW)}',
+      );
     } else {
-      // Item name is long - print on first line with SN, then wrap remaining
-      // First line: SN + as much of item name as fits
-      String snStr = sn.padRight(snW);
+      // ── Multi-line item name ─────────────────────────────────────────────────
+      final itemChunks = _wrapText(item, itemW);
 
-      // Break item name into chunks that fit
-      List<String> itemChunks = _wrapText(item, lineWidth - snW);
+      // First line: SN + first name chunk (padded to itemW, rest of line blank)
+      lines.add('${sn.padRight(snW)}${itemChunks[0].padRight(lineWidth - snW)}');
 
-      // First chunk with SN prefix
-      if (itemChunks.isNotEmpty) {
-        lines.add('$snStr${itemChunks[0]}');
-      }
-
-      // Remaining name chunks (indented to align with first line)
+      // Continuation name lines: indented by snW, padded to fill line
       for (int i = 1; i < itemChunks.length; i++) {
-        lines.add('   ${itemChunks[i]}'); // 3 spaces for SN width
+        lines.add('${' ' * snW}${itemChunks[i].padRight(lineWidth - snW)}');
       }
 
-      // Last line with qty, price, amount (right-aligned)
-      String qtyStr = qty.padLeft(qtyW);
-      String priceStr = price.padLeft(priceW);
-      String amtStr = amt.padLeft(amtW);
-      String valuesLine = '$qtyStr$priceStr$amtStr';
-      lines.add(valuesLine.padLeft(lineWidth));
+      // Values line: blank sn + blank item cols, then numeric columns right-aligned
+      lines.add(
+        '${' ' * snW}'
+        '${' ' * itemW}'
+        '${qty.padLeft(qtyW)}'
+        '${price.padLeft(priceW)}'
+        '${amt.padLeft(amtW)}',
+      );
     }
 
     return lines;
   }
 
-  /// Wrap text into lines of maxWidth characters
+  /// Wrap text into lines of maxWidth characters, breaking at word boundaries
   List<String> _wrapText(String text, int maxWidth) {
+    if (maxWidth <= 0) return [text];
     if (text.length <= maxWidth) return [text];
 
     List<String> lines = [];
@@ -2903,9 +2943,8 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
     for (String word in words) {
       if (currentLine.isEmpty) {
-        // First word of the line
         if (word.length > maxWidth) {
-          // Word is longer than max width, force break
+          // Force-break a very long word
           int start = 0;
           while (start < word.length) {
             int end = (start + maxWidth < word.length) ? start + maxWidth : word.length;
@@ -2916,13 +2955,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
           currentLine = word;
         }
       } else if (currentLine.length + 1 + word.length <= maxWidth) {
-        // Word fits on current line
         currentLine += ' $word';
       } else {
-        // Word doesn't fit, start new line
         lines.add(currentLine);
         if (word.length > maxWidth) {
-          // Word is longer than max width, force break
           int start = 0;
           while (start < word.length) {
             int end = (start + maxWidth < word.length) ? start + maxWidth : word.length;

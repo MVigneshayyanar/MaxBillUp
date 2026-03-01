@@ -3,13 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:heroicons/heroicons.dart';
 import 'package:maxbillup/models/cart_item.dart';
-import 'package:maxbillup/Sales/QuotationPreview.dart';
 import 'package:maxbillup/Sales/Invoice.dart';
+import 'package:maxbillup/Sales/components/common_widgets.dart';
 import 'package:maxbillup/utils/firestore_service.dart';
 import 'package:maxbillup/utils/amount_formatter.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:maxbillup/Colors.dart';
-import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/services/currency_service.dart';
 
@@ -42,7 +40,6 @@ class QuotationPage extends StatefulWidget {
 }
 
 class _QuotationPageState extends State<QuotationPage> {
-  late String _uid;
   String? _selectedCustomerPhone;
   String? _selectedCustomerName;
   String? _selectedCustomerGST;
@@ -64,7 +61,6 @@ class _QuotationPageState extends State<QuotationPage> {
   @override
   void initState() {
     super.initState();
-    _uid = widget.uid;
     _selectedCustomerPhone = widget.customerPhone;
     _selectedCustomerName = widget.customerName;
     _selectedCustomerGST = widget.customerGST;
@@ -120,7 +116,6 @@ class _QuotationPageState extends State<QuotationPage> {
     return (_discountAmount / widget.totalAmount) * 100;
   }
 
-  double get _newTotal => widget.totalAmount - _discountAmount;
 
   void _updateItemDiscount(int index, String value) {
     setState(() {
@@ -163,26 +158,16 @@ class _QuotationPageState extends State<QuotationPage> {
   }
 
   void _showCustomerDialog() {
-    showDialog(
+    CommonWidgets.showCustomerSelectionDialog(
       context: context,
-      builder: (context) => _CustomerSelectionDialog(
-        uid: _uid,
-        onCustomerSelected: (phone, name, gst) {
-          setState(() {
-            _selectedCustomerPhone = phone;
-            _selectedCustomerName = name;
-            _selectedCustomerGST = gst;
-          });
-        },
-        onCustomerUnselected: () {
-          setState(() {
-            _selectedCustomerPhone = null;
-            _selectedCustomerName = null;
-            _selectedCustomerGST = null;
-          });
-        },
-        selectedCustomerPhone: _selectedCustomerPhone,
-      ),
+      onCustomerSelected: (phone, name, gst) {
+        setState(() {
+          _selectedCustomerPhone = phone.isEmpty ? null : phone;
+          _selectedCustomerName = name.isEmpty ? null : name;
+          _selectedCustomerGST = gst;
+        });
+      },
+      selectedCustomerPhone: _selectedCustomerPhone,
     );
   }
 
@@ -744,310 +729,3 @@ class _QuotationPageState extends State<QuotationPage> {
   }
 }
 
-class _CustomerSelectionDialog extends StatefulWidget {
-  final String uid;
-  final Function(String phone, String name, String? gst) onCustomerSelected;
-  final VoidCallback? onCustomerUnselected;
-  final String? selectedCustomerPhone;
-
-  const _CustomerSelectionDialog({required this.uid, required this.onCustomerSelected, this.onCustomerUnselected, this.selectedCustomerPhone});
-
-  @override
-  State<_CustomerSelectionDialog> createState() => _CustomerSelectionDialogState();
-}
-
-class _CustomerSelectionDialogState extends State<_CustomerSelectionDialog> {
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(() => setState(() => _searchQuery = _searchController.text.toLowerCase()));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: kWhite,
-      child: Container(
-        height: 550, padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Select Customer', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: kBlack87)),
-                IconButton(onPressed: () => Navigator.pop(context), icon: const HeroIcon(HeroIcons.xMark, color: kBlack54)),
-              ],
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 48,
-              child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _searchController,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search Name or Phone...', prefixIcon: const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                  ),
-                  labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-                ),
-              
-);
-      },
-    ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _showAddCustomerDialog,
-                    icon: const HeroIcon(HeroIcons.userPlus, size: 18),
-                    label: const Text("ADD NEW", style: TextStyle(fontSize: 11)),
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _importFromContacts,
-                    icon: const HeroIcon(HeroIcons.users, size: 18),
-                    label: const Text("IMPORT", style: TextStyle(fontSize: 11)),
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: kPrimaryColor), foregroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: FutureBuilder<CollectionReference>(
-                future: FirestoreService().getStoreCollection('customers'),
-                builder: (context, collectionSnapshot) {
-                  if (!collectionSnapshot.hasData) return const Center(child: CircularProgressIndicator());
-                  return StreamBuilder<QuerySnapshot>(
-                    stream: collectionSnapshot.data!.orderBy('name').snapshots(),
-                    builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                      final docs = snapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final n = (data['name'] ?? '').toString().toLowerCase();
-                        final p = (data['phone'] ?? '').toString().toLowerCase();
-                        return n.contains(_searchQuery) || p.contains(_searchQuery);
-                      }).toList();
-                      if (docs.isEmpty) return const Center(child: Text('No customer found'));
-                      return ListView.separated(
-                        itemCount: docs.length,
-                        separatorBuilder: (ctx, i) => const Divider(color: kGreyBg),
-                        itemBuilder: (context, index) {
-                          final data = docs[index].data() as Map<String, dynamic>;
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            onTap: () { widget.onCustomerSelected(data['phone'] ?? '', data['name'] ?? '', data['gst']); Navigator.pop(context); },
-                            leading: CircleAvatar(backgroundColor: kPrimaryColor.withValues(alpha: (0.1 * 255).toDouble()), child: Text(data['name']?[0].toUpperCase() ?? 'U', style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w700))),
-                            title: Text(data['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600, color: kBlack87, fontSize: 14)),
-                            subtitle: Text(data['phone'] ?? '', style: const TextStyle(fontSize: 11, color: kBlack54)),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _importFromContacts() async {
-    if (!await FlutterContacts.requestPermission()) return;
-    final contacts = await FlutterContacts.getContacts(withProperties: true);
-    if (contacts.isEmpty) return;
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        List<Contact> filtered = contacts;
-        return StatefulBuilder(
-          builder: (context, setDialogState) => Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            child: SizedBox(
-              width: 350, height: 500,
-              child: Column(
-                children: [
-                  const Padding(padding: EdgeInsets.all(16.0), child: Text('Import Contact', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold))),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: TextField(
-                      decoration: InputDecoration(hintText: 'Search...', prefixIcon: HeroIcon(HeroIcons.magnifyingGlass)),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: filtered.length,
-                      itemBuilder: (context, index) {
-                        final c = filtered[index];
-                        final phone = c.phones.isNotEmpty ? c.phones.first.number.replaceAll(' ', '') : '';
-                        return ListTile(
-                          title: Text(c.displayName), subtitle: Text(phone),
-                          onTap: phone.isEmpty ? null : () { Navigator.pop(context); _showAddCustomerDialog(prefillName: c.displayName, prefillPhone: phone); },
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showAddCustomerDialog({String? prefillName, String? prefillPhone}) async {
-    final nameCtrl = TextEditingController(text: prefillName ?? '');
-    final phoneCtrl = TextEditingController(text: prefillPhone ?? '');
-    final gstCtrl = TextEditingController();
-    await showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('New Customer', style: TextStyle(fontSize: 20,fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              ValueListenableBuilder<TextEditingValue>(
-      valueListenable: nameCtrl,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(controller: nameCtrl, decoration: InputDecoration(labelText: 'Name',
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-          ),
-          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-        ),
-);
-      },
-    ),
-              const SizedBox(height: 16),
-              ValueListenableBuilder<TextEditingValue>(
-      valueListenable: phoneCtrl,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(controller: phoneCtrl, keyboardType: TextInputType.phone, decoration: InputDecoration(labelText: 'Phone',
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-          ),
-          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-        ),
-);
-      },
-    ),
-              const SizedBox(height: 16),
-              ValueListenableBuilder<TextEditingValue>(
-      valueListenable: gstCtrl,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(controller: gstCtrl, decoration: InputDecoration(labelText: 'GST (Optional)',
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-          ),
-          labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-          floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-        ),
-);
-      },
-    ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    onPressed: () async {
-                      if (nameCtrl.text.isEmpty || phoneCtrl.text.isEmpty) return;
-                      await FirestoreService().setDocument('customers', phoneCtrl.text.trim(), {
-                        'name': nameCtrl.text.trim(), 'phone': phoneCtrl.text.trim(), 'gst': gstCtrl.text.trim().isEmpty ? null : gstCtrl.text.trim(),
-                        'balance': 0.0, 'totalSales': 0.0, 'timestamp': FieldValue.serverTimestamp(), 'lastUpdated': FieldValue.serverTimestamp(),
-                      });
-                      if (mounted) { Navigator.pop(context); widget.onCustomerSelected(phoneCtrl.text.trim(), nameCtrl.text.trim(), gstCtrl.text.trim()); }
-                    },
-                    child: const Text('Add', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
