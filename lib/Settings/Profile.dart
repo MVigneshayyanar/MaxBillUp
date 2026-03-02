@@ -513,7 +513,7 @@ class _SettingsPageState extends State<SettingsPage> {
           decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
           child: HeroIcon(icon, color: color, size: 22),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87, fontFamily: 'NotoSans')),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBlack87)),
         subtitle: subtitle != null ? Text(subtitle, style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500, fontFamily: 'Lato')) : null,
         trailing: const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 14),
       ),

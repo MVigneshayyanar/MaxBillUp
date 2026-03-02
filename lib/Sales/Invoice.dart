@@ -1464,17 +1464,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       ),
                       child: Row(
                         children: [
-                          SizedBox(
-                            width: sp(28),
+                          Expanded(
+                            flex: 5,
                             child: Padding(
                               padding: hp(6, 8),
-                              child: Text('SL.', style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.w800, color: Colors.white)),
-                            ),
-                          ),
-                          Expanded(
-                            flex: 4,
-                            child: Padding(
-                              padding: hp(4, 8),
                               child: Text('ITEM DESCRIPTION', style: TextStyle(fontSize: fs(10), fontWeight: FontWeight.w800, color: Colors.white)),
                             ),
                           ),
@@ -1534,21 +1527,14 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                SizedBox(
-                                  width: sp(28),
+                                Expanded(
+                                  flex: 5,
                                   child: Padding(
                                     padding: hp(6, 8),
-                                    child: Text('${idx + 1}', style: TextStyle(fontSize: fs(11), color: kBlack54, fontWeight: FontWeight.w600)),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 4,
-                                  child: Padding(
-                                    padding: hp(4, 8),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(name, style: TextStyle(fontSize: fs(11), fontWeight: FontWeight.w700, color: kBlack87), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                        Text(name, style: TextStyle(fontSize: fs(11), fontWeight: FontWeight.w700, color: kBlack87), maxLines: 3, overflow: TextOverflow.ellipsis),
                                         if (taxName.isNotEmpty && taxPerc > 0)
                                           Text('$taxName ${taxPerc.toStringAsFixed(0)}%', style: TextStyle(fontSize: fs(9), color: kBlack54)),
                                       ],
@@ -1919,8 +1905,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 ),
                 child: Row(
                   children: [
-                    SizedBox(width: 24, child: Text('SN', style: tStyle(size: 11, weight: FontWeight.w800))),
-                    Expanded(flex: 4, child: Text('Item', style: tStyle(size: 11, weight: FontWeight.w800))),
+                    Expanded(flex: 5, child: Text('Item', style: tStyle(size: 11, weight: FontWeight.w800))),
                     SizedBox(width: 32, child: Text('Qty', style: tStyle(size: 11, weight: FontWeight.w800), textAlign: TextAlign.center)),
                     Expanded(flex: 2, child: Text('Price', style: tStyle(size: 11, weight: FontWeight.w800), textAlign: TextAlign.right)),
                     Expanded(flex: 2, child: Text('Amt', style: tStyle(size: 11, weight: FontWeight.w800), textAlign: TextAlign.right)),
@@ -1929,22 +1914,30 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
               ),
               // Items List
               ...widget.items.asMap().entries.map((entry) {
-                final index = entry.key + 1;
                 final item = entry.value;
                 final name = item['name'] ?? 'Item';
                 final qty = item['quantity'] ?? 1;
                 final price = (item['price'] ?? 0.0).toDouble();
                 final total = (item['total'] ?? 0.0).toDouble();
                 final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
-                String displayName = _thermalShowTaxColumn && taxPerc > 0 ? '$name ${taxPerc.toStringAsFixed(0)}% Tax' : name;
+                final taxName = (item['taxName'] ?? '') as String;
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey300, width: 0.5))),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(width: 24, child: Text('$index', style: tStyle(size: 11, weight: FontWeight.w600))),
-                      Expanded(flex: 4, child: Text(displayName, style: tStyle(size: 11), softWrap: true)),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: tStyle(size: 11), softWrap: true),
+                            if (taxName.isNotEmpty && taxPerc > 0)
+                              Text('$taxName ${taxPerc.toStringAsFixed(0)}%', style: tStyle(size: 9, color: kBlack54)),
+                          ],
+                        ),
+                      ),
                       SizedBox(width: 32, child: Text('$qty', style: tStyle(size: 11), textAlign: TextAlign.center)),
                       Expanded(flex: 2, child: Text(price.toStringAsFixed(2), style: tStyle(size: 11), textAlign: TextAlign.right)),
                       Expanded(flex: 2, child: Text(total.toStringAsFixed(2), style: tStyle(size: 11), textAlign: TextAlign.right)),
@@ -2296,6 +2289,11 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       bytes.addAll([esc, 0x40]);
       bytes.addAll([esc, 0x4D, 0x00]); // Select Font A (largest, clearest built-in thermal font)
 
+      // ── Helper: encode string safely for thermal printer ──
+      List<int> enc(String s) => utf8.encode(_toThermalSafe(s));
+      // Thermal-safe currency prefix (e.g. "Rs." for ₹)
+      final tCur = _toThermalSafe(_currencySymbol).trim();
+
       // Print Logo if available
       if (_thermalShowLogo && businessLogoUrl != null && businessLogoUrl!.isNotEmpty) {
         try {
@@ -2341,31 +2339,29 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // Header
       bytes.addAll([esc, 0x61, 0x01]); // Center align
       bytes.addAll([esc, 0x21, 0x30]); // Double height + width + bold
-      bytes.addAll(utf8.encode(_truncateText(businessName.toUpperCase(), lineWidth ~/ 2)));
+      bytes.addAll(enc(_truncateText(businessName.toUpperCase(), lineWidth ~/ 2)));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x00]); // Reset to normal
 
       if (_showLocation && businessLocation.isNotEmpty) {
         for (final line in _wrapText(businessLocation, lineWidth)) {
-          bytes.addAll(utf8.encode(line));
+          bytes.addAll(enc(line));
           bytes.add(lf);
         }
       }
       if (_showPhone && businessPhone.isNotEmpty) {
-        bytes.addAll(utf8.encode(_truncateText('PHONE: $businessPhone', lineWidth)));
+        bytes.addAll(enc(_truncateText('PHONE: $businessPhone', lineWidth)));
         bytes.add(lf);
       }
-      // Tax Type (GSTIN/PAN/VAT etc.) - uses the name from profile
       if (_showGST && businessGSTIN != null && businessGSTIN!.isNotEmpty) {
         bytes.addAll([esc, 0x21, 0x08]);
-        bytes.addAll(utf8.encode(_truncateText('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN', lineWidth)));
+        bytes.addAll(enc(_truncateText('${businessTaxTypeName ?? 'Tax'}: $businessGSTIN', lineWidth)));
         bytes.addAll([esc, 0x21, 0x00]);
         bytes.add(lf);
       }
-      // License (FSSAI/Drug License etc.) - uses the name from profile
       if (_thermalShowLicense && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty) {
         bytes.addAll([esc, 0x21, 0x08]);
-        bytes.addAll(utf8.encode(_truncateText('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber', lineWidth)));
+        bytes.addAll(enc(_truncateText('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber', lineWidth)));
         bytes.addAll([esc, 0x21, 0x00]);
         bytes.add(lf);
       }
@@ -2375,82 +2371,132 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // Bill No & Date
       bytes.addAll([esc, 0x61, 0x00]); // Left align
       final dateStr = DateFormat('dd-MMM-yyyy').format(widget.dateTime);
-      bytes.addAll(utf8.encode(_formatTwoColumns('Bill No: ${widget.invoiceNumber}', 'Date: $dateStr', lineWidth)));
+      bytes.addAll(enc(_formatTwoColumns('Bill No: ${widget.invoiceNumber}', 'Date: $dateStr', lineWidth)));
       bytes.add(lf);
 
+      // Customer Info
+      if (_thermalShowCustomerInfo && widget.customerName != null) {
+        bytes.addAll(enc(thinDivider));
+        bytes.add(lf);
+        bytes.addAll([esc, 0x61, 0x01]);
+        bytes.addAll([esc, 0x21, 0x08]);
+        bytes.addAll(enc('Received From'));
+        bytes.addAll([esc, 0x21, 0x00]);
+        bytes.add(lf);
+        bytes.addAll([esc, 0x61, 0x00]);
+        for (final line in _wrapText(widget.customerName!, lineWidth)) {
+          bytes.addAll(enc(line));
+          bytes.add(lf);
+        }
+        if (widget.customerPhone != null) {
+          bytes.addAll(enc(_truncateText('Phone: ${widget.customerPhone}', lineWidth)));
+          bytes.add(lf);
+        }
+      }
+
       // Items header
-      bytes.addAll(utf8.encode(dividerLine));
+      bytes.addAll(enc(dividerLine));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x08]); // Bold
-      bytes.addAll(utf8.encode(_formatTableRow('SN', 'Item', 'Qty', 'Price', 'Amt', lineWidth)));
+      bytes.addAll(enc(_formatTableRow('Item', 'Qty', 'Price', 'Amt', lineWidth)));
       bytes.addAll([esc, 0x21, 0x00]);
       bytes.add(lf);
-      bytes.addAll(utf8.encode(thinDivider));
+      bytes.addAll(enc(thinDivider));
       bytes.add(lf);
 
       // Items
       int totalQty = 0;
       for (int i = 0; i < widget.items.length; i++) {
         final item = widget.items[i];
-        final name = item['name'] ?? 'Item';
+        final name = (item['name'] ?? 'Item') as String;
         final qty = item['quantity'] ?? 1;
         final price = (item['price'] ?? 0.0).toDouble();
         final total = (item['total'] ?? 0.0).toDouble();
         final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
+        final taxName = (item['taxName'] ?? '') as String;
 
         totalQty += (qty is int ? qty : (qty as num).toInt());
 
-        String displayName = taxPerc > 0 ? '$name ${taxPerc.toStringAsFixed(0)}%' : name;
-
-        // Use multi-line format for long item names
-        List<String> itemLines = _formatTableRowMultiLine('${i + 1}', displayName, '$qty', price.toStringAsFixed(2), total.toStringAsFixed(2), lineWidth);
+        // Include currency in price and amt columns
+        List<String> itemLines = _formatTableRowMultiLine(name, '$qty', '$tCur${price.toStringAsFixed(2)}', '$tCur${total.toStringAsFixed(2)}', lineWidth);
         for (String line in itemLines) {
-          bytes.addAll(utf8.encode(line));
+          bytes.addAll(enc(line));
+          bytes.add(lf);
+        }
+        // Print tax info as a sub-line if applicable
+        if (taxName.isNotEmpty && taxPerc > 0) {
+          bytes.addAll(enc('  ${taxName.isNotEmpty ? taxName : "Tax"} ${taxPerc.toStringAsFixed(0)}%'));
           bytes.add(lf);
         }
       }
 
       // Subtotal
-      bytes.addAll(utf8.encode(dividerLine));
+      bytes.addAll(enc(dividerLine));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x08]);
-      bytes.addAll(utf8.encode(_formatTwoColumns('Subtotal  $totalQty', '$_currencySymbol${widget.subtotal.toStringAsFixed(2)}', lineWidth)));
+      bytes.addAll(enc(_formatTwoColumns('Subtotal  $totalQty items', '$tCur${widget.subtotal.toStringAsFixed(2)}', lineWidth)));
       bytes.addAll([esc, 0x21, 0x00]);
       bytes.add(lf);
 
-      // Tax breakdown - Only show if real taxes passed from previous page
-      if (widget.taxes != null && widget.taxes!.isNotEmpty) {
-        bytes.addAll(utf8.encode(thinDivider));
+      // Tax breakdown
+      if (_thermalShowTaxDetails && widget.taxes != null && widget.taxes!.isNotEmpty) {
+        bytes.addAll(enc(thinDivider));
         bytes.add(lf);
         for (var tax in widget.taxes!) {
           final taxName = tax['name'] ?? 'Tax';
           final taxAmount = (tax['amount'] ?? 0.0).toDouble();
-          bytes.addAll(utf8.encode(_formatTwoColumns('', '$taxName  ${taxAmount.toStringAsFixed(2)}', lineWidth)));
+          bytes.addAll(enc(_formatTwoColumns(_toThermalSafe(taxName), '$tCur${taxAmount.toStringAsFixed(2)}', lineWidth)));
           bytes.add(lf);
         }
       }
 
+      // Discount
+      if (widget.discount > 0) {
+        bytes.addAll(enc(_formatTwoColumns('Discount', '-$tCur${widget.discount.toStringAsFixed(2)}', lineWidth)));
+        bytes.add(lf);
+      }
+
       // Delivery Charge
       if (widget.deliveryCharge > 0) {
-        bytes.addAll(utf8.encode(_formatTwoColumns('Delivery Charge', '+${widget.deliveryCharge.toStringAsFixed(2)}', lineWidth)));
+        bytes.addAll(enc(_formatTwoColumns('Delivery Charge', '+$tCur${widget.deliveryCharge.toStringAsFixed(2)}', lineWidth)));
         bytes.add(lf);
       }
 
       // Total
-      bytes.addAll(utf8.encode(dividerLine));
+      bytes.addAll(enc(dividerLine));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x18]); // Bold + Double height
-      bytes.addAll(utf8.encode(_formatTwoColumns('TOTAL', '$_currencySymbol${widget.total.toStringAsFixed(2)}', lineWidth)));
+      bytes.addAll(enc(_formatTwoColumns('TOTAL', '$tCur${widget.total.toStringAsFixed(2)}', lineWidth)));
       bytes.addAll([esc, 0x21, 0x00]);
       bytes.add(lf);
-      bytes.addAll(utf8.encode(dividerLine));
+      bytes.addAll(enc(dividerLine));
       bytes.add(lf);
+
+      // Payment Mode
+      if (_showPaymentMode) {
+        bytes.addAll(enc(_formatTwoColumns('Payment:', widget.paymentMode.toUpperCase(), lineWidth)));
+        bytes.add(lf);
+      }
+
+      // You Saved
+      if (_thermalShowYouSaved && widget.discount > 0) {
+        bytes.addAll(enc(_truncateText('** You Saved $tCur${widget.discount.toStringAsFixed(2)}! **', lineWidth)));
+        bytes.add(lf);
+      }
+
+      // Items/Qty count
+      if (_thermalShowTotalItemQuantity) {
+        bytes.addAll([esc, 0x61, 0x01]);
+        bytes.addAll(enc('Items: ${widget.items.length} | Qty: $totalQty'));
+        bytes.add(lf);
+        bytes.addAll([esc, 0x61, 0x00]);
+      }
 
       // Bill Notes (if provided)
       if (widget.customNote != null && widget.customNote!.isNotEmpty) {
         bytes.addAll([esc, 0x61, 0x00]); // Left align
         for (final line in _wrapText('Note: ${widget.customNote}', lineWidth)) {
-          bytes.addAll(utf8.encode(line));
+          bytes.addAll(enc(line));
           bytes.add(lf);
         }
       }
@@ -2459,7 +2505,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       if (widget.deliveryAddress != null && widget.deliveryAddress!.isNotEmpty) {
         bytes.addAll([esc, 0x61, 0x00]); // Left align
         for (final line in _wrapText('Delivery: ${widget.deliveryAddress}', lineWidth)) {
-          bytes.addAll(utf8.encode(line));
+          bytes.addAll(enc(line));
           bytes.add(lf);
         }
       }
@@ -2470,7 +2516,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       bytes.addAll([esc, 0x21, 0x08]);
       final footerStr = _thermalSaleInvoiceText.isNotEmpty ? _thermalSaleInvoiceText : 'Thank You';
       for (final line in _wrapText(footerStr, lineWidth)) {
-        bytes.addAll(utf8.encode(line));
+        bytes.addAll(enc(line));
         bytes.add(lf);
       }
       bytes.addAll([esc, 0x21, 0x00]);
@@ -2480,9 +2526,9 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         bytes.addAll([esc, 0x21, 0x00]);
         const wmLine1 = 'Generated by Maxmybill';
         const wmLine2 = 'www.maxmybill.com';
-        bytes.addAll(utf8.encode(wmLine1.padLeft((lineWidth + wmLine1.length) ~/ 2)));
+        bytes.addAll(enc(wmLine1.padLeft((lineWidth + wmLine1.length) ~/ 2)));
         bytes.add(lf);
-        bytes.addAll(utf8.encode(wmLine2.padLeft((lineWidth + wmLine2.length) ~/ 2)));
+        bytes.addAll(enc(wmLine2.padLeft((lineWidth + wmLine2.length) ~/ 2)));
         bytes.add(lf);
       }
       bytes.add(lf);
@@ -2543,29 +2589,61 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     return '$safeLeft${' ' * spaces}$safeRight';
   }
 
+  /// Convert a string to thermal-printer-safe ASCII.
+  /// Replaces Unicode currency symbols and other multi-byte chars with
+  /// their ASCII fallbacks so ESC/POS printers render them correctly.
+  String _toThermalSafe(String text) {
+    return text
+      .replaceAll('₹', 'Rs.')  // Indian Rupee
+      .replaceAll('€', 'EUR')  // Euro
+      .replaceAll('£', 'GBP')  // Pound
+      .replaceAll('¥', 'JPY')  // Yen/Yuan
+      .replaceAll('₩', 'KRW')  // Korean Won
+      .replaceAll('₪', 'ILS')  // Shekel
+      .replaceAll('₺', 'TRY')  // Turkish Lira
+      .replaceAll('₴', 'UAH')  // Hryvnia
+      .replaceAll('₸', 'KZT')  // Tenge
+      .replaceAll('₮', 'MNT')  // Tugrik
+      .replaceAll('₭', 'LAK')  // Kip
+      .replaceAll('₱', 'PHP')  // Philippine Peso
+      .replaceAll('₦', 'NGN')  // Naira
+      .replaceAll('₡', 'CRC')  // Colon
+      .replaceAll('₲', 'PYG')  // Guarani
+      .replaceAll('₼', 'AZN')  // Manat
+      .replaceAll('₾', 'GEL')  // Lari
+      .replaceAll('₽', 'RUB')  // Ruble
+      .replaceAll('฿', 'THB')  // Baht
+      .replaceAll('﷼', 'SAR')  // Riyal
+      .replaceAll('₨', 'Rs.')  // Rupee sign
+      .replaceAll('৳', 'BDT')  // Taka
+      .replaceAll('₫', 'VND')  // Dong
+      .replaceAll('₢', 'Cr.')  // Cruzeiro
+      .replaceAll('₵', 'GHS')  // Cedi
+      .replaceAll('🎉', '')    // Emoji — not printable
+      .replaceAll('✓', 'OK')
+      // Strip any remaining non-ASCII chars (codepoint > 127)
+      .replaceAll(RegExp(r'[^\x00-\x7F]'), '?');
+  }
+
   // ── Column-width helpers (shared by header + item rows) ────────────────────
   // 58mm paper → lineWidth = 32 chars total
-  //   sn=2  item=13  qty=4  price=7  amt=6   (2+13+4+7+6 = 32)
+  //   item=15  qty=4  price=7  amt=6   (15+4+7+6 = 32)
   // 80mm paper → lineWidth = 48 chars total
-  //   sn=2  item=22  qty=4  price=10  amt=10  (2+22+4+10+10 = 48)
-  int _snW(int lw)    => 2;
+  //   item=24  qty=4  price=10  amt=10  (24+4+10+10 = 48)
   int _qtyW(int lw)   => 4;
   int _priceW(int lw) => lw <= 32 ? 7 : 10;
   int _amtW(int lw)   => lw <= 32 ? 6 : 10;
-  int _itemW(int lw)  => lw - _snW(lw) - _qtyW(lw) - _priceW(lw) - _amtW(lw);
+  int _itemW(int lw)  => lw - _qtyW(lw) - _priceW(lw) - _amtW(lw);
 
-  String _formatTableRow(String sn, String item, String qty, String price, String amt, int lineWidth) {
-    final snW    = _snW(lineWidth);
+  String _formatTableRow(String item, String qty, String price, String amt, int lineWidth) {
     final itemW  = _itemW(lineWidth);
     final qtyW   = _qtyW(lineWidth);
     final priceW = _priceW(lineWidth);
     final amtW   = _amtW(lineWidth);
 
-    // Truncate item name if too long for header row
     String itemStr = item.length > itemW ? '${item.substring(0, itemW - 1)}.' : item.padRight(itemW);
 
-    return '${sn.padRight(snW)}'
-        '$itemStr'
+    return '$itemStr'
         '${qty.padLeft(qtyW)}'
         '${price.padLeft(priceW)}'
         '${amt.padLeft(amtW)}';
@@ -2573,13 +2651,12 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
 
   /// Format table row with full item name support (wraps to multiple lines).
   /// Layout:
-  ///   • If name fits on one line  → single row: [SN][NAME_____][QTY][PRICE][AMT]
+  ///   • If name fits on one line  → single row: [NAME_____][QTY][PRICE][AMT]
   ///   • If name is too long       → name wraps across rows inside the item column
-  ///                                  first line  : [SN][name chunk 1          ]
-  ///                                  middle lines: [  ][name chunk n          ]
-  ///                                  last values : [  ][                ][QTY][PRICE][AMT]
-  List<String> _formatTableRowMultiLine(String sn, String item, String qty, String price, String amt, int lineWidth) {
-    final snW    = _snW(lineWidth);
+  ///                                  first line  : [name chunk 1               ]
+  ///                                  middle lines: [name chunk n               ]
+  ///                                  last values : [                 ][QTY][PRICE][AMT]
+  List<String> _formatTableRowMultiLine(String item, String qty, String price, String amt, int lineWidth) {
     final itemW  = _itemW(lineWidth);
     final qtyW   = _qtyW(lineWidth);
     final priceW = _priceW(lineWidth);
@@ -2590,7 +2667,6 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     if (item.length <= itemW) {
       // ── Single line ──────────────────────────────────────────────────────────
       lines.add(
-        '${sn.padRight(snW)}'
         '${item.padRight(itemW)}'
         '${qty.padLeft(qtyW)}'
         '${price.padLeft(priceW)}'
@@ -2600,17 +2676,16 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       // ── Multi-line item name ─────────────────────────────────────────────────
       final itemChunks = _wrapText(item, itemW);
 
-      // First line: SN + first name chunk (padded to itemW, rest of line blank)
-      lines.add('${sn.padRight(snW)}${itemChunks[0].padRight(lineWidth - snW)}');
+      // First line: first name chunk (padded to fill line)
+      lines.add('${itemChunks[0].padRight(lineWidth)}');
 
-      // Continuation name lines: indented by snW, padded to fill line
+      // Continuation name lines
       for (int i = 1; i < itemChunks.length; i++) {
-        lines.add('${' ' * snW}${itemChunks[i].padRight(lineWidth - snW)}');
+        lines.add('${itemChunks[i].padRight(lineWidth)}');
       }
 
-      // Values line: blank sn + blank item cols, then numeric columns right-aligned
+      // Values line: blank item col, then numeric columns right-aligned
       lines.add(
-        '${' ' * snW}'
         '${' ' * itemW}'
         '${qty.padLeft(qtyW)}'
         '${price.padLeft(priceW)}'
@@ -2904,25 +2979,22 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                       pw.Table(
                         border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                         columnWidths: _a4ShowTaxColumn ? {
-                          0: const pw.FixedColumnWidth(28),   // #
-                          1: const pw.FlexColumnWidth(4),     // Item
-                          2: const pw.FixedColumnWidth(36),   // Qty
-                          3: const pw.FlexColumnWidth(1.6),   // Rate
-                          4: const pw.FlexColumnWidth(1.4),   // Tax
-                          5: const pw.FlexColumnWidth(1.6),   // Total
+                          0: const pw.FlexColumnWidth(4.5),   // Item
+                          1: const pw.FixedColumnWidth(36),   // Qty
+                          2: const pw.FlexColumnWidth(1.6),   // Rate
+                          3: const pw.FlexColumnWidth(1.4),   // Tax
+                          4: const pw.FlexColumnWidth(1.6),   // Total
                         } : {
-                          0: const pw.FixedColumnWidth(28),   // #
-                          1: const pw.FlexColumnWidth(4.5),   // Item
-                          2: const pw.FixedColumnWidth(36),   // Qty
-                          3: const pw.FlexColumnWidth(1.8),   // Rate
-                          4: const pw.FlexColumnWidth(1.8),   // Total
+                          0: const pw.FlexColumnWidth(5),     // Item
+                          1: const pw.FixedColumnWidth(36),   // Qty
+                          2: const pw.FlexColumnWidth(1.8),   // Rate
+                          3: const pw.FlexColumnWidth(1.8),   // Total
                         },
                         children: [
                           // Header row
                           pw.TableRow(
                             decoration: pw.BoxDecoration(color: themeColor),
                             children: [
-                              _pdfCell('SL.', ttfBold, isHeader: true, align: pw.TextAlign.center),
                               _pdfCell('ITEM / DESCRIPTION', ttfBold, isHeader: true),
                               _pdfCell('QTY', ttfBold, isHeader: true, align: pw.TextAlign.center),
                               _pdfCell('RATE', ttfBold, isHeader: true, align: pw.TextAlign.right),
@@ -2943,12 +3015,10 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                             final taxName = (item['taxName'] ?? '') as String;
                             final taxAmt = taxPerc > 0 ? (total - (total / (1 + taxPerc / 100))) : 0.0;
                             final isEven = idx.isEven;
-                            // Subtle alternating: white vs very-light-grey (no theme tint)
                             final rowBg = isEven ? PdfColors.white : const PdfColor.fromInt(0xFFF9FAFB);
                             return pw.TableRow(
                               decoration: pw.BoxDecoration(color: rowBg),
                               children: [
-                                _pdfCell('${idx + 1}', ttf, align: pw.TextAlign.center, isEven: isEven),
                                 pw.Padding(
                                   padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
                                   child: pw.Column(

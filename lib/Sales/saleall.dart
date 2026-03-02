@@ -865,7 +865,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
               height: R.sp(context, 46),
               width: R.sp(context, 46),
               decoration: BoxDecoration(
-                color: kPrimaryColor,
+                color: Color(0xFFC9A227),
                 borderRadius: R.radius(context, 12),
               ),
               child: const HeroIcon(HeroIcons.qrCode, color: kWhite, size: 22),

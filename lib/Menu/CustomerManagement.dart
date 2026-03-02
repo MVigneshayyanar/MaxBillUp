@@ -185,8 +185,9 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   onPressed: () async {
                     final amount = double.tryParse(amountController.text) ?? 0.0;
                     if (amount <= 0) return;
+                    // Pop the modal first before processing to avoid context conflicts
+                    Navigator.pop(context);
                     await _processTransaction(amount, currentBalance, currentTotalSales, selectedMethod);
-                    if (mounted) Navigator.pop(context);
                   },
                   child: const Text("CONFIRM CREDIT", style: TextStyle(color: kWhite, fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
@@ -568,7 +569,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
 
       // Create payment receipt record
       final paymentReceipts = await FirestoreService().getStoreCollection('paymentReceipts');
-      final receiptDocRef = await paymentReceipts.add({
+      await paymentReceipts.add({
         'receiptNumber': fullReceiptNumber,
         'customerId': widget.customerId,
         'customerName': widget.customerData['name'],

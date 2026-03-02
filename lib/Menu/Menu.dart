@@ -40,6 +40,7 @@ import 'package:maxbillup/utils/amount_formatter.dart';
 import 'package:maxbillup/Sales/NewSale.dart';
 import 'package:maxbillup/utils/translation_helper.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
+import 'package:share_plus/share_plus.dart';
 // ignore: uri_does_not_exist
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:heroicons/heroicons.dart';
@@ -4488,39 +4489,106 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       final dueDate = DateTime.parse(dueStr);
                       dueLabel = DateFormat('dd MMM yyyy').format(dueDate);
                     } catch (_) {}
+
+                    final customerName = c['name'] as String;
+                    final customerPhone = c['phone'] as String;
+                    final totalDue = c['totalDue'] as double;
+                    final billCount = c['billCount'] as int;
+
+                    // Compose the overdue reminder message
+                    String shareMessage =
+                        'Dear $customerName,\n\n'
+                        'This is a gentle reminder that you have an overdue balance of $_currencySymbol${totalDue.toStringAsFixed(2)} '
+                        'across $billCount unpaid bill(s).'
+                        '${dueLabel.isNotEmpty ? '\nDue since: $dueLabel' : ''}\n\n'
+                        'Please clear your dues at the earliest to avoid any inconvenience.\n\n'
+                        'Thank you!';
+
                     return Container(
                       decoration: BoxDecoration(
                         color: kGreyBg,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: kErrorColor.withOpacity(0.15)),
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFFBE9E7),
-                          child: Text(
-                            (c['name'] as String).isNotEmpty ? (c['name'] as String)[0].toUpperCase() : '?',
-                            style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        title: Text(c['name'] as String, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            Text(c['phone'] as String, style: const TextStyle(fontSize: 11, color: kBlack54)),
-                            if (dueLabel.isNotEmpty)
-                              Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              '$_currencySymbol${(c['totalDue'] as double).toStringAsFixed(2)}',
-                              style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
+                            CircleAvatar(
+                              backgroundColor: const Color(0xFFFBE9E7),
+                              child: Text(
+                                customerName.isNotEmpty ? customerName[0].toUpperCase() : '?',
+                                style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
+                              ),
                             ),
-                            Text('${c['billCount']} bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87, fontSize: 14)),
+                                  const SizedBox(height: 2),
+                                  Text(customerPhone, style: const TextStyle(fontSize: 11, color: kBlack54)),
+                                  if (dueLabel.isNotEmpty)
+                                    Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '$_currencySymbol${totalDue.toStringAsFixed(2)}',
+                                  style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
+                                ),
+                                Text('$billCount bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
+                                const SizedBox(height: 6),
+                                // Share & WhatsApp row
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // WhatsApp button (if phone is a valid number)
+                                    if (RegExp(r'^\d{7,15}$').hasMatch(customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '')))
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final cleanPhone = customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '');
+                                          final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMessage)}');
+                                          if (await launcher.canLaunchUrl(waUrl)) {
+                                            await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
+                                          }
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF25D366).withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                          ),
+                                          child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                        ),
+                                      ),
+                                    const SizedBox(width: 6),
+                                    // Share via other apps
+                                    GestureDetector(
+                                      onTap: () {
+                                        Share.share(shareMessage, subject: 'Overdue Payment Reminder – $customerName');
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: kPrimaryColor.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
+                                        ),
+                                        child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -5213,9 +5281,10 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                           final isCancelled = data['status'] == 'cancelled';
                           final amount = (data['amount'] ?? 0.0).toDouble();
 
-                          if (isSettled || isCancelled) return false;
-                          if (type == 'credit_sale') return true;
-                          if (type == null && amount > 0 && data['invoiceNumber'] != null) return true;
+                          if (isCancelled) return false;
+                          if (type == 'credit_sale' && !isSettled) return true;
+                          if (type == 'add_credit' && !isSettled) return true; // hide once settled
+                          if (type == null && amount > 0 && data['invoiceNumber'] != null && !isSettled) return true;
                           return false;
                         }).toList();
 
@@ -5247,7 +5316,15 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                           padding: const EdgeInsets.all(16),
                           itemCount: unsettledDocs.length,
                           separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) => _buildCreditBillCard(unsettledDocs[index], currentBalance),
+                          itemBuilder: (context, index) {
+                            final doc = unsettledDocs[index];
+                            final docData = doc.data() as Map<String, dynamic>;
+                            final docType = (docData['type'] ?? '').toString();
+                            if (docType == 'add_credit') {
+                              return _buildManualCreditCard(doc);
+                            }
+                            return _buildCreditBillCard(doc, currentBalance);
+                          },
                         );
                       },
                     );
@@ -5256,63 +5333,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
               ),
             ],
           ),
-          bottomNavigationBar: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                onPressed: () async {
-                  showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-                  try {
-                    final totalBalance = currentBalance;
-                    final credsColl = await FirestoreService().getStoreCollection('credits');
-                    final unsettledBills = await credsColl
-                        .where('customerId', isEqualTo: widget.customerId)
-                        .where('type', isEqualTo: 'credit_sale')
-                        .get();
-                    
-                    double unsettledBillTotal = 0;
-                    for (var d in unsettledBills.docs) {
-                      final data = d.data() as Map<String, dynamic>;
-                      if (data['isSettled'] != true) {
-                        unsettledBillTotal += (data['amount'] ?? 0.0).toDouble();
-                      }
-                    }
-                    
-                    final manualCreditBalance = totalBalance - unsettledBillTotal;
-                    
-                    if (mounted) {
-                      Navigator.pop(context); // Close loading
-                      Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (_) => SettleManualCreditPage(
-                            customerId: widget.customerId,
-                            customerData: custData,
-                            currentBalance: totalBalance,
-                            billAmount: manualCreditBalance > 0 ? manualCreditBalance : 0.0,
-                          ),
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kWhite,
-                  foregroundColor: kPrimaryColor,
-                  side: const BorderSide(color: kPrimaryColor, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
-                child: const Text('SETTLE MANUAL CREDIT', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-              ),
-            ),
-          ),
+          bottomNavigationBar: null,
         );
       },
     );
@@ -5479,6 +5500,136 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                         border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
                       ),
                       child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Card for manually added credits (type == 'add_credit')
+  Widget _buildManualCreditCard(QueryDocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    final amount = (data['amount'] ?? 0.0).toDouble();
+    final note = (data['note'] ?? 'Manual Credit Added').toString();
+    final dateStr = data['date'] as String?;
+    final method = (data['method'] ?? 'Cash').toString();
+
+    DateTime? addedDate;
+    if (dateStr != null) addedDate = DateTime.tryParse(dateStr);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: kWhite,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.purple.withOpacity(0.3)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.push(
+            context,
+            CupertinoPageRoute(
+              builder: (_) => SettleManualCreditPage(
+                customerId: widget.customerId,
+                customerData: widget.customerData,
+                currentBalance: widget.currentBalance,
+                billAmount: amount,
+                creditDocId: doc.id,
+              ),
+            ),
+          ).then((settled) {
+            if (settled == true && mounted) setState(() {});
+          }),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.add_circle_outline_rounded, size: 14, color: Colors.purple),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Manual Credit', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.purple)),
+                      ],
+                    ),
+                    if (addedDate != null)
+                      Text(
+                        '${addedDate.day.toString().padLeft(2, '0')}-${addedDate.month.toString().padLeft(2, '0')}-${addedDate.year}',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Note
+                if (note.isNotEmpty)
+                  Text(note, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: kGrey100),
+                const SizedBox(height: 10),
+                // Amount & Settle row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+                        const SizedBox(height: 4),
+                        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.purple)),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Payment method badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                method.toLowerCase() == 'online' ? Icons.account_balance_rounded : Icons.payments_outlined,
+                                color: Colors.purple, size: 11,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(method.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.purple)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Settle button
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: kGoogleGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+                          ),
+                          child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                        ),
+                      ],
                     ),
                   ],
                 ),

@@ -2383,6 +2383,7 @@ class _DayBookPageState extends State<DayBookPage> {
                       double totalSalesAmount = 0, totalExpensesAmount = 0, totalPurchasesAmount = 0;
                       double saleCreditGiven = 0, saleCreditReceived = 0;
                       double purchaseCreditAdded = 0, purchaseCreditPaid = 0;
+                      double additionCredit = 0; // Manual credit additions from customer profile
 
                       // Payment breakdown
                       double paymentOutCash = 0, paymentOutOnline = 0;
@@ -2485,18 +2486,25 @@ class _DayBookPageState extends State<DayBookPage> {
                             'paymentMode': method,
                           });
                         } else if (type == 'add_credit') {
-                           // Manual credit added from customer profile
-                           saleCreditGiven += amount;
-                           
+                           // Manual credit addition from customer profile (store gives credit to customer)
+                           additionCredit += amount;
+
+                           // Track cash/online received for this manual credit addition
+                           if (method.contains('cash')) {
+                             paymentInCash += amount;
+                           } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                             paymentInOnline += amount;
+                           }
+
                            allTransactions.add({
-                            'category': 'Sale On Credit',
-                            'particulars': 'Manual Entry',
+                            'category': 'Addition Credit',
+                            'particulars': data['note']?.toString() ?? 'Manual Credit Entry',
                             'name': data['customerName']?.toString() ?? 'Customer',
                             'total': amount,
-                            'cashIn': 0.0,
+                            'cashIn': (method.contains('cash') || method.contains('online') || method.contains('upi') || method.contains('card')) ? amount : 0.0,
                             'cashOut': 0.0,
                             'timestamp': data['timestamp'],
-                            'paymentMode': 'credit',
+                            'paymentMode': method.isNotEmpty ? method : 'credit',
                           });
                         }
                       }
@@ -2632,6 +2640,7 @@ class _DayBookPageState extends State<DayBookPage> {
                                     totalPurchasesCount, totalPurchasesAmount,
                                     saleCreditGiven, saleCreditReceived,
                                     purchaseCreditAdded, purchaseCreditPaid,
+                                    additionCredit,
                                   ),
 
                                   const SizedBox(height: 20),
@@ -3260,6 +3269,7 @@ class _DayBookPageState extends State<DayBookPage> {
       double saleCreditReceived,
       double purchaseCreditAdded,
       double purchaseCreditPaid,
+      double additionCredit,
       ) {
     final netCashFlow =
         salesAmount - expensesAmount - purchasesAmount;
@@ -3439,6 +3449,10 @@ class _DayBookPageState extends State<DayBookPage> {
                 _buildCreditDetailRow(
                     'Sale On Credit', saleCreditGiven,
                     Icons.arrow_upward_rounded, kGoogleRed),
+                _divider(),
+                _buildCreditDetailRow(
+                    'Addition Credit', additionCredit,
+                    Icons.add_card_outlined, const Color(0xFF00897B)),
                 _divider(),
                 _buildCreditDetailRow(
                     'Credit Collected', saleCreditReceived,
@@ -3883,6 +3897,10 @@ class _DayBookPageState extends State<DayBookPage> {
         accent = kWarningOrange;
         categoryIcon = Icons.credit_score_outlined;
         break;
+      case 'Addition Credit':
+        accent = const Color(0xFF00897B);
+        categoryIcon = Icons.add_card_outlined;
+        break;
       case 'Purchase Credit':
       case 'Purchase Credit Paid':
         accent = const Color(0xFF6A1B9A);
@@ -3893,7 +3911,7 @@ class _DayBookPageState extends State<DayBookPage> {
         categoryIcon = Icons.point_of_sale_rounded;
     }
 
-    final isIncome = category == 'Sale' || category == 'Credit Collected' || category == 'Credit Received';
+    final isIncome = category == 'Sale' || category == 'Credit Collected' || category == 'Credit Received' || category == 'Addition Credit';
     final amount = (txn['total'] as double);
 
     return Container(
@@ -8800,17 +8818,54 @@ Widget _buildSummaryRecord(String label, double val, Color color) {
 // ==========================================
 // INCOME SUMMARY PAGE (Enhanced with all features from screenshot)
 // ==========================================
-class IncomeSummaryPage extends StatelessWidget {
+class IncomeSummaryPage extends StatefulWidget {
   final VoidCallback onBack;
+
+  const IncomeSummaryPage({super.key, required this.onBack});
+
+  @override
+  State<IncomeSummaryPage> createState() => _IncomeSummaryPageState();
+}
+
+class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
   final FirestoreService _firestoreService = FirestoreService();
 
-  IncomeSummaryPage({super.key, required this.onBack});
+  // Streams for credit tracker data
+  Stream<QuerySnapshot>? _customersStream;   // Sales credit – total receivable
+  Stream<QuerySnapshot>? _purchaseCreditStream; // Purchase credit – total payable
+
+  @override
+  void initState() {
+    super.initState();
+    _initCreditStreams();
+  }
+
+  void _initCreditStreams() async {
+    final storeId = await _firestoreService.getCurrentStoreId();
+    if (storeId == null || !mounted) return;
+    setState(() {
+      // customers with balance > 0 → total receivable
+      _customersStream = FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('customers')
+          .where('balance', isGreaterThan: 0)
+          .snapshots();
+
+      // purchaseCreditNotes → total payable (amount - paidAmount)
+      _purchaseCreditStream = FirebaseFirestore.instance
+          .collection('store')
+          .doc(storeId)
+          .collection('purchaseCreditNotes')
+          .snapshots();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Business Insights", onBack),
+      appBar: _buildModernAppBar("Business Insights", widget.onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -8830,111 +8885,134 @@ class IncomeSummaryPage extends StatelessWidget {
                   return StreamBuilder<QuerySnapshot>(
                     stream: streamsSnapshot.data![2],
                     builder: (context, purchaseSnapshot) {
-                      if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                      }
+                      // Credit tracker streams
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: _customersStream,
+                        builder: (context, customersSnapshot) {
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: _purchaseCreditStream,
+                            builder: (context, purchaseCreditSnapshot) {
+                              if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
+                                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                              }
 
-                      final now = DateTime.now();
-                      final todayStart = DateTime(now.year, now.month, now.day);
-                      final yesterday = now.subtract(const Duration(days: 1));
-                      final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
-                      final last7Days = now.subtract(const Duration(days: 7));
-                      final thisMonthStart = DateTime(now.year, now.month, 1);
-                      final decemberStart = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 1);
-                      final decemberEnd = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 31, 23, 59, 59);
+                              final now = DateTime.now();
+                              final todayStart = DateTime(now.year, now.month, now.day);
+                              final yesterday = now.subtract(const Duration(days: 1));
+                              final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
+                              final last7Days = now.subtract(const Duration(days: 7));
+                              final thisMonthStart = DateTime(now.year, now.month, 1);
+                              final decemberStart = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 1);
+                              final decemberEnd = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 31, 23, 59, 59);
 
-                      double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0, incomeDecember = 0;
-                      double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0, expenseDecember = 0;
-                      double salesDues = 0, purchaseDues = 0;
+                              double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0, incomeDecember = 0;
+                              double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0, expenseDecember = 0;
 
-                      // --- Process Sales ---
-                      for (var doc in salesSnapshot.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                              // --- Process Sales ---
+                              for (var doc in salesSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
-                        double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                        salesDues += double.tryParse(data['dueAmount']?.toString() ?? '0') ?? 0;
+                                double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
 
-                        if (dt != null) {
-                          if (dt.isAfter(todayStart)) incomeToday += total;
-                          if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += total;
-                          if (dt.isAfter(last7Days)) incomeLast7Days += total;
-                          if (dt.isAfter(thisMonthStart)) incomeThisMonth += total;
-                          if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) incomeDecember += total;
-                        }
-                      }
+                                if (dt != null) {
+                                  if (dt.isAfter(todayStart)) incomeToday += total;
+                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += total;
+                                  if (dt.isAfter(last7Days)) incomeLast7Days += total;
+                                  if (dt.isAfter(thisMonthStart)) incomeThisMonth += total;
+                                  if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) incomeDecember += total;
+                                }
+                              }
 
-                      // --- Process Expenses ---
-                      for (var doc in expenseSnapshot.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                              // --- Process Expenses ---
+                              for (var doc in expenseSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
-                        double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
 
-                        if (dt != null) {
-                          if (dt.isAfter(todayStart)) expenseToday += amount;
-                          if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
-                          if (dt.isAfter(last7Days)) expenseLast7Days += amount;
-                          if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
-                          if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) expenseDecember += amount;
-                        }
-                      }
+                                if (dt != null) {
+                                  if (dt.isAfter(todayStart)) expenseToday += amount;
+                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
+                                  if (dt.isAfter(last7Days)) expenseLast7Days += amount;
+                                  if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
+                                  if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) expenseDecember += amount;
+                                }
+                              }
 
-                      // --- Process Purchases ---
-                      for (var doc in purchaseSnapshot.data!.docs) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        purchaseDues += double.tryParse(data['dueAmount']?.toString() ?? '0') ?? 0;
-                      }
+                              // --- Credit Tracker: Total Receivable (customers.balance) ---
+                              double totalReceivable = 0;
+                              if (customersSnapshot.hasData) {
+                                for (var doc in customersSnapshot.data!.docs) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  totalReceivable += ((data['balance'] ?? 0.0) as num).toDouble();
+                                }
+                              }
 
-                      return Column(
-                        children: [
-                          // Executive Status Header
-                          // _buildDailyCashStrip(incomeToday, expenseToday),
+                              // --- Credit Tracker: Total Payable (purchaseCreditNotes: amount - paidAmount) ---
+                              double totalPayable = 0;
+                              if (purchaseCreditSnapshot.hasData) {
+                                for (var doc in purchaseCreditSnapshot.data!.docs) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final amt = ((data['amount'] ?? 0.0) as num).toDouble();
+                                  final paid = ((data['paidAmount'] ?? 0.0) as num).toDouble();
+                                  totalPayable += (amt - paid).clamp(0, double.infinity);
+                                }
+                              }
 
-                          Expanded(
-                            child: CustomScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              slivers: [
-                                SliverPadding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  sliver: SliverList(
-                                    delegate: SliverChildListDelegate([
-                                      _buildSectionHeader("Revenue Comparison"),
-                                      const SizedBox(height: 8),
-                                      _buildComparisonGrid(incomeToday, incomeYesterday, incomeLast7Days, incomeThisMonth, kIncomeGreen),
+                              return Column(
+                                children: [
+                                  Expanded(
+                                    child: CustomScrollView(
+                                      physics: const BouncingScrollPhysics(),
+                                      slivers: [
+                                        SliverPadding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                          sliver: SliverList(
+                                            delegate: SliverChildListDelegate([
+                                              _buildSectionHeader("Revenue Comparison"),
+                                              const SizedBox(height: 8),
+                                              _buildComparisonGrid(incomeToday, incomeYesterday, incomeLast7Days, incomeThisMonth, kIncomeGreen),
 
-                                      const SizedBox(height: 24),
-                                      _buildSectionHeader("Expense Comparison"),
-                                      const SizedBox(height: 8),
-                                      _buildComparisonGrid(expenseToday, expenseYesterday, expenseLast7Days, expenseThisMonth, kExpenseRed),
+                                              const SizedBox(height: 24),
+                                              _buildSectionHeader("Expense Comparison"),
+                                              const SizedBox(height: 8),
+                                              _buildComparisonGrid(expenseToday, expenseYesterday, expenseLast7Days, expenseThisMonth, kExpenseRed),
 
-                                      const SizedBox(height: 24),
-                                      _buildSectionHeader("Settlement Monitor"),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Expanded(child: _buildDuesTile("Receivables", salesDues, kIncomeGreen, Icons.call_received_rounded)),
-                                          const SizedBox(width: 8),
-                                          Expanded(child: _buildDuesTile("Payables", purchaseDues, kExpenseRed, Icons.call_made_rounded)),
-                                        ],
-                                      ),
+                                              const SizedBox(height: 24),
+                                              _buildSectionHeader("Credit Tracker – Settlement Monitor"),
+                                              const SizedBox(height: 8),
+                                              // Credit summary banner
+                                              _buildCreditSummaryBanner(totalReceivable, totalPayable),
+                                              const SizedBox(height: 8),
+                                              Row(
+                                                children: [
+                                                  Expanded(child: _buildDuesTile("Total Receivable", totalReceivable, kIncomeGreen, Icons.call_received_rounded)),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(child: _buildDuesTile("Total Payable", totalPayable, kExpenseRed, Icons.call_made_rounded)),
+                                                ],
+                                              ),
 
-                                      const SizedBox(height: 24),
-                                      _buildSectionHeader("Archived Insights"),
-                                      const SizedBox(height: 8),
-                                      _buildYearlyInsightRow("December 2024", incomeDecember, expenseDecember),
-                                      const SizedBox(height: 30),
-                                    ]),
+                                              const SizedBox(height: 24),
+                                              _buildSectionHeader("Archived Insights"),
+                                              const SizedBox(height: 8),
+                                              _buildYearlyInsightRow("December 2024", incomeDecember, expenseDecember),
+                                              const SizedBox(height: 30),
+                                            ]),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                                ],
+                              );
+                            },
+                          );
+                        },
                       );
                     },
                   );
@@ -8943,6 +9021,57 @@ class IncomeSummaryPage extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCreditSummaryBanner(double receivable, double payable) {
+    final net = receivable - payable;
+    final isPositive = net >= 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isPositive
+              ? [kIncomeGreen.withOpacity(0.08), kIncomeGreen.withOpacity(0.02)]
+              : [kExpenseRed.withOpacity(0.08), kExpenseRed.withOpacity(0.02)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("NET CREDIT POSITION", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              const SizedBox(height: 4),
+              Text(
+                "${CurrencyService().symbol}${net.abs().toStringAsFixed(2)}",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isPositive ? kIncomeGreen : kExpenseRed, letterSpacing: -0.5),
+              ),
+              Text(
+                isPositive ? "Net amount to collect" : "Net amount to pay",
+                style: TextStyle(fontSize: 10, color: isPositive ? kIncomeGreen : kExpenseRed, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+              color: isPositive ? kIncomeGreen : kExpenseRed,
+              size: 24,
+            ),
+          ),
+        ],
       ),
     );
   }

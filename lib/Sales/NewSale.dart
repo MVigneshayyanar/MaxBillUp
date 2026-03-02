@@ -1024,7 +1024,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: R.radius(context, 20),
-          border: Border.all(color: Color(0xffffab36), width: 2),
+          border: Border.all(color: Color(0xFFC9A227), width: 2),
         ),
         child: Column(
           children: [
@@ -1034,7 +1034,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
                 vertical: isSearchFocused ? R.sp(context, 6) : R.sp(context, 12),
               ),
               decoration: BoxDecoration(
-                color: Color(0xffffab36),
+                color: Color(0xFFE0B646),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(R.sp(context, 18))),
               ),
               child: Row(
