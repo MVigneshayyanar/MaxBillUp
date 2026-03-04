@@ -2293,7 +2293,7 @@ class _DayBookPageState extends State<DayBookPage> {
     final String selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
 
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: kGreyBg,
       appBar: _buildModernAppBar(
           "DayBook",
           widget.onBack,
@@ -2486,23 +2486,23 @@ class _DayBookPageState extends State<DayBookPage> {
                             'paymentMode': method,
                           });
                         } else if (type == 'add_credit') {
-                           // Manual credit addition from customer profile (store gives credit to customer)
+                           // Manual credit addition from customer profile (store gives credit OUT to customer)
                            additionCredit += amount;
 
-                           // Track cash/online received for this manual credit addition
+                           // Track as Money OUT — store is giving credit to customer
                            if (method.contains('cash')) {
-                             paymentInCash += amount;
+                             paymentOutCash += amount;
                            } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
-                             paymentInOnline += amount;
+                             paymentOutOnline += amount;
                            }
 
                            allTransactions.add({
-                            'category': 'Addition Credit',
+                            'category': 'Manual Credit',
                             'particulars': data['note']?.toString() ?? 'Manual Credit Entry',
                             'name': data['customerName']?.toString() ?? 'Customer',
                             'total': amount,
-                            'cashIn': (method.contains('cash') || method.contains('online') || method.contains('upi') || method.contains('card')) ? amount : 0.0,
-                            'cashOut': 0.0,
+                            'cashIn': 0.0,
+                            'cashOut': amount,
                             'timestamp': data['timestamp'],
                             'paymentMode': method.isNotEmpty ? method : 'credit',
                           });
@@ -3387,9 +3387,9 @@ class _DayBookPageState extends State<DayBookPage> {
                   amount: salesAmount,
                   count: salesCount,
                   icon: Icons.point_of_sale_rounded,
-                  iconBg: const Color(0xFFE3F2FD),
-                  iconColor: kPrimaryColor,
-                  amountColor: kPrimaryColor,
+                  iconBg: const Color(0xFFE8F5E9),
+                  iconColor: kGoogleGreen,
+                  amountColor: kGoogleGreen,
                 ),
               ),
               const SizedBox(width: 10),
@@ -3415,9 +3415,9 @@ class _DayBookPageState extends State<DayBookPage> {
                   amount: purchasesAmount,
                   count: purchasesCount,
                   icon: Icons.inventory_2_outlined,
-                  iconBg: const Color(0xFFFFF3E0),
-                  iconColor: const Color(0xFFE65100),
-                  amountColor: const Color(0xFFE65100),
+                  iconBg: const Color(0xFFFFEBEE),
+                  iconColor: kGoogleRed,
+                  amountColor: kGoogleRed,
                 ),
               ),
               const SizedBox(width: 10),
@@ -3427,9 +3427,9 @@ class _DayBookPageState extends State<DayBookPage> {
                   amount: saleCreditGiven + purchaseCreditAdded,
                   count: 0,
                   icon: Icons.account_balance_wallet_outlined,
-                  iconBg: const Color(0xFFF3E5F5),
-                  iconColor: const Color(0xFF6A1B9A),
-                  amountColor: const Color(0xFF6A1B9A),
+                  iconBg: const Color(0xFFFFF3E0),
+                  iconColor: kWarningOrange,
+                  amountColor: kWarningOrange,
                 ),
               ),
             ],
@@ -3448,23 +3448,23 @@ class _DayBookPageState extends State<DayBookPage> {
               children: [
                 _buildCreditDetailRow(
                     'Sale On Credit', saleCreditGiven,
-                    Icons.arrow_upward_rounded, kGoogleRed),
-                _divider(),
-                _buildCreditDetailRow(
-                    'Addition Credit', additionCredit,
-                    Icons.add_card_outlined, const Color(0xFF00897B)),
+                    Icons.arrow_upward_rounded, kGoogleGreen),
                 _divider(),
                 _buildCreditDetailRow(
                     'Credit Collected', saleCreditReceived,
                     Icons.arrow_downward_rounded, kGoogleGreen),
                 _divider(),
                 _buildCreditDetailRow(
+                    'Manual Credit', additionCredit,
+                    Icons.add_card_outlined, kWarningOrange),
+                _divider(),
+                _buildCreditDetailRow(
                     'Purchase Credit', purchaseCreditAdded,
-                    Icons.add_rounded, const Color(0xFFE65100)),
+                    Icons.add_rounded, kGoogleRed),
                 _divider(),
                 _buildCreditDetailRow(
                     'Purchase Credit Paid', purchaseCreditPaid,
-                    Icons.check_rounded, kPrimaryColor,
+                    Icons.check_rounded, kGoogleRed,
                 )
               ],
             ),
@@ -3880,12 +3880,16 @@ class _DayBookPageState extends State<DayBookPage> {
     Color accent;
     IconData categoryIcon;
     switch (category) {
+      case 'Sale':
+        accent = kGoogleGreen;
+        categoryIcon = Icons.point_of_sale_rounded;
+        break;
       case 'Expense':
         accent = kGoogleRed;
         categoryIcon = Icons.shopping_cart_outlined;
         break;
       case 'Purchase':
-        accent = const Color(0xFFE65100);
+        accent = kGoogleRed;
         categoryIcon = Icons.inventory_2_outlined;
         break;
       case 'Credit Collected':
@@ -3894,24 +3898,24 @@ class _DayBookPageState extends State<DayBookPage> {
         categoryIcon = Icons.account_balance_wallet_outlined;
         break;
       case 'Sale On Credit':
-        accent = kWarningOrange;
+        accent = kGoogleGreen;
         categoryIcon = Icons.credit_score_outlined;
         break;
-      case 'Addition Credit':
-        accent = const Color(0xFF00897B);
+      case 'Manual Credit':
+        accent = kWarningOrange;
         categoryIcon = Icons.add_card_outlined;
         break;
       case 'Purchase Credit':
       case 'Purchase Credit Paid':
-        accent = const Color(0xFF6A1B9A);
+        accent = kGoogleRed;
         categoryIcon = Icons.credit_card_outlined;
         break;
-      default: // Sale
-        accent = const Color(0xFF1565C0);
+      default:
+        accent = kGoogleGreen;
         categoryIcon = Icons.point_of_sale_rounded;
     }
 
-    final isIncome = category == 'Sale' || category == 'Credit Collected' || category == 'Credit Received' || category == 'Addition Credit';
+    final isIncome = category == 'Sale' || category == 'Credit Collected' || category == 'Credit Received' || category == 'Sale On Credit' || category == 'Manual Credit';
     final amount = (txn['total'] as double);
 
     return Container(
