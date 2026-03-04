@@ -192,9 +192,9 @@ class _SaleAllPageState extends State<SaleAllPage> {
 
 
   Future<void> _initializeProductsStream() async {
-    final stream = await FirestoreService().getCollectionStream('Products');
+    final collection = await FirestoreService().getStoreCollection('Products');
+    final stream = collection.snapshots();
     _loadCategories();
-
     if (mounted) {
       setState(() {
         _productsStream = stream;
@@ -261,6 +261,37 @@ class _SaleAllPageState extends State<SaleAllPage> {
   }
 
   double get _total => _cart.fold(0.0, (sum, item) => sum + item.totalWithTax);
+
+  List<QueryDocumentSnapshot> _filterAndSortProducts(List<QueryDocumentSnapshot> items) {
+    final allCategory = context.tr('all');
+    final isShowAll = _selectedCategory.isEmpty || _selectedCategory == allCategory;
+
+    var list = items.where((doc) {
+      final data = doc.data() as Map<String, dynamic>;
+      final name = (data['itemName'] ?? '').toString().toLowerCase();
+      final barcode = (data['barcode'] ?? '').toString().toLowerCase();
+      final productCode = (data['productCode'] ?? '').toString().toLowerCase();
+      if (!name.contains(_query) && !barcode.contains(_query) && !productCode.contains(_query)) return false;
+      if (_showFavoritesOnly) return data['isFavorite'] == true;
+      if (isShowAll) return true;
+      return (data['category'] ?? 'General').toString() == _selectedCategory;
+    }).toList();
+
+    list.sort((a, b) {
+      final dA = a.data() as Map<String, dynamic>;
+      final dB = b.data() as Map<String, dynamic>;
+      final rawA = dA['productCode'];
+      final rawB = dB['productCode'];
+      final numA = rawA is int ? rawA : int.tryParse(rawA?.toString() ?? '');
+      final numB = rawB is int ? rawB : int.tryParse(rawB?.toString() ?? '');
+      if (numA != null && numB != null) return numA.compareTo(numB);
+      if (numA != null) return -1;
+      if (numB != null) return 1;
+      return (rawA?.toString() ?? '').compareTo(rawB?.toString() ?? '');
+    });
+
+    return list;
+  }
 
   // Helper function to format category names: First letter uppercase, rest lowercase
   String _formatCategoryName(String name) {
@@ -951,39 +982,10 @@ class _SaleAllPageState extends State<SaleAllPage> {
           return _buildEmptyState();
         }
 
-        final filtered = snap.data!.docs.where((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final name = (data['itemName'] ?? '').toString().toLowerCase();
-          final barcode = (data['barcode'] ?? '').toString().toLowerCase();
-          final productCode = (data['productCode'] ?? '').toString().toLowerCase();
-          final matchesSearch = name.contains(_query) || barcode.contains(_query) || productCode.contains(_query);
-
-          // If user is searching, show all products that match the search (ignore category filter)
-          if (_query.isNotEmpty) {
-            return matchesSearch;
-          }
-
-          // If not searching, apply category filters
-          if (!matchesSearch) return false;
-
-          if (_showFavoritesOnly) return data['isFavorite'] == true;
-
-
-          if (_selectedCategory == context.tr('all')) return true;
-          return (data['category'] ?? 'General').toString() == _selectedCategory;
-        }).toList();
+        final filtered = _filterAndSortProducts(List<QueryDocumentSnapshot>.from(snap.data!.docs));
 
         if (filtered.isEmpty) return Center(child: Text(context.tr('no_results'), style: const TextStyle(color: kBlack54)));
 
-        filtered.sort((a, b) {
-          final dataA = a.data() as Map<String, dynamic>;
-          final dataB = b.data() as Map<String, dynamic>;
-          final favA = dataA['isFavorite'] ?? false;
-          final favB = dataB['isFavorite'] ?? false;
-          if (favA && !favB) return -1;
-          if (!favA && favB) return 1;
-          return (dataA['itemName'] ?? '').toString().compareTo((dataB['itemName'] ?? '').toString());
-        });
 
         return GridView.builder(
           padding: EdgeInsets.fromLTRB(R.sp(context, 16), R.sp(context, 8), R.sp(context, 16), R.sp(context, 100)),

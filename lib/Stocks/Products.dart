@@ -782,9 +782,21 @@ class _ProductsPageState extends State<ProductsPage> {
       final dA = a.data() as Map<String, dynamic>;
       final dB = b.data() as Map<String, dynamic>;
       int res = 0;
-      if (_sortBy == 'name') res = (dA['itemName'] ?? '').toString().compareTo(dB['itemName'] ?? '');
-      else if (_sortBy == 'price') res = (dA['price'] ?? 0).compareTo(dB['price'] ?? 0);
-      else res = (dA['currentStock'] ?? 0).compareTo(dB['currentStock'] ?? 0);
+      if (_sortBy == 'name') {
+        // Sort by productCode ascending (handles int or string stored in Firestore)
+        final rawA = dA['productCode'];
+        final rawB = dB['productCode'];
+        final numA = rawA is int ? rawA : int.tryParse(rawA?.toString() ?? '');
+        final numB = rawB is int ? rawB : int.tryParse(rawB?.toString() ?? '');
+        if (numA != null && numB != null) res = numA.compareTo(numB);
+        else if (numA != null) res = -1;
+        else if (numB != null) res = 1;
+        else res = (rawA?.toString() ?? '').compareTo(rawB?.toString() ?? '');
+      } else if (_sortBy == 'price') {
+        res = (dA['price'] ?? 0).compareTo(dB['price'] ?? 0);
+      } else {
+        res = (dA['currentStock'] ?? 0).compareTo(dB['currentStock'] ?? 0);
+      }
       return _sortAscending ? res : -res;
     });
     return list;

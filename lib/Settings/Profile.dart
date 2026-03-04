@@ -243,15 +243,26 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => _navigateTo('BusinessDetails'),
               subtitle: "Manage business profile & details",
             ),
-          // 2. User Management (Staff Management moved here)
-          if (_isAdmin || _hasPermission('staffManagement'))
-            _buildModernTile(
-              title: "Staff Access & Roles",
-              icon: HeroIcons.users,
-              color: const Color(0xFF9C27B0),
-              onTap: () => _navigateTo('UserManagement'),
-              subtitle: "Manage staff & permissions",
-            ),
+          // 2. User Management (Staff Management - always visible, plan check on tap)
+          _buildModernTile(
+            title: "Staff Access & Roles",
+            icon: HeroIcons.users,
+            color: const Color(0xFF9C27B0),
+            onTap: () async {
+              final canAccess = await PlanPermissionHelper.canAccessStaffManagement();
+              if (!mounted) return;
+              if (canAccess) {
+                _navigateTo('UserManagement');
+              } else {
+                PlanPermissionHelper.showUpgradeDialog(
+                  context,
+                  'Staff Access & Roles',
+                  uid: widget.uid,
+                );
+              }
+            },
+            subtitle: "Manage staff & permissions",
+          ),
           // 3. Tax Settings - only visible if admin or has taxSettings permission
           if (_isAdmin || _hasPermission('taxSettings'))
             _buildModernTile(
