@@ -1884,7 +1884,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                     if (widget.customerPhone != null)
                       Text('Phone: ${widget.customerPhone}', style: tStyle(size: 10, color: kBlack54)),
                     if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
-                      Text('GSTIN: ${widget.customerGSTIN}', style: tStyle(size: 10, color: kBlack54)),
+                      Text('Tax: ${widget.customerGSTIN}', style: tStyle(size: 10, color: kBlack54)),
                   ],
                 ),
               ),
@@ -1913,28 +1913,24 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 ),
               ),
               // Items List
-              ...widget.items.asMap().entries.map((entry) {
+               ...widget.items.asMap().entries.map((entry) {
                 final item = entry.value;
                 final name = item['name'] ?? 'Item';
                 final qty = item['quantity'] ?? 1;
                 final price = (item['price'] ?? 0.0).toDouble();
                 final total = (item['total'] ?? 0.0).toDouble();
-                final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
-                final taxName = (item['taxName'] ?? '') as String;
                 return Container(
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey300, width: 0.5))),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
+                       Expanded(
                         flex: 5,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(name, style: tStyle(size: 11), softWrap: true),
-                            if (taxName.isNotEmpty && taxPerc > 0)
-                              Text('$taxName ${taxPerc.toStringAsFixed(0)}%', style: tStyle(size: 9, color: kBlack54)),
                           ],
                         ),
                       ),
@@ -1956,7 +1952,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                 children: [
                   Text('Subtotal', style: tStyle(size: 12, weight: FontWeight.w600)),
                   if (_thermalShowTotalItemQuantity) Text('${totalQty.toInt()}', style: tStyle(size: 12, weight: FontWeight.w600)),
-                  Text('$currency ${widget.subtotal.toStringAsFixed(2)}', style: tStyle(size: 12, weight: FontWeight.w600)),
+                  Text(widget.subtotal.toStringAsFixed(2), style: tStyle(size: 12, weight: FontWeight.w600)),
                 ],
               ),
             ),
@@ -1985,7 +1981,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Discount', style: tStyle(size: 11, color: kBlack54)),
-                    Text('-$currency ${widget.discount.toStringAsFixed(2)}', style: tStyle(size: 11, weight: FontWeight.w600)),
+                    Text('-${widget.discount.toStringAsFixed(2)}', style: tStyle(size: 11, weight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -1997,7 +1993,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Delivery Charge', style: tStyle(size: 11, color: kBlack54)),
-                    Text('+$currency ${widget.deliveryCharge.toStringAsFixed(2)}', style: tStyle(size: 11, weight: FontWeight.w600)),
+                    Text('+${widget.deliveryCharge.toStringAsFixed(2)}', style: tStyle(size: 11, weight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -2412,20 +2408,13 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         final qty = item['quantity'] ?? 1;
         final price = (item['price'] ?? 0.0).toDouble();
         final total = (item['total'] ?? 0.0).toDouble();
-        final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
-        final taxName = (item['taxName'] ?? '') as String;
 
         totalQty += (qty is int ? qty : (qty as num).toInt());
 
-        // Include currency in price and amt columns
-        List<String> itemLines = _formatTableRowMultiLine(name, '$qty', '$tCur${price.toStringAsFixed(2)}', '$tCur${total.toStringAsFixed(2)}', lineWidth);
+        // No currency in table columns; no tax sub-line
+        List<String> itemLines = _formatTableRowMultiLine(name, '$qty', price.toStringAsFixed(2), total.toStringAsFixed(2), lineWidth);
         for (String line in itemLines) {
           bytes.addAll(enc(line));
-          bytes.add(lf);
-        }
-        // Print tax info as a sub-line if applicable
-        if (taxName.isNotEmpty && taxPerc > 0) {
-          bytes.addAll(enc('  ${taxName.isNotEmpty ? taxName : "Tax"} ${taxPerc.toStringAsFixed(0)}%'));
           bytes.add(lf);
         }
       }
@@ -2434,7 +2423,7 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
       bytes.addAll(enc(dividerLine));
       bytes.add(lf);
       bytes.addAll([esc, 0x21, 0x08]);
-      bytes.addAll(enc(_formatTwoColumns('Subtotal  $totalQty items', '$tCur${widget.subtotal.toStringAsFixed(2)}', lineWidth)));
+      bytes.addAll(enc(_formatTwoColumns('Subtotal  $totalQty items', widget.subtotal.toStringAsFixed(2), lineWidth)));
       bytes.addAll([esc, 0x21, 0x00]);
       bytes.add(lf);
 
@@ -2445,20 +2434,20 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
         for (var tax in widget.taxes!) {
           final taxName = tax['name'] ?? 'Tax';
           final taxAmount = (tax['amount'] ?? 0.0).toDouble();
-          bytes.addAll(enc(_formatTwoColumns(_toThermalSafe(taxName), '$tCur${taxAmount.toStringAsFixed(2)}', lineWidth)));
+          bytes.addAll(enc(_formatTwoColumns(_toThermalSafe(taxName), taxAmount.toStringAsFixed(2), lineWidth)));
           bytes.add(lf);
         }
       }
 
       // Discount
       if (widget.discount > 0) {
-        bytes.addAll(enc(_formatTwoColumns('Discount', '-$tCur${widget.discount.toStringAsFixed(2)}', lineWidth)));
+        bytes.addAll(enc(_formatTwoColumns('Discount', '-${widget.discount.toStringAsFixed(2)}', lineWidth)));
         bytes.add(lf);
       }
 
       // Delivery Charge
       if (widget.deliveryCharge > 0) {
-        bytes.addAll(enc(_formatTwoColumns('Delivery Charge', '+$tCur${widget.deliveryCharge.toStringAsFixed(2)}', lineWidth)));
+        bytes.addAll(enc(_formatTwoColumns('Delivery Charge', '+${widget.deliveryCharge.toStringAsFixed(2)}', lineWidth)));
         bytes.add(lf);
       }
 
@@ -2816,7 +2805,6 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
   }
 
   Future<pw.Document> _generatePdf() async {
-    // Load fonts for currency symbol support
     final fontData = await rootBundle.load("fonts/NotoSans-Regular.ttf");
     final ttf = pw.Font.ttf(fontData);
     final fontBoldData = await rootBundle.load("fonts/NotoSans-Bold.ttf");
@@ -2841,342 +2829,132 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
     }
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: pw.EdgeInsets.zero,
         theme: pw.ThemeData.withFont(base: ttf, bold: ttfBold),
-        build: (pw.Context context) {
-          final themeColor = PdfColor.fromInt(a4Colors['primary']!.toARGB32());
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // ── HEADER — white bg, top accent border ──
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
-                  border: pw.Border(
-                    top: pw.BorderSide(color: themeColor, width: 5),
-                    bottom: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                  ),
-                ),
-                child: pw.Row(
-                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                  children: [
-                    // Logo
-                    if (_a4ShowLogo && logoImage != null)
-                      pw.Container(
-                        width: 52, height: 52,
-                        margin: const pw.EdgeInsets.only(right: 16),
-                        child: pw.Image(logoImage, fit: pw.BoxFit.cover),
-                      )
-                    else if (_a4ShowLogo)
-                      pw.Container(
-                        width: 52, height: 52,
-                        margin: const pw.EdgeInsets.only(right: 16),
-                        decoration: pw.BoxDecoration(
-                          color: PdfColor(themeColor.red, themeColor.green, themeColor.blue, 0.08),
-                          border: pw.Border.all(color: PdfColor(themeColor.red, themeColor.green, themeColor.blue, 0.3)),
-                          borderRadius: pw.BorderRadius.circular(8),
-                        ),
-                        child: pw.Center(
-                          child: pw.Text(
-                            businessName.isNotEmpty ? businessName[0].toUpperCase() : 'B',
-                            style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: themeColor),
-                          ),
-                        ),
-                      ),
-                    // Business Info
-                    pw.Expanded(
-                      child: pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(businessName, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
-                          if (_showLocation && businessLocation.isNotEmpty) ...[
-                            pw.SizedBox(height: 3),
-                            pw.Text(businessLocation, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                          ],
-                          if (_showPhone && businessPhone.isNotEmpty) ...[
-                            pw.SizedBox(height: 2),
-                            pw.Text('Tel: $businessPhone', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                          ],
-                          if (_showEmail && businessEmail != null && businessEmail!.isNotEmpty) ...[
-                            pw.SizedBox(height: 2),
-                            pw.Text('Email: $businessEmail', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                          ],
-                          if (_showGST && businessGSTIN != null) ...[
-                            pw.SizedBox(height: 2),
-                            pw.Text('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN', style: pw.TextStyle(fontSize: 10, color: PdfColors.black, fontWeight: pw.FontWeight.bold)),
-                          ],
-                          if (_a4ShowLicense && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty) ...[
-                            pw.SizedBox(height: 2),
-                            pw.Text('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber', style: pw.TextStyle(fontSize: 10, color: PdfColors.black, fontWeight: pw.FontWeight.bold)),
-                          ],
-                        ],
-                      ),
-                    ),
-                    // Invoice badge — small coloured tag only
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: pw.BoxDecoration(
-                            color: themeColor,
-                            borderRadius: pw.BorderRadius.circular(4),
-                          ),
-                          child: pw.Text(
-                            widget.isPaymentReceipt ? 'PAYMENT RECEIPT' : (widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE'),
-                            style: pw.TextStyle(color: PdfColors.white, fontSize: 11, fontWeight: pw.FontWeight.bold),
-                          ),
-                        ),
-                        pw.SizedBox(height: 6),
-                        pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
-                        pw.SizedBox(height: 2),
-                        pw.Text(dateStr, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
 
-              // ── CONTENT AREA ──────────────────────────
-              pw.Expanded(
-                child: pw.Container(
-                  width: double.infinity,
-                  padding: const pw.EdgeInsets.all(40),
+        // ── HEADER — first page only ─────────────────────────────────────
+        header: (pw.Context context) {
+          if (context.pageNumber > 1) return pw.SizedBox.shrink();
+          final themeColor = PdfColor.fromInt(a4Colors['primary']!.toARGB32());
+          return pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.white,
+              border: pw.Border(
+                top: pw.BorderSide(color: themeColor, width: 5),
+                bottom: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+              ),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                // Logo
+                if (_a4ShowLogo && logoImage != null)
+                  pw.Container(
+                    width: 52, height: 52,
+                    margin: const pw.EdgeInsets.only(right: 16),
+                    child: pw.Image(logoImage, fit: pw.BoxFit.cover),
+                  )
+                else if (_a4ShowLogo)
+                  pw.Container(
+                    width: 52, height: 52,
+                    margin: const pw.EdgeInsets.only(right: 16),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColor(themeColor.red, themeColor.green, themeColor.blue, 0.08),
+                      border: pw.Border.all(color: PdfColor(themeColor.red, themeColor.green, themeColor.blue, 0.3)),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        businessName.isNotEmpty ? businessName[0].toUpperCase() : 'B',
+                        style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: themeColor),
+                      ),
+                    ),
+                  ),
+                // Business Info
+                pw.Expanded(
                   child: pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      // Customer
-                      if (widget.customerName != null) ...[
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(14),
-                          decoration: pw.BoxDecoration(
-                            color: const PdfColor.fromInt(0xFFF7F8FA),
-                            border: pw.Border.all(color: PdfColors.grey300),
-                            borderRadius: pw.BorderRadius.circular(6),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('BILL TO', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: themeColor, letterSpacing: 1.2)),
-                              pw.SizedBox(height: 4),
-                              pw.Text(widget.customerName!, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
-                              if (widget.customerPhone != null)
-                                pw.Text(widget.customerPhone!, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
-                              if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
-                                pw.Text('GSTIN: ${widget.customerGSTIN}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
-                            ],
-                          ),
-                        ),
-                        pw.SizedBox(height: 20),
+                      pw.Text(businessName, style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+                      if (_showLocation && businessLocation.isNotEmpty) ...[
+                        pw.SizedBox(height: 3),
+                        pw.Text(businessLocation, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                       ],
-
-                      // ── ITEMS TABLE ──────────────────────────
-                      pw.Table(
-                        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-                        columnWidths: _a4ShowTaxColumn ? {
-                          0: const pw.FlexColumnWidth(4.5),   // Item
-                          1: const pw.FixedColumnWidth(36),   // Qty
-                          2: const pw.FlexColumnWidth(1.6),   // Rate
-                          3: const pw.FlexColumnWidth(1.4),   // Tax
-                          4: const pw.FlexColumnWidth(1.6),   // Total
-                        } : {
-                          0: const pw.FlexColumnWidth(5),     // Item
-                          1: const pw.FixedColumnWidth(36),   // Qty
-                          2: const pw.FlexColumnWidth(1.8),   // Rate
-                          3: const pw.FlexColumnWidth(1.8),   // Total
-                        },
-                        children: [
-                          // Header row
-                          pw.TableRow(
-                            decoration: pw.BoxDecoration(color: themeColor),
-                            children: [
-                              _pdfCell('ITEM / DESCRIPTION', ttfBold, isHeader: true),
-                              _pdfCell('QTY', ttfBold, isHeader: true, align: pw.TextAlign.center),
-                              _pdfCell('RATE', ttfBold, isHeader: true, align: pw.TextAlign.right),
-                              if (_a4ShowTaxColumn)
-                                _pdfCell('TAX', ttfBold, isHeader: true, align: pw.TextAlign.right),
-                              _pdfCell('AMOUNT', ttfBold, isHeader: true, align: pw.TextAlign.right),
-                            ],
-                          ),
-                          // Data rows
-                          ...widget.items.asMap().entries.map((e) {
-                            final idx = e.key;
-                            final item = e.value;
-                            final name = (item['name'] ?? 'Item') as String;
-                            final qty = item['quantity'] ?? 1;
-                            final price = (item['price'] ?? 0.0).toDouble();
-                            final total = (item['total'] ?? 0.0).toDouble();
-                            final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
-                            final taxName = (item['taxName'] ?? '') as String;
-                            final taxAmt = taxPerc > 0 ? (total - (total / (1 + taxPerc / 100))) : 0.0;
-                            final isEven = idx.isEven;
-                            final rowBg = isEven ? PdfColors.white : const PdfColor.fromInt(0xFFF9FAFB);
-                            return pw.TableRow(
-                              decoration: pw.BoxDecoration(color: rowBg),
-                              children: [
-                                pw.Padding(
-                                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-                                  child: pw.Column(
-                                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                    children: [
-                                      pw.Text(name, style: pw.TextStyle(font: ttfBold, fontSize: 10)),
-                                      if (taxName.isNotEmpty && taxPerc > 0)
-                                        pw.Text('$taxName ${taxPerc.toStringAsFixed(0)}%', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
-                                    ],
-                                  ),
-                                ),
-                                _pdfCell(
-                                  qty is double && qty % 1 != 0 ? qty.toStringAsFixed(2) : '$qty',
-                                  ttf, align: pw.TextAlign.center, isEven: isEven,
-                                ),
-                                _pdfCell('$currency${price.toStringAsFixed(2)}', ttf, align: pw.TextAlign.right, isEven: isEven),
-                                if (_a4ShowTaxColumn)
-                                  _pdfCell(
-                                    taxPerc > 0 ? '$currency${taxAmt.toStringAsFixed(2)}' : '-',
-                                    ttf, align: pw.TextAlign.right, isEven: isEven,
-                                  ),
-                                _pdfCell('$currency${total.toStringAsFixed(2)}', ttfBold, align: pw.TextAlign.right, isEven: isEven, bold: true, color: themeColor),
-                              ],
-                            );
-                          }),
-                        ],
-                      ),
-                      pw.SizedBox(height: 16),
-
-                      // Totals (right-aligned, white box with grey border)
-                      pw.Align(
-                        alignment: pw.Alignment.centerRight,
-                        child: pw.Container(
-                          width: 220,
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(color: PdfColors.grey300),
-                            borderRadius: pw.BorderRadius.circular(6),
-                          ),
-                          child: pw.Column(
-                            children: [
-                              _invoicePdfTotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}', ttf, ttfBold),
-                              if (widget.discount > 0)
-                                _invoicePdfTotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', ttf, ttfBold, isDiscount: true),
-                              if (widget.taxes != null && widget.taxes!.isNotEmpty)
-                                ...widget.taxes!.map((tax) => _invoicePdfTotalRow(
-                                  tax['name'] ?? 'Tax',
-                                  '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}',
-                                  ttf, ttfBold,
-                                )),
-                              if (widget.deliveryCharge > 0)
-                                _invoicePdfTotalRow('Delivery', '+$currency${widget.deliveryCharge.toStringAsFixed(2)}', ttf, ttfBold),
-                              pw.Container(height: 1, color: PdfColors.grey300),
-                              // Grand total row — white bg, theme colour text only
-                              pw.Container(
-                                color: PdfColors.white,
-                                padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                child: pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text('TOTAL', style: pw.TextStyle(font: ttfBold, fontSize: 13, fontWeight: pw.FontWeight.bold, color: themeColor)),
-                                    pw.Text('$currency${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(font: ttfBold, fontSize: 14, fontWeight: pw.FontWeight.bold, color: themeColor)),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // Bill Notes — plain grey
-                      if (widget.customNote != null && widget.customNote!.isNotEmpty) ...[
-                        pw.SizedBox(height: 14),
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(12),
-                          decoration: pw.BoxDecoration(
-                            color: const PdfColor.fromInt(0xFFF7F8FA),
-                            border: pw.Border.all(color: PdfColors.grey300),
-                            borderRadius: pw.BorderRadius.circular(6),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('Note:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
-                              pw.SizedBox(height: 4),
-                              pw.Text(widget.customNote!, style: const pw.TextStyle(fontSize: 10)),
-                            ],
-                          ),
-                        ),
+                      if (_showPhone && businessPhone.isNotEmpty) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Text('Tel: $businessPhone', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                       ],
-
-                      // Delivery Address — plain grey
-                      if (widget.deliveryAddress != null && widget.deliveryAddress!.isNotEmpty) ...[
-                        pw.SizedBox(height: 10),
-                        pw.Container(
-                          width: double.infinity,
-                          padding: const pw.EdgeInsets.all(12),
-                          decoration: pw.BoxDecoration(
-                            color: const PdfColor.fromInt(0xFFF7F8FA),
-                            border: pw.Border.all(color: PdfColors.grey300),
-                            borderRadius: pw.BorderRadius.circular(6),
-                          ),
-                          child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('Delivery Address:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
-                              pw.SizedBox(height: 4),
-                              pw.Text(widget.deliveryAddress!, style: const pw.TextStyle(fontSize: 10)),
-                            ],
-                          ),
-                        ),
+                      if (_showEmail && businessEmail != null && businessEmail!.isNotEmpty) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Text('Email: $businessEmail', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
                       ],
-
-                      pw.Spacer(),
-
-                      // Signature lines - commented out (not shown on invoice)
-                      // pw.Row(
-                      //   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      //   children: [
-                      //     pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-                      //       pw.Container(width: 120, height: 1, color: PdfColors.grey400),
-                      //       pw.SizedBox(height: 4),
-                      //       pw.Text('Authorized Signature', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-                      //     ]),
-                      //     pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
-                      //       pw.Container(width: 120, height: 1, color: PdfColors.grey400),
-                      //       pw.SizedBox(height: 4),
-                      //       pw.Text('Customer Signature', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey600)),
-                      //     ]),
-                      //   ],
-                      // ),
-                      pw.SizedBox(height: 16),
+                      if (_showGST && businessGSTIN != null) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Text('${businessTaxTypeName ?? 'GSTIN'}: $businessGSTIN', style: pw.TextStyle(fontSize: 10, color: PdfColors.black, fontWeight: pw.FontWeight.bold)),
+                      ],
+                      if (_a4ShowLicense && businessLicenseNumber != null && businessLicenseNumber!.isNotEmpty) ...[
+                        pw.SizedBox(height: 2),
+                        pw.Text('${businessLicenseTypeName ?? 'License'}: $businessLicenseNumber', style: pw.TextStyle(fontSize: 10, color: PdfColors.black, fontWeight: pw.FontWeight.bold)),
+                      ],
                     ],
                   ),
                 ),
-              ),
-
-              // ── FOOTER — light grey, dark text, left accent ──
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                decoration: pw.BoxDecoration(
-                  color: const PdfColor.fromInt(0xFFF7F8FA),
-                  border: pw.Border(
-                    top: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
-                    left: pw.BorderSide(color: themeColor, width: 5),
-                  ),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                // Invoice badge — small coloured tag only
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Expanded(
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: pw.BoxDecoration(
+                        color: themeColor,
+                        borderRadius: pw.BorderRadius.circular(4),
+                      ),
                       child: pw.Text(
-                        _a4SaleInvoiceText.isNotEmpty ? _a4SaleInvoiceText : 'Thank you for your business!',
-                        style: pw.TextStyle(font: ttfBold, fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
-                        textAlign: pw.TextAlign.center,
+                        widget.isPaymentReceipt ? 'PAYMENT RECEIPT' : (widget.isQuotation ? 'QUOTATION' : 'TAX INVOICE'),
+                        style: pw.TextStyle(color: PdfColors.white, fontSize: 11, fontWeight: pw.FontWeight.bold),
                       ),
                     ),
+                    pw.SizedBox(height: 6),
+                    pw.Text('#${widget.invoiceNumber}', style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+                    pw.SizedBox(height: 2),
+                    pw.Text(dateStr, style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+
+        // ── FOOTER — last page only ───────────────────────────────────────
+        footer: (pw.Context context) {
+          if (context.pageNumber < context.pagesCount) return pw.SizedBox.shrink();
+          final themeColor = PdfColor.fromInt(a4Colors['primary']!.toARGB32());
+          return pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+            decoration: pw.BoxDecoration(
+              color: const PdfColor.fromInt(0xFFF7F8FA),
+              border: pw.Border(
+                top: const pw.BorderSide(color: PdfColors.grey300, width: 0.5),
+                left: pw.BorderSide(color: themeColor, width: 5),
+              ),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Expanded(
+                  child: pw.Text(
+                    _a4SaleInvoiceText.isNotEmpty ? _a4SaleInvoiceText : 'Thank you for your business!',
+                    style: pw.TextStyle(font: ttfBold, fontSize: 13, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Row(
+                  children: [
                     if (!_isPaidPlan)
                       pw.Column(
                         crossAxisAlignment: pw.CrossAxisAlignment.end,
@@ -3185,11 +2963,214 @@ class _InvoicePageState extends State<InvoicePage> with TickerProviderStateMixin
                           pw.Text('www.maxmybill.com', style: pw.TextStyle(font: ttfBold, fontSize: 8, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                         ],
                       ),
+                    pw.SizedBox(width: 8),
+                    pw.Text(
+                      'Page ${context.pageNumber} of ${context.pagesCount}',
+                      style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600),
+                    ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           );
+        },
+
+        // ── BODY — flows across pages automatically ───────────────────────
+        build: (pw.Context context) {
+          final themeColor = PdfColor.fromInt(a4Colors['primary']!.toARGB32());
+          return [
+            pw.Padding(
+              padding: const pw.EdgeInsets.fromLTRB(40, 20, 40, 0),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  // Customer block
+                  if (widget.customerName != null) ...[
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(14),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor.fromInt(0xFFF7F8FA),
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: pw.BorderRadius.circular(6),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('BILL TO', style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: themeColor, letterSpacing: 1.2)),
+                          pw.SizedBox(height: 4),
+                          pw.Text(widget.customerName!, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+                          if (widget.customerPhone != null)
+                            pw.Text(widget.customerPhone!, style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700)),
+                          if (widget.customerGSTIN != null && widget.customerGSTIN!.isNotEmpty)
+                            pw.Text('GSTIN: ${widget.customerGSTIN}', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                        ],
+                      ),
+                    ),
+                    pw.SizedBox(height: 20),
+                  ],
+
+                  // ── ITEMS TABLE ──
+                  pw.Table(
+                    border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+                    columnWidths: _a4ShowTaxColumn ? {
+                      0: const pw.FlexColumnWidth(4.5),
+                      1: const pw.FixedColumnWidth(36),
+                      2: const pw.FlexColumnWidth(1.6),
+                      3: const pw.FlexColumnWidth(1.4),
+                      4: const pw.FlexColumnWidth(1.6),
+                    } : {
+                      0: const pw.FlexColumnWidth(5),
+                      1: const pw.FixedColumnWidth(36),
+                      2: const pw.FlexColumnWidth(1.8),
+                      3: const pw.FlexColumnWidth(1.8),
+                    },
+                    children: [
+                      // Header row
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(color: themeColor),
+                        children: [
+                          _pdfCell('ITEM / DESCRIPTION', ttfBold, isHeader: true),
+                          _pdfCell('QTY', ttfBold, isHeader: true, align: pw.TextAlign.center),
+                          _pdfCell('RATE', ttfBold, isHeader: true, align: pw.TextAlign.right),
+                          if (_a4ShowTaxColumn)
+                            _pdfCell('TAX', ttfBold, isHeader: true, align: pw.TextAlign.right),
+                          _pdfCell('AMOUNT', ttfBold, isHeader: true, align: pw.TextAlign.right),
+                        ],
+                      ),
+                      // ALL item rows — MultiPage handles page breaks automatically
+                      ...widget.items.asMap().entries.map((e) {
+                        final idx = e.key;
+                        final item = e.value;
+                        final name = (item['name'] ?? 'Item') as String;
+                        final qty = item['quantity'] ?? 1;
+                        final price = (item['price'] ?? 0.0).toDouble();
+                        final total = (item['total'] ?? 0.0).toDouble();
+                        final taxPerc = (item['taxPercentage'] ?? 0).toDouble();
+                        final taxName = (item['taxName'] ?? '') as String;
+                        final taxAmt = (item['taxAmount'] ?? (taxPerc > 0 ? (total - (total / (1 + taxPerc / 100))) : 0.0)).toDouble();
+                        final isEven = idx.isEven;
+                        final rowBg = isEven ? PdfColors.white : const PdfColor.fromInt(0xFFF9FAFB);
+                        return pw.TableRow(
+                          decoration: pw.BoxDecoration(color: rowBg),
+                          children: [
+                            pw.Padding(
+                              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+                              child: pw.Column(
+                                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                                children: [
+                                  pw.Text(name, style: pw.TextStyle(font: ttfBold, fontSize: 10)),
+                                  if (taxName.isNotEmpty && taxPerc > 0)
+                                    pw.Text('$taxName ${taxPerc.toStringAsFixed(0)}%', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey600)),
+                                ],
+                              ),
+                            ),
+                            _pdfCell(
+                              qty is double && qty % 1 != 0 ? qty.toStringAsFixed(2) : '$qty',
+                              ttf, align: pw.TextAlign.center, isEven: isEven,
+                            ),
+                            _pdfCell('$currency${price.toStringAsFixed(2)}', ttf, align: pw.TextAlign.right, isEven: isEven),
+                            if (_a4ShowTaxColumn)
+                              _pdfCell(
+                                taxPerc > 0 ? '$currency${taxAmt.toStringAsFixed(2)}' : '-',
+                                ttf, align: pw.TextAlign.right, isEven: isEven,
+                              ),
+                            _pdfCell('$currency${total.toStringAsFixed(2)}', ttfBold, align: pw.TextAlign.right, isEven: isEven, bold: true, color: themeColor),
+                          ],
+                        );
+                      }),
+                    ],
+                  ),
+                  pw.SizedBox(height: 16),
+
+                  // Totals box
+                  pw.Align(
+                    alignment: pw.Alignment.centerRight,
+                    child: pw.Container(
+                      width: 220,
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: pw.BorderRadius.circular(6),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          _invoicePdfTotalRow('Subtotal', '$currency${widget.subtotal.toStringAsFixed(2)}', ttf, ttfBold),
+                          if (widget.discount > 0)
+                            _invoicePdfTotalRow('Discount', '-$currency${widget.discount.toStringAsFixed(2)}', ttf, ttfBold, isDiscount: true),
+                          if (widget.taxes != null && widget.taxes!.isNotEmpty)
+                            ...widget.taxes!.map((tax) => _invoicePdfTotalRow(
+                              tax['name'] ?? 'Tax',
+                              '$currency${(tax['amount'] ?? 0.0).toStringAsFixed(2)}',
+                              ttf, ttfBold,
+                            )),
+                          if (widget.deliveryCharge > 0)
+                            _invoicePdfTotalRow('Delivery', '+$currency${widget.deliveryCharge.toStringAsFixed(2)}', ttf, ttfBold),
+                          pw.Container(height: 1, color: PdfColors.grey300),
+                          pw.Container(
+                            color: PdfColors.white,
+                            padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: pw.Row(
+                              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                              children: [
+                                pw.Text('TOTAL', style: pw.TextStyle(font: ttfBold, fontSize: 13, fontWeight: pw.FontWeight.bold, color: themeColor)),
+                                pw.Text('$currency${widget.total.toStringAsFixed(2)}', style: pw.TextStyle(font: ttfBold, fontSize: 14, fontWeight: pw.FontWeight.bold, color: themeColor)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Bill Notes
+                  if (widget.customNote != null && widget.customNote!.isNotEmpty) ...[
+                    pw.SizedBox(height: 14),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(12),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor.fromInt(0xFFF7F8FA),
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: pw.BorderRadius.circular(6),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Note:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                          pw.SizedBox(height: 4),
+                          pw.Text(widget.customNote!, style: const pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  // Delivery Address
+                  if (widget.deliveryAddress != null && widget.deliveryAddress!.isNotEmpty) ...[
+                    pw.SizedBox(height: 10),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(12),
+                      decoration: pw.BoxDecoration(
+                        color: const PdfColor.fromInt(0xFFF7F8FA),
+                        border: pw.Border.all(color: PdfColors.grey300),
+                        borderRadius: pw.BorderRadius.circular(6),
+                      ),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text('Delivery Address:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
+                          pw.SizedBox(height: 4),
+                          pw.Text(widget.deliveryAddress!, style: const pw.TextStyle(fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  pw.SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ];
         },
       ),
     );

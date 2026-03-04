@@ -12,6 +12,8 @@ import 'package:maxbillup/Menu/Menu.dart' hide kWhite, kPrimaryColor, kErrorColo
 import 'package:maxbillup/services/currency_service.dart';
 import 'package:maxbillup/services/number_generator_service.dart';
 import 'package:maxbillup/Receipts/PaymentReceiptPage.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // =============================================================================
 // MAIN PAGE: CUSTOMER DETAILS
@@ -551,6 +553,11 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         });
       });
 
+      // Generate payment receipt number first
+      final paymentReceiptPrefix = await NumberGeneratorService.getPaymentReceiptPrefix();
+      final paymentReceiptNumber = await NumberGeneratorService.generatePaymentReceiptNumber();
+      final fullReceiptNumber = '$paymentReceiptPrefix$paymentReceiptNumber';
+
       await creditsCollection.add({
         'customerId': widget.customerId,
         'customerName': widget.customerData['name'],
@@ -560,12 +567,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
         'note': 'Sales Credit Added via Customer Management',
+        'receiptNumber': fullReceiptNumber,
       });
-
-      // Generate payment receipt
-      final paymentReceiptPrefix = await NumberGeneratorService.getPaymentReceiptPrefix();
-      final paymentReceiptNumber = await NumberGeneratorService.generatePaymentReceiptNumber();
-      final fullReceiptNumber = '$paymentReceiptPrefix$paymentReceiptNumber';
 
       // Create payment receipt record
       final paymentReceipts = await FirestoreService().getStoreCollection('paymentReceipts');
@@ -1325,13 +1328,125 @@ class CustomerCreditsPage extends StatelessWidget {
                 icon = HeroIcons.arrowUp;
               }
 
+              final customerName = (data['customerName'] ?? customerId).toString();
+              final invoiceNum = (data['invoiceNumber'] ?? '').toString();
+              final receiptNum = (data['receiptNumber'] ?? '').toString();
+              final dateStr = DateFormat('dd MMM yyyy').format(date);
+
+              // Build share message
+              final String shareMsg = _buildShareMessage(
+                title: title,
+                customerName: customerName,
+                amount: amount,
+                date: dateStr,
+                method: method.toString(),
+                invoiceNumber: invoiceNum,
+                receiptNumber: receiptNum,
+                note: note.toString(),
+              );
+
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
-                child: ListTile(
-                  leading: CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), radius: 18, child: HeroIcon(icon, color: color, size: 16)),
-                  title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kBlack87)),
-                  subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} • $method${data['invoiceNumber'] != null ? ' • #${data['invoiceNumber']}' : ''}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text(amount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: color, decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                decoration: BoxDecoration(
+                  color: kWhite,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isCancelled ? Colors.transparent : kGrey200),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: color.withValues(alpha: 0.1),
+                        radius: 18,
+                        child: HeroIcon(icon, color: color, size: 16),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(title,
+                                style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                    color: isCancelled ? Colors.grey : kBlack87,
+                                    decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                            const SizedBox(height: 2),
+                            Text(
+                              "$dateStr • $method${invoiceNum.isNotEmpty ? ' • #$invoiceNum' : ''}",
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54),
+                            ),
+                            if (receiptNum.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                'Receipt No: $receiptNum',
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF4A5DF9)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            amount.toStringAsFixed(2),
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 14,
+                                color: isCancelled ? Colors.grey : color,
+                                decoration: isCancelled ? TextDecoration.lineThrough : null),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // WhatsApp direct share
+                              Builder(builder: (ctx) {
+                                final cleanPhone = customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
+                                final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
+                                if (!hasPhone) return const SizedBox.shrink();
+                                return GestureDetector(
+                                  onTap: () async {
+                                    final waUrl = Uri.parse(
+                                        'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMsg)}');
+                                    if (await canLaunchUrl(waUrl)) {
+                                      await launchUrl(waUrl, mode: LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF25D366).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                    ),
+                                    child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 15),
+                                  ),
+                                );
+                              }),
+                              const SizedBox(width: 5),
+                              // General share
+                              GestureDetector(
+                                onTap: () => Share.share(shareMsg, subject: '$title – $customerName'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
+                                  ),
+                                  child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 15),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
@@ -1341,5 +1456,27 @@ class CustomerCreditsPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  String _buildShareMessage({
+    required String title,
+    required String customerName,
+    required double amount,
+    required String date,
+    required String method,
+    required String invoiceNumber,
+    required String receiptNumber,
+    required String note,
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('--- $title ---');
+    buffer.writeln('Customer : $customerName');
+    buffer.writeln('Date     : $date');
+    buffer.writeln('Amount   : $amount');
+    if (method.isNotEmpty) buffer.writeln('Method   : $method');
+    if (invoiceNumber.isNotEmpty) buffer.writeln('Invoice  : #$invoiceNumber');
+    if (receiptNumber.isNotEmpty) buffer.writeln('Receipt  : $receiptNumber');
+    if (note.isNotEmpty && note != 'null') buffer.writeln('Note     : $note');
+    return buffer.toString().trim();
   }
 }

@@ -474,7 +474,7 @@ class _MenuPageState extends State<MenuPage> {
 
     switch (index) {
       case 0:
-      case 1:
+        // Upgrade Now → Subscription plan
         Navigator.push(
           context,
           CupertinoPageRoute(
@@ -485,22 +485,37 @@ class _MenuPageState extends State<MenuPage> {
           ),
         );
         break;
-      case 2:
+      case 1:
+        // Update Now → DayBook
         Navigator.push(
           context,
           CupertinoPageRoute(
-            builder: (_) => NewSalePage(
+            builder: (_) => DayBookPage(
+              uid: widget.uid,
+              onBack: () => Navigator.pop(context),
+            ),
+          ),
+        );
+        break;
+      case 2:
+        // Start Billing → Staff Access & Roles
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => StaffManagementPage(
               uid: widget.uid,
               userEmail: widget.userEmail,
+              onBack: () => Navigator.pop(context),
             ),
           ),
         );
         break;
       case 3:
+        // View Report → Credit Tracker
         Navigator.push(
           context,
           CupertinoPageRoute(
-            builder: (_) => DayBookPage(
+            builder: (_) => CreditDetailsPage(
               uid: widget.uid,
               onBack: () => Navigator.pop(context),
             ),
@@ -4185,6 +4200,13 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             final docs = snapshot.data?.docs ?? [];
             final filtered = docs.where((d) {
               final data = d.data() as Map<String, dynamic>;
+
+              // ── Hide fully settled credit notes ──────────────────────
+              final status = (data['status'] ?? '').toString();
+              if (status == 'Used' || status == 'Settled') return false;
+              final remaining = ((data['amount'] ?? 0.0) as num) - ((data['paidAmount'] ?? 0.0) as num);
+              if (remaining <= 0) return false;
+
               final supplier = (data['supplierName'] ?? '').toString().toLowerCase();
               final noteNo = (data['creditNoteNumber'] ?? '').toString().toLowerCase();
               return supplier.contains(_searchQuery) || noteNo.contains(_searchQuery);
@@ -4193,7 +4215,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             double totalPurchaseCredit = 0.0;
             for (var doc in filtered) {
               final data = doc.data() as Map<String, dynamic>;
-              totalPurchaseCredit += ((data['amount'] ?? 0.0) - (data['paidAmount'] ?? 0.0)) as num;
+              final amt = (data['amount'] ?? 0.0 as num).toDouble();
+              final paid = (data['paidAmount'] ?? 0.0 as num).toDouble();
+              totalPurchaseCredit += (amt - paid).clamp(0.0, double.infinity);
             }
 
             if (filtered.isEmpty && _searchQuery.isEmpty) return _buildEmptyState("No pending purchase credits.");
@@ -4504,92 +4528,145 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                         'Please clear your dues at the earliest to avoid any inconvenience.\n\n'
                         'Thank you!';
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: kGreyBg,
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: kErrorColor.withOpacity(0.15)),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: const Color(0xFFFBE9E7),
-                              child: Text(
-                                customerName.isNotEmpty ? customerName[0].toUpperCase() : '?',
-                                style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87, fontSize: 14)),
-                                  const SizedBox(height: 2),
-                                  Text(customerPhone, style: const TextStyle(fontSize: 11, color: kBlack54)),
-                                  if (dueLabel.isNotEmpty)
-                                    Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '$_currencySymbol${totalDue.toStringAsFixed(2)}',
-                                  style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
+                        onTap: () async {
+                          // Navigate to customer credit details page to send reminder
+                          Navigator.pop(context); // close bottom sheet
+                          // Fetch customer data from Firestore
+                          try {
+                            final customersCol = await FirestoreService().getStoreCollection('customers');
+                            final custDoc = await customersCol.doc(customerPhone).get();
+                            final custData = custDoc.exists
+                                ? (custDoc.data() as Map<String, dynamic>)
+                                : {'name': customerName, 'phone': customerPhone};
+                            final balance = (custData['balance'] ?? totalDue).toDouble();
+                            if (mounted) {
+                              Navigator.push(
+                                this.context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomerCreditDetailsPage(
+                                    customerId: customerPhone,
+                                    customerData: custData,
+                                    currentBalance: balance,
+                                  ),
                                 ),
-                                Text('$billCount bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
-                                const SizedBox(height: 6),
-                                // Share & WhatsApp row
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+                              );
+                            }
+                          } catch (_) {
+                            if (mounted) {
+                              Navigator.push(
+                                this.context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomerCreditDetailsPage(
+                                    customerId: customerPhone,
+                                    customerData: {'name': customerName, 'phone': customerPhone},
+                                    currentBalance: totalDue,
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: kGreyBg,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: kErrorColor.withOpacity(0.15)),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: const Color(0xFFFBE9E7),
+                                  child: Text(
+                                    customerName.isNotEmpty ? customerName[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87, fontSize: 14)),
+                                      const SizedBox(height: 2),
+                                      Text(customerPhone, style: const TextStyle(fontSize: 11, color: kBlack54)),
+                                      if (dueLabel.isNotEmpty)
+                                        Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
+                                      const SizedBox(height: 4),
+                                      // Tap to send reminder hint
+                                      Row(
+                                        children: [
+                                          Icon(Icons.touch_app_rounded, size: 11, color: kPrimaryColor.withOpacity(0.7)),
+                                          const SizedBox(width: 3),
+                                          Text('Tap to send reminder', style: TextStyle(fontSize: 10, color: kPrimaryColor.withOpacity(0.7), fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    // WhatsApp button (if phone is a valid number)
-                                    if (RegExp(r'^\d{7,15}$').hasMatch(customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '')))
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final cleanPhone = customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '');
-                                          final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMessage)}');
-                                          if (await launcher.canLaunchUrl(waUrl)) {
-                                            await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
-                                          }
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF25D366).withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                    Text(
+                                      '$_currencySymbol${totalDue.toStringAsFixed(2)}',
+                                      style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
+                                    ),
+                                    Text('$billCount bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
+                                    const SizedBox(height: 6),
+                                    // Share & WhatsApp row
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // WhatsApp button (if phone is a valid number)
+                                        if (RegExp(r'^\d{7,15}$').hasMatch(customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '')))
+                                          GestureDetector(
+                                            onTap: () async {
+                                              final cleanPhone = customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '');
+                                              final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMessage)}');
+                                              if (await launcher.canLaunchUrl(waUrl)) {
+                                                await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
+                                              }
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF25D366).withOpacity(0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                              ),
+                                              child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                            ),
                                           ),
-                                          child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                        const SizedBox(width: 6),
+                                        // Share via other apps
+                                        GestureDetector(
+                                          onTap: () {
+                                            Share.share(shareMessage, subject: 'Overdue Payment Reminder – $customerName');
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.all(6),
+                                            decoration: BoxDecoration(
+                                              color: kPrimaryColor.withOpacity(0.08),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
+                                            ),
+                                            child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
+                                          ),
                                         ),
-                                      ),
-                                    const SizedBox(width: 6),
-                                    // Share via other apps
-                                    GestureDetector(
-                                      onTap: () {
-                                        Share.share(shareMessage, subject: 'Overdue Payment Reminder – $customerName');
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: kPrimaryColor.withOpacity(0.08),
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
-                                        ),
-                                        child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     );
@@ -5368,6 +5445,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     final note = (data['note'] ?? '').toString();
     final dateStr = data['date'] as String?;
     final creditDueDateStr = data['creditDueDate'] as String?;
+    final receiptNumber = (data['receiptNumber'] ?? '').toString();
 
     DateTime? billDate;
     DateTime? dueDate;
@@ -5452,6 +5530,20 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       ),
                   ],
                 ),
+                // Receipt Number Row (shown when receipt number is available after settlement)
+                if (receiptNumber.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.confirmation_number_outlined, size: 14, color: kPrimaryColor),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Receipt No: $receiptNumber',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kPrimaryColor),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 12),
 
                 // Due Date Row
@@ -5492,14 +5584,74 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                         Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: kGoogleGreen.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
-                      ),
-                      child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                    Row(
+                      children: [
+                        // WhatsApp direct share button
+                        Builder(builder: (context) {
+                          final customerName = (widget.customerData['name'] ?? '').toString();
+                          final duePart = dueDate != null
+                              ? '\nDue Date : ${dueDate.day.toString().padLeft(2, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.year}'
+                              : '';
+                          final receiptPart = receiptNumber.isNotEmpty ? '\nReceipt  : $receiptNumber' : '';
+                          final msg =
+                              'Dear $customerName,\n\n'
+                              'This is a reminder for your pending credit bill.\n\n'
+                              'Invoice  : #$invoiceNumber'
+                              '$duePart'
+                              '$receiptPart\n'
+                              'Amount   : $_currencySymbol${amount.toStringAsFixed(2)}\n\n'
+                              'Please settle at the earliest. Thank you!';
+                          final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
+                          final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (hasPhone)
+                                GestureDetector(
+                                  onTap: () async {
+                                    final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
+                                    if (await launcher.canLaunchUrl(waUrl)) {
+                                      await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
+                                    }
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF25D366).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                    ),
+                                    child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                  ),
+                                ),
+                              if (hasPhone) const SizedBox(width: 6),
+                              // General share button
+                              GestureDetector(
+                                onTap: () => Share.share(msg, subject: 'Credit Bill Reminder – $customerName'),
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: kPrimaryColor.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
+                                  ),
+                                  child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: kGoogleGreen.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+                                ),
+                                child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
                   ],
                 ),
@@ -5518,6 +5670,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     final note = (data['note'] ?? 'Manual Credit Added').toString();
     final dateStr = data['date'] as String?;
     final method = (data['method'] ?? 'Cash').toString();
+    final receiptNumber = (data['receiptNumber'] ?? '').toString();
 
     DateTime? addedDate;
     if (dateStr != null) addedDate = DateTime.tryParse(dateStr);
@@ -5541,6 +5694,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                 currentBalance: widget.currentBalance,
                 billAmount: amount,
                 creditDocId: doc.id,
+                receiptNumber: receiptNumber.isNotEmpty ? receiptNumber : null,
               ),
             ),
           ).then((settled) {
@@ -5576,6 +5730,19 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                       ),
                   ],
                 ),
+                if (receiptNumber.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.confirmation_number_outlined, size: 14, color: Colors.purple),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Receipt No: $receiptNumber',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.purple),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 10),
                 // Note
                 if (note.isNotEmpty)
@@ -5620,14 +5787,71 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                         ),
                         const SizedBox(height: 6),
                         // Settle button
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                          decoration: BoxDecoration(
-                            color: kGoogleGreen.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
-                          ),
-                          child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // WhatsApp + Share + Settle
+                            Builder(builder: (context) {
+                              final customerName = (widget.customerData['name'] ?? '').toString();
+                              final receiptPart = receiptNumber.isNotEmpty ? '\nReceipt  : $receiptNumber' : '';
+                              final msg =
+                                  'Dear $customerName,\n\n'
+                                  'This is a reminder for your pending manual credit.\n\n'
+                                  'Amount   : $_currencySymbol${amount.toStringAsFixed(2)}\n'
+                                  'Method   : $method'
+                                  '$receiptPart\n\n'
+                                  'Please settle at the earliest. Thank you!';
+                              final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
+                              final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (hasPhone)
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
+                                        if (await launcher.canLaunchUrl(waUrl)) {
+                                          await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF25D366).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
+                                        ),
+                                        child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                      ),
+                                    ),
+                                  if (hasPhone) const SizedBox(width: 6),
+                                  // General share
+                                  GestureDetector(
+                                    onTap: () => Share.share(msg, subject: 'Manual Credit Reminder – $customerName'),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                                      ),
+                                      child: const Icon(Icons.share_rounded, color: Colors.purple, size: 16),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: kGoogleGreen.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
+                                    ),
+                                    child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                                  ),
+                                ],
+                              );
+                            }),
+                          ],
                         ),
                       ],
                     ),
@@ -7312,6 +7536,7 @@ class _EditBillPageState extends State<EditBillPage> {
   late String? _selectedCustomerPhone;
   late String? _selectedCustomerName;
     late List<Map<String, dynamic>> _items;
+    late List<Map<String, dynamic>> _originalItems; // snapshot of items when page opened
     List<Map<String, dynamic>> _selectedCreditNotes = [];
     double _creditNotesAmount = 0.0;
     bool _isSaving = false;
@@ -7336,6 +7561,7 @@ class _EditBillPageState extends State<EditBillPage> {
     // Copy items to editable list
     final originalItems = widget.invoiceData['items'] as List<dynamic>? ?? [];
     _items = originalItems.map((item) => Map<String, dynamic>.from(item)).toList();
+    _originalItems = originalItems.map((item) => Map<String, dynamic>.from(item)).toList();
 
     // Load previously selected credit notes
     final selectedNotes = widget.invoiceData['selectedCreditNotes'] as List<dynamic>?;
@@ -8565,6 +8791,10 @@ class _EditBillPageState extends State<EditBillPage> {
           'taxPercentage': (data['taxPercentage'] ?? 0).toDouble(),
           'taxName': data['taxName'],
           'taxType': data['taxType'],
+          'stockEnabled': data['stockEnabled'] ?? false,
+          'lowStockAlert': (data['lowStockAlert'] ?? 0.0).toDouble(),
+          'expiryDate': data['expiryDate'] ?? '',
+          'stockUnit': data['stockUnit'] ?? '',
         };
       }).toList();
 
@@ -8644,47 +8874,182 @@ class _EditBillPageState extends State<EditBillPage> {
                   Expanded(
                     child: filteredProducts.isEmpty
                         ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 40, color: kGrey300), const SizedBox(height: 12), const Text("No matches found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]))
-                        : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                        : ListView.builder(
+                      padding: const EdgeInsets.all(12),
                       itemCount: filteredProducts.length,
-                      separatorBuilder: (c, i) => const Divider(height: 1, color: kGrey100),
-                      itemBuilder: (context, index) {
-                        final p = filteredProducts[index];
-                        // Calculate tax amount based on tax type
-                        final price = (p['price'] as double?) ?? 0.0;
-                        final taxPercentage = (p['taxPercentage'] as double?) ?? 0.0;
-                        final taxType = p['taxType'] as String?;
-                        double taxAmount = 0.0;
-                        if (taxPercentage > 0) {
-                          if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
-                            final taxRate = taxPercentage / 100;
-                            taxAmount = price - (price / (1 + taxRate));
-                          } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
-                            taxAmount = price * (taxPercentage / 100);
+                        itemBuilder: (context, index) {
+                          final p = filteredProducts[index];
+                          final price = (p['price'] as double?) ?? 0.0;
+                          final taxPercentage = (p['taxPercentage'] as double?) ?? 0.0;
+                          final taxType = p['taxType'] as String?;
+                          final stockEnabled = p['stockEnabled'] as bool? ?? false;
+                          final firestoreStock = (p['stock'] as double?) ?? 0.0;
+                          final lowStockAlert = (p['lowStockAlert'] as double?) ?? 0.0;
+                          final unit = (p['stockUnit'] as String?) ?? '';
+                          final expiryDateStr = (p['expiryDate'] as String?) ?? '';
+
+                          // Compute how many units of this product are already in _items
+                          final alreadyInCart = _items.fold<double>(0.0, (sum, item) {
+                            if ((item['productId'] ?? '').toString() == p['id'].toString()) {
+                              final q = (item['quantity'] is num)
+                                  ? (item['quantity'] as num).toDouble()
+                                  : double.tryParse(item['quantity'].toString()) ?? 0.0;
+                              return sum + q;
+                            }
+                            return sum;
+                          });
+
+                          // Effective stock = Firestore stock minus already-in-cart qty
+                          final effectiveStock = stockEnabled ? (firestoreStock - alreadyInCart).clamp(0.0, double.infinity) : firestoreStock;
+
+                          // Status checks
+                          bool isExpired = false;
+                          if (expiryDateStr.isNotEmpty) {
+                            try {
+                              final expiry = DateTime.parse(expiryDateStr);
+                              isExpired = expiry.isBefore(DateTime.now());
+                            } catch (_) {}
                           }
-                        }
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                          title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          subtitle: Text('Rate: ${p['price']} • Stock: ${p['stock'].toInt()}${taxPercentage > 0 ? ' • Tax: ${taxPercentage.toStringAsFixed(0)}%' : ''}', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                          trailing: const Icon(Icons.add_circle_rounded, color: kHeaderColor, size: 28),
-                          onTap: () {
-                            setState(() {
-                              _items.add({
-                                'productId': p['id'],
-                                'name': p['name'],
-                                'price': p['price'],
-                                'quantity': 1,
-                                'taxPercentage': taxPercentage,
-                                'taxName': p['taxName'],
-                                'taxType': taxType,
-                                'taxAmount': taxAmount,
-                              });
-                            });
-                            Navigator.pop(ctx);
-                          },
-                        );
-                      },
+                          final isOutOfStock = stockEnabled && effectiveStock <= 0;
+                          final isLowStock = stockEnabled && lowStockAlert > 0 && effectiveStock > 0 && effectiveStock <= lowStockAlert;
+
+                          // Border & background colours
+                          final borderColor = isExpired
+                              ? Colors.black.withOpacity(0.5)
+                              : isOutOfStock
+                                  ? kErrorColor.withOpacity(0.4)
+                                  : isLowStock
+                                      ? kOrange.withOpacity(0.4)
+                                      : kGrey200;
+                          final bgColor = isExpired
+                              ? Colors.black.withOpacity(0.04)
+                              : isOutOfStock
+                                  ? kErrorColor.withOpacity(0.04)
+                                  : isLowStock
+                                      ? kOrange.withOpacity(0.04)
+                                      : kWhite;
+
+                          double taxAmount = 0.0;
+                          if (taxPercentage > 0) {
+                            if (taxType == 'Tax Included in Price' || taxType == 'Price includes Tax') {
+                              final taxRate = taxPercentage / 100;
+                              taxAmount = price - (price / (1 + taxRate));
+                            } else if (taxType == 'Add Tax at Billing' || taxType == 'Price is without Tax') {
+                              taxAmount = price * (taxPercentage / 100);
+                            }
+                          }
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(vertical: 3),
+                            decoration: BoxDecoration(
+                              color: bgColor,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: borderColor),
+                            ),
+                            child: Stack(
+                              children: [
+                                ListTile(
+                                  contentPadding: const EdgeInsets.fromLTRB(12, 4, 8, 4),
+                                  title: Text(
+                                    p['name'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: isExpired ? Colors.black : isOutOfStock ? kErrorColor : kBlack87,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Rate: $price${taxPercentage > 0 ? ' • Tax: ${taxPercentage.toStringAsFixed(0)}%' : ''}',
+                                        style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
+                                      ),
+                                      if (stockEnabled) ...[
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${effectiveStock.toStringAsFixed(effectiveStock.truncateToDouble() == effectiveStock ? 0 : 1)} $unit available',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: isOutOfStock
+                                                ? kErrorColor
+                                                : isLowStock
+                                                    ? kOrange
+                                                    : kGoogleGreen,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  trailing: Icon(
+                                    Icons.add_circle_rounded,
+                                    color: isExpired || isOutOfStock ? kGrey300 : kHeaderColor,
+                                    size: 28,
+                                  ),
+                                  onTap: () {
+                                    if (isExpired || isOutOfStock) return; // block adding
+                                    setState(() {
+                                      // Check if this product already exists in _items
+                                      final existingIndex = _items.indexWhere(
+                                        (item) => (item['productId'] ?? '').toString() == p['id'].toString(),
+                                      );
+                                      if (existingIndex != -1) {
+                                        // Increment quantity of the existing item
+                                        final currentQty = (_items[existingIndex]['quantity'] is num)
+                                            ? (_items[existingIndex]['quantity'] as num).toDouble()
+                                            : double.tryParse(_items[existingIndex]['quantity'].toString()) ?? 1.0;
+                                        _items[existingIndex]['quantity'] = currentQty + 1;
+                                      } else {
+                                        // Add as new item
+                                        _items.add({
+                                          'productId': p['id'],
+                                          'name': p['name'],
+                                          'price': p['price'],
+                                          'quantity': 1,
+                                          'taxPercentage': taxPercentage,
+                                          'taxName': p['taxName'],
+                                          'taxType': taxType,
+                                          'taxAmount': taxAmount,
+                                        });
+                                      }
+                                    });
+                                    // Refresh sheet so effectiveStock recalculates
+                                    setSheetState(() {});
+                                  },
+                                ),
+                                // Status badge
+                                if (isExpired)
+                                  Positioned(
+                                    top: 8, right: 42,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(4)),
+                                      child: const Text('EXPIRED', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                    ),
+                                  )
+                                else if (isOutOfStock)
+                                  Positioned(
+                                    top: 8, right: 42,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(color: kErrorColor, borderRadius: BorderRadius.circular(4)),
+                                      child: const Text('OUT OF STOCK', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                    ),
+                                  )
+                                else if (isLowStock)
+                                  Positioned(
+                                    top: 8, right: 42,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(color: kOrange, borderRadius: BorderRadius.circular(4)),
+                                      child: const Text('LOW STOCK', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kWhite)),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
                     ),
                   ),
                 ],
@@ -8713,6 +9078,54 @@ class _EditBillPageState extends State<EditBillPage> {
       final currentEditCount = (widget.invoiceData['editCount'] ?? 0) as int;
 
       final salesCollection = await FirestoreService().getStoreCollection('sales');
+      final productsCollection = await FirestoreService().getStoreCollection('Products');
+
+      // ── Stock diff: compare _originalItems vs _items ──────────────────────
+      // Build a map of productId → total quantity for original and new items
+      Map<String, double> originalQtyMap = {};
+      for (final item in _originalItems) {
+        final id = (item['productId'] ?? '').toString();
+        if (id.isEmpty) continue;
+        final qty = (item['quantity'] is num) ? (item['quantity'] as num).toDouble() : double.tryParse(item['quantity'].toString()) ?? 0.0;
+        originalQtyMap[id] = (originalQtyMap[id] ?? 0) + qty;
+      }
+
+      Map<String, double> newQtyMap = {};
+      for (final item in _items) {
+        final id = (item['productId'] ?? '').toString();
+        if (id.isEmpty) continue;
+        final qty = (item['quantity'] is num) ? (item['quantity'] as num).toDouble() : double.tryParse(item['quantity'].toString()) ?? 0.0;
+        newQtyMap[id] = (newQtyMap[id] ?? 0) + qty;
+      }
+
+      // Collect all unique product IDs across both maps
+      final allProductIds = {...originalQtyMap.keys, ...newQtyMap.keys};
+
+      for (final productId in allProductIds) {
+        final originalQty = originalQtyMap[productId] ?? 0.0;
+        final newQty = newQtyMap[productId] ?? 0.0;
+        final diff = newQty - originalQty; // positive = more stock used, negative = stock restored
+
+        if (diff == 0) continue;
+
+        try {
+          final productDoc = await productsCollection.doc(productId).get();
+          if (!productDoc.exists) continue;
+          final productData = productDoc.data() as Map<String, dynamic>?;
+          if (productData == null) continue;
+          final stockEnabled = productData['stockEnabled'] ?? false;
+          if (!stockEnabled) continue;
+
+          final currentStock = (productData['currentStock'] ?? 0.0).toDouble();
+          final updatedStock = currentStock - diff; // deduct if diff > 0, restore if diff < 0
+          await productsCollection.doc(productId).update({
+            'currentStock': updatedStock < 0 ? 0.0 : updatedStock,
+          });
+        } catch (e) {
+          debugPrint('Stock update error for $productId: $e');
+        }
+      }
+      // ──────────────────────────────────────────────────────────────────────
 
       // Prepare taxes list for storage
       final taxList = taxBreakdown.entries.map((e) => {'name': e.key, 'amount': e.value}).toList();
@@ -8731,8 +9144,8 @@ class _EditBillPageState extends State<EditBillPage> {
         'creditNotesAmount': _creditNotesAmount,
         'updatedAt': FieldValue.serverTimestamp(),
         'editCount': currentEditCount + 1,
-        'status': 'edited', // Mark as edited
-        'hasBeenEdited': true, // Preserve edit history
+        'status': 'edited',
+        'hasBeenEdited': true,
         'editedAt': FieldValue.serverTimestamp(),
       });
 

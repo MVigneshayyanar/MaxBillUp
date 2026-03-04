@@ -377,6 +377,41 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
     } catch (e) { debugPrint(e.toString()); }
   }
 
+  // ── Payment mode chip — identical style to CreateExpense ──────────────
+  Widget _buildPaymentModeChip(String mode, HeroIcons icon) {
+    final isSelected = _paymentMode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _paymentMode = mode;
+          if (mode != 'Credit') _paidAmountController.clear();
+        }),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? kPrimaryColor : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              HeroIcon(icon, size: 18, color: isSelected ? kWhite : kBlack54),
+              const SizedBox(width: 6),
+              Text(
+                mode,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? kWhite : kBlack54,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _savePurchase() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -419,7 +454,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 
       if (_paymentMode == 'Credit' && credit > 0) {
         final cn = await NumberGeneratorService.generatePurchaseCreditNoteNumber();
-        await FirestoreService().addDocument('purchaseCreditNotes', {'creditNoteNumber': cn, 'invoiceNumber': inv, 'purchaseNumber': inv, 'supplierName': _supplierNameController.text.trim(), 'supplierPhone': _supplierPhoneController.text.trim(), 'amount': credit, 'paidAmount': paid, 'timestamp': Timestamp.fromDate(_selectedDate), 'status': 'Available', 'notes': _notesController.text, 'uid': widget.uid, 'type': 'Purchase Credit', 'items': []});
+        await FirestoreService().addDocument('purchaseCreditNotes', {'creditNoteNumber': cn, 'invoiceNumber': inv, 'purchaseNumber': inv, 'supplierName': _supplierNameController.text.trim(), 'supplierPhone': _supplierPhoneController.text.trim(), 'amount': credit, 'paidAmount': 0, 'timestamp': Timestamp.fromDate(_selectedDate), 'status': 'Available', 'notes': _notesController.text, 'uid': widget.uid, 'type': 'Purchase Credit', 'items': []});
       }
       if (mounted) { ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Purchase recorded successfully'), backgroundColor: kGoogleGreen)); widget.onBack(); }
     } catch (e) { debugPrint(e.toString()); } finally { if (mounted) setState(() => _isLoading = false); }
@@ -454,20 +489,49 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                   const SizedBox(height: 16),
                   _buildModernField(_invoiceNumberController, 'Reference Invoice No (Optional)', HeroIcons.documentText),
                   const SizedBox(height: 16),
-                  Row(children: [
-                    Expanded(child: _buildDateSelector()),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildPaymentDropdown()),
-                  ]),
+                  _buildDateSelector(),
+                  const SizedBox(height: 20),
+
+                  // ── Payment Mode chips (same as CreateExpense) ──────────
+                  _buildSectionLabel("PAYMENT MODE"),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: kWhite,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: kGrey200),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildPaymentModeChip('Cash', HeroIcons.banknotes),
+                        _buildPaymentModeChip('Online', HeroIcons.qrCode),
+                        _buildPaymentModeChip('Credit', HeroIcons.wallet),
+                      ],
+                    ),
+                  ),
+
+                  // ── Credit split (shown only when Credit is selected) ───
                   if (_paymentMode == 'Credit') ...[
-                    const SizedBox(height: 16),
-                    _buildModernField(_paidAmountController, 'Paid Amount', HeroIcons.bookOpen, type: const TextInputType.numberWithOptions(decimal: true), onChanged: () => setState(() {})),
+                    const SizedBox(height: 20),
+                    _buildSectionLabel("PAID AMOUNT"),
+                    _buildModernField(
+                      _paidAmountController,
+                      'Paid Amount',
+                      HeroIcons.bookOpen,
+                      type: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: () => setState(() {}),
+                      validator: (v) {
+                        final paid = double.tryParse(v ?? '') ?? 0.0;
+                        final total = double.tryParse(_totalAmountController.text) ?? 0.0;
+                        if (paid > total) return 'Paid amount cannot exceed total';
+                        return null;
+                      },
+                    ),
                     const SizedBox(height: 12),
-                    // Credit Amount Display (auto-calculated)
+                    // Auto-calculated credit amount display
                     Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: _creditAmount > 0 ? Colors.orange.shade50 : kGoogleGreen.withOpacity(0.1),
+                        color: _creditAmount > 0 ? Colors.orange.shade50 : kGoogleGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: _creditAmount > 0 ? Colors.orange : kGoogleGreen),
                       ),
@@ -476,12 +540,22 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
                         children: [
                           Row(
                             children: [
-                              HeroIcon(HeroIcons.wallet, size: 20, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
+                              HeroIcon(HeroIcons.wallet, size: 20,
+                                  color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
                               const SizedBox(width: 8),
-                              Text('Credit Amount:', style: TextStyle(fontWeight: FontWeight.w600, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
+                              Text('Credit Amount:',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
                             ],
                           ),
-                          Text('$_currencySymbol${_creditAmount.toStringAsFixed(2)}', style: TextStyle(fontSize: 18,fontWeight: FontWeight.bold, color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen)),
+                          Text(
+                            '$_currencySymbol${_creditAmount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: _creditAmount > 0 ? Colors.orange.shade700 : kGoogleGreen),
+                          ),
                         ],
                       ),
                     ),
@@ -512,25 +586,31 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
 
   Widget _buildSectionLabel(String text) => Padding(padding: const EdgeInsets.only(bottom: 10, left: 4), child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 0.5)));
 
-  Widget _buildModernField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text, int maxLines = 1, bool isMandatory = false, VoidCallback? onChanged}) {
-    return ValueListenableBuilder(
-      valueListenable: ctrl,
-      builder: (context, val, child) {
-        bool filled = ctrl.text.isNotEmpty;
-        return ValueListenableBuilder<TextEditingValue>(
+  Widget _buildModernField(TextEditingController ctrl, String label, HeroIcons icon,
+      {TextInputType type = TextInputType.text,
+      int maxLines = 1,
+      bool isMandatory = false,
+      VoidCallback? onChanged,
+      String? Function(String?)? validator}) {
+    return ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
       builder: (context, value, _) {
         final bool hasText = value.text.isNotEmpty;
         return TextFormField(
-          controller: ctrl, keyboardType: type, maxLines: maxLines,
+          controller: ctrl,
+          keyboardType: type,
+          maxLines: maxLines,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-          onChanged: (v) { if (onChanged != null) onChanged(); setState(() {}); },
+          onChanged: (v) {
+            if (onChanged != null) onChanged();
+            setState(() {});
+          },
           decoration: InputDecoration(
-            labelText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 20),
-              
-            
-            
-            errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kErrorColor)),
+            labelText: label,
+            prefixIcon: HeroIcon(icon, color: hasText ? kPrimaryColor : kBlack54, size: 20),
+            errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor)),
             filled: true,
             fillColor: const Color(0xFFF8F9FA),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -546,14 +626,15 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
             ),
-            labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-            floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+            labelStyle: TextStyle(
+                color: hasText ? kPrimaryColor : kBlack54,
+                fontSize: 13,
+                fontWeight: FontWeight.w600),
+            floatingLabelStyle: const TextStyle(
+                color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
           ),
-          validator: isMandatory ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null,
-        
-);
-      },
-    );
+          validator: validator ?? (isMandatory ? (v) => (v == null || v.isEmpty) ? 'Required' : null : null),
+        );
       },
     );
   }
@@ -568,13 +649,65 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         ctrl.addListener(() => _supplierNameController.text = ctrl.text);
         return _buildModernField(ctrl, 'Supplier Name *', HeroIcons.buildingStorefront, isMandatory: true);
       },
-      optionsViewBuilder: (ctx, onSel, options) => Align(alignment: Alignment.topLeft, child: Material(elevation: 4, borderRadius: BorderRadius.circular(12), child: Container(width: MediaQuery.of(context).size.width - 40, constraints: const BoxConstraints(maxHeight: 250), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: ListView.separated(padding: EdgeInsets.zero, shrinkWrap: true, itemCount: options.length, separatorBuilder: (_, __) => const Divider(height: 1), itemBuilder: (ctx, i) { final v = options.elementAt(i); return ListTile(dense: true, leading: CircleAvatar(backgroundColor: kPrimaryColor.withOpacity(0.1), radius: 16, child: Text(v['name'][0].toUpperCase(), style: const TextStyle(color: kPrimaryColor,fontWeight: FontWeight.bold, fontSize: 12))), title: Text(v['name'], style: const TextStyle(fontWeight: FontWeight.w600)), subtitle: Text(v['phone'] ?? '--', style: const TextStyle(fontSize: 10)), onTap: () => onSel(v)); })))),
+      optionsViewBuilder: (ctx, onSel, options) => Align(
+        alignment: Alignment.topLeft,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: MediaQuery.of(context).size.width - 40,
+            constraints: const BoxConstraints(maxHeight: 280),
+            decoration: BoxDecoration(
+              color: kWhite,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kGrey200),
+            ),
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              itemCount: options.length,
+              separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+              itemBuilder: (ctx, i) {
+                final v = options.elementAt(i);
+                final totalPurchases = (v['totalPurchases'] ?? 0.0).toDouble();
+                final purchaseCount = (v['purchaseCount'] ?? 0) as int;
+                final hasStats = totalPurchases > 0 || purchaseCount > 0;
+                return ListTile(
+                  dense: true,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: kPrimaryColor.withOpacity(0.1),
+                    radius: 18,
+                    child: Text(
+                      v['name'].toString().isNotEmpty ? v['name'][0].toUpperCase() : 'S',
+                      style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  title: Text(v['name'] ?? '', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87)),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if ((v['phone'] ?? '').toString().isNotEmpty)
+                        Text(v['phone'], style: const TextStyle(fontSize: 11, color: kBlack54)),
+                      if (hasStats)
+                        Text(
+                          '$purchaseCount bill${purchaseCount != 1 ? 's' : ''} • ${_currencySymbol}${totalPurchases.toStringAsFixed(0)} total',
+                          style: TextStyle(fontSize: 10, color: Colors.grey[600], fontWeight: FontWeight.w500),
+                        ),
+                    ],
+                  ),
+                  onTap: () => onSel(v),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildDateSelector() => GestureDetector(onTap: () async { final p = await showDatePicker(context: context, initialDate: _selectedDate, firstDate: DateTime(2020), lastDate: DateTime(2030)); if(p != null) setState(() => _selectedDate = p); }, child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: Row(children: [const HeroIcon(HeroIcons.calendar, size: 16, color: kPrimaryColor), const SizedBox(width: 10), Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))])));
 
-  Widget _buildPaymentDropdown() => Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4), decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)), child: DropdownButtonHideUnderline(child: DropdownButton<String>(value: _paymentMode, isExpanded: true, icon: const HeroIcon(HeroIcons.chevronDown, color: kBlack54), items: ['Cash', 'Online', 'Credit'].map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(), onChanged: (v) => setState(() => _paymentMode = v!))));
 
   Widget _buildBottomAction() => SafeArea(child: Container(padding: const EdgeInsets.fromLTRB(20, 12, 20, 12), decoration: const BoxDecoration(color: kWhite, border: Border(top: BorderSide(color: kGrey200))), child: SizedBox(width: double.infinity, height: 56, child: ElevatedButton(onPressed: _isLoading ? null : _savePurchase, style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: _isLoading ? const CircularProgressIndicator(color: kWhite) : const Text('Save purchase', style: TextStyle(color: kWhite, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5))))));
 }
