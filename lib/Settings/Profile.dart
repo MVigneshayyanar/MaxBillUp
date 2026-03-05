@@ -1095,7 +1095,15 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Later', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))),
           ElevatedButton(
-            onPressed: () { Navigator.pop(ctx); /* Navigate to upgrade page */ },
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (_) => SubscriptionPlanPage(uid: widget.uid, currentPlan: 'free'),
+                ),
+              );
+            },
             style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
             child: const Text('Upgrade', style: TextStyle(color: kWhite, fontWeight: FontWeight.bold)),
           ),

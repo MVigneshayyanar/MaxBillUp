@@ -1106,9 +1106,17 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
   }
 
   Future<void> _initializeCombinedStream() async {
+    // Create controller immediately and emit empty list — no more infinite spinner
+    _controller = StreamController<List<QueryDocumentSnapshot>>.broadcast();
+    if (mounted) setState(() => _combinedStream = _controller!.stream);
+    // Emit empty list right away so StreamBuilder shows empty state instead of loading
+    _controller!.add([]);
+
     try {
-      final salesCollection = await FirestoreService().getStoreCollection('sales');
-      final savedOrdersCollection = await FirestoreService().getStoreCollection('savedOrders');
+      final salesCollection = await FirestoreService().getStoreCollection('sales')
+          .timeout(const Duration(seconds: 8), onTimeout: () => throw Exception('timeout'));
+      final savedOrdersCollection = await FirestoreService().getStoreCollection('savedOrders')
+          .timeout(const Duration(seconds: 8), onTimeout: () => throw Exception('timeout'));
 
       final salesStream = salesCollection.snapshots();
       final savedOrdersStream = savedOrdersCollection.snapshots();
@@ -1118,17 +1126,14 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
       void updateController() {
         if (_controller == null || _controller!.isClosed) return;
-        final allDocs = [...salesDocs, ...savedOrdersDocs];
-        _controller!.add(allDocs);
+        _controller!.add([...salesDocs, ...savedOrdersDocs]);
       }
 
-      _controller = StreamController<List<QueryDocumentSnapshot>>.broadcast();
       _salesSub = salesStream.listen((snapshot) { salesDocs = snapshot.docs; updateController(); });
       _savedOrdersSub = savedOrdersStream.listen((snapshot) { savedOrdersDocs = snapshot.docs; updateController(); });
-
-      if (mounted) setState(() => _combinedStream = _controller!.stream);
     } catch (e) {
-      if (mounted) setState(() => _combinedStream = Stream.value([]));
+      // Already emitted empty list above, nothing more needed
+      debugPrint('SalesHistoryPage stream init error: $e');
     }
   }
 
@@ -1205,7 +1210,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           centerTitle: true,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22),
             onPressed: widget.onBack,
           ),
           title: Text(context.tr('billhistory'),
@@ -1216,13 +1221,18 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             _buildHeaderSection(),
             Expanded(
               child: FutureBuilder<int>(
-                future: PlanPermissionHelper.getBillHistoryDaysLimit(),
+                future: PlanPermissionHelper.getBillHistoryDaysLimit().timeout(
+                  const Duration(seconds: 5),
+                  onTimeout: () => 7,
+                ),
                 builder: (context, planSnap) {
                   final limit = planSnap.data ?? 7;
                   return StreamBuilder<List<QueryDocumentSnapshot>>(
                     stream: _combinedStream,
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      if (_combinedStream == null || !snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                      }
                       final list = _processList(snapshot.data!, limit);
                       if (list.isEmpty) return _buildEmpty();
 
@@ -1324,7 +1334,10 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                 decoration: InputDecoration(
                   hintText: context.tr('search'),
                   hintStyle: TextStyle(color: kBlack54, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                  prefixIcon: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                  ),
                   filled: true,
                   fillColor: const Color(0xFFF8F9FA),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -1350,15 +1363,15 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             ),
           ),
           const SizedBox(width: 10),
-          _buildHeaderActionBtn(Icons.sort_rounded, _showSortMenu),
+          _buildHeaderActionBtn(HeroIcons.bars3BottomLeft, _showSortMenu),
           const SizedBox(width: 8),
-          _buildHeaderActionBtn(Icons.tune_rounded, _showFilterMenu),
+          _buildHeaderActionBtn(HeroIcons.adjustmentsHorizontal, _showFilterMenu),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderActionBtn(IconData icon, VoidCallback onTap) {
+  Widget _buildHeaderActionBtn(HeroIcons icon, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -1369,7 +1382,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kGrey200),
         ),
-        child: Icon(icon, color: kPrimaryColor, size: 22),
+        child: Center(child: HeroIcon(icon, color: kPrimaryColor, size: 22)),
       ),
     );
   }
@@ -1409,7 +1422,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             child: Column(
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text("Invoice $inv", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                  Row(children: [
+                    const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                    const SizedBox(width: 5),
+                    Text("Invoice $inv", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                  ]),
                   Text(formattedDateTime, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500))
                 ]),
                 const SizedBox(height: 10),
@@ -1417,7 +1434,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                    child: const Icon(Icons.person_rounded, size: 16, color: kBlack54),
+                    child: const HeroIcon(HeroIcons.user, size: 16, color: kBlack54),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -1559,7 +1576,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Sort History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              Row(children: [
+                const HeroIcon(HeroIcons.bars3BottomLeft, color: kPrimaryColor, size: 20),
+                const SizedBox(width: 10),
+                const Text('Sort History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              ]),
               const SizedBox(height: 16),
               _sortItem("Newest First", SortOption.dateNewest),
               _sortItem("Oldest First", SortOption.dateOldest),
@@ -1578,7 +1599,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       onTap: () { setState(() => _currentSort = option); Navigator.pop(context); },
       contentPadding: EdgeInsets.zero,
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kPrimaryColor : kBlack87)),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: kPrimaryColor) : null,
+      trailing: isSelected ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 22) : null,
     );
   }
 
@@ -1596,7 +1617,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Filter Bills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              Row(children: [
+                const HeroIcon(HeroIcons.adjustmentsHorizontal, color: kPrimaryColor, size: 20),
+                const SizedBox(width: 10),
+                const Text('Filter Bills', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
+              ]),
               const SizedBox(height: 16),
               _filterItem("All Records", 'all'),
               _filterItem("Settled Only", 'settled'),
@@ -1617,11 +1642,29 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
       onTap: () { setState(() => _statusFilter = value); Navigator.pop(context); },
       contentPadding: EdgeInsets.zero,
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? kPrimaryColor : kBlack87)),
-      trailing: isSelected ? const Icon(Icons.check_circle, color: kPrimaryColor) : null,
+      trailing: isSelected ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 22) : null,
     );
   }
 
-  Widget _buildEmpty() => Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.receipt_long, size: 64, color: kGrey300), const SizedBox(height: 16), Text(context.tr('nobillsfound'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]));
+  Widget _buildEmpty() => Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          width: 80, height: 80,
+          decoration: BoxDecoration(
+            color: kPrimaryColor.withValues(alpha: 0.08),
+            shape: BoxShape.circle,
+          ),
+          child: const Center(child: HeroIcon(HeroIcons.documentText, size: 38, color: kPrimaryColor)),
+        ),
+        const SizedBox(height: 20),
+        const Text("No Bills Found", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87, fontFamily: 'NotoSans')),
+        const SizedBox(height: 8),
+        const Text("No billing records for the selected filter", textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: kBlack54, fontFamily: 'Lato')),
+      ],
+    ),
+  );
 }
 
 // ==========================================
@@ -2045,7 +2088,7 @@ class SalesDetailPage extends StatelessWidget {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
       ),
       body: FutureBuilder<DocumentReference>(
         future: FirestoreService().getDocumentReference('sales', documentId),
@@ -2116,7 +2159,7 @@ class SalesDetailPage extends StatelessWidget {
                           CircleAvatar(
                               backgroundColor: kOrange.withOpacity(0.1),
                               radius: 18,
-                              child: const Icon(Icons.person, color: kOrange, size: 18)
+                              child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18)
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -2177,10 +2220,10 @@ class SalesDetailPage extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  _buildDetailRow(Icons.receipt_long_rounded, 'Invoice No', '${data['invoiceNumber']}'),
-                                  _buildDetailRow(Icons.badge_rounded, 'Billed By', data['staffName'] ?? 'owner'),
-                                  _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
-                                  _buildDetailRow(Icons.payment_rounded, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
+                                  _buildDetailRow(HeroIcons.documentText, 'Invoice No', '${data['invoiceNumber']}'),
+                                  _buildDetailRow(HeroIcons.identification, 'Billed By', data['staffName'] ?? 'owner'),
+                                  _buildDetailRow(HeroIcons.calendar, 'Date Issued', dateStr),
+                                  _buildDetailRow(HeroIcons.creditCard, 'Payment Mode', data['paymentMode'] ?? 'Not Set'),
 
                                   // Payment Split Details Section
                                   if (data['paymentMode'] == 'Split' || data['paymentMode'] == 'Credit')
@@ -2199,7 +2242,7 @@ class SalesDetailPage extends StatelessWidget {
                                           children: [
                                             const Row(
                                               children: [
-                                                Icon(Icons.account_balance_wallet_outlined, size: 14, color: kPrimaryColor),
+                                                HeroIcon(HeroIcons.wallet, size: 14, color: kPrimaryColor),
                                                 SizedBox(width: 6),
                                                 Text('Payment Split Details', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
                                               ],
@@ -2207,24 +2250,24 @@ class SalesDetailPage extends StatelessWidget {
                                             const SizedBox(height: 10),
                                             if (data['paymentMode'] == 'Split') ...[
                                               if ((data['cashReceived_split'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.payments_outlined, 'Cash', (data['cashReceived_split'] ?? 0).toDouble(), kGoogleGreen),
+                                                _buildPaymentSplitRow(HeroIcons.banknotes, 'Cash', (data['cashReceived_split'] ?? 0).toDouble(), kGoogleGreen),
                                               if ((data['onlineReceived_split'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.account_balance_outlined, 'Online', (data['onlineReceived_split'] ?? 0).toDouble(), kPrimaryColor),
+                                                _buildPaymentSplitRow(HeroIcons.buildingLibrary, 'Online', (data['onlineReceived_split'] ?? 0).toDouble(), kPrimaryColor),
                                               if ((data['creditIssued_split'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit', (data['creditIssued_split'] ?? 0).toDouble(), kErrorColor),
+                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit', (data['creditIssued_split'] ?? 0).toDouble(), kErrorColor),
                                             ] else if (data['paymentMode'] == 'Credit') ...[
                                               // For Credit payment mode
                                               // Check if partial payment fields exist (when some amount was paid)
                                               if ((data['cashReceived_partial'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.payments_outlined, 'Cash Paid', (data['cashReceived_partial'] ?? 0).toDouble(), kGoogleGreen),
+                                                _buildPaymentSplitRow(HeroIcons.banknotes, 'Cash Paid', (data['cashReceived_partial'] ?? 0).toDouble(), kGoogleGreen),
                                               if ((data['onlineReceived_partial'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.account_balance_outlined, 'Online Paid', (data['onlineReceived_partial'] ?? 0).toDouble(), kPrimaryColor),
+                                                _buildPaymentSplitRow(HeroIcons.buildingLibrary, 'Online Paid', (data['onlineReceived_partial'] ?? 0).toDouble(), kPrimaryColor),
                                               // Show credit amount
                                               if ((data['creditIssued_partial'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit Issued', (data['creditIssued_partial'] ?? 0).toDouble(), kErrorColor)
+                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit Issued', (data['creditIssued_partial'] ?? 0).toDouble(), kErrorColor)
                                               else if ((data['cashReceived_partial'] ?? 0).toDouble() == 0 && (data['onlineReceived_partial'] ?? 0).toDouble() == 0)
                                                 // Fully credit - calculate from total and cashReceived
-                                                _buildPaymentSplitRow(Icons.credit_card_outlined, 'Credit Issued',
+                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit Issued',
                                                   ((data['total'] ?? 0).toDouble() - (data['cashReceived'] ?? 0).toDouble()), kErrorColor),
                                             ],
                                           ],
@@ -2249,7 +2292,7 @@ class SalesDetailPage extends StatelessWidget {
                                           children: [
                                             const Row(
                                               children: [
-                                                Icon(Icons.note_alt_outlined, size: 14, color: kOrange),
+                                                HeroIcon(HeroIcons.pencilSquare, size: 14, color: kOrange),
                                                 SizedBox(width: 6),
                                                 Text('Bill Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange, letterSpacing: 0.5)),
                                               ],
@@ -2281,7 +2324,7 @@ class SalesDetailPage extends StatelessWidget {
                                           children: [
                                             const Row(
                                               children: [
-                                                Icon(Icons.location_on_outlined, size: 14, color: kPrimaryColor),
+                                                HeroIcon(HeroIcons.mapPin, size: 14, color: kPrimaryColor),
                                                 SizedBox(width: 6),
                                                 Text('Customer Notes', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kPrimaryColor, letterSpacing: 0.5)),
                                               ],
@@ -2333,7 +2376,7 @@ class SalesDetailPage extends StatelessWidget {
                                         children: [
                                           Row(
                                             children: [
-                                              const Icon(Icons.keyboard_return_rounded, size: 14, color: kErrorColor),
+                                              const HeroIcon(HeroIcons.arrowUturnLeft, size: 14, color: kErrorColor),
                                               const SizedBox(width: 6),
                                               const Text('Items Returned', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kErrorColor, letterSpacing: 0.5)),
                                               const Spacer(),
@@ -2390,7 +2433,7 @@ class SalesDetailPage extends StatelessWidget {
                                                 child: Row(
                                                   crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
-                                                    const Icon(Icons.remove_circle_outline, size: 12, color: kErrorColor),
+                                                    const HeroIcon(HeroIcons.minusCircle, size: 12, color: kErrorColor),
                                                     const SizedBox(width: 6),
                                                     Expanded(
                                                       child: Column(
@@ -2465,12 +2508,12 @@ class SalesDetailPage extends StatelessWidget {
   }
 
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(HeroIcons icon, String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Icon(icon, size: 14, color: kGrey400),
+          HeroIcon(icon, size: 14, color: kGrey400),
           const SizedBox(width: 10),
           Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)),
           Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis)),
@@ -2479,12 +2522,12 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentSplitRow(IconData icon, String label, double amount, Color color) {
+  Widget _buildPaymentSplitRow(HeroIcons icon, String label, double amount, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: color),
+          HeroIcon(icon, size: 16, color: color),
           const SizedBox(width: 10),
           Expanded(
             child: Text(label, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
@@ -2656,7 +2699,7 @@ class SalesDetailPage extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.keyboard_return_rounded, size: 12, color: kErrorColor),
+                      const HeroIcon(HeroIcons.arrowUturnLeft, size: 12, color: kErrorColor),
                       const SizedBox(width: 4),
                       const Text('Return Deduction', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kErrorColor)),
                     ],
@@ -2699,12 +2742,12 @@ class SalesDetailPage extends StatelessWidget {
 
         // 1. Receipt - only show if there are items
         if (hasItems) {
-          actions.add(_squareActionButton(Icons.receipt_long_rounded, 'Receipt', kPrimaryColor, () => _printInvoiceReceipt(context, documentId, data)));
+          actions.add(_squareActionButton(HeroIcons.documentText, 'Receipt', kPrimaryColor, () => _printInvoiceReceipt(context, documentId, data)));
         }
 
         // 2. Edit
         if (!isCancelled && (perms['canEditBill'] || perms['isAdmin'])) {
-          actions.add(_squareActionButton(Icons.edit_note_rounded, 'Edit', kPrimaryColor, () async {
+          actions.add(_squareActionButton(HeroIcons.pencilSquare, 'Edit', kPrimaryColor, () async {
             if ((data['editCount'] ?? 0) >= 2) {
               showDialog(context: context, builder: (_) => AlertDialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), title: const Text('Limit Reached'), content: const Text('This bill has been edited 2 times. Please cancel and create a new bill for further changes.'), actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))]));
               return;
@@ -2720,12 +2763,12 @@ class SalesDetailPage extends StatelessWidget {
 
         // 3. Return - only show if there are items and not cancelled
           if (hasItems && !isCancelled && (perms['canSaleReturn'] || perms['isAdmin'])) {
-          actions.add(_squareActionButton(Icons.keyboard_return_rounded, 'Return', kPrimaryColor, () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SaleReturnPage(documentId: documentId, invoiceData: data)))));
+          actions.add(_squareActionButton(HeroIcons.arrowUturnLeft, 'Return', kPrimaryColor, () => Navigator.push(context, CupertinoPageRoute(builder: (_) => SaleReturnPage(documentId: documentId, invoiceData: data)))));
         }
 
         // 4. Cancel
         if (!isCancelled && (perms['canCancelBill'] || perms['isAdmin'])) {
-          actions.add(_squareActionButton(Icons.cancel_outlined, 'Cancel', kErrorColor, () => _showCancelBillDialog(context, documentId, data)));
+          actions.add(_squareActionButton(HeroIcons.xCircle, 'Cancel', kErrorColor, () => _showCancelBillDialog(context, documentId, data)));
         }
 
         return Row(
@@ -2736,7 +2779,7 @@ class SalesDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _squareActionButton(IconData icon, String lbl, Color color, VoidCallback onTap) {
+  Widget _squareActionButton(HeroIcons icon, String lbl, Color color, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -2750,7 +2793,7 @@ class SalesDetailPage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: color),
+            HeroIcon(icon, size: 20, color: color),
             const SizedBox(height: 6),
             Text(lbl, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 9)),
           ],
@@ -2963,7 +3006,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22),
             onPressed: widget.onBack,
           ),
         ),
@@ -2996,7 +3039,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                       decoration: InputDecoration(
                         hintText: context.tr('search'),
                         hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
-                        prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                        prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                         filled: true,
                         fillColor: const Color(0xFFF8F9FA),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -3083,7 +3126,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
         child: DropdownButton<String>(
           value: _filterStatus,
           dropdownColor: kWhite,
-          icon: const Icon(Icons.tune_rounded, color: kPrimaryColor, size: 20),
+          icon: const HeroIcon(HeroIcons.adjustmentsHorizontal, color: kPrimaryColor, size: 20),
           items: ['All', 'Available', 'Used'].map((s) => DropdownMenuItem(
               value: s,
               child: Text(s, style: const TextStyle(color: kBlack87,fontWeight: FontWeight.bold, fontSize: 13))
@@ -3130,7 +3173,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                      child: const Icon(Icons.note_rounded, size: 16, color: kBlack54),
+                      child: const HeroIcon(HeroIcons.documentText, size: 16, color: kBlack54),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -3182,7 +3225,7 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 64, color: kGrey300),
+          HeroIcon(HeroIcons.archiveBox, size: 64, color: kGrey300),
           const SizedBox(height: 16),
           Text(context.tr('no_records_found'), style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
         ],
@@ -3220,7 +3263,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22), onPressed: () => Navigator.pop(context)),
       ),
       body: Column(
         children: [
@@ -3231,7 +3274,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
               decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16)),
               child: Row(
                 children: [
-                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.person, color: kOrange, size: 18)),
+                  CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18)),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -3254,10 +3297,10 @@ class _CreditNoteDetailPage extends StatelessWidget {
                   children: [
                     const Text('Note information', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 11, color: kBlack54, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
-                    _buildDetailRow(Icons.receipt_long_rounded, 'Reference ID', creditNoteData['creditNoteNumber'] ?? 'N/A'),
-                    _buildDetailRow(Icons.history_rounded, 'Against Invoice', creditNoteData['invoiceNumber'] ?? 'Manual'),
-                    _buildDetailRow(Icons.calendar_month_rounded, 'Date Issued', dateStr),
-                    _buildDetailRow(Icons.info_outline_rounded, 'Reason', creditNoteData['reason'] ?? 'Not Specified'),
+                    _buildDetailRow(HeroIcons.documentText, 'Reference ID', creditNoteData['creditNoteNumber'] ?? 'N/A'),
+                    _buildDetailRow(HeroIcons.clock, 'Against Invoice', creditNoteData['invoiceNumber'] ?? 'Manual'),
+                    _buildDetailRow(HeroIcons.calendarDays, 'Date Issued', dateStr),
+                    _buildDetailRow(HeroIcons.informationCircle, 'Reason', creditNoteData['reason'] ?? 'Not Specified'),
                     const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: kGrey100, thickness: 1)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       const Text('Total credit value', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: kBlack54)),
@@ -3287,7 +3330,7 @@ class _CreditNoteDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [Icon(icon, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
+  Widget _buildDetailRow(HeroIcons icon, String label, String value) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Row(children: [HeroIcon(icon, size: 14, color: kGrey400), const SizedBox(width: 10), Text('$label: ', style: const TextStyle(color: kBlack54, fontSize: 11, fontWeight: FontWeight.w500)), Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11, color: kBlack87), overflow: TextOverflow.ellipsis))]));
 
   Widget _buildItemTile(Map<String, dynamic> i) => Container(padding: const EdgeInsets.symmetric(vertical: 8), decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: kGrey100))), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(i['name'] ?? 'Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBlack87)), Text("${i['quantity']} ×${(i['price'] ?? 0).toStringAsFixed(0)}", style: const TextStyle(color: kBlack54, fontSize: 11))])), Text("${((i['price'] ?? 0) * (i['quantity'] ?? 1)).toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBlack87))]));
 }
@@ -3444,9 +3487,14 @@ class CustomerBillsPage extends StatelessWidget {
       body: FutureBuilder<QuerySnapshot>(
         future: FirestoreService().getStoreCollection('sales').then((c) => c.where('customerPhone', isEqualTo: phone).get()),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+          }
+          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
+            return _billsEmptyState();
+          }
           final docs = snapshot.data!.docs.toList();
-          if (docs.isEmpty) return const Center(child: Text("No bills found", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold)));
+          if (docs.isEmpty) return _billsEmptyState();
           // Sort by timestamp descending (latest first)
           docs.sort((a, b) {
             final aData = a.data() as Map<String, dynamic>;
@@ -3476,6 +3524,38 @@ class CustomerBillsPage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _billsEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80, height: 80,
+              decoration: BoxDecoration(
+                color: kPrimaryColor.withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const HeroIcon(HeroIcons.documentText, size: 38, color: kPrimaryColor),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              "No Bills Found",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87, fontFamily: 'NotoSans'),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "This customer has no billing history yet",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: kBlack54, fontFamily: 'Lato'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class CustomerCreditsPage extends StatelessWidget {
@@ -3492,7 +3572,7 @@ class CustomerCreditsPage extends StatelessWidget {
         future: _fetchCredits(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.history_rounded, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [HeroIcon(HeroIcons.clock, size: 64, color: kGrey300), const SizedBox(height: 16), const Text("No transaction history", style: TextStyle(color: kBlack54,fontWeight: FontWeight.bold))]));
           final docs = snapshot.data!.docs.toList();
           // Sort by timestamp descending (latest first)
           docs.sort((a, b) {
@@ -3513,7 +3593,7 @@ class CustomerCreditsPage extends StatelessWidget {
               return Container(
                 decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
                 child: ListTile(
-                  leading: CircleAvatar(backgroundColor: (isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor)).withOpacity(0.1), radius: 18, child: Icon(isCancelled ? Icons.close : (isPayment ? Icons.arrow_downward : Icons.arrow_upward), color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), size: 16)),
+                  leading: CircleAvatar(backgroundColor: (isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor)).withOpacity(0.1), radius: 18, child: HeroIcon(isCancelled ? HeroIcons.xMark : (isPayment ? HeroIcons.arrowDown : HeroIcons.arrowUp), color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), size: 16)),
                   title: Text("${isPayment ? "Payment Received" : "Credit Added"}${isCancelled ? " (CANCELLED)" : ""}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: isCancelled ? Colors.grey : kBlack87)),
                   subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
                   trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), decoration: isCancelled ? TextDecoration.lineThrough : null)),
@@ -3679,7 +3759,7 @@ class CreditNoteDetailPage extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -3696,11 +3776,11 @@ class CreditNoteDetailPage extends StatelessWidget {
             _buildSectionCard(
               child: Column(
                 children: [
-                  _buildIconRow(Icons.receipt_long, "Invoice ID", "#${creditNoteData['invoiceNumber']}", kPrimaryColor),
+                  _buildIconRow(HeroIcons.documentText, "Invoice ID", "#${creditNoteData['invoiceNumber']}", kPrimaryColor),
                   const Divider(height: 32),
-                  _buildIconRow(Icons.person, "Customer", creditNoteData['customerName'] ?? 'Guest', kSuccessGreen),
+                  _buildIconRow(HeroIcons.user, "Customer", creditNoteData['customerName'] ?? 'Guest', kSuccessGreen),
                   const Divider(height: 32),
-                  _buildIconRow(Icons.calendar_today, "Issued", dateString, kWarningOrange),
+                  _buildIconRow(HeroIcons.calendarDays, "Issued", dateString, kWarningOrange),
                 ],
               ),
             ),
@@ -3724,7 +3804,7 @@ class CreditNoteDetailPage extends StatelessWidget {
               _buildLargeButton(
                 context,
                 label: "PROCESS REFUND",
-                icon: Icons.check_circle_outline,
+                icon: HeroIcons.checkCircle,
                 color: kSuccessGreen,
                 onPressed: () => _showRefundDialog(context),
               ),
@@ -3775,9 +3855,9 @@ class CreditNoteDetailPage extends StatelessWidget {
             children: [
               const Text('Select refund method:', style: TextStyle(color: kMediumBlue)),
               const SizedBox(height: 24),
-              _buildDialogOption(onSelect: () => setState(() => mode = "Cash"), mode: "Cash", current: mode, icon: Icons.payments, color: kSuccessGreen),
+              _buildDialogOption(onSelect: () => setState(() => mode = "Cash"), mode: "Cash", current: mode, icon: HeroIcons.banknotes, color: kSuccessGreen),
               const SizedBox(height: 12),
-              _buildDialogOption(onSelect: () => setState(() => mode = "Online"), mode: "Online", current: mode, icon: Icons.account_balance, color: kPrimaryColor),
+              _buildDialogOption(onSelect: () => setState(() => mode = "Online"), mode: "Online", current: mode, icon: HeroIcons.buildingLibrary, color: kPrimaryColor),
             ],
           ),
           actions: [
@@ -4029,7 +4109,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             backgroundColor: kPrimaryColor,
             iconTheme: const IconThemeData(color: kWhite),
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back, size: 22),
+              icon: const HeroIcon(HeroIcons.arrowLeft, size: 22),
               onPressed: widget.onBack,
             ),
             title: _isSearching
@@ -4091,7 +4171,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     alignment: Alignment.center,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.notifications, size: 22, color: kWhite),
+                        icon: const HeroIcon(HeroIcons.bell, size: 22, color: kWhite),
                         onPressed: () => _showOverdueBillsSheet(context, list),
                       ),
                       Positioned(
@@ -4117,7 +4197,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 }
               ),
               IconButton(
-                icon: Icon(_isSearching ? Icons.close : Icons.search, size: 22),
+                icon: HeroIcon(_isSearching ? HeroIcons.xMark : HeroIcons.magnifyingGlass, size: 22),
                 onPressed: () => setState(() {
                   _isSearching = !_isSearching;
                   if (!_isSearching) _searchController.clear();
@@ -4260,7 +4340,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: Icon(Icons.account_balance_wallet_rounded, color: color, size: 24),
+            child: HeroIcon(HeroIcons.wallet, color: color, size: 24),
           ),
         ],
       ),
@@ -4307,7 +4387,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     CircleAvatar(
                       backgroundColor: kOrange.withOpacity(0.1),
                       radius: 18,
-                      child: const Icon(Icons.person, color: kOrange, size: 18),
+                      child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -4320,8 +4400,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                 child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
                               ),
                               if (rating > 0) ...[
-                                ...List.generate(5, (i) => Icon(
-                                  i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                ...List.generate(5, (i) => HeroIcon(
+                                  i < rating ? HeroIcons.star : HeroIcons.star,
+                                  style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
                                   size: 12,
                                   color: i < rating ? kOrange : kGrey300,
                                 )),
@@ -4394,7 +4475,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                      child: const Icon(Icons.store_rounded, size: 16, color: kBlack54),
+                      child: const HeroIcon(HeroIcons.buildingStorefront, size: 16, color: kBlack54),
                     ),
                     const SizedBox(width: 10),
                     Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBlack87), overflow: TextOverflow.ellipsis)),
@@ -4486,7 +4567,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber_rounded, color: kErrorColor, size: 24),
+                    const HeroIcon(HeroIcons.exclamationTriangle, color: kErrorColor, size: 24),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text('Overdue Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kErrorColor)),
@@ -4602,7 +4683,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                       // Tap to send reminder hint
                                       Row(
                                         children: [
-                                          Icon(Icons.touch_app_rounded, size: 11, color: kPrimaryColor.withOpacity(0.7)),
+                                          HeroIcon(HeroIcons.cursorArrowRays, size: 11, color: kPrimaryColor.withOpacity(0.7)),
                                           const SizedBox(width: 3),
                                           Text('Tap to send reminder', style: TextStyle(fontSize: 10, color: kPrimaryColor.withOpacity(0.7), fontWeight: FontWeight.w600)),
                                         ],
@@ -4641,7 +4722,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                                 borderRadius: BorderRadius.circular(8),
                                                 border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
                                               ),
-                                              child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                              child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
                                             ),
                                           ),
                                         const SizedBox(width: 6),
@@ -4657,7 +4738,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                                               borderRadius: BorderRadius.circular(8),
                                               border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
                                             ),
-                                            child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
+                                            child: const HeroIcon(HeroIcons.share, color: kPrimaryColor, size: 16),
                                           ),
                                         ),
                                       ],
@@ -4717,11 +4798,11 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                 ),
               ),
               const SizedBox(height: 20),
-              _buildDialogField(amountController, 'Amount to Pay', Icons.money_rounded),
+              _buildDialogField(amountController, 'Amount to Pay', HeroIcons.currencyDollar),
               const SizedBox(height: 20),
-              _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
+              _buildPayOption(setDialogState, paymentMode, 'Cash', HeroIcons.banknotes, kGoogleGreen, (v) => paymentMode = v),
               const SizedBox(height: 8),
-              _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
+              _buildPayOption(setDialogState, paymentMode, 'Online', HeroIcons.buildingLibrary, kPrimaryColor, (v) => paymentMode = v),
             ],
           ),
           actions: [
@@ -4766,8 +4847,9 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       // Show rating edit dialog
                       _showEditRatingDialog(customerId, customerData, i + 1);
                     },
-                    child: Icon(
-                      i < customerRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    child: HeroIcon(
+                      i < customerRating ? HeroIcons.star : HeroIcons.star,
+                      style: i < customerRating ? HeroIconStyle.solid : HeroIconStyle.outline,
                       size: 20,
                       color: i < customerRating ? kOrange : kGrey300,
                     ),
@@ -4783,7 +4865,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.edit_rounded, size: 12, color: kPrimaryColor),
+                          HeroIcon(HeroIcons.pencil, size: 12, color: kPrimaryColor),
                           SizedBox(width: 4),
                           Text('Edit', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kPrimaryColor)),
                         ],
@@ -4811,13 +4893,13 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                _buildDialogField(amountController, 'Settlement Amount', Icons.currency_rupee_rounded),
+                _buildDialogField(amountController, 'Settlement Amount', HeroIcons.currencyDollar),
                 const SizedBox(height: 20),
-                _buildPayOption(setDialogState, paymentMode, 'Cash', Icons.payments_outlined, kGoogleGreen, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Cash', HeroIcons.banknotes, kGoogleGreen, (v) => paymentMode = v),
                 const SizedBox(height: 8),
-                _buildPayOption(setDialogState, paymentMode, 'Online', Icons.account_balance_outlined, kPrimaryColor, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Online', HeroIcons.buildingLibrary, kPrimaryColor, (v) => paymentMode = v),
                 const SizedBox(height: 8),
-                _buildPayOption(setDialogState, paymentMode, 'Waive Off', Icons.block_outlined, kOrange, (v) => paymentMode = v),
+                _buildPayOption(setDialogState, paymentMode, 'Waive Off', HeroIcons.noSymbol, kOrange, (v) => paymentMode = v),
               ],
             ),
           ),
@@ -4839,7 +4921,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     );
   }
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildDialogField(TextEditingController ctrl, String label, HeroIcons icon) {
     return Container(
       decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
       child: ValueListenableBuilder<TextEditingValue>(
@@ -4851,7 +4933,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         decoration: InputDecoration(
-          labelText: label, prefixIcon: Icon(icon, color: kPrimaryColor, size: 18),
+          labelText: label, prefixIcon: HeroIcon(icon, color: kPrimaryColor, size: 18),
           filled: true,
           fillColor: const Color(0xFFF8F9FA),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -4958,14 +5040,15 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                           selectedRating = index + 1;
                         });
                       },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Icon(
-                          index < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 40,
-                          color: index < selectedRating ? kOrange : kGrey300,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: HeroIcon(
+                            index < selectedRating ? HeroIcons.star : HeroIcons.star,
+                            style: index < selectedRating ? HeroIconStyle.solid : HeroIconStyle.outline,
+                            size: 40,
+                            color: index < selectedRating ? kOrange : kGrey300,
+                          ),
                         ),
-                      ),
                     );
                   }),
                 ),
@@ -5071,7 +5154,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(Icons.star_rounded, color: kOrange, size: 20),
+                  const HeroIcon(HeroIcons.star, style: HeroIconStyle.solid, color: kOrange, size: 20),
                   const SizedBox(width: 8),
                   Text(
                     'Customer rated $rating star${rating > 1 ? 's' : ''}',
@@ -5115,7 +5198,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     }
   }
 
-  Widget _buildPayOption(StateSetter setDialogState, String current, String val, IconData icon, Color color, Function(String) onSel) {
+  Widget _buildPayOption(StateSetter setDialogState, String current, String val, HeroIcons icon, Color color, Function(String) onSel) {
     final sel = current == val;
     return InkWell(
       onTap: () => setDialogState(() => onSel(val)),
@@ -5125,11 +5208,11 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
         decoration: BoxDecoration(color: sel ? color.withOpacity(0.08) : Colors.transparent, borderRadius: BorderRadius.circular(12), border: Border.all(color: sel ? color : kGrey200)),
         child: Row(
           children: [
-            Icon(icon, color: sel ? color : kBlack54, size: 18),
+            HeroIcon(icon, color: sel ? color : kBlack54, size: 18),
             const SizedBox(width: 12),
             Text(val, style: TextStyle(color: sel ? color : kBlack87, fontWeight: sel ? FontWeight.w900 : FontWeight.w600, fontSize: 13)),
             const Spacer(),
-            if (sel) Icon(Icons.check_circle_rounded, color: color, size: 18),
+            if (sel) HeroIcon(HeroIcons.checkCircle, color: color, size: 18),
           ],
         ),
       ),
@@ -5178,7 +5261,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
 
   Widget _buildEmptyState(String msg) {
     return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Icon(Icons.receipt_long_outlined, size: 60, color: kPrimaryColor.withOpacity(0.1)),
+      HeroIcon(HeroIcons.documentText, size: 60, color: kPrimaryColor.withOpacity(0.1)),
       const SizedBox(height: 16),
       Text(msg, style: const TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
     ]));
@@ -5381,7 +5464,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle_outline_rounded, size: 60, color: kGoogleGreen.withOpacity(0.3)),
+                                HeroIcon(HeroIcons.checkCircle, size: 60, color: kGoogleGreen.withOpacity(0.3)),
                                 const SizedBox(height: 16),
                                 const Text('No pending credit bills', style: TextStyle(fontWeight: FontWeight.w700, color: kBlack54)),
                               ],
@@ -5518,7 +5601,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.receipt_long_rounded, size: 16, color: kPrimaryColor),
+                        const HeroIcon(HeroIcons.documentText, size: 16, color: kPrimaryColor),
                         const SizedBox(width: 8),
                         Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kPrimaryColor)),
                       ],
@@ -5535,7 +5618,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.confirmation_number_outlined, size: 14, color: kPrimaryColor),
+                      const HeroIcon(HeroIcons.hashtag, size: 14, color: kPrimaryColor),
                       const SizedBox(width: 6),
                       Text(
                         'Receipt No: $receiptNumber',
@@ -5557,7 +5640,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.event_rounded, size: 14, color: dueDateColor),
+                        HeroIcon(HeroIcons.calendarDays, size: 14, color: dueDateColor),
                         const SizedBox(width: 6),
                         Text(
                           '$dueDateLabel: ${dueDate.day.toString().padLeft(2, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.year}',
@@ -5621,7 +5704,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
                                     ),
-                                    child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                    child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
                                   ),
                                 ),
                               if (hasPhone) const SizedBox(width: 6),
@@ -5635,7 +5718,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
                                   ),
-                                  child: const Icon(Icons.share_rounded, color: kPrimaryColor, size: 16),
+                                  child: const HeroIcon(HeroIcons.share, color: kPrimaryColor, size: 16),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -5717,7 +5800,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                             color: Colors.purple.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.add_circle_outline_rounded, size: 14, color: Colors.purple),
+                          child: const HeroIcon(HeroIcons.plusCircle, size: 14, color: Colors.purple),
                         ),
                         const SizedBox(width: 8),
                         const Text('Manual Credit', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.purple)),
@@ -5734,7 +5817,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.confirmation_number_outlined, size: 14, color: Colors.purple),
+                      const HeroIcon(HeroIcons.hashtag, size: 14, color: Colors.purple),
                       const SizedBox(width: 6),
                       Text(
                         'Receipt No: $receiptNumber',
@@ -5776,8 +5859,8 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                method.toLowerCase() == 'online' ? Icons.account_balance_rounded : Icons.payments_outlined,
+                              HeroIcon(
+                                method.toLowerCase() == 'online' ? HeroIcons.buildingLibrary : HeroIcons.banknotes,
                                 color: Colors.purple, size: 11,
                               ),
                               const SizedBox(width: 4),
@@ -5821,7 +5904,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                                           borderRadius: BorderRadius.circular(10),
                                           border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
                                         ),
-                                        child: const Icon(Icons.chat_rounded, color: Color(0xFF25D366), size: 16),
+                                        child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
                                       ),
                                     ),
                                   if (hasPhone) const SizedBox(width: 6),
@@ -5835,7 +5918,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
                                         borderRadius: BorderRadius.circular(10),
                                         border: Border.all(color: Colors.purple.withOpacity(0.2)),
                                       ),
-                                      child: const Icon(Icons.share_rounded, color: Colors.purple, size: 16),
+                                      child: const HeroIcon(HeroIcons.share, color: Colors.purple, size: 16),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -5899,7 +5982,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -5946,7 +6029,7 @@ class _PurchaseCreditNoteDetailPageState extends State<PurchaseCreditNoteDetailP
 
             const SizedBox(height: 32),
             if (remaining > 0)
-              _buildLargeButton(context, label: "Record payment", icon: Icons.receipt_long_rounded, color: kPrimaryColor, onPressed: () {}),
+              _buildLargeButton(context, label: "Record payment", icon: HeroIcons.documentText, color: kPrimaryColor, onPressed: () {}),
           ],
         ),
       ),
@@ -6045,9 +6128,9 @@ Widget _buildDetailTotalRow(num amount, int itemCount) {
   );
 }
 
-Widget _buildIconRow(IconData icon, String label, String value, Color iconColor) {
+Widget _buildIconRow(HeroIcons icon, String label, String value, Color iconColor) {
   return Row(children: [
-    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: iconColor, size: 20)),
+    Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: iconColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: HeroIcon(icon, color: iconColor, size: 20)),
     const SizedBox(width: 16),
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(label, style: const TextStyle(fontSize: 10,fontWeight: FontWeight.bold, color: kMediumBlue)),
@@ -6057,11 +6140,11 @@ Widget _buildIconRow(IconData icon, String label, String value, Color iconColor)
   ]);
 }
 
-Widget _buildLargeButton(BuildContext context, {required String label, required IconData icon, required Color color, required VoidCallback onPressed}) {
+Widget _buildLargeButton(BuildContext context, {required String label, required HeroIcons icon, required Color color, required VoidCallback onPressed}) {
   return SizedBox(
     width: double.infinity, height: 56,
     child: ElevatedButton.icon(
-      onPressed: onPressed, icon: Icon(icon, color: kWhite, size: 20),
+      onPressed: onPressed, icon: HeroIcon(icon, color: kWhite, size: 20),
       label: Text(label, style: const TextStyle(color: kWhite,fontWeight: FontWeight.bold, fontSize: 16)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
@@ -6072,7 +6155,7 @@ Widget _buildLargeButton(BuildContext context, {required String label, required 
   );
 }
 
-Widget _buildDialogOption({required VoidCallback onSelect, required String mode, required String current, required IconData icon, required Color color}) {
+Widget _buildDialogOption({required VoidCallback onSelect, required String mode, required String current, required HeroIcons icon, required Color color}) {
   final isSelected = current == mode;
   return InkWell(
     onTap: onSelect, borderRadius: BorderRadius.circular(12),
@@ -6084,11 +6167,11 @@ Widget _buildDialogOption({required VoidCallback onSelect, required String mode,
         border: Border.all(color: isSelected ? color : Colors.grey.shade200, width: 2),
       ),
       child: Row(children: [
-        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 22, color: color)),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)), child: HeroIcon(icon, size: 22, color: color)),
         const SizedBox(width: 16),
         Text(mode, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isSelected ? color : kDeepNavy)),
         const Spacer(),
-        if (isSelected) Icon(Icons.check_circle, color: color, size: 20),
+        if (isSelected) HeroIcon(HeroIcons.checkCircle, color: color, size: 20),
       ]),
     ),
   );
@@ -6273,8 +6356,8 @@ class _CustomersPageState extends State<CustomersPage> {
             children: [
               const Text('Sort Customers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBlack87)),
               const SizedBox(height: 20),
-              _buildSortOption('Sort by Sales', 'sales', Icons.trending_up_rounded),
-              _buildSortOption('Sort by Credit', 'credit', Icons.account_balance_wallet_rounded),
+              _buildSortOption('Sort by Sales', 'sales', HeroIcons.arrowTrendingUp),
+              _buildSortOption('Sort by Credit', 'credit', HeroIcons.wallet),
             ],
           ),
         ),
@@ -6282,7 +6365,7 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  Widget _buildSortOption(String label, String value, IconData icon) {
+  Widget _buildSortOption(String label, String value, HeroIcons icon) {
     bool isSelected = _sortBy == value;
     return ListTile(
       onTap: () {
@@ -6296,10 +6379,10 @@ class _CustomersPageState extends State<CustomersPage> {
           color: isSelected ? kPrimaryColor.withOpacity(0.1) : kGreyBg,
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 22),
+        child: HeroIcon(icon, color: isSelected ? kPrimaryColor : kBlack54, size: 22),
       ),
       title: Text(label, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, color: isSelected ? kPrimaryColor : kBlack87)),
-      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 20) : null,
+      trailing: isSelected ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 20) : null,
     );
   }
 
@@ -6322,12 +6405,12 @@ class _CustomersPageState extends State<CustomersPage> {
           elevation: 0,
           centerTitle: true,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 22),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22),
             onPressed: widget.onBack,
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.download_rounded, color: kWhite, size: 22),
+              icon: const HeroIcon(HeroIcons.arrowDownTray, color: kWhite, size: 22),
               onPressed: _downloadCustomersList,
               tooltip: 'Download Customers List',
             ),
@@ -6386,7 +6469,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       controller: _searchController,
                       style: const TextStyle(color: kBlack87, fontWeight: FontWeight.w600, fontSize: 14),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search, color: kPrimaryColor, size: 20),
+                        prefixIcon: const HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                         hintText: context.tr('search'),
                         hintStyle: const TextStyle(color: kBlack54, fontSize: 14),
                         filled: true,
@@ -6426,7 +6509,7 @@ class _CustomersPageState extends State<CustomersPage> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: kGrey200),
                     ),
-                    child: const Icon(Icons.sort_rounded, color: kPrimaryColor, size: 22),
+                    child: const HeroIcon(HeroIcons.bars3BottomLeft, color: kPrimaryColor, size: 22),
                   ),
                 ),
               ],
@@ -6536,7 +6619,7 @@ class _CustomersPageState extends State<CustomersPage> {
                         ],
                       ),
                     ),
-                    const Icon(Icons.chevron_right_rounded, color: kGrey400, size: 20),
+                    const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 20),
                   ],
                 ),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
@@ -6572,7 +6655,7 @@ class _CustomersPageState extends State<CustomersPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.people_outline_rounded, size: 64, color: kGrey300),
+          HeroIcon(HeroIcons.userGroup, size: 64, color: kGrey300),
           const SizedBox(height: 16),
           Text(msg, style: const TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
         ],
@@ -6604,7 +6687,7 @@ class StaffManagementList extends StatelessWidget {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: onBack),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite), onPressed: onBack),
       ),
       body: Column(
         children: [
@@ -6616,7 +6699,7 @@ class StaffManagementList extends StatelessWidget {
                 const Text("Staff Overview", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kMediumBlue, letterSpacing: 0.5)),
                 TextButton.icon(
                   onPressed: onAddStaff,
-                  icon: const Icon(Icons.add_circle_outline, size: 20, color: kWhite),
+                  icon: const HeroIcon(HeroIcons.plusCircle, size: 20, color: kWhite),
                   label: const Text("ADD NEW", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kWhite)),
                   style: TextButton.styleFrom(
                       backgroundColor: kPrimaryColor,
@@ -6713,7 +6796,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
         backgroundColor: kPrimaryColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(icon: const Icon(Icons.arrow_back, color: kWhite), onPressed: widget.onBack),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite), onPressed: widget.onBack),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -6723,11 +6806,11 @@ class _AddStaffPageState extends State<AddStaffPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildManagerSectionTitle("LOGIN INFORMATION"),
-              _buildManagerFormTextField(_nameCtrl, "Staff Full Name", Icons.badge_outlined),
+              _buildManagerFormTextField(_nameCtrl, "Staff Full Name", HeroIcons.identification),
               const SizedBox(height: 16),
-              _buildManagerFormTextField(_emailCtrl, "Email Address / User ID", Icons.alternate_email_outlined),
+              _buildManagerFormTextField(_emailCtrl, "Email Address / User ID", HeroIcons.atSymbol),
               const SizedBox(height: 16),
-              _buildManagerFormTextField(_passCtrl, "Password", Icons.vpn_key_outlined, isObscure: true),
+              _buildManagerFormTextField(_passCtrl, "Password", HeroIcons.key, isObscure: true),
               const SizedBox(height: 32),
               _buildManagerSectionTitle("ACCESS PERMISSIONS"),
               Container(
@@ -6742,7 +6825,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
                     value: _selectedRole,
                     isExpanded: true,
                     dropdownColor: kWhite,
-                    icon: const Icon(Icons.expand_more, color: kPrimaryColor),
+                    icon: const HeroIcon(HeroIcons.chevronDown, color: kPrimaryColor),
                     items: ["Administrator", "Cashier", "Sales"].map((r) => DropdownMenuItem(
                         value: r,
                         child: Text(r, style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy))
@@ -6785,7 +6868,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
     );
   }
 
-  Widget _buildManagerFormTextField(TextEditingController ctrl, String hint, IconData icon, {bool isObscure = false}) {
+  Widget _buildManagerFormTextField(TextEditingController ctrl, String hint, HeroIcons icon, {bool isObscure = false}) {
     return Container(
       decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
@@ -6801,7 +6884,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
         obscureText: isObscure,
         style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: kPrimaryColor, size: 22),
+          prefixIcon: HeroIcon(icon, color: kPrimaryColor, size: 22),
           hintText: hint,
           hintStyle: const TextStyle(color: kMediumBlue, fontWeight: FontWeight.w500),
           filled: true,
@@ -6832,7 +6915,7 @@ class _AddStaffPageState extends State<AddStaffPage> {
 
 // --- Common UI Helper Widgets ---
 
-Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType type = TextInputType.text}) {
+Widget _buildCustomerDialogField(TextEditingController ctrl, String label, HeroIcons icon, {TextInputType type = TextInputType.text}) {
   return Container(
     height: 54,
     decoration: BoxDecoration(
@@ -6849,7 +6932,7 @@ Widget _buildCustomerDialogField(TextEditingController ctrl, String label, IconD
       keyboardType: type,
       style: const TextStyle(fontWeight: FontWeight.w700, color: kDeepNavy),
       decoration: InputDecoration(
-        prefixIcon: Icon(icon, color: kPrimaryColor, size: 20),
+        prefixIcon: HeroIcon(icon, color: kPrimaryColor, size: 20),
         hintText: label,
         hintStyle: const TextStyle(color: kMediumBlue, fontSize: 13),
         filled: true,
@@ -6905,7 +6988,7 @@ Widget _buildManagerNoDataState(String msg) {
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.folder_open_outlined, size: 60, color: kSoftAzure),
+        HeroIcon(HeroIcons.folderOpen, size: 60, color: kSoftAzure),
         const SizedBox(height: 12),
         Text(msg, style: TextStyle(color: kMediumBlue.withOpacity(0.6), fontWeight: FontWeight.w800)),
       ],
@@ -7108,14 +7191,14 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
         ),
         title: Text(context.tr('sale_return'), style: const TextStyle(color: kWhite, fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 1.0)),
         backgroundColor: kPrimaryColor, centerTitle: true, elevation: 0,
-        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
+        leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18), onPressed: () => Navigator.pop(context)),
       ),
       body: items.isEmpty
         ? Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline, size: 64, color: kGoogleGreen.withOpacity(0.5)),
+                HeroIcon(HeroIcons.checkCircle, size: 64, color: kGoogleGreen.withOpacity(0.5)),
                 const SizedBox(height: 16),
                 const Text('All items have been returned', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: kBlack54)),
                 const SizedBox(height: 8),
@@ -7131,7 +7214,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
             decoration: const BoxDecoration(color: kWhite, border: Border(bottom: BorderSide(color: kGrey200))),
             child: Row(
               children: [
-                CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const Icon(Icons.person_rounded, color: kOrange, size: 18)),
+                CircleAvatar(backgroundColor: kOrange.withOpacity(0.1), radius: 18, child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -7154,7 +7237,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.person_add_rounded, size: 14, color: kOrange),
+                          HeroIcon(HeroIcons.userPlus, size: 14, color: kOrange),
                           SizedBox(width: 4),
                           Text('Add Customer', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kOrange)),
                         ],
@@ -7171,7 +7254,7 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                         color: kPrimaryColor.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.edit_rounded, size: 14, color: kPrimaryColor),
+                      child: const HeroIcon(HeroIcons.pencil, size: 14, color: kPrimaryColor),
                     ),
                   ),
               ],
@@ -7219,12 +7302,12 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                           const Text("Quantity to return", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBlack54)),
                           Row(
                             children: [
-                              _qtyBtn(Icons.remove_rounded, currentReturnQty > 0 ? () => setState(() {
+                              _qtyBtn(HeroIcons.minus, currentReturnQty > 0 ? () => setState(() {
                                 returnQuantities[index] = currentReturnQty - 1;
                                 if (returnQuantities[index]! <= 0) returnQuantities.remove(index);
                               }) : null),
                               Container(width: 50, alignment: Alignment.center, child: Text("$currentReturnQty", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: kBlack87))),
-                              _qtyBtn(Icons.add_rounded, currentReturnQty < maxQty ? () => setState(() => returnQuantities[index] = currentReturnQty + 1) : null),
+                              _qtyBtn(HeroIcons.plus, currentReturnQty < maxQty ? () => setState(() => returnQuantities[index] = currentReturnQty + 1) : null),
                             ],
                           ),
                         ],
@@ -7242,11 +7325,11 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
     );
   }
 
-  Widget _qtyBtn(IconData icon, VoidCallback? onTap) {
+  Widget _qtyBtn(HeroIcons icon, VoidCallback? onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
-      child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: onTap == null ? kGrey100 : kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 18, color: onTap == null ? kGrey400 : kPrimaryColor)),
+      child: Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: onTap == null ? kGrey100 : kPrimaryColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: HeroIcon(icon, size: 18, color: onTap == null ? kGrey400 : kPrimaryColor)),
     );
   }
 
@@ -7295,11 +7378,11 @@ class _SaleReturnPageState extends State<SaleReturnPage> {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.warning_amber_rounded, size: 16, color: kOrange),
+                      HeroIcon(HeroIcons.exclamationTriangle, size: 16, color: kOrange),
                       SizedBox(width: 8),
                       Text('Add customer to create credit note', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: kOrange)),
                       SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 10, color: kOrange),
+                      HeroIcon(HeroIcons.chevronRight, size: 10, color: kOrange),
                     ],
                   ),
                 ),
@@ -7721,7 +7804,7 @@ class _EditBillPageState extends State<EditBillPage> {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: kWhite, size: 18),
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -7777,7 +7860,7 @@ class _EditBillPageState extends State<EditBillPage> {
                           decoration: BoxDecoration(color: kHeaderColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
                           child: const Row(
                             children: [
-                              Icon(Icons.add_circle_outline_rounded, size: 14, color: kHeaderColor),
+                              HeroIcon(HeroIcons.plusCircle, size: 14, color: kHeaderColor),
                               SizedBox(width: 6),
                               Text('ADD ITEM', style: TextStyle(color: kHeaderColor, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                             ],
@@ -7842,7 +7925,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 CircleAvatar(
                   backgroundColor: hasCustomer ? kHeaderColor : kGreyBg,
                   radius: 20,
-                  child: Icon(Icons.person_rounded, color: hasCustomer ? kWhite : kOrange, size: 20),
+                  child: HeroIcon(HeroIcons.user, color: hasCustomer ? kWhite : kOrange, size: 20),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -7872,10 +7955,10 @@ class _EditBillPageState extends State<EditBillPage> {
                       _selectedCreditNotes = [];
                       _creditNotesAmount = 0;
                     }),
-                    icon: const Icon(Icons.cancel_rounded, color: kErrorColor, size: 22),
+                    icon: const HeroIcon(HeroIcons.xCircle, color: kErrorColor, size: 22),
                   )
                 else
-                  const Icon(Icons.arrow_forward_ios_rounded, color: kOrange, size: 14),
+                  const HeroIcon(HeroIcons.chevronRight, color: kOrange, size: 14),
               ],
             ),
           ),
@@ -7892,7 +7975,7 @@ class _EditBillPageState extends State<EditBillPage> {
         decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(16), border: Border.all(color: kGrey200)),
         child: const Column(
           children: [
-            Icon(Icons.shopping_basket_outlined, color: kGrey300, size: 40),
+            HeroIcon(HeroIcons.shoppingCart, color: kGrey300, size: 40),
             SizedBox(height: 12),
             Text('No items in this invoice', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600, fontSize: 13)),
           ],
@@ -7988,7 +8071,7 @@ class _EditBillPageState extends State<EditBillPage> {
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(color: kHeaderColor.withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.edit, color: kHeaderColor, size: 22),
+                  child: const HeroIcon(HeroIcons.pencil, color: kHeaderColor, size: 22),
                 ),
               ),
             ],
@@ -8165,7 +8248,7 @@ class _EditBillPageState extends State<EditBillPage> {
           children: [
             Row(children: [
               Text(label, style: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.w600)),
-              if (isClickable) Padding(padding: const EdgeInsets.only(left: 6), child: Icon(Icons.edit_note_rounded, size: 16, color: color ?? kHeaderColor)),
+              if (isClickable) Padding(padding: const EdgeInsets.only(left: 6), child: HeroIcon(HeroIcons.pencilSquare, size: 16, color: color ?? kHeaderColor)),
             ]),
             Text('$value', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: color ?? kBlack87)),
           ],
@@ -8272,7 +8355,7 @@ class _EditBillPageState extends State<EditBillPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text('Edit Billing Item', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: kBlack87)),
-                        GestureDetector(onTap: () => Navigator.pop(context), child: const Icon(Icons.close_rounded, color: kBlack54, size: 24)),
+                        GestureDetector(onTap: () => Navigator.pop(context), child: const HeroIcon(HeroIcons.xMark, color: kBlack54, size: 24)),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -8313,8 +8396,8 @@ class _EditBillPageState extends State<EditBillPage> {
                                           setState(() => _items.removeAt(idx));
                                         }
                                       },
-                                      icon: Icon(
-                                        (int.tryParse(qtyController.text) ?? 1) <= 1 ? Icons.delete_outline_rounded : Icons.remove_rounded,
+                                      icon: HeroIcon(
+                                        (int.tryParse(qtyController.text) ?? 1) <= 1 ? HeroIcons.trash : HeroIcons.minus,
                                         color: (int.tryParse(qtyController.text) ?? 1) <= 1 ? kErrorColor : kHeaderColor,
                                         size: 20,
                                       ),
@@ -8359,7 +8442,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                         int current = int.tryParse(qtyController.text) ?? 0;
                                         setDialogState(() => qtyController.text = (current + 1).toString());
                                       },
-                                      icon: const Icon(Icons.add_rounded, color: kHeaderColor, size: 20),
+                                      icon: const HeroIcon(HeroIcons.plus, color: kHeaderColor, size: 20),
                                     ),
                                   ],
                                 ),
@@ -8410,7 +8493,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               onPressed: () {
                                 setDialogState(() => selectedTaxId = null);
                               },
-                              icon: const Icon(Icons.close, size: 16, color: kErrorColor),
+                              icon: const HeroIcon(HeroIcons.xMark, size: 16, color: kErrorColor),
                               label: const Text('Remove Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kErrorColor)),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -8493,7 +8576,7 @@ class _EditBillPageState extends State<EditBillPage> {
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.add_circle_outline, size: 16, color: kPrimaryColor),
+                              icon: const HeroIcon(HeroIcons.plusCircle, size: 16, color: kPrimaryColor),
                               label: const Text('Add Tax', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kPrimaryColor)),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -8513,7 +8596,7 @@ class _EditBillPageState extends State<EditBillPage> {
                               Navigator.pop(context);
                               setState(() => _items.removeAt(idx));
                             },
-                            icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                            icon: const HeroIcon(HeroIcons.trash, size: 18),
                             label: const Text('Remove'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: kErrorColor,
@@ -8845,7 +8928,7 @@ class _EditBillPageState extends State<EditBillPage> {
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         decoration: InputDecoration(
                           hintText: "Search name or product code...",
-                          prefixIcon: Icon(Icons.search, color: kPrimaryColor, size: 20),
+                          prefixIcon: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
                           filled: true,
                           fillColor: const Color(0xFFF8F9FA),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -8873,7 +8956,7 @@ class _EditBillPageState extends State<EditBillPage> {
                   const Divider(height: 1, color: kGrey200),
                   Expanded(
                     child: filteredProducts.isEmpty
-                        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.search_off_rounded, size: 40, color: kGrey300), const SizedBox(height: 12), const Text("No matches found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]))
+                        ? Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const HeroIcon(HeroIcons.magnifyingGlass, size: 40, color: kGrey300), const SizedBox(height: 12), const Text("No matches found", style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600))]))
                         : ListView.builder(
                       padding: const EdgeInsets.all(12),
                       itemCount: filteredProducts.length,
@@ -8982,8 +9065,9 @@ class _EditBillPageState extends State<EditBillPage> {
                                       ],
                                     ],
                                   ),
-                                  trailing: Icon(
-                                    Icons.add_circle_rounded,
+                                  trailing: HeroIcon(
+                                    HeroIcons.plusCircle,
+                                    style: HeroIconStyle.solid,
                                     color: isExpired || isOutOfStock ? kGrey300 : kHeaderColor,
                                     size: 28,
                                   ),
@@ -9383,7 +9467,7 @@ class _SupportPageState extends State<SupportPage> {
           centerTitle: true,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: kWhite, size: 18),
+            icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 18),
             onPressed: widget.onBack,
           ),
         ),
@@ -9409,7 +9493,7 @@ class _SupportPageState extends State<SupportPage> {
                           color: kPrimaryColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.support_agent_rounded, size: 32, color: Color(0xFF1976D2)),
+                        child: const HeroIcon(HeroIcons.lifebuoy, size: 32, color: Color(0xFF1976D2)),
                       ),
                       const SizedBox(width: 16),
                       const Expanded(
@@ -9442,7 +9526,7 @@ class _SupportPageState extends State<SupportPage> {
                   decoration: InputDecoration(
                     labelText: 'Your Name *',
                     hintText: 'Enter your name *',
-                    prefixIcon: Icon(Icons.person_outline, color: kPrimaryColor),
+                    prefixIcon: HeroIcon(HeroIcons.user, color: kPrimaryColor),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -9485,7 +9569,7 @@ class _SupportPageState extends State<SupportPage> {
                   decoration: InputDecoration(
                     labelText: 'Email Address *',
                     hintText: 'Enter your email *',
-                    prefixIcon: Icon(Icons.email_outlined, color: kPrimaryColor),
+                    prefixIcon: HeroIcon(HeroIcons.envelope, color: kPrimaryColor),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -9531,7 +9615,7 @@ class _SupportPageState extends State<SupportPage> {
                   decoration: InputDecoration(
                     labelText: 'Phone Number (Optional) *',
                     hintText: 'Enter your phone number *',
-                    prefixIcon: Icon(Icons.phone_outlined, color: kPrimaryColor),
+                    prefixIcon: HeroIcon(HeroIcons.phone, color: kPrimaryColor),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -9566,7 +9650,7 @@ class _SupportPageState extends State<SupportPage> {
                   value: _selectedCategory,
                   decoration: InputDecoration(
                     labelText: 'Category *',
-                    prefixIcon: Icon(Icons.category_outlined, color: kPrimaryColor),
+                    prefixIcon: HeroIcon(HeroIcons.tag, color: kPrimaryColor),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -9610,7 +9694,7 @@ class _SupportPageState extends State<SupportPage> {
                   decoration: InputDecoration(
                     labelText: 'Subject *',
                     hintText: 'Brief summary of your issue *',
-                    prefixIcon: Icon(Icons.title_rounded, color: kPrimaryColor),
+                    prefixIcon: HeroIcon(HeroIcons.pencil, color: kPrimaryColor),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -9656,7 +9740,7 @@ class _SupportPageState extends State<SupportPage> {
                     alignLabelWithHint: true,
                     prefixIcon: Padding(
                       padding: EdgeInsets.only(bottom: 80),
-                      child: Icon(Icons.description_outlined, color: kPrimaryColor),
+                      child: HeroIcon(HeroIcons.documentText, color: kPrimaryColor),
                     ),
                     filled: true,
                     fillColor: const Color(0xFFF8F9FA),

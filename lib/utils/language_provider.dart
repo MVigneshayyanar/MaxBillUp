@@ -647,7 +647,7 @@ class LanguageProvider extends ChangeNotifier {
       'addnewcustomer': 'Add New Customer',
       'existing_customer': 'Existing Customer',
       'name_phone_required': 'Please enter name and phone number',
-      'no_customers_found': 'No customefound',
+      'no_customers_found': 'No Customer Found',
       'staffmanagement': 'Staff',
       'addnewstaff': 'Add New Staff',
       'savestaff': 'Save Staff',
