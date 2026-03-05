@@ -819,7 +819,7 @@ class _ProductsPageState extends State<ProductsPage> {
               child: const HeroIcon(
                 HeroIcons.cube,
                 size: 60,
-                color: kPrimaryColor,
+                color: Color(0xffCC8758),
               ),
             ),
             const SizedBox(height: 24),
@@ -839,34 +839,6 @@ class _ProductsPageState extends State<ProductsPage> {
                 fontSize: 15,
                 color: kBlack54,
                 height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: (isAdmin || _hasPermission('addProduct'))
-                  ? () => Navigator.push(
-                        context,
-                        CupertinoPageRoute(
-                          builder: (c) => AddProductPage(uid: _uid, userEmail: widget.userEmail),
-                        ),
-                      )
-                  : null,
-              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
-              label: const Text(
-                "Add Your First Product",
-                style: TextStyle(
-                  color: kWhite,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 2,
               ),
             ),
           ],

@@ -1009,69 +1009,47 @@ class _SaleAllPageState extends State<SaleAllPage> {
   Widget _buildEmptyState() {
     return Center(
       child: Padding(
-        padding: R.all(context, 24),
+        padding: const EdgeInsets.symmetric(horizontal: 32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: R.sp(context, 120),
-              height: R.sp(context, 120),
+              width: 80, height: 80,
               decoration: BoxDecoration(
-                color: kPrimaryColor.withOpacity(0.1),
+                color: kPrimaryColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: HeroIcon(
-                HeroIcons.archiveBox,
-                size: R.sp(context, 60),
-                color: kPrimaryColor,
-              ),
+              child: const HeroIcon(HeroIcons.cube, size: 38, color: Color(0xffCC8758)),
             ),
-            SizedBox(height: R.sp(context, 24)),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               "No Products Yet",
-              style: TextStyle(
-                fontSize: R.sp(context, 22),
-                fontWeight: FontWeight.w800,
-                color: kBlack87,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: kBlack87, fontFamily: 'NotoSans'),
             ),
-            SizedBox(height: R.sp(context, 12)),
-            Text(
-              "Add your first product and\ngrow your business",
+            const SizedBox(height: 8),
+            const Text(
+              "Add your first product to start billing",
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: R.sp(context, 15),
-                color: kBlack54,
-                height: 1.5,
-              ),
+              style: TextStyle(fontSize: 13, color: kBlack54, fontFamily: 'Lato'),
             ),
-            const SizedBox(height: 32),
-            ElevatedButton.icon(
-              onPressed: () {
-                // Navigate to Products page to add product
-                Navigator.push(
+            const SizedBox(height: 28),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.push(
                   context,
-                  CupertinoPageRoute(
-                    builder: (context) => StockPage(uid: widget.uid, userEmail: widget.userEmail),
-                  ),
-                );
-              },
-              icon: const HeroIcon(HeroIcons.plus, color: kWhite, size: 24),
-              label: const Text(
-                "Add Your First Product",
-                style: TextStyle(
-                  color: kWhite,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  CupertinoPageRoute(builder: (_) => StockPage(uid: widget.uid, userEmail: widget.userEmail)),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kPrimaryColor,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPrimaryColor,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                elevation: 2,
+                child: const Text(
+                  "Add Product",
+                  style: TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'NotoSans'),
+                ),
               ),
             ),
           ],
@@ -1079,6 +1057,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
       ),
     );
   }
+
   String formatCategory(String text) {
     if (text.isEmpty) return text;
     return text[0].toUpperCase() + text.substring(1).toLowerCase();

@@ -28,7 +28,7 @@ class SubscriptionPlanPage extends StatefulWidget {
 class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   Razorpay? _razorpay;
   String _selectedPlan = 'MAX Plus';
-  int _selectedDuration = 12; // 1 or 12 months
+  int _selectedDuration = 1; // 1 or 12 months
   bool _isPaymentInProgress = false;
 
   final List<Map<String, dynamic>> plans = [
@@ -156,15 +156,15 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   void initState() {
     super.initState();
     _setupRazorpay();
-    // Default to 'MAX Plus' if current plan is Starter or Free or not found
+    // Default to 'MAX One' if current plan is Starter or Free or not found
     final currentPlanLower = widget.currentPlan.toLowerCase();
     if (currentPlanLower.contains('starter') || currentPlanLower.contains('free')) {
-      _selectedPlan = 'MAX Plus';
+      _selectedPlan = 'MAX One';
     } else {
       // Try to find matching plan (case-insensitive)
       final matchingPlan = plans.firstWhere(
             (p) => p['name'].toString().toLowerCase() == currentPlanLower,
-        orElse: () => plans[2], // Default to MAX Plus
+        orElse: () => plans[1], // Default to MAX One
       );
       _selectedPlan = matchingPlan['name'];
     }
@@ -286,7 +286,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
     // Get current plan data
     final plan = plans.firstWhere(
       (p) => p['name'] == _selectedPlan,
-      orElse: () => plans[2],
+      orElse: () => plans[1],
     );
     
     final int amount = (plan['price'][_selectedDuration.toString()] * 100).toInt();
@@ -361,7 +361,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
   Widget build(BuildContext context) {
     final selectedPlanData = plans.firstWhere(
           (p) => p['name'] == _selectedPlan,
-      orElse: () => plans[2], // Default to MAX Plus (index 2)
+      orElse: () => plans[1], // Default to MAX One
     );
     final currentPrice = selectedPlanData['price'][_selectedDuration.toString()] ?? 0;
     final bool isCurrentPlanActive = _selectedPlan.toLowerCase() == widget.currentPlan.toLowerCase();
