@@ -1697,8 +1697,8 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Business  Summary", widget.onBack, onDownload: () => _downloadPdf(context)),
+      backgroundColor: kGreyBg,
+      appBar: _buildModernAppBar("Business Summary", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
@@ -4114,7 +4114,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: kGreyBg,
       appBar: _buildModernAppBar("Sales Report", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
@@ -6319,6 +6319,11 @@ class _TopProductsPageState extends State<TopProductsPage> {
   DateTime _startDate = DateTime.now();
   DateTime _endDate = DateTime.now();
   bool _isDescending = true;
+  int _selectedTab = 0; // 0 = Sold, 1 = Not Sold
+
+
+  // Cache the Products future so it does not re-fire on every setState
+  Future<QuerySnapshot>? _productsFuture;
 
   @override
   void initState() {
@@ -6326,6 +6331,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
     final now = DateTime.now();
     _startDate = DateTime(now.year, now.month, now.day);
     _endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
+    _productsFuture = _firestoreService.getStoreCollection('Products').then((c) => c.get());
   }
 
   void _onDateChanged(DateFilterOption option, DateTime start, DateTime end) {
@@ -6335,6 +6341,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
       _endDate = end;
     });
   }
+
 
   bool _isInDateRange(DateTime? dt) {
     if (dt == null) return false;
@@ -6389,17 +6396,21 @@ class _TopProductsPageState extends State<TopProductsPage> {
               );
             }
 
-            // --- Fetch Current Product Costs for Fallback ---
+            // --- Fetch Current Products for Costs + Not-Sold List ---
             return FutureBuilder<QuerySnapshot>(
-              future: _firestoreService.getStoreCollection('Products').then((c) => c.get()),
+              future: _productsFuture,
               builder: (context, productsSnapshot) {
                 Map<String, double> currentCosts = {};
+                List<Map<String, dynamic>> allProductDocs = [];
                 if (productsSnapshot.hasData) {
                   for (var doc in productsSnapshot.data!.docs) {
                     final d = doc.data() as Map<String, dynamic>;
                     final name = d['itemName']?.toString() ?? '';
-                    final cost = double.tryParse(d['costPrice']?.toString() ?? '0') ?? 0;
-                    if (name.isNotEmpty) currentCosts[name] = cost;
+                    final cost = double.tryParse(d['costPrice']?.toString() ?? d['cost']?.toString() ?? '0') ?? 0;
+                    if (name.isNotEmpty) {
+                      currentCosts[name] = cost;
+                      allProductDocs.add(d);
+                    }
                   }
                 }
 
@@ -6414,7 +6425,6 @@ class _TopProductsPageState extends State<TopProductsPage> {
                   else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                   if (_isInDateRange(dt)) {
-                    // Skip cancelled or returned bills
                     final String status = (data['status'] ?? '').toString().toLowerCase();
                     if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
                       continue;
@@ -6425,13 +6435,9 @@ class _TopProductsPageState extends State<TopProductsPage> {
                         String name = item['name']?.toString() ?? 'Unknown';
                         double qty = double.tryParse(item['quantity']?.toString() ?? '0') ?? 0;
                         double price = double.tryParse(item['price']?.toString() ?? '0') ?? 0;
-                        // item['cost'] may represent unit cost or total cost depending on source.
-                        // Check multiple field names to support different versions of sale data.
-                        // Fallback to currentCosts from Products collection if missing in sale data.
                         double cost = double.tryParse(item['cost']?.toString() ?? item['costPrice']?.toString() ?? item['purchasePrice']?.toString() ?? '0') ?? (currentCosts[name] ?? 0);
                         double total = double.tryParse(item['total']?.toString() ?? '0') ?? 0;
                         if (total == 0) total = price * qty;
-                        // Compute profit using unit cost * qty
                         double profit = (price * qty) - (cost * qty);
 
                         if (!productData.containsKey(name)) {
@@ -6448,12 +6454,18 @@ class _TopProductsPageState extends State<TopProductsPage> {
                 }
 
                 var sortedProducts = productData.entries.toList();
-
-                // Sort products by revenue
                 sortedProducts.sort((a, b) {
                   int result = (a.value['amount'] as double).compareTo(b.value['amount'] as double);
                   return _isDescending ? -result : result;
                 });
+
+                // Build not-sold: all products NOT sold in the same date range
+                final soldNames = productData.keys.toSet();
+                final notSoldProducts = allProductDocs
+                    .where((d) => !soldNames.contains(d['itemName']?.toString() ?? ''))
+                    .toList();
+                notSoldProducts.sort((a, b) =>
+                    (a['itemName']?.toString() ?? '').compareTo(b['itemName']?.toString() ?? ''));
 
                 return Scaffold(
                   backgroundColor: kBackgroundColor,
@@ -6465,57 +6477,108 @@ class _TopProductsPageState extends State<TopProductsPage> {
                   body: Column(
                     children: [
                       _buildExecutiveProductHeader(grandTotalRevenue, grandTotalProfit),
+                      // Single shared date filter for both tabs
                       DateFilterWidget(
                         selectedOption: _selectedFilter,
                         startDate: _startDate,
                         endDate: _endDate,
                         onDateChanged: _onDateChanged,
-                        showSortButton: true,
+                        showSortButton: _selectedTab == 0,
                         isDescending: _isDescending,
                         onSortPressed: () => setState(() => _isDescending = !_isDescending),
                       ),
-                      Expanded(
-                        child: CustomScrollView(
-                          physics: const BouncingScrollPhysics(),
-                          slivers: [
-                            if (sortedProducts.isNotEmpty) ...[
-                              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                              SliverPadding(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                sliver: SliverToBoxAdapter(child: _buildSectionHeader("Revenue contribution")),
-                              ),
-                              const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                              SliverToBoxAdapter(
-                                child: _buildContributionGraph(sortedProducts, 'amount', kPrimaryColor),
-                              ),
-                            ],
-
-                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                            SliverPadding(
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              sliver: SliverToBoxAdapter(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildSectionHeader("Product Performance Ledger"),
-                                    Text(
-                                      "${sortedProducts.length} ITEMS",
-                                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                      // Tab bar: Sold / Not Sold
+                      Container(
+                        color: kSurfaceColor,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedTab = 0),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: _selectedTab == 0 ? kPrimaryColor : kGreyBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Sold (${sortedProducts.length})',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _selectedTab == 0 ? Colors.white : kTextSecondary,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                            const SliverToBoxAdapter(child: SizedBox(height: 8)),
-
-                            sortedProducts.isEmpty
-                                ? const SliverFillRemaining(child: Center(child: Text("No entries found", style: TextStyle(color: kTextSecondary))))
-                                : SliverToBoxAdapter(
-                              child: _buildHighDensityProductTable(sortedProducts),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => setState(() => _selectedTab = 1),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: _selectedTab == 1 ? kGoogleRed : kGreyBg,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    'Not Sold (${notSoldProducts.length})',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800,
+                                      color: _selectedTab == 1 ? Colors.white : kTextSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                            const SliverToBoxAdapter(child: SizedBox(height: 40)),
                           ],
                         ),
+                      ),
+                      Expanded(
+                        child: _selectedTab == 0
+                            ? CustomScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                slivers: [
+                                  if (sortedProducts.isNotEmpty) ...[
+                                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                                    SliverPadding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      sliver: SliverToBoxAdapter(child: _buildSectionHeader("Revenue contribution")),
+                                    ),
+                                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                                    SliverToBoxAdapter(
+                                      child: _buildContributionGraph(sortedProducts, 'amount', kPrimaryColor),
+                                    ),
+                                  ],
+                                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    sliver: SliverToBoxAdapter(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          _buildSectionHeader("Product Performance Ledger"),
+                                          Text(
+                                            "${sortedProducts.length} ITEMS",
+                                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                                  sortedProducts.isEmpty
+                                      ? const SliverFillRemaining(child: Center(child: Text("No entries found", style: TextStyle(color: kTextSecondary))))
+                                      : SliverToBoxAdapter(child: _buildHighDensityProductTable(sortedProducts)),
+                                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                                ],
+                              )
+                            : _buildNotSoldProductList(notSoldProducts),
                       ),
                     ],
                   ),
@@ -6819,6 +6882,96 @@ class _TopProductsPageState extends State<TopProductsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNotSoldProductList(List<Map<String, dynamic>> products) {
+    if (products.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Text(
+            'All products have been sold in this period!',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: kTextSecondary, fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        // Header count
+        Container(
+          width: double.infinity,
+          color: kSurfaceColor,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('NOT SOLD PRODUCTS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: kGoogleRed.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                child: Text('${products.length} ITEMS', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleRed)),
+              ),
+            ],
+          ),
+        ),
+        // Table header
+        Container(
+          color: kGreyBg,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: const Row(
+            children: [
+              Expanded(flex: 1, child: Text('#', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
+              Expanded(flex: 4, child: Text('PRODUCT NAME', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 0.5))),
+              Expanded(flex: 2, child: Text('STOCK', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
+              Expanded(flex: 2, child: Text('PRICE', textAlign: TextAlign.right, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary))),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final d = products[index];
+              final name = d['itemName']?.toString() ?? 'Unknown';
+              final price = double.tryParse(d['price']?.toString() ?? '0') ?? 0;
+              final stock = double.tryParse(d['currentStock']?.toString() ?? '0') ?? 0;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: kSurfaceColor,
+                  border: Border(bottom: BorderSide(color: kBorderColor.withValues(alpha: 0.3))),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: Text('${index + 1}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary)),
+                    ),
+                    Expanded(
+                      flex: 4,
+                      child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(stock.toStringAsFixed(0), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Text(price.toStringAsFixed(2), textAlign: TextAlign.right, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kGoogleRed)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -8868,7 +9021,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: kGreyBg,
       appBar: _buildModernAppBar("Business Insights", widget.onBack),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([

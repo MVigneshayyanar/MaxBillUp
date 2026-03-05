@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -594,6 +595,44 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   File? _selectedImage;
   String _selectedCurrency = 'INR';
 
+  // Country code
+  String _selectedCountryCode = '+91';
+  String _selectedCountryFlag = '🇮🇳';
+
+  final List<Map<String, String>> _countryCodes = [
+    {'code': '+91', 'flag': '🇮🇳', 'name': 'India'},
+    {'code': '+1', 'flag': '🇺🇸', 'name': 'United States'},
+    {'code': '+44', 'flag': '🇬🇧', 'name': 'United Kingdom'},
+    {'code': '+971', 'flag': '🇦🇪', 'name': 'UAE'},
+    {'code': '+966', 'flag': '🇸🇦', 'name': 'Saudi Arabia'},
+    {'code': '+974', 'flag': '🇶🇦', 'name': 'Qatar'},
+    {'code': '+965', 'flag': '🇰🇼', 'name': 'Kuwait'},
+    {'code': '+973', 'flag': '🇧🇭', 'name': 'Bahrain'},
+    {'code': '+968', 'flag': '🇴🇲', 'name': 'Oman'},
+    {'code': '+60', 'flag': '🇲🇾', 'name': 'Malaysia'},
+    {'code': '+65', 'flag': '🇸🇬', 'name': 'Singapore'},
+    {'code': '+92', 'flag': '🇵🇰', 'name': 'Pakistan'},
+    {'code': '+880', 'flag': '🇧🇩', 'name': 'Bangladesh'},
+    {'code': '+94', 'flag': '🇱🇰', 'name': 'Sri Lanka'},
+    {'code': '+977', 'flag': '🇳🇵', 'name': 'Nepal'},
+    {'code': '+61', 'flag': '🇦🇺', 'name': 'Australia'},
+    {'code': '+64', 'flag': '🇳🇿', 'name': 'New Zealand'},
+    {'code': '+49', 'flag': '🇩🇪', 'name': 'Germany'},
+    {'code': '+33', 'flag': '🇫🇷', 'name': 'France'},
+    {'code': '+39', 'flag': '🇮🇹', 'name': 'Italy'},
+    {'code': '+34', 'flag': '🇪🇸', 'name': 'Spain'},
+    {'code': '+7', 'flag': '🇷🇺', 'name': 'Russia'},
+    {'code': '+81', 'flag': '🇯🇵', 'name': 'Japan'},
+    {'code': '+82', 'flag': '🇰🇷', 'name': 'South Korea'},
+    {'code': '+86', 'flag': '🇨🇳', 'name': 'China'},
+    {'code': '+55', 'flag': '🇧🇷', 'name': 'Brazil'},
+    {'code': '+52', 'flag': '🇲🇽', 'name': 'Mexico'},
+    {'code': '+27', 'flag': '🇿🇦', 'name': 'South Africa'},
+    {'code': '+234', 'flag': '🇳🇬', 'name': 'Nigeria'},
+    {'code': '+254', 'flag': '🇰🇪', 'name': 'Kenya'},
+    {'code': '+20', 'flag': '🇪🇬', 'name': 'Egypt'},
+  ];
+
   final List<Map<String, String>> _currencies = [
     // Popular currencies first
     {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
@@ -810,6 +849,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       'licenseType': _licenseTypeCtrl.text,
       'licenseNumber': _licenseNumberCtrl.text,
       'currency': _selectedCurrency,
+      'countryCode': _selectedCountryCode,
     };
   }
 
@@ -825,6 +865,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       'licenseType': _licenseTypeCtrl.text,
       'licenseNumber': _licenseNumberCtrl.text,
       'currency': _selectedCurrency,
+      'countryCode': _selectedCountryCode,
     };
 
     bool changed = false;
@@ -866,9 +907,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       if (storeId == null) throw Exception('Store ID not found');
 
       // Build update payload (trimmed values)
+      final rawPhone = _phoneCtrl.text.trim();
+      // Store full phone (country code + number) if the number doesn't already start with +
+      final fullPhone = rawPhone.startsWith('+') ? rawPhone : '$_selectedCountryCode$rawPhone';
       final updateData = <String, dynamic>{
         'businessName': _nameCtrl.text.trim(),
-        'businessPhone': _phoneCtrl.text.trim(),
+        'businessPhone': fullPhone,
+        'businessPhoneCountryCode': _selectedCountryCode,
         'personalPhone': _personalPhoneCtrl.text.trim(),
         'businessLocation': _locCtrl.text.trim(),
         'ownerName': _ownerCtrl.text.trim(),
@@ -945,6 +990,17 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           _locCtrl.text = data['businessLocation'] ?? '';
           _ownerCtrl.text = data['ownerName'] ?? '';
           _logoUrl = data['logoUrl'];
+          // Load country code
+          final savedCode = data['businessPhoneCountryCode'] as String?;
+          if (savedCode != null && savedCode.isNotEmpty) {
+            final match = _countryCodes.where((c) => c['code'] == savedCode).toList();
+            if (match.isNotEmpty) {
+              _selectedCountryCode = match.first['code']!;
+              _selectedCountryFlag = match.first['flag']!;
+            } else {
+              _selectedCountryCode = savedCode;
+            }
+          }
           // Check premium status
           final plan = data['plan'] ?? 'free';
           _isPremium = plan.toString().toLowerCase() != 'free' && plan.toString().toLowerCase() != 'starter';
@@ -1100,7 +1156,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) { if (!didPop) { widget.onBack(); } },
       child: Scaffold(
-        backgroundColor: kGreyBg,
+        backgroundColor: Colors.white,
         appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
@@ -1206,7 +1262,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                       const SizedBox(height: 24),
                       _buildSectionLabel("Identity & Tax"),
                       _buildModernField("Business Name", _nameCtrl, Icons.store_rounded, isMandatory: true),
-                      _buildModernField("Business Contact Number", _phoneCtrl, Icons.phone_android_rounded, type: TextInputType.phone, isMandatory: true),
+                      _buildBusinessPhoneWithCountryCode(),
                       _buildLocationField(),
                       _buildModernFieldWithHint("Tax Type", _taxTypeCtrl, Icons.receipt_long_rounded, hint: "VAT, GST, Sales Tax"),
                       _buildModernFieldWithHint("Tax Number", _taxNumberCtrl, Icons.numbers_rounded, hint: "Enter your tax identification number"),
@@ -1384,6 +1440,169 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             validator: isMandatory ? (v) => v == null || v.isEmpty ? '$label is required' : null : null,
             onChanged: (_) => _checkForChanges(),
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildBusinessPhoneWithCountryCode() {
+    return ValueListenableBuilder<TextEditingValue>(
+      valueListenable: _phoneCtrl,
+      builder: (context, value, _) {
+        final bool isFilled = value.text.isNotEmpty;
+        final Color borderColor = isFilled ? kPrimaryColor : kGrey200;
+        final double borderWidth = isFilled ? 1.5 : 1.0;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: TextFormField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBlack87, fontFamily: 'Lato'),
+            decoration: InputDecoration(
+              labelText: 'Business Contact Number *',
+              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 12, fontWeight: FontWeight.w600, fontFamily: 'NotoSans'),
+              prefixIcon: GestureDetector(
+                onTap: _showCountryCodePickerProfile,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_selectedCountryFlag, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 3),
+                      Text(
+                        _selectedCountryCode,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: isFilled ? kPrimaryColor : kBlack54,
+                          fontFamily: 'NotoSans',
+                        ),
+                      ),
+                      Icon(Icons.arrow_drop_down, size: 16, color: isFilled ? kPrimaryColor : kBlack54),
+                    ],
+                  ),
+                ),
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF8F9FA),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(color: borderColor, width: borderWidth),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontWeight: FontWeight.w900),
+            ),
+            validator: (v) => v == null || v.isEmpty ? 'Business Contact Number is required' : null,
+            onChanged: (_) => _checkForChanges(),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCountryCodePickerProfile() {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _countryCodes.where((c) {
+              if (searchQuery.isEmpty) return true;
+              final q = searchQuery.toLowerCase();
+              return c['name']!.toLowerCase().contains(q) || c['code']!.contains(q);
+            }).toList();
+
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      children: [
+                        const Text("Select Country Code",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, fontFamily: 'NotoSans')),
+                        const SizedBox(height: 14),
+                        TextField(
+                          autofocus: false,
+                          decoration: InputDecoration(
+                            hintText: 'Search country...',
+                            hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
+                            prefixIcon: const Icon(Icons.search_rounded, color: kPrimaryColor, size: 20),
+                            filled: true,
+                            fillColor: kGreyBg,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onChanged: (v) => setModalState(() => searchQuery = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                      itemBuilder: (context, i) {
+                        final c = filtered[i];
+                        final isSelected = c['code'] == _selectedCountryCode;
+                        return ListTile(
+                          onTap: () {
+                            setState(() {
+                              _selectedCountryCode = c['code']!;
+                              _selectedCountryFlag = c['flag']!;
+                            });
+                            _checkForChanges();
+                            Navigator.pop(ctx);
+                          },
+                          leading: Text(c['flag']!, style: const TextStyle(fontSize: 24)),
+                          title: Text(c['name']!,
+                              style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                  fontSize: 14,
+                                  color: isSelected ? kPrimaryColor : kBlack87,
+                                  fontFamily: 'Lato')),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(c['code']!,
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected ? kPrimaryColor : kBlack54,
+                                      fontFamily: 'NotoSans')),
+                              if (isSelected)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: Icon(Icons.check_circle_rounded, color: kPrimaryColor, size: 20),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

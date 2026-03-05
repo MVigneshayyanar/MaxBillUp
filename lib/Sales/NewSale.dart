@@ -1024,7 +1024,7 @@ class _NewSalePageState extends State<NewSalePage> with SingleTickerProviderStat
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: R.radius(context, 20),
-          border: Border.all(color: Color(0xFFC9A227), width: 2),
+          border: Border.all(color: Color(0xFFE0B646), width: 2),
         ),
         child: Column(
           children: [

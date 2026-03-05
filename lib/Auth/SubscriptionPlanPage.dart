@@ -608,7 +608,7 @@ class _SubscriptionPlanPageState extends State<SubscriptionPlanPage> {
               if (badge != null )
                 Text(
                   badge,
-                  style: const TextStyle(color: Colors.red, fontSize: 8, fontWeight: FontWeight.w900),
+                  style: const TextStyle(color: Color(0xFFE0B646), fontSize: 8, fontWeight: FontWeight.w900),
                 ),
             ],
           ),

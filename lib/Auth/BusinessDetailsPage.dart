@@ -26,10 +26,9 @@ class BusinessDetailsPage extends StatefulWidget {
 class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers - matching Profile.dart fields
+  // Controllers
   final _businessNameCtrl = TextEditingController();
   final _businessPhoneCtrl = TextEditingController();
-  final _ownerPhoneCtrl = TextEditingController();
   final _personalPhoneCtrl = TextEditingController();
   final _taxTypeCtrl = TextEditingController();
   final _taxNumberCtrl = TextEditingController();
@@ -37,23 +36,56 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   final _licenseNumberCtrl = TextEditingController();
   final _businessLocationCtrl = TextEditingController();
   final _ownerNameCtrl = TextEditingController();
-  final _businessLocationFocusNode = FocusNode();
 
   bool _loading = false;
   bool _showAdvancedDetails = false;
-  bool _sameAsBusinessNumber = false;
-  String _selectedCurrency = 'USD';
+  String _selectedCurrency = 'INR';
+
+  // Country code data
+  String _selectedCountryCode = '+91';
+  String _selectedCountryFlag = '🇮🇳';
+
+  final List<Map<String, String>> _countryCodes = [
+    {'code': '+91', 'flag': '🇮🇳', 'name': 'India'},
+    {'code': '+1', 'flag': '🇺🇸', 'name': 'United States'},
+    {'code': '+44', 'flag': '🇬🇧', 'name': 'United Kingdom'},
+    {'code': '+971', 'flag': '🇦🇪', 'name': 'UAE'},
+    {'code': '+966', 'flag': '🇸🇦', 'name': 'Saudi Arabia'},
+    {'code': '+974', 'flag': '🇶🇦', 'name': 'Qatar'},
+    {'code': '+965', 'flag': '🇰🇼', 'name': 'Kuwait'},
+    {'code': '+973', 'flag': '🇧🇭', 'name': 'Bahrain'},
+    {'code': '+968', 'flag': '🇴🇲', 'name': 'Oman'},
+    {'code': '+60', 'flag': '🇲🇾', 'name': 'Malaysia'},
+    {'code': '+65', 'flag': '🇸🇬', 'name': 'Singapore'},
+    {'code': '+92', 'flag': '🇵🇰', 'name': 'Pakistan'},
+    {'code': '+880', 'flag': '🇧🇩', 'name': 'Bangladesh'},
+    {'code': '+94', 'flag': '🇱🇰', 'name': 'Sri Lanka'},
+    {'code': '+977', 'flag': '🇳🇵', 'name': 'Nepal'},
+    {'code': '+61', 'flag': '🇦🇺', 'name': 'Australia'},
+    {'code': '+64', 'flag': '🇳🇿', 'name': 'New Zealand'},
+    {'code': '+49', 'flag': '🇩🇪', 'name': 'Germany'},
+    {'code': '+33', 'flag': '🇫🇷', 'name': 'France'},
+    {'code': '+39', 'flag': '🇮🇹', 'name': 'Italy'},
+    {'code': '+34', 'flag': '🇪🇸', 'name': 'Spain'},
+    {'code': '+7', 'flag': '🇷🇺', 'name': 'Russia'},
+    {'code': '+81', 'flag': '🇯🇵', 'name': 'Japan'},
+    {'code': '+82', 'flag': '🇰🇷', 'name': 'South Korea'},
+    {'code': '+86', 'flag': '🇨🇳', 'name': 'China'},
+    {'code': '+55', 'flag': '🇧🇷', 'name': 'Brazil'},
+    {'code': '+52', 'flag': '🇲🇽', 'name': 'Mexico'},
+    {'code': '+27', 'flag': '🇿🇦', 'name': 'South Africa'},
+    {'code': '+234', 'flag': '🇳🇬', 'name': 'Nigeria'},
+    {'code': '+254', 'flag': '🇰🇪', 'name': 'Kenya'},
+    {'code': '+20', 'flag': '🇪🇬', 'name': 'Egypt'},
+  ];
 
   final List<Map<String, String>> _currencies = [
-    // Popular currencies first
+    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
     {'code': 'USD', 'symbol': '\$', 'name': 'US Dollar'},
     {'code': 'EUR', 'symbol': '€', 'name': 'Euro'},
     {'code': 'GBP', 'symbol': '£', 'name': 'British Pound'},
-    {'code': 'INR', 'symbol': '₹', 'name': 'Indian Rupee'},
     {'code': 'CNY', 'symbol': '¥', 'name': 'Chinese Yuan'},
     {'code': 'JPY', 'symbol': '¥', 'name': 'Japanese Yen'},
-
-    // Asia-Pacific
     {'code': 'AED', 'symbol': 'د.إ', 'name': 'UAE Dirham'},
     {'code': 'AFN', 'symbol': '؋', 'name': 'Afghan Afghani'},
     {'code': 'AMD', 'symbol': '֏', 'name': 'Armenian Dram'},
@@ -100,8 +132,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'UZS', 'symbol': 'so\'m', 'name': 'Uzbekistani Som'},
     {'code': 'VND', 'symbol': '₫', 'name': 'Vietnamese Dong'},
     {'code': 'YER', 'symbol': '﷼', 'name': 'Yemeni Rial'},
-
-    // Americas
     {'code': 'ARS', 'symbol': '\$', 'name': 'Argentine Peso'},
     {'code': 'AWG', 'symbol': 'ƒ', 'name': 'Aruban Florin'},
     {'code': 'BBD', 'symbol': 'Bds\$', 'name': 'Barbadian Dollar'},
@@ -132,8 +162,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'UYU', 'symbol': '\$U', 'name': 'Uruguayan Peso'},
     {'code': 'VES', 'symbol': 'Bs.S', 'name': 'Venezuelan Bolívar'},
     {'code': 'XCD', 'symbol': 'EC\$', 'name': 'East Caribbean Dollar'},
-
-    // Europe
     {'code': 'ALL', 'symbol': 'L', 'name': 'Albanian Lek'},
     {'code': 'BAM', 'symbol': 'KM', 'name': 'Bosnia and Herzegovina Mark'},
     {'code': 'BGN', 'symbol': 'лв', 'name': 'Bulgarian Lev'},
@@ -154,8 +182,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     {'code': 'RUB', 'symbol': '₽', 'name': 'Russian Ruble'},
     {'code': 'SEK', 'symbol': 'kr', 'name': 'Swedish Krona'},
     {'code': 'UAH', 'symbol': '₴', 'name': 'Ukrainian Hryvnia'},
-
-    // Africa
     {'code': 'AOA', 'symbol': 'Kz', 'name': 'Angolan Kwanza'},
     {'code': 'BWP', 'symbol': 'P', 'name': 'Botswana Pula'},
     {'code': 'CDF', 'symbol': 'FC', 'name': 'Congolese Franc'},
@@ -202,20 +228,12 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     if (widget.displayName != null && widget.displayName!.isNotEmpty) {
       _ownerNameCtrl.text = widget.displayName!;
     }
-
-    // Listen to business phone changes to sync with personal phone when checkbox is checked
-    _businessPhoneCtrl.addListener(() {
-      if (_sameAsBusinessNumber && mounted) {
-        _personalPhoneCtrl.text = _businessPhoneCtrl.text;
-      }
-    });
   }
 
   @override
   void dispose() {
     _businessNameCtrl.dispose();
     _businessPhoneCtrl.dispose();
-    _ownerPhoneCtrl.dispose();
     _personalPhoneCtrl.dispose();
     _taxTypeCtrl.dispose();
     _taxNumberCtrl.dispose();
@@ -223,7 +241,6 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     _licenseNumberCtrl.dispose();
     _businessLocationCtrl.dispose();
     _ownerNameCtrl.dispose();
-    _businessLocationFocusNode.dispose();
     super.dispose();
   }
 
@@ -246,11 +263,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         .orderBy('storeId', descending: true)
         .limit(1)
         .get();
-
-    if (querySnapshot.docs.isEmpty) {
-      return 100001;
-    }
-
+    if (querySnapshot.docs.isEmpty) return 100001;
     final lastStoreId = querySnapshot.docs.first.data()['storeId'] as int? ?? 10000;
     return lastStoreId + 1;
   }
@@ -263,23 +276,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
       final firestore = FirebaseFirestore.instance;
       final storeId = await _getNextStoreId();
 
-      // Combine tax type and number into single field
       final taxType = '${_taxTypeCtrl.text.trim()} ${_taxNumberCtrl.text.trim()}'.trim();
-      // Combine license type and number into single field
       final licenseNumber = '${_licenseTypeCtrl.text.trim()} ${_licenseNumberCtrl.text.trim()}'.trim();
+      final fullBusinessPhone = '$_selectedCountryCode${_businessPhoneCtrl.text.trim()}';
 
       final storeData = {
         'storeId': storeId,
         'businessName': _businessNameCtrl.text.trim(),
-        'businessPhone': _businessPhoneCtrl.text.trim(),
+        'businessPhone': fullBusinessPhone,
+        'businessPhoneCountryCode': _selectedCountryCode,
         'personalPhone': _personalPhoneCtrl.text.trim(),
         'businessLocation': _businessLocationCtrl.text.trim(),
-        'gstin':taxType,
+        'gstin': taxType,
         'taxType': taxType,
         'licenseNumber': licenseNumber,
         'currency': _selectedCurrency,
         'ownerName': _ownerNameCtrl.text.trim(),
-        'ownerPhone': _ownerPhoneCtrl.text.trim(),
         'ownerEmail': widget.email,
         'ownerUid': widget.uid,
         'plan': 'Free',
@@ -322,7 +334,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kGreyBg,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
@@ -347,23 +359,22 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: Column(
                   children: [
                     _buildSectionLabel("Business Details"),
-                    _buildModernField("Business Name", _businessNameCtrl, HeroIcons.buildingStorefront, isMandatory: true),
-                    _buildModernField("Owner Name", _ownerNameCtrl, HeroIcons.user, isMandatory: true),
-                    _buildModernField("Business Phone", _businessPhoneCtrl, HeroIcons.phone, type: TextInputType.phone, isMandatory: true, hint: "e.g. +971 501 234 567"),
-                    _buildPersonalPhoneField(),
-                    _buildModernField("Email Address", TextEditingController(text: widget.email), HeroIcons.envelope, enabled: false),
+                    _buildModernField("Business Name *", _businessNameCtrl, HeroIcons.buildingStorefront, isMandatory: true),
+                    _buildModernField("Owner Name *", _ownerNameCtrl, HeroIcons.user, isMandatory: true),
+                    _buildBusinessPhoneField(),
+                    _buildLocationField(),
                     _buildCurrencyField(isMandatory: true),
                     const SizedBox(height: 24),
                     _buildAdvancedDetailsToggle(),
                     if (_showAdvancedDetails) ...[
                       const SizedBox(height: 16),
-                      _buildSectionLabel("Address (Optional)"),
-                      _buildLocationField(),
-                      const SizedBox(height: 24),
+                      _buildSectionLabel("Personal Contact (Optional)"),
+                      _buildModernField("Personal Phone", _personalPhoneCtrl, HeroIcons.phone, type: TextInputType.phone, hint: "e.g. +91 9876543210"),
+                      const SizedBox(height: 8),
                       _buildSectionLabel("Taxation (Optional)"),
                       _buildOptionalField("Tax Type", _taxTypeCtrl, HeroIcons.banknotes, hint: "e.g. VAT, GST, Sales Tax"),
                       _buildOptionalField("Tax Number", _taxNumberCtrl, HeroIcons.hashtag, hint: "Enter your tax identification number"),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildSectionLabel("Additional License (Optional)"),
                       _buildOptionalField("License Type", _licenseTypeCtrl, HeroIcons.identification, hint: "e.g. Trade License, FSSAI, F&B"),
                       _buildOptionalField("License Number", _licenseNumberCtrl, HeroIcons.hashtag, hint: "Enter your license number"),
@@ -390,6 +401,181 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
           style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBlack54, letterSpacing: 1.0),
         ),
       ),
+    );
+  }
+
+  /// Business phone field with country code prefix selector
+  Widget _buildBusinessPhoneField() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: _businessPhoneCtrl,
+        builder: (context, value, child) {
+          final bool isFilled = value.text.isNotEmpty;
+          return TextFormField(
+            controller: _businessPhoneCtrl,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9]'))],
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+            decoration: InputDecoration(
+              labelText: 'Business Number *',
+              hintText: 'Enter business number',
+              hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
+              prefixIcon: GestureDetector(
+                onTap: _showCountryCodePicker,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(_selectedCountryFlag, style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 4),
+                      Text(
+                        _selectedCountryCode,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isFilled ? kPrimaryColor : kBlack54,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.arrow_drop_down, size: 16, color: isFilled ? kPrimaryColor : kBlack54),
+                    ],
+                  ),
+                ),
+              ),
+              filled: true,
+              fillColor: kGreyBg,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: kErrorColor, width: 2.0),
+              ),
+              labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
+              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Business Number is required';
+              if (v.trim().length < 5) return 'Enter a valid number';
+              return null;
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCountryCodePicker() {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: kWhite,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _countryCodes.where((c) {
+              if (searchQuery.isEmpty) return true;
+              final q = searchQuery.toLowerCase();
+              return c['name']!.toLowerCase().contains(q) || c['code']!.contains(q);
+            }).toList();
+
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.7,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      children: [
+                        const Text("Select Country Code",
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87)),
+                        const SizedBox(height: 14),
+                        TextField(
+                          autofocus: false,
+                          decoration: InputDecoration(
+                            hintText: 'Search country...',
+                            hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
+                            prefixIcon: const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 18),
+                            ),
+                            filled: true,
+                            fillColor: kGreyBg,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onChanged: (v) => setModalState(() => searchQuery = v),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                      itemBuilder: (context, i) {
+                        final c = filtered[i];
+                        final isSelected = c['code'] == _selectedCountryCode;
+                        return ListTile(
+                          onTap: () {
+                            setState(() {
+                              _selectedCountryCode = c['code']!;
+                              _selectedCountryFlag = c['flag']!;
+                            });
+                            Navigator.pop(ctx);
+                          },
+                          leading: Text(c['flag']!, style: const TextStyle(fontSize: 24)),
+                          title: Text(c['name']!,
+                              style: TextStyle(
+                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                  fontSize: 14,
+                                  color: isSelected ? kPrimaryColor : kBlack87)),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(c['code']!,
+                                  style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: isSelected ? kPrimaryColor : kBlack54)),
+                              if (isSelected)
+                                const Padding(
+                                  padding: EdgeInsets.only(left: 8),
+                                  child: HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 20),
+                                ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -425,7 +611,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
               ),
               filled: true,
-              fillColor: const Color(0xFFF8F9FA),
+              fillColor: kGreyBg,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -448,13 +634,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderSide: const BorderSide(color: kErrorColor, width: 2.0),
               ),
               labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
             validator: (v) {
               if (isMandatory && (v == null || v.trim().isEmpty)) return "$label is required";
-              if (type == TextInputType.phone && v != null && v.trim().isNotEmpty && v.trim().length < 7) {
-                return "Enter valid phone number";
-              }
               return null;
             },
           );
@@ -491,7 +674,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 child: HeroIcon(icon, color: enabled ? (isFilled ? kPrimaryColor : kBlack54) : kGrey400, size: 18),
               ),
               filled: true,
-              fillColor: const Color(0xFFF8F9FA),
+              fillColor: kGreyBg,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -514,7 +697,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderSide: const BorderSide(color: kErrorColor, width: 2.0),
               ),
               labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
           );
         },
@@ -522,116 +705,14 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
     );
   }
 
-  Widget _buildPersonalPhoneField() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: ValueListenableBuilder<TextEditingValue>(
-            valueListenable: _personalPhoneCtrl,
-            builder: (context, value, child) {
-              final bool isFilled = value.text.isNotEmpty;
-              return TextFormField(
-                controller: _personalPhoneCtrl,
-                enabled: !_sameAsBusinessNumber,
-                keyboardType: TextInputType.phone,
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9+\- ]'))],
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-                decoration: InputDecoration(
-                  labelText: "Personal Phone",
-                  hintText: "e.g. +971 501 234 567",
-                  hintStyle: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w400),
-                  prefixIcon: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: HeroIcon(
-                      HeroIcons.phone,
-                      color: _sameAsBusinessNumber ? kGrey400 : (isFilled ? kPrimaryColor : kBlack54),
-                      size: 18,
-                    ),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF8F9FA),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: isFilled ? kPrimaryColor : kGrey200, width: isFilled ? 1.5 : 1.0),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-                  ),
-                  labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-                  floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-                ),
-              );
-            },
-          ),
-        ),
-        InkWell(
-          onTap: () {
-            setState(() {
-              _sameAsBusinessNumber = !_sameAsBusinessNumber;
-              if (_sameAsBusinessNumber) {
-                _personalPhoneCtrl.text = _businessPhoneCtrl.text;
-              }
-            });
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: _sameAsBusinessNumber ? kPrimaryColor : kGrey400,
-                      width: 2,
-                    ),
-                    color: _sameAsBusinessNumber ? kPrimaryColor : Colors.transparent,
-                  ),
-                  child: _sameAsBusinessNumber
-                      ? const HeroIcon(HeroIcons.check, color: kWhite, size: 14)
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                const Expanded(
-                  child: Text(
-                    "Use Business Phone as Personal Number",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: kBlack87,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-      ],
-    );
-  }
-
   Widget _buildAdvancedDetailsToggle() {
     return InkWell(
-      onTap: () {
-        setState(() {
-          _showAdvancedDetails = !_showAdvancedDetails;
-        });
-      },
+      onTap: () => setState(() => _showAdvancedDetails = !_showAdvancedDetails),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: kWhite,
+          color: kGreyBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: kGrey200, width: 1.0),
         ),
@@ -646,18 +727,9 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             Expanded(
               child: Text(
                 _showAdvancedDetails ? "Hide Advanced Details" : "Show Advanced Details (Optional)",
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: kPrimaryColor,
-                  letterSpacing: 0.5,
-                ),
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kPrimaryColor, letterSpacing: 0.5),
               ),
             ),
-            if (_showAdvancedDetails)
-              const HeroIcon(HeroIcons.chevronUp, color: kBlack54, size: 20)
-            else
-              const HeroIcon(HeroIcons.chevronDown, color: kBlack54, size: 20),
           ],
         ),
       ),
@@ -680,21 +752,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             decoration: InputDecoration(
               labelText: "Address",
               hintText: "Enter full business address",
-              hintStyle: const TextStyle(
-                color: kBlack54,
-                fontSize: 13,
-                fontWeight: FontWeight.normal,
-              ),
+              hintStyle: const TextStyle(color: kBlack54, fontSize: 13, fontWeight: FontWeight.normal),
               prefixIcon: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: HeroIcon(
-                  HeroIcons.mapPin,
-                  color: isFilled ? kPrimaryColor : kBlack54,
-                  size: 18,
-                ),
+                child: HeroIcon(HeroIcons.mapPin, color: isFilled ? kPrimaryColor : kBlack54, size: 18),
               ),
               filled: true,
-              fillColor: const Color(0xFFF8F9FA),
+              fillColor: kGreyBg,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -709,14 +773,13 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
                 borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
               ),
               labelStyle: TextStyle(color: isFilled ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-              floatingLabelStyle: TextStyle(color: isFilled ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
+              floatingLabelStyle: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
             ),
           );
         },
       ),
     );
   }
-
 
   Widget _buildCurrencyField({bool isMandatory = false}) {
     final sel = _currencies.firstWhere((c) => c['code'] == _selectedCurrency, orElse: () => _currencies[0]);
@@ -729,7 +792,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: kWhite,
+            color: kGreyBg,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: hasValue ? kPrimaryColor : kGrey200, width: hasValue ? 1.5 : 1.0),
           ),
@@ -762,7 +825,7 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
   }
 
   void _showCurrencyPicker() {
-    String searchQuery = ''; // Move searchQuery here
+    String searchQuery = '';
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -775,119 +838,107 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
               if (searchQuery.isEmpty) return true;
               final query = searchQuery.toLowerCase();
               return currency['code']!.toLowerCase().contains(query) ||
-                     currency['name']!.toLowerCase().contains(query) ||
-                     currency['symbol']!.toLowerCase().contains(query);
+                  currency['name']!.toLowerCase().contains(query) ||
+                  currency['symbol']!.toLowerCase().contains(query);
             }).toList();
 
-            return Container(
-            height: MediaQuery.of(context).size.height * 0.75,
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                const Text("Select Currency", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
-                const SizedBox(height: 20),
-                // Search Bar
-                TextField(
-                  autofocus: false,
-                  decoration: InputDecoration(
-                    hintText: 'Search currency code, name or symbol...',
-                    hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
-                    prefixIcon: const Padding(
-                      padding: EdgeInsets.all(12.0),
-                      child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
-                    ),
-                    
-                    
-                    
-                    
-                  ),
-                  onChanged: (value) {
-                    setModalState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                // Results count
-                if (searchQuery.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        '${filteredCurrencies.length} ${filteredCurrencies.length == 1 ? 'currency' : 'currencies'} found',
-                        style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
+            return SizedBox(
+              height: MediaQuery.of(context).size.height * 0.75,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Text("Select Currency",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBlack87, letterSpacing: 0.5)),
+                    const SizedBox(height: 20),
+                    TextField(
+                      autofocus: false,
+                      decoration: InputDecoration(
+                        hintText: 'Search currency...',
+                        hintStyle: const TextStyle(fontSize: 13, color: kGrey400),
+                        prefixIcon: const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: HeroIcon(HeroIcons.magnifyingGlass, color: kPrimaryColor, size: 20),
+                        ),
+                        filled: true,
+                        fillColor: kGreyBg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
+                      onChanged: (value) => setModalState(() => searchQuery = value),
                     ),
-                  ),
-                // Currency List
-                Expanded(
-                  child: filteredCurrencies.isEmpty
-                      ? const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              HeroIcon(HeroIcons.magnifyingGlass, size: 48, color: kGrey400),
-                              SizedBox(height: 12),
-                              Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
-                            ],
+                    const SizedBox(height: 16),
+                    if (searchQuery.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${filteredCurrencies.length} ${filteredCurrencies.length == 1 ? 'currency' : 'currencies'} found',
+                            style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600),
                           ),
-                        )
-                      : ListView.separated(
-                          itemCount: filteredCurrencies.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
-                          itemBuilder: (context, i) {
-                            final c = filteredCurrencies[i];
-                            final isSelected = c['code'] == _selectedCurrency;
-                            return ListTile(
-                              onTap: () {
-                                setState(() => _selectedCurrency = c['code']!);
-                                Navigator.pop(ctx);
-                              },
-                              contentPadding: EdgeInsets.zero,
-                              leading: Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? kPrimaryColor.withValues(alpha: 0.1) : kGreyBg,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    c['symbol']!,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected ? kPrimaryColor : kBlack54,
+                        ),
+                      ),
+                    Expanded(
+                      child: filteredCurrencies.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  HeroIcon(HeroIcons.magnifyingGlass, size: 48, color: kGrey400),
+                                  SizedBox(height: 12),
+                                  Text('No currencies found', style: TextStyle(color: kGrey400, fontSize: 14)),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: filteredCurrencies.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1, color: kGrey100),
+                              itemBuilder: (context, i) {
+                                final c = filteredCurrencies[i];
+                                final isSelected = c['code'] == _selectedCurrency;
+                                return ListTile(
+                                  onTap: () {
+                                    setState(() => _selectedCurrency = c['code']!);
+                                    Navigator.pop(ctx);
+                                  },
+                                  contentPadding: EdgeInsets.zero,
+                                  leading: Container(
+                                    width: 40, height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? kPrimaryColor.withValues(alpha: 0.1) : kGreyBg,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Center(
+                                      child: Text(c['symbol']!,
+                                          style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                              color: isSelected ? kPrimaryColor : kBlack54)),
                                     ),
                                   ),
-                                ),
-                              ),
-                              title: Text(
-                                c['name']!,
-                                style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                  fontSize: 14,
-                                  color: isSelected ? kPrimaryColor : kBlack87,
-                                ),
-                              ),
-                              subtitle: Text(
-                                c['code']!,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: isSelected ? kPrimaryColor : kBlack54,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              trailing: isSelected
-                                  ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 24)
-                                  : null,
-                            );
-                          },
-                        ),
+                                  title: Text(c['name']!,
+                                      style: TextStyle(
+                                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                          fontSize: 14,
+                                          color: isSelected ? kPrimaryColor : kBlack87)),
+                                  subtitle: Text(c['code']!,
+                                      style: TextStyle(
+                                          fontSize: 12,
+                                          color: isSelected ? kPrimaryColor : kBlack54,
+                                          fontWeight: FontWeight.w500)),
+                                  trailing: isSelected
+                                      ? const HeroIcon(HeroIcons.checkCircle, color: kPrimaryColor, size: 24)
+                                      : null,
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
             );
           },
         );
@@ -915,10 +966,10 @@ class _BusinessDetailsPageState extends State<BusinessDetailsPage> {
             ),
             child: _loading
                 ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2.5, color: kWhite))
-                : Text(
-              "Complete Registration",
-              style: const TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
-            ),
+                : const Text(
+                    "Complete Registration",
+                    style: TextStyle(color: kWhite, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                  ),
           ),
         ),
       ),
