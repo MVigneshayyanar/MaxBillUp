@@ -642,25 +642,26 @@ class _MenuPageState extends State<MenuPage> {
                   return;
                 }
 
-                // If user explicitly has permission, allow even if plan rank is low
-                final permKey = _getPermissionKeyFromView(viewKey);
-                if (_hasPermission(permKey) || isAdmin) {
-                  setState(() => _currentView = viewKey);
-                  return;
-                }
+                // Check paid plan synchronously — same as Reports.dart
+                final isPaidPlan = planProvider.canAccessReports();
 
-                // Otherwise enforce plan-rank gating
-                if (requiredRank > 0 && planRank < requiredRank) {
+                // For admins on free/starter plan, show upgrade dialog
+                if (isAdmin && !isPaidPlan && requiredRank > 0) {
                   PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                   return;
                 }
 
-                // Finally, deny if no permission
-                if (!_hasPermission(permKey)) {
-                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                  return;
+                // For staff, check user permissions + plan
+                if (!isAdmin) {
+                  final permKey = _getPermissionKeyFromView(viewKey);
+                  final hasPermission = _hasPermission(permKey);
+                  if (!hasPermission || (requiredRank > 0 && !isPaidPlan)) {
+                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                    return;
+                  }
                 }
 
+                // All checks passed, open the page
                 setState(() => _currentView = viewKey);
               },
               child: Padding(
@@ -737,22 +738,26 @@ class _MenuPageState extends State<MenuPage> {
                   return;
                 }
 
-                final permKey = _getPermissionKeyFromView(viewKey);
-                if (_hasPermission(permKey) || isAdmin) {
-                  setState(() => _currentView = viewKey);
-                  return;
-                }
+                // Check paid plan synchronously — same as Reports.dart
+                final isPaidPlan = planProvider.canAccessReports();
 
-                if (requiredRank > 0 && planRank < requiredRank) {
+                // For admins on free/starter plan, show upgrade dialog
+                if (isAdmin && !isPaidPlan && requiredRank > 0) {
                   PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
                   return;
                 }
 
-                if (!_hasPermission(permKey)) {
-                  PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
-                  return;
+                // For staff, check user permissions + plan
+                if (!isAdmin) {
+                  final permKey = _getPermissionKeyFromView(viewKey);
+                  final hasPermission = _hasPermission(permKey);
+                  if (!hasPermission || (requiredRank > 0 && !isPaidPlan)) {
+                    PlanPermissionHelper.showUpgradeDialog(context, title, uid: widget.uid, currentPlan: currentPlan);
+                    return;
+                  }
                 }
 
+                // All checks passed, open the page
                 setState(() => _currentView = viewKey);
               },
               child: Padding(
@@ -845,32 +850,15 @@ class _MenuPageState extends State<MenuPage> {
       case 'Expenses': return ExpensesPage(uid: widget.uid, onBack: reset);
       case 'ExpenseCategories': return ExpenseCategoriesPage(uid: widget.uid, onBack: reset);
       case 'Vendors': return VendorsPage(uid: widget.uid, onBack: reset);
-      case 'Quotation': return _buildAsyncRoute(planProvider.canAccessQuotationAsync(), 'Quotation', reset, QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
-      case 'CreditNotes': return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Credit Notes', reset, CreditNotesPage(uid: widget.uid, onBack: reset));
-      case 'CreditDetails': return _buildAsyncRoute(planProvider.canAccessCustomerCreditAsync(), 'Credit Details', reset, CreditDetailsPage(uid: widget.uid, onBack: reset));
-      case 'StaffManagement': return _buildAsyncRoute(planProvider.canAccessStaffManagementAsync(), 'Staff Management', reset, StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset));
+      case 'Quotation': return QuotationsListPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
+      case 'CreditNotes': return CreditNotesPage(uid: widget.uid, onBack: reset);
+      case 'CreditDetails': return CreditDetailsPage(uid: widget.uid, onBack: reset);
+      case 'StaffManagement': return StaffManagementPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
       case 'Knowledge': return KnowledgePage(onBack: reset);
       case 'VideoTutorial': return VideoTutorialPage(onBack: reset);
       case 'Support': return SupportPage(uid: widget.uid, userEmail: widget.userEmail, onBack: reset);
     }
     return Container();
-  }
-
-  Widget _buildAsyncRoute(Future<bool> future, String featureName, VoidCallback reset, Widget targetPage) {
-    return FutureBuilder<bool>(
-      future: future,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
-        if (!snapshot.data!) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            PlanPermissionHelper.showUpgradeDialog(context, featureName, uid: widget.uid);
-            reset();
-          });
-          return Container();
-        }
-        return targetPage;
-      },
-    );
   }
 }
 
