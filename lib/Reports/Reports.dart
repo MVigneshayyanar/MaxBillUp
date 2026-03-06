@@ -4253,26 +4253,26 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         sliver: SliverList(
                           delegate: SliverChildListDelegate([
-                            // Top Profit Ribbon
-                            _buildExecutiveProfitCard(profit, netSale),
+                            // Bill Count & Average strip
+                            _buildBillSummaryStrip(saleCount, netSale),
                             const SizedBox(height: 16),
 
-                            // Metrics Grid
-                            _buildMetricsGrid(netSale, grossSale, productCost, discount, saleCount),
+                            // Profit Performance Card
+                            _buildExecutiveProfitCard(profit, netSale, productCost),
+                            const SizedBox(height: 16),
 
-                            const SizedBox(height: 24),
-                            _buildSectionLabel("Revenue Timeline"),
-                            const SizedBox(height: 10),
-                            _buildDashboardCard(
-                              child: _buildBarChart(hourlyRevenue),
-                            ),
+                            // Sales Breakdown
+                            _buildSalesBreakdownSection(netSale, grossSale, productCost, discount, saleCount),
 
-                            const SizedBox(height: 24),
-                            _buildSectionLabel("Payment Structure"),
-                            const SizedBox(height: 10),
-                            _buildDashboardCard(
-                              child: _buildDonutChartSection(netSale, cash, online, creditNote, credit, unsettled),
-                            ),
+                            const SizedBox(height: 20),
+                            _buildSectionLabel("REVENUE TIMELINE"),
+                            const SizedBox(height: 8),
+                            _buildRevenueTimelineCard(hourlyRevenue),
+
+                            const SizedBox(height: 20),
+                            _buildSectionLabel("PAYMENT STRUCTURE"),
+                            const SizedBox(height: 8),
+                            _buildPaymentStructureCard(netSale, cash, online, creditNote, credit, unsettled),
                             const SizedBox(height: 30),
                           ]),
                         ),
@@ -4288,105 +4288,77 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
     );
   }
 
-  // --- MODERN UI COMPONENTS ---
+  // --- MODERN UI COMPONENTS (matching Business Insights theme) ---
 
   Widget _buildSectionLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          color: kTextSecondary,
-          letterSpacing: 1.2,
-        ),
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w900,
+        color: kTextSecondary,
+        letterSpacing: 1.2,
       ),
     );
   }
 
-  Widget _buildExecutiveProfitCard(double profit, double netSale) {
-    final margin = netSale > 0 ? (profit / netSale) * 100 : 0.0;
-    final bool isPositive = profit >= 0;
-
+  Widget _buildBillSummaryStrip(int count, double netSale) {
+    final avg = count > 0 ? netSale / count : 0.0;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorderColor.withOpacity(0.8)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                  Row(
-                    children: [
-                      const Text(
-                        "Estimated Profit",
-                        style: TextStyle(color: kTextSecondary, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.8),
-                      ),
-                      const SizedBox(width: 8),
-                      // Green info icon with black-font tooltip/dialog to educate the user
-                      InkWell(
-                        onTap: () {
-                          showDialog(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Row(
-                                children: [
-                                  Icon(Icons.info_outline, color: kIncomeGreen),
-                                  SizedBox(width: 8),
-                                  Expanded(child: Text('About Estimated Profit')),
-                                ],
-                              ),
-                              content: const Text('Profit is calculated based on the Total Cost Price'),
-                              actions: [
-                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-                              ],
-                            ),
-                          );
-                        },
-                        child: Row(
-                          children: const [
-                            Icon(Icons.info_outline, color: kIncomeGreen, size: 14),
-                          ],
-                        ),
-                      ),
-                    ],
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                const SizedBox(height: 4),
-                Text(
-                  "${profit.toStringAsFixed(2)}",
-                  style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: isPositive ? kIncomeGreen : kExpenseRed,
-                      letterSpacing: -0.8
-                  ),
+                  child: const Icon(Icons.receipt_long_rounded, color: kPrimaryColor, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("TOTAL BILLS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                    Text("$count", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary)),
+                  ],
                 ),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: (isPositive ? kIncomeGreen : kExpenseRed).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: (isPositive ? kIncomeGreen : kExpenseRed).withOpacity(0.2)),
-            ),
-            child: Column(
+          Container(width: 1, height: 30, color: kBorderColor),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Text(
-                  "${margin.toStringAsFixed(1)}%",
-                  style: TextStyle(color: isPositive ? kIncomeGreen : kExpenseRed, fontWeight: FontWeight.w900, fontSize: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text("AVG BILL VALUE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                    Text(
+                      "${CurrencyService().symbol}${avg.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary),
+                    ),
+                  ],
                 ),
-                const Text("Margin", style: TextStyle(color: kTextSecondary, fontSize: 8, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: kIncomeGreen.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.trending_up_rounded, color: kIncomeGreen, size: 16),
+                ),
               ],
             ),
           ),
@@ -4395,183 +4367,526 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
     );
   }
 
-  Widget _buildMetricsGrid(double net, double gross, double cost, double disc, int count) {
+  Widget _buildExecutiveProfitCard(double profit, double netSale, double cost) {
+    final margin = netSale > 0 ? (profit / netSale) * 100 : 0.0;
+    final bool isPositive = profit >= 0;
+
+    String performanceLabel;
+    Color performanceColor;
+    IconData performanceIcon;
+    if (isPositive) {
+      if (margin > 50) {
+        performanceLabel = "Excellent";
+        performanceColor = kIncomeGreen;
+        performanceIcon = Icons.trending_up_rounded;
+      } else if (margin > 20) {
+        performanceLabel = "Good";
+        performanceColor = kIncomeGreen;
+        performanceIcon = Icons.trending_up_rounded;
+      } else {
+        performanceLabel = "Average";
+        performanceColor = kWarningOrange;
+        performanceIcon = Icons.trending_flat_rounded;
+      }
+    } else {
+      performanceLabel = "Loss";
+      performanceColor = kExpenseRed;
+      performanceIcon = Icons.trending_down_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text("ESTIMATED PROFIT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Row(children: [Icon(Icons.info_outline, color: kIncomeGreen), SizedBox(width: 8), Expanded(child: Text('About Estimated Profit'))]),
+                          content: const Text('Profit is calculated based on the Total Cost Price'),
+                          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+                        ),
+                      );
+                    },
+                    child: const Icon(Icons.info_outline, color: kTextSecondary, size: 13),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: performanceColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(performanceIcon, size: 14, color: performanceColor),
+                    const SizedBox(width: 4),
+                    Text(performanceLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: performanceColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: kIncomeGreen, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 6),
+                        const Text("Net Sale", style: TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${CurrencyService().symbol}${netSale.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kIncomeGreen, letterSpacing: -0.5),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 6),
+                        const Text("Cost Value", style: TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${CurrencyService().symbol}${cost.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kExpenseRed, letterSpacing: -0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: netSale > 0 ? netSale.toInt().clamp(1, 999999) : 1,
+                    child: Container(color: kIncomeGreen),
+                  ),
+                  Expanded(
+                    flex: cost > 0 ? cost.toInt().clamp(1, 999999) : 1,
+                    child: Container(color: kExpenseRed),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Net profit result
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: (isPositive ? kIncomeGreen : kExpenseRed).withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      size: 16,
+                      color: isPositive ? kIncomeGreen : kExpenseRed,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Profit: ${CurrencyService().symbol}${profit.toStringAsFixed(0)}",
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: isPositive ? kIncomeGreen : kExpenseRed),
+                    ),
+                  ],
+                ),
+                Text(
+                  "${margin.abs().toStringAsFixed(1)}% margin",
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: isPositive ? kIncomeGreen : kExpenseRed),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesBreakdownSection(double net, double gross, double cost, double disc, int count) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildMetricTile("Net Revenue", net, kPrimaryColor, Icons.account_balance_wallet_rounded)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildMetricTile("Total Sales", gross, const Color(0xFF5C6BC0), Icons.receipt_rounded)),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(child: _buildMetricTile("Cost Value", cost, kExpenseRed, Icons.inventory_2_rounded)),
-            const SizedBox(width: 10),
-            Expanded(child: _buildMetricTile("Discounts", disc, kWarningOrange, Icons.confirmation_number_rounded)),
-          ],
-        ),
+        _buildSectionLabel("SALES BREAKDOWN"),
+        const SizedBox(height: 8),
+        _buildBreakdownRow("Gross Sales", gross, kIncomeGreen, Icons.arrow_upward_rounded, net),
+        const SizedBox(height: 6),
+        _buildBreakdownRow("Net Revenue", net, kIncomeGreen, Icons.arrow_upward_rounded, net),
+        const SizedBox(height: 6),
+        _buildBreakdownRow("Cost Value", cost, kExpenseRed, Icons.arrow_downward_rounded, net),
+        const SizedBox(height: 6),
+        _buildBreakdownRow("Discounts", disc, kWarningOrange, Icons.arrow_downward_rounded, net),
       ],
     );
   }
 
-  Widget _buildMetricTile(String title, double val, Color color, IconData icon) {
+  Widget _buildBreakdownRow(String label, double value, Color color, IconData icon, double total) {
+    final pct = total > 0 ? (value / total * 100) : 0.0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 14, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary)),
+          ),
+          Text(
+            "${CurrencyService().symbol}${value.toStringAsFixed(0)}",
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              "${pct.toStringAsFixed(0)}%",
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRevenueTimelineCard(Map<int, double> data) {
+    // Find peak hour
+    int peakHour = 0;
+    double peakVal = 0;
+    double totalRev = 0;
+    data.forEach((h, v) {
+      totalRev += v;
+      if (v > peakVal) {
+        peakVal = v;
+        peakHour = h;
+      }
+    });
+    String peakLabel = peakHour > 0
+        ? '${peakHour > 12 ? peakHour - 12 : (peakHour == 0 ? 12 : peakHour)}${peakHour >= 12 ? 'PM' : 'AM'}'
+        : '--';
+
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: kPrimaryColor, borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(width: 6),
+                  const Text("Hourly Revenue", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                ],
+              ),
+              Text("Peak: $peakLabel", style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 150,
+            child: data.isEmpty
+                ? const Center(child: Text('No data', style: TextStyle(color: kTextSecondary, fontSize: 12)))
+                : BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withValues(alpha: 0.4), strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+                titlesData: FlTitlesData(
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (v, m) {
+                        int h = v.toInt();
+                        if (h % 4 != 0) return const SizedBox();
+                        String label = '${h > 12 ? h - 12 : (h == 0 ? 12 : h)}${h >= 12 ? 'pm' : 'am'}';
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(label, style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.w700)),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      getTitlesWidget: (v, m) {
+                        if (v == 0) return const SizedBox();
+                        String label;
+                        if (v >= 1000) {
+                          label = '${(v / 1000).toStringAsFixed(0)}K';
+                        } else {
+                          label = v.toStringAsFixed(0);
+                        }
+                        return Text(label, style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.w600));
+                      },
+                    ),
+                  ),
+                ),
+                barGroups: data.entries.map((e) {
+                  final isPeak = e.key == peakHour && peakVal > 0;
+                  return BarChartGroupData(
+                    x: e.key,
+                    barRods: [
+                      BarChartRodData(
+                        toY: e.value,
+                        color: isPeak ? kIncomeGreen : kPrimaryColor.withValues(alpha: 0.6),
+                        width: 8,
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                      )
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Summary below chart
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kPrimaryColor.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kPrimaryColor.withValues(alpha: 0.12)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Total Revenue", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                      const SizedBox(height: 2),
+                      Text("${CurrencyService().symbol}${totalRev.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kIncomeGreen.withValues(alpha: 0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kIncomeGreen.withValues(alpha: 0.12)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Peak Hour", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                      const SizedBox(height: 2),
+                      Text("${CurrencyService().symbol}${peakVal.toStringAsFixed(0)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kIncomeGreen)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentStructureCard(double net, double cash, double online, double cn, double credit, double unsettled) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color.withOpacity(0.7), size: 14),
-              const SizedBox(width: 6),
-              Text(title, style: const TextStyle(color: kTextSecondary, fontSize: 10, fontWeight: FontWeight.w600)),
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.pie_chart_outline_rounded, color: kTextSecondary, size: 14),
+                    SizedBox(width: 6),
+                    Text("Payment Breakdown", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+              Text("${CurrencyService().symbol}${net.toStringAsFixed(0)}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kTextPrimary)),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            "${val.toStringAsFixed(0)}",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.2),
+          const SizedBox(height: 14),
+          // Donut chart + legend
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 130,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(
+                        PieChartData(
+                          sectionsSpace: 3,
+                          centerSpaceRadius: 32,
+                          sections: [
+                            if (cash > 0) PieChartSectionData(color: kIncomeGreen, value: cash, title: '', radius: 14),
+                            if (online > 0) PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 14),
+                            if (cn > 0) PieChartSectionData(color: kChartPurple, value: cn, title: '', radius: 14),
+                            if (credit > 0) PieChartSectionData(color: kWarningOrange, value: credit, title: '', radius: 14),
+                            if (unsettled > 0) PieChartSectionData(color: kChartAmber, value: unsettled, title: '', radius: 14),
+                            if (net == 0) PieChartSectionData(color: kBorderColor.withValues(alpha: 0.3), value: 1, title: '', radius: 14),
+                          ],
+                        ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text("${CurrencyService().symbol}${net.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextPrimary)),
+                          const Text("Total", style: TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 6,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildLegendRow(kIncomeGreen, 'Cash', cash, net),
+                    _buildLegendRow(kChartBlue, 'Online', online, net),
+                    _buildLegendRow(kChartPurple, 'Refunds', cn, net),
+                    _buildLegendRow(kWarningOrange, 'Credit', credit, net),
+                    if (unsettled > 0) _buildLegendRow(kChartAmber, 'Unsettled', unsettled, net),
+                  ],
+                ),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Net summary strip
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: kIncomeGreen.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.account_balance_wallet_rounded, size: 14, color: kIncomeGreen),
+                    const SizedBox(width: 6),
+                    Text("Cash + Online collected", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kIncomeGreen)),
+                  ],
+                ),
+                Text(
+                  "${CurrencyService().symbol}${(cash + online).toStringAsFixed(0)}",
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kIncomeGreen),
+                ),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildDashboardCard({required Widget child}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorderColor.withOpacity(0.7)),
-      ),
-      child: child,
-    );
-  }
-
-  Widget _buildBarChart(Map<int, double> data) {
-    return SizedBox(
-      height: 140,
-      child: data.isEmpty
-          ? const Center(child: Text('No trend data', style: TextStyle(color: kTextSecondary, fontSize: 14)))
-          : BarChart(
-        BarChartData(
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: 5000,
-            getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withOpacity(0.2), strokeWidth: 1),
-          ),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 22,
-                getTitlesWidget: (v, m) {
-                  int h = v.toInt();
-                  if (h % 6 != 0) return const SizedBox();
-                  String label = '${h > 12 ? h - 12 : (h == 0 ? 12 : h)}${h >= 12 ? 'pm' : 'am'}';
-                  return SideTitleWidget(meta: m, space: 4, child: Text(label, style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.bold)));
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 28,
-                getTitlesWidget: (v, m) {
-                  if (v == 0) return const SizedBox();
-                  return Text(v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}k' : v.toStringAsFixed(0), style: const TextStyle(fontSize: 8, color: kTextSecondary));
-                },
-              ),
-            ),
-          ),
-          barGroups: data.entries.toList().asMap().entries.map((entry) {
-            final e = entry.value;
-            final colorIndex = entry.key % kChartColorsList.length;
-            return BarChartGroupData(
-              x: e.key,
-              barRods: [
-                BarChartRodData(
-                  toY: e.value,
-                  color: kChartColorsList[colorIndex],
-                  width: 8,
-                  borderRadius: BorderRadius.circular(2),
-                )
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDonutChartSection(double net, double cash, double online, double cn, double credit, double unsettled) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 4,
-          child: SizedBox(
-            height: 130,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                PieChart(
-                  PieChartData(
-                    sectionsSpace: 3,
-                    centerSpaceRadius: 32,
-                    sections: [
-                      if (cash > 0) PieChartSectionData(color: kChartGreen, value: cash, title: '', radius: 14),
-                      if (online > 0) PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 14),
-                      if (cn > 0) PieChartSectionData(color: kChartPurple, value: cn, title: '', radius: 14),
-                      if (credit > 0) PieChartSectionData(color: kOrange , value: credit, title: '', radius: 14),
-                      if (unsettled > 0) PieChartSectionData(color: kChartAmber, value: unsettled, title: '', radius: 14),
-                      if (net == 0) PieChartSectionData(color: kBorderColor.withValues(alpha: 0.3), value: 1, title: '', radius: 14),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.pie_chart_outline_rounded, color: kTextSecondary, size: 20),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 6,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegendRow(kChartGreen, 'Cash', cash),
-              _buildLegendRow(kChartBlue, 'Online', online),
-              _buildLegendRow(kChartPurple, 'Refunds', cn),
-              _buildLegendRow(kChartRed, 'Credit', credit),
-            ],
-          ),
-        )
-      ],
-    );
-  }
-
-  Widget _buildLegendRow(Color color, String label, double value) {
+  Widget _buildLegendRow(Color color, String label, double value, double total) {
+    final pct = total > 0 ? (value / total * 100) : 0.0;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
           const SizedBox(width: 8),
           Expanded(child: Text(label, style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600))),
-          Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+          Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextPrimary)),
+          const SizedBox(width: 6),
+          Text("${pct.toStringAsFixed(0)}%", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );
@@ -9581,9 +9896,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                       getTitlesWidget: (value, meta) {
                         if (value == 0) return const SizedBox.shrink();
                         String label;
-                        if (value >= 100000) {
-                          label = '${(value / 100000).toStringAsFixed(1)}L';
-                        } else if (value >= 1000) {
+                        if (value >= 1000) {
                           label = '${(value / 1000).toStringAsFixed(1)}K';
                         } else {
                           label = value.toStringAsFixed(0);
