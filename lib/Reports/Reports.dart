@@ -4535,7 +4535,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                       if (cash > 0) PieChartSectionData(color: kChartGreen, value: cash, title: '', radius: 14),
                       if (online > 0) PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 14),
                       if (cn > 0) PieChartSectionData(color: kChartPurple, value: cn, title: '', radius: 14),
-                      if (credit > 0) PieChartSectionData(color: kChartRed, value: credit, title: '', radius: 14),
+                      if (credit > 0) PieChartSectionData(color: kOrange , value: credit, title: '', radius: 14),
                       if (unsettled > 0) PieChartSectionData(color: kChartAmber, value: unsettled, title: '', radius: 14),
                       if (net == 0) PieChartSectionData(color: kBorderColor.withValues(alpha: 0.3), value: 1, title: '', radius: 14),
                     ],
@@ -9028,6 +9028,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
           _firestoreService.getCollectionStream('sales'),
           _firestoreService.getCollectionStream('expenses'),
           _firestoreService.getCollectionStream('stockPurchases'),
+          _firestoreService.getCollectionStream('credits'),
         ]),
         builder: (context, streamsSnapshot) {
           if (!streamsSnapshot.hasData) {
@@ -9042,6 +9043,9 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                   return StreamBuilder<QuerySnapshot>(
                     stream: streamsSnapshot.data![2],
                     builder: (context, purchaseSnapshot) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: streamsSnapshot.data![3],
+                        builder: (context, creditsSnapshot) {
                       // Credit tracker streams
                       return StreamBuilder<QuerySnapshot>(
                         stream: _customersStream,
@@ -9059,15 +9063,17 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                               final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
                               final last7Days = now.subtract(const Duration(days: 7));
                               final thisMonthStart = DateTime(now.year, now.month, 1);
-                              final decemberStart = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 1);
-                              final decemberEnd = DateTime(now.year - (now.month == 1 ? 1 : 0), 12, 31, 23, 59, 59);
 
-                              double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0, incomeDecember = 0;
-                              double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0, expenseDecember = 0;
+                              double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0;
+                              double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0;
 
-                              // --- Process Sales ---
+                              // --- Process Sales (skip cancelled/returned like DayBook) ---
                               for (var doc in salesSnapshot.data!.docs) {
                                 final data = doc.data() as Map<String, dynamic>;
+                                final String status = (data['status'] ?? '').toString().toLowerCase();
+                                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                                  continue;
+                                }
                                 DateTime? dt;
                                 if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
                                 else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
@@ -9079,7 +9085,37 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                   if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += total;
                                   if (dt.isAfter(last7Days)) incomeLast7Days += total;
                                   if (dt.isAfter(thisMonthStart)) incomeThisMonth += total;
-                                  if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) incomeDecember += total;
+                                }
+                              }
+
+                              // --- Process Credits (credit collected = income, manual credit = expense, like DayBook) ---
+                              if (creditsSnapshot.hasData) {
+                                for (var doc in creditsSnapshot.data!.docs) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final type = (data['type'] ?? '').toString().toLowerCase();
+                                  final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                  DateTime? dt;
+                                  if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                  else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                                  // Skip sale_payment / credit_sale (already counted in sales)
+                                  if (type == 'sale_payment' || type == 'credit_sale') continue;
+
+                                  if (dt != null) {
+                                    if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                                      // Credit collected from customer = money IN (income)
+                                      if (dt.isAfter(todayStart)) incomeToday += amount;
+                                      if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += amount;
+                                      if (dt.isAfter(last7Days)) incomeLast7Days += amount;
+                                      if (dt.isAfter(thisMonthStart)) incomeThisMonth += amount;
+                                    } else if (type == 'add_credit') {
+                                      // Manual credit given to customer = money OUT (expense)
+                                      if (dt.isAfter(todayStart)) expenseToday += amount;
+                                      if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
+                                      if (dt.isAfter(last7Days)) expenseLast7Days += amount;
+                                      if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
+                                    }
+                                  }
                                 }
                               }
 
@@ -9097,7 +9133,6 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                   if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
                                   if (dt.isAfter(last7Days)) expenseLast7Days += amount;
                                   if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
-                                  if (dt.isAfter(decemberStart) && dt.isBefore(decemberEnd)) expenseDecember += amount;
                                 }
                               }
 
@@ -9121,6 +9156,102 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                 }
                               }
 
+                              // --- Process Stock Purchases as expenses ---
+                              double purchaseToday = 0, purchaseYesterday = 0, purchaseLast7Days = 0, purchaseThisMonth = 0;
+                              for (var doc in purchaseSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                                double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
+
+                                if (dt != null) {
+                                  if (dt.isAfter(todayStart)) purchaseToday += amount;
+                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) purchaseYesterday += amount;
+                                  if (dt.isAfter(last7Days)) purchaseLast7Days += amount;
+                                  if (dt.isAfter(thisMonthStart)) purchaseThisMonth += amount;
+                                }
+                              }
+
+                              // Total expenses = expenses + purchases
+                              final totalExpToday = expenseToday + purchaseToday;
+                              final totalExpYesterday = expenseYesterday + purchaseYesterday;
+                              final totalExpWeek = expenseLast7Days + purchaseLast7Days;
+                              final totalExpMonth = expenseThisMonth + purchaseThisMonth;
+
+                              // Build weekly data for chart (last 7 days, day-wise)
+                              final Map<int, double> weeklyIncome = {};
+                              final Map<int, double> weeklyExpense = {};
+                              for (int i = 6; i >= 0; i--) {
+                                weeklyIncome[6 - i] = 0;
+                                weeklyExpense[6 - i] = 0;
+                              }
+                              for (var doc in salesSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                // Skip cancelled/returned
+                                final String status = (data['status'] ?? '').toString().toLowerCase();
+                                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) continue;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                                if (dt != null && dt.isAfter(last7Days)) {
+                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                  if (daysAgo >= 0 && daysAgo <= 6) {
+                                    weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + total;
+                                  }
+                                }
+                              }
+                              // Credits for chart: credit collected = income, manual credit = expense
+                              if (creditsSnapshot.hasData) {
+                                for (var doc in creditsSnapshot.data!.docs) {
+                                  final data = doc.data() as Map<String, dynamic>;
+                                  final type = (data['type'] ?? '').toString().toLowerCase();
+                                  final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                  if (type == 'sale_payment' || type == 'credit_sale') continue;
+                                  DateTime? dt;
+                                  if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                  else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                  if (dt != null && dt.isAfter(last7Days)) {
+                                    final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                    if (daysAgo >= 0 && daysAgo <= 6) {
+                                      if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                                        weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + amount;
+                                      } else if (type == 'add_credit') {
+                                        weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                              for (var doc in expenseSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                if (dt != null && dt.isAfter(last7Days)) {
+                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                  if (daysAgo >= 0 && daysAgo <= 6) {
+                                    weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                  }
+                                }
+                              }
+                              for (var doc in purchaseSnapshot.data!.docs) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
+                                if (dt != null && dt.isAfter(last7Days)) {
+                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                  if (daysAgo >= 0 && daysAgo <= 6) {
+                                    weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                  }
+                                }
+                              }
+
                               return Column(
                                 children: [
                                   Expanded(
@@ -9131,19 +9262,30 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                           sliver: SliverList(
                                             delegate: SliverChildListDelegate([
-                                              _buildSectionHeader("Revenue Comparison"),
-                                              const SizedBox(height: 8),
-                                              _buildComparisonGrid(incomeToday, incomeYesterday, incomeLast7Days, incomeThisMonth, kIncomeGreen),
+                                              // ── Income VS Expense Performance Card ──
+                                              _buildPerformanceCard(incomeThisMonth, totalExpMonth),
 
-                                              const SizedBox(height: 24),
-                                              _buildSectionHeader("Expense Comparison"),
+                                              const SizedBox(height: 16),
+
+                                              // ── Income VS Expense Bar Chart (Last 7 Days) ──
+                                              _buildIncomeExpenseChart(weeklyIncome, weeklyExpense, incomeLast7Days, totalExpWeek),
+
+                                              const SizedBox(height: 16),
+
+                                              // ── Comparison Cards with arrows ──
+                                              _buildSectionHeader("INCOME VS EXPENSE"),
                                               const SizedBox(height: 8),
-                                              _buildComparisonGrid(expenseToday, expenseYesterday, expenseLast7Days, expenseThisMonth, kExpenseRed),
+                                              _buildComparisonRow("Today", incomeToday, totalExpToday),
+                                              const SizedBox(height: 8),
+                                              _buildComparisonRow("Yesterday", incomeYesterday, totalExpYesterday),
+                                              const SizedBox(height: 8),
+                                              _buildComparisonRow("Last 7 Days", incomeLast7Days, totalExpWeek),
+                                              const SizedBox(height: 8),
+                                              _buildComparisonRow("This Month", incomeThisMonth, totalExpMonth),
 
                                               const SizedBox(height: 24),
                                               _buildSectionHeader("Credit Tracker – Settlement Monitor"),
                                               const SizedBox(height: 8),
-                                              // Credit summary banner
                                               _buildCreditSummaryBanner(totalReceivable, totalPayable),
                                               const SizedBox(height: 8),
                                               Row(
@@ -9154,11 +9296,7 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                                                 ],
                                               ),
 
-                                              const SizedBox(height: 24),
-                                              _buildSectionHeader("Archived Insights"),
-                                              const SizedBox(height: 8),
-                                              _buildYearlyInsightRow("December 2024", incomeDecember, expenseDecember),
-                                              const SizedBox(height: 30),
+                                               const SizedBox(height: 30),
                                             ]),
                                           ),
                                         ),
@@ -9171,6 +9309,8 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                           );
                         },
                       );
+                        },
+                      );
                     },
                   );
                 },
@@ -9178,6 +9318,450 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
             },
           );
         },
+      ),
+    );
+  }
+
+  // ── Business Performance Card ──
+  Widget _buildPerformanceCard(double totalIncome, double totalExpense) {
+    final isHealthy = totalIncome >= totalExpense;
+    final percentage = totalIncome > 0
+        ? ((totalIncome - totalExpense) / totalIncome * 100).clamp(-999, 999)
+        : (totalExpense > 0 ? -100.0 : 0.0);
+
+    String performanceLabel;
+    Color performanceColor;
+    IconData performanceIcon;
+    if (isHealthy) {
+      if (percentage > 50) {
+        performanceLabel = "Excellent";
+        performanceColor = kIncomeGreen;
+        performanceIcon = Icons.trending_up_rounded;
+      } else if (percentage > 20) {
+        performanceLabel = "Good";
+        performanceColor = kIncomeGreen;
+        performanceIcon = Icons.trending_up_rounded;
+      } else {
+        performanceLabel = "Average";
+        performanceColor = kWarningOrange;
+        performanceIcon = Icons.trending_flat_rounded;
+      }
+    } else {
+      performanceLabel = "Needs Attention";
+      performanceColor = kExpenseRed;
+      performanceIcon = Icons.trending_down_rounded;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("BUSINESS PERFORMANCE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: performanceColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(performanceIcon, size: 14, color: performanceColor),
+                    const SizedBox(width: 4),
+                    Text(performanceLabel, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: performanceColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Income vs Expense header
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: kIncomeGreen, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 6),
+                        const Text("Total Income", style: TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${CurrencyService().symbol}${totalIncome.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kIncomeGreen, letterSpacing: -0.5),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 6),
+                        const Text("Total Expense", style: TextStyle(fontSize: 11, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "${CurrencyService().symbol}${totalExpense.toStringAsFixed(0)}",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kExpenseRed, letterSpacing: -0.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: totalIncome > 0 ? totalIncome.toInt().clamp(1, 999999) : 1,
+                    child: Container(color: kIncomeGreen),
+                  ),
+                  Expanded(
+                    flex: totalExpense > 0 ? totalExpense.toInt().clamp(1, 999999) : 1,
+                    child: Container(color: kExpenseRed),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Net result
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: (isHealthy ? kIncomeGreen : kExpenseRed).withOpacity(0.06),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isHealthy ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                      size: 16,
+                      color: isHealthy ? kIncomeGreen : kExpenseRed,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isHealthy ? "Income exceeds expenses" : "Expenses exceed income",
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isHealthy ? kIncomeGreen : kExpenseRed),
+                    ),
+                  ],
+                ),
+                Text(
+                  "${percentage.abs().toStringAsFixed(1)}%",
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isHealthy ? kIncomeGreen : kExpenseRed),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Income vs Expense Bar Chart (Last 7 Days) ──
+  Widget _buildIncomeExpenseChart(Map<int, double> weeklyIncome, Map<int, double> weeklyExpense, double totalWeekIncome, double totalWeekExpense) {
+    final now = DateTime.now();
+    final dayLabels = List.generate(7, (i) {
+      final day = now.subtract(Duration(days: 6 - i));
+      return DateFormat('EEE').format(day);
+    });
+
+    double maxVal = 0;
+    for (int i = 0; i < 7; i++) {
+      final inc = weeklyIncome[i] ?? 0;
+      final exp = weeklyExpense[i] ?? 0;
+      if (inc > maxVal) maxVal = inc;
+      if (exp > maxVal) maxVal = exp;
+    }
+    if (maxVal == 0) maxVal = 1000;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("INCOME VS EXPENSE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2)),
+              const Text("Last 7 Days", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          // Legend
+          Row(
+            children: [
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: kIncomeGreen, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 4),
+              const Text("Income", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+              const SizedBox(width: 16),
+              Container(width: 10, height: 10, decoration: BoxDecoration(color: kExpenseRed, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(width: 4),
+              const Text("Expense", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxVal * 1.2,
+                barTouchData: BarTouchData(
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final label = rodIndex == 0 ? 'Income' : 'Expense';
+                      return BarTooltipItem(
+                        '$label\n${CurrencyService().symbol}${rod.toY.toStringAsFixed(0)}',
+                        TextStyle(color: rodIndex == 0 ? kIncomeGreen : kExpenseRed, fontWeight: FontWeight.w700, fontSize: 11),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx >= 0 && idx < dayLabels.length) {
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(dayLabels[idx], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                          );
+                        }
+                        return const SizedBox.shrink();
+                      },
+                      reservedSize: 24,
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 42,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const SizedBox.shrink();
+                        String label;
+                        if (value >= 100000) {
+                          label = '${(value / 100000).toStringAsFixed(1)}L';
+                        } else if (value >= 1000) {
+                          label = '${(value / 1000).toStringAsFixed(1)}K';
+                        } else {
+                          label = value.toStringAsFixed(0);
+                        }
+                        return Text(label, style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.w600));
+                      },
+                    ),
+                  ),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: maxVal * 1.2 / 4,
+                  getDrawingHorizontalLine: (value) => FlLine(color: kBorderColor.withOpacity(0.5), strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(7, (i) {
+                  return BarChartGroupData(
+                    x: i,
+                    barRods: [
+                      BarChartRodData(
+                        toY: weeklyIncome[i] ?? 0,
+                        color: kIncomeGreen,
+                        width: 10,
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                      ),
+                      BarChartRodData(
+                        toY: weeklyExpense[i] ?? 0,
+                        color: kExpenseRed,
+                        width: 10,
+                        borderRadius: const BorderRadius.only(topLeft: Radius.circular(4), topRight: Radius.circular(4)),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Totals below chart
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kIncomeGreen.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kIncomeGreen.withOpacity(0.15)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Total Income", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.arrow_upward_rounded, size: 14, color: kIncomeGreen),
+                          const SizedBox(width: 2),
+                          Text(
+                            "${CurrencyService().symbol}${totalWeekIncome.toStringAsFixed(0)}",
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: kIncomeGreen),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: kExpenseRed.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: kExpenseRed.withOpacity(0.15)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Total Expense", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: kTextSecondary)),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          const Icon(Icons.arrow_downward_rounded, size: 14, color: kExpenseRed),
+                          const SizedBox(width: 2),
+                          Text(
+                            "${CurrencyService().symbol}${totalWeekExpense.toStringAsFixed(0)}",
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: kExpenseRed),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Comparison Row with arrows ──
+  Widget _buildComparisonRow(String period, double income, double expense) {
+    final isHealthy = income >= expense;
+    final pct = income > 0
+        ? ((income - expense) / income * 100).abs()
+        : (expense > 0 ? 100.0 : 0.0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          // Period label
+          SizedBox(
+            width: 80,
+            child: Text(period, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary)),
+          ),
+          // Income
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.arrow_upward_rounded, size: 13, color: kIncomeGreen),
+                const SizedBox(width: 2),
+                Text(
+                  "${CurrencyService().symbol}${income.toStringAsFixed(0)}",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kIncomeGreen),
+                ),
+              ],
+            ),
+          ),
+          // Expense
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.arrow_downward_rounded, size: 13, color: kExpenseRed),
+                const SizedBox(width: 2),
+                Text(
+                  "${CurrencyService().symbol}${expense.toStringAsFixed(0)}",
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kExpenseRed),
+                ),
+              ],
+            ),
+          ),
+          // Status indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: (isHealthy ? kIncomeGreen : kExpenseRed).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isHealthy ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+                  size: 12,
+                  color: isHealthy ? kIncomeGreen : kExpenseRed,
+                ),
+                Text(
+                  "${pct.toStringAsFixed(0)}%",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isHealthy ? kIncomeGreen : kExpenseRed),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -9449,7 +10033,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'Payment Analytics Report',
+      reportTitle: 'Payment Summary Report',
       headers: ['Type', 'Amount', 'Transactions'],
       rows: rows,
       summaryTitle: "Net Cash Position",
@@ -9466,7 +10050,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBackgroundColor,
-      appBar: _buildModernAppBar("Payment Analytics", widget.onBack, onDownload: () => _downloadPdf(context)),
+      appBar: _buildModernAppBar("Payment Summary", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
