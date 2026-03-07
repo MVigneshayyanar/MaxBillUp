@@ -3150,52 +3150,41 @@ class _CreditNotesPageState extends State<CreditNotesPage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => _CreditNoteDetailPage(documentId: doc.id, creditNoteData: data, currencySymbol: _currencySymbol))),
+          onTap: () => Navigator.push(context, _NoAnimRoute(builder: (_) => _CreditNoteDetailPage(documentId: doc.id, creditNoteData: data, currencySymbol: _currencySymbol))),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(children: [
+                    const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                    const SizedBox(width: 5),
                     Text(data['creditNoteNumber'] ?? 'CN-N/A', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
-                    Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
-                  ],
-                ),
+                  ]),
+                  Text(dateStr, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                ]),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                      child: const HeroIcon(HeroIcons.documentText, size: 16, color: kBlack54),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(data['customerName'] ?? 'Guest',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
-                    ),
-                    Text("$_currencySymbol${amount.toStringAsFixed(2)}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
-                  ],
-                ),
-                const Divider(height: 20, color: kGrey100),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("For invoice", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                          Text(data['invoiceNumber'] ?? 'Manual Entry', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: kBlack87))
-                        ],
-                      ),
-                    ),
+                Row(children: [
+                  Expanded(
+                    child: Text(data['customerName'] ?? 'Guest',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
+                  ),
+                  Text("$_currencySymbol${amount.toStringAsFixed(2)}",
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+                ]),
+                const Divider(height: 20, color: kGreyBg),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text("For invoice", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    Text(data['invoiceNumber'] ?? 'Manual Entry', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                  ]),
+                  Row(children: [
                     _statusBadge(isAvailable),
-                  ],
-                ),
+                    const SizedBox(width: 8),
+                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                  ]),
+                ]),
               ],
             ),
           ),
@@ -3506,12 +3495,49 @@ class CustomerBillsPage extends StatelessWidget {
               final data = docs[index].data() as Map<String, dynamic>;
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
               final isCancelled = data['status'] == 'cancelled';
+              final total = (data['total'] ?? 0.0).toDouble();
+              final inv = data['invoiceNumber'] ?? 'N/A';
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
-                child: ListTile(
-                  title: Text("Invoice #${data['invoiceNumber']}${isCancelled ? ' (CANCELLED)' : ''}", style: TextStyle(fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : kPrimaryColor, fontSize: 14)),
-                  subtitle: Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w600)),
-                  trailing: Text("${data['total']}", style: TextStyle(fontWeight: FontWeight.w900, color: isCancelled ? Colors.grey : kBlack87, fontSize: 15, decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {},
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Column(children: [
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Row(children: [
+                            const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                            const SizedBox(width: 5),
+                            Text("#$inv", style: TextStyle(fontWeight: FontWeight.w900, color: isCancelled ? kBlack54 : kPrimaryColor, fontSize: 13)),
+                          ]),
+                          Text(DateFormat('dd MMM yyyy • hh:mm a').format(date), style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                        ]),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(child: Text(data['customerName'] ?? 'Guest', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87))),
+                          Text(total.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: isCancelled ? kBlack54 : kSuccessGreen, decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                        ]),
+                        const Divider(height: 20, color: kGreyBg),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text("Status", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                          ]),
+                          Row(children: [
+                            if (isCancelled) Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: kBlack54.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                              child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+                            ),
+                            const SizedBox(width: 8),
+                            const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                          ]),
+                        ]),
+                      ]),
+                    ),
+                  ),
                 ),
               );
             },
@@ -3586,13 +3612,50 @@ class CustomerCreditsPage extends StatelessWidget {
               bool isPayment = data['type'] == 'payment_received';
               final isCancelled = data['status'] == 'cancelled';
               final date = (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now();
+              final amount = (data['amount'] ?? 0.0).toDouble();
+              final Color amtColor = isCancelled ? kBlack54 : (isPayment ? kSuccessGreen : kErrorColor);
               return Container(
-                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: isCancelled ? Colors.transparent : kGrey200)),
-                child: ListTile(
-                  leading: CircleAvatar(backgroundColor: (isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor)).withOpacity(0.1), radius: 18, child: HeroIcon(isCancelled ? HeroIcons.xMark : (isPayment ? HeroIcons.arrowDown : HeroIcons.arrowUp), color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), size: 16)),
-                  title: Text("${isPayment ? "Payment Received" : "Credit Added"}${isCancelled ? " (CANCELLED)" : ""}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: isCancelled ? Colors.grey : kBlack87)),
-                  subtitle: Text("${DateFormat('dd MMM yyyy • HH:mm').format(date)} • ${data['method'] ?? 'Manual'}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: kBlack54)),
-                  trailing: Text("${data['amount']}", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isCancelled ? Colors.grey : (isPayment ? kGoogleGreen : kErrorColor), decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {},
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Column(children: [
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Row(children: [
+                            HeroIcon(isPayment ? HeroIcons.arrowDown : HeroIcons.arrowUp, size: 14, color: amtColor),
+                            const SizedBox(width: 5),
+                            Text(isPayment ? "Payment" : "Credit", style: TextStyle(fontWeight: FontWeight.w900, color: amtColor, fontSize: 13)),
+                          ]),
+                          Text(DateFormat('dd MMM yyyy • hh:mm a').format(date), style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                        ]),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(child: Text(isPayment ? "Payment Received" : "Credit Added", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87))),
+                          Text(amount.toStringAsFixed(2), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: amtColor, decoration: isCancelled ? TextDecoration.lineThrough : null)),
+                        ]),
+                        const Divider(height: 20, color: kGreyBg),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text("Method", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                            Text(data['method'] ?? 'Manual', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                          ]),
+                          Row(children: [
+                            if (isCancelled) Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: kBlack54.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                              child: const Text("Cancelled", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBlack54)),
+                            ),
+                            const SizedBox(width: 8),
+                            const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                          ]),
+                        ]),
+                      ]),
+                    ),
+                  ),
                 ),
               );
             },
@@ -4366,67 +4429,44 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => CustomerCreditDetailsPage(
-                customerId: docId,
-                customerData: data,
-                currentBalance: balance,
-              ),
-            ),
+            _NoAnimRoute(builder: (_) => CustomerCreditDetailsPage(
+              customerId: docId,
+              customerData: data,
+              currentBalance: balance,
+            )),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kOrange.withOpacity(0.1),
-                      radius: 18,
-                      child: const HeroIcon(HeroIcons.user, color: kOrange, size: 18),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
-                              ),
-                              if (rating > 0) ...[
-                                ...List.generate(5, (i) => HeroIcon(
-                                  i < rating ? HeroIcons.star : HeroIcons.star,
-                                  style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
-                                  size: 12,
-                                  color: i < rating ? kOrange : kGrey300,
-                                )),
-                              ],
-                            ],
-                          ),
-                          Text(phone, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Balance due', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('$_currencySymbol${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              Row(children: [
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                      if (rating > 0) ...[
+                        const SizedBox(width: 8),
+                        ...List.generate(5, (i) => HeroIcon(
+                          HeroIcons.star,
+                          style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
+                          size: 12,
+                          color: i < rating ? kOrange : kGrey300,
+                        )),
                       ],
-                    ),
-                    _statusBadge("Settle", kGoogleGreen),
-                  ],
+                    ]),
+                    Text(phone, style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
+                  ]),
                 ),
-              ],
-            ),
+                const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Balance due', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                  Text('$_currencySymbol${balance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                ]),
+                _statusBadge("Settle", kGoogleGreen),
+              ]),
+            ]),
           ),
         ),
       ),
@@ -4441,7 +4481,7 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
     final supplierName = (data['supplierName'] ?? 'Supplier').toString();
     final noteNumber = (data['creditNoteNumber'] ?? 'N/A').toString();
     final timestamp = data['timestamp'] as Timestamp?;
-    final date = timestamp != null ? DateFormat('dd MMM yyyy').format(timestamp.toDate()) : 'Recent';
+    final dateStr = timestamp != null ? DateFormat('dd MMM yyyy • hh:mm a').format(timestamp.toDate()) : '--';
 
     return Container(
       decoration: BoxDecoration(
@@ -4455,44 +4495,33 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _showSettleDialog(doc.id, data, remaining),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('$noteNumber', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 12)),
-                    Text(date, style: const TextStyle(color: kBlack54, fontSize: 10, fontWeight: FontWeight.w600)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                      child: const HeroIcon(HeroIcons.buildingStorefront, size: 16, color: kBlack54),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBlack87), overflow: TextOverflow.ellipsis)),
-                  ],
-                ),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Pending amount', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        Text('$_currencySymbol${remaining.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kPrimaryColor)),
-                      ],
-                    ),
-                    _statusBadge("RECORD", kGoogleGreen),
-                  ],
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const HeroIcon(HeroIcons.buildingStorefront, size: 14, color: kPrimaryColor),
+                  const SizedBox(width: 5),
+                  Text(noteNumber, style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                ]),
+                Text(dateStr, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), overflow: TextOverflow.ellipsis)),
+                Text('$_currencySymbol${remaining.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Pending amount', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                ]),
+                Row(children: [
+                  _statusBadge("Record", kGoogleGreen),
+                  const SizedBox(width: 8),
+                  const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                ]),
+              ]),
+            ]),
           ),
         ),
       ),
@@ -4605,144 +4634,93 @@ class _CreditDetailsPageState extends State<CreditDetailsPage> {
                         'Please clear your dues at the earliest to avoid any inconvenience.\n\n'
                         'Thank you!';
 
-                    return Material(
-                      color: Colors.transparent,
-                      child: InkWell(
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: kWhite,
                         borderRadius: BorderRadius.circular(12),
-                        onTap: () async {
-                          // Navigate to customer credit details page to send reminder
-                          Navigator.pop(context); // close bottom sheet
-                          // Fetch customer data from Firestore
-                          try {
-                            final customersCol = await FirestoreService().getStoreCollection('customers');
-                            final custDoc = await customersCol.doc(customerPhone).get();
-                            final custData = custDoc.exists
-                                ? (custDoc.data() as Map<String, dynamic>)
-                                : {'name': customerName, 'phone': customerPhone};
-                            final balance = (custData['balance'] ?? totalDue).toDouble();
-                            if (mounted) {
-                              Navigator.push(
-                                this.context,
-                                MaterialPageRoute(
-                                  builder: (_) => CustomerCreditDetailsPage(
-                                    customerId: customerPhone,
-                                    customerData: custData,
-                                    currentBalance: balance,
-                                  ),
-                                ),
-                              );
+                        border: Border.all(color: kErrorColor.withValues(alpha: 0.4)),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            try {
+                              final customersCol = await FirestoreService().getStoreCollection('customers');
+                              final custDoc = await customersCol.doc(customerPhone).get();
+                              final custData = custDoc.exists
+                                  ? (custDoc.data() as Map<String, dynamic>)
+                                  : {'name': customerName, 'phone': customerPhone};
+                              final balance = (custData['balance'] ?? totalDue).toDouble();
+                              if (mounted) {
+                                Navigator.push(this.context, _NoAnimRoute(builder: (_) => CustomerCreditDetailsPage(customerId: customerPhone, customerData: custData, currentBalance: balance)));
+                              }
+                            } catch (_) {
+                              if (mounted) {
+                                Navigator.push(this.context, _NoAnimRoute(builder: (_) => CustomerCreditDetailsPage(customerId: customerPhone, customerData: {'name': customerName, 'phone': customerPhone}, currentBalance: totalDue)));
+                              }
                             }
-                          } catch (_) {
-                            if (mounted) {
-                              Navigator.push(
-                                this.context,
-                                MaterialPageRoute(
-                                  builder: (_) => CustomerCreditDetailsPage(
-                                    customerId: customerPhone,
-                                    customerData: {'name': customerName, 'phone': customerPhone},
-                                    currentBalance: totalDue,
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: kGreyBg,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: kErrorColor.withOpacity(0.15)),
-                          ),
+                          },
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: const Color(0xFFFBE9E7),
-                                  child: Text(
-                                    customerName.isNotEmpty ? customerName[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.bold),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            child: Column(children: [
+                              // Row 1: name | date
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                Row(children: [
+                                  const HeroIcon(HeroIcons.user, size: 14, color: kErrorColor),
+                                  const SizedBox(width: 5),
+                                  Text(customerName, style: const TextStyle(fontWeight: FontWeight.w900, color: kErrorColor, fontSize: 13)),
+                                ]),
+                                if (dueLabel.isNotEmpty)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(color: kErrorColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                    child: Text('Due $dueLabel', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor)),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, color: kBlack87, fontSize: 14)),
-                                      const SizedBox(height: 2),
-                                      Text(customerPhone, style: const TextStyle(fontSize: 11, color: kBlack54)),
-                                      if (dueLabel.isNotEmpty)
-                                        Text('Due: $dueLabel', style: const TextStyle(fontSize: 11, color: kErrorColor, fontWeight: FontWeight.w700)),
-                                      const SizedBox(height: 4),
-                                      // Tap to send reminder hint
-                                      Row(
-                                        children: [
-                                          HeroIcon(HeroIcons.cursorArrowRays, size: 11, color: kPrimaryColor.withOpacity(0.7)),
-                                          const SizedBox(width: 3),
-                                          Text('Tap to send reminder', style: TextStyle(fontSize: 10, color: kPrimaryColor.withOpacity(0.7), fontWeight: FontWeight.w600)),
-                                        ],
+                              ]),
+                              const SizedBox(height: 10),
+                              // Row 2: phone | amount
+                              Row(children: [
+                                Expanded(child: Text(customerPhone, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87))),
+                                Text('$_currencySymbol${totalDue.toStringAsFixed(2)}',
+                                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+                              ]),
+                              const Divider(height: 20, color: kGreyBg),
+                              // Row 3: bills count | share buttons + chevron
+                              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  const Text('Overdue bills', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                                  Text('$billCount bill(s)', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                                ]),
+                                Row(mainAxisSize: MainAxisSize.min, children: [
+                                  if (RegExp(r'^\d{7,15}$').hasMatch(customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '')))
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final cleanPhone = customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '');
+                                        final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMessage)}');
+                                        if (await launcher.canLaunchUrl(waUrl)) await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3))),
+                                        child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 14),
                                       ),
-                                    ],
+                                    ),
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () => Share.share(shareMessage, subject: 'Overdue Payment Reminder – $customerName'),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8), border: Border.all(color: kPrimaryColor.withValues(alpha: 0.25))),
+                                      child: const HeroIcon(HeroIcons.share, color: kPrimaryColor, size: 14),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '$_currencySymbol${totalDue.toStringAsFixed(2)}',
-                                      style: const TextStyle(color: kErrorColor, fontWeight: FontWeight.w900, fontSize: 15),
-                                    ),
-                                    Text('$billCount bill(s)', style: const TextStyle(fontSize: 10, color: kBlack54)),
-                                    const SizedBox(height: 6),
-                                    // Share & WhatsApp row
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        // WhatsApp button (if phone is a valid number)
-                                        if (RegExp(r'^\d{7,15}$').hasMatch(customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '')))
-                                          GestureDetector(
-                                            onTap: () async {
-                                              final cleanPhone = customerPhone.replaceAll(RegExp(r'[\s\-+()]'), '');
-                                              final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(shareMessage)}');
-                                              if (await launcher.canLaunchUrl(waUrl)) {
-                                                await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
-                                              }
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(6),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFF25D366).withOpacity(0.1),
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
-                                              ),
-                                              child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
-                                            ),
-                                          ),
-                                        const SizedBox(width: 6),
-                                        // Share via other apps
-                                        GestureDetector(
-                                          onTap: () {
-                                            Share.share(shareMessage, subject: 'Overdue Payment Reminder – $customerName');
-                                          },
-                                          child: Container(
-                                            padding: const EdgeInsets.all(6),
-                                            decoration: BoxDecoration(
-                                              color: kPrimaryColor.withOpacity(0.08),
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
-                                            ),
-                                            child: const HeroIcon(HeroIcons.share, color: kPrimaryColor, size: 16),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  const SizedBox(width: 8),
+                                  const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                                ]),
+                              ]),
+                            ]),
                           ),
                         ),
                       ),
@@ -5521,49 +5499,33 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     final data = doc.data() as Map<String, dynamic>;
     final amount = (data['amount'] ?? 0.0).toDouble();
     final invoiceNumber = (data['invoiceNumber'] ?? 'N/A').toString();
-    final note = (data['note'] ?? '').toString();
-    final dateStr = data['date'] as String?;
     final creditDueDateStr = data['creditDueDate'] as String?;
-    final receiptNumber = (data['receiptNumber'] ?? '').toString();
+    final dateStr = data['date'] as String?;
 
-    DateTime? billDate;
-    DateTime? dueDate;
+    DateTime? billDate = dateStr != null ? DateTime.tryParse(dateStr) : null;
+    DateTime? dueDate = creditDueDateStr != null ? DateTime.tryParse(creditDueDateStr) : null;
 
-    if (dateStr != null) {
-      billDate = DateTime.tryParse(dateStr);
-    }
-    if (creditDueDateStr != null) {
-      dueDate = DateTime.tryParse(creditDueDateStr);
-    }
-
-    // Check if due date is near (within 7 days) or overdue
     bool isOverdue = false;
     bool isNearDue = false;
     int daysRemaining = 0;
-
     if (dueDate != null) {
       final now = DateTime.now();
-      final difference = dueDate.difference(now).inDays;
-      daysRemaining = difference;
-      isOverdue = difference < 0;
-      isNearDue = difference >= 0 && difference <= 7;
+      final diff = dueDate.difference(now).inDays;
+      daysRemaining = diff;
+      isOverdue = diff < 0;
+      isNearDue = diff >= 0 && diff <= 7;
     }
 
     Color dueDateColor = kBlack54;
-    String dueDateLabel = 'Due Date';
-    if (isOverdue) {
-      dueDateColor = kErrorColor;
-      dueDateLabel = 'OVERDUE';
-    } else if (isNearDue) {
-      dueDateColor = kOrange;
-      dueDateLabel = daysRemaining == 0 ? 'DUE TODAY' : 'DUE IN $daysRemaining DAYS';
-    }
+    String dueDateLabel = '';
+    if (isOverdue) { dueDateColor = kErrorColor; dueDateLabel = 'OVERDUE'; }
+    else if (isNearDue) { dueDateColor = kOrange; dueDateLabel = daysRemaining == 0 ? 'DUE TODAY' : 'DUE IN $daysRemaining DAYS'; }
 
     return Container(
       decoration: BoxDecoration(
         color: kWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: isOverdue ? kErrorColor.withOpacity(0.5) : (isNearDue ? kOrange.withOpacity(0.5) : kGrey200)),
+        border: Border.all(color: isOverdue ? kErrorColor.withValues(alpha: 0.5) : (isNearDue ? kOrange.withValues(alpha: 0.5) : kGrey200)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -5571,171 +5533,77 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(
             context,
-            CupertinoPageRoute(
-              builder: (_) => SettleManualCreditPage(
-                customerId: widget.customerId,
-                customerData: widget.customerData,
-                currentBalance: currentBalance,
-                invoiceNumber: invoiceNumber,
-                billAmount: amount,
-                creditDocId: doc.id,
-              ),
-            ),
-          ).then((settled) {
-            if (settled == true && mounted) {
-              setState(() {});
-            }
-          }),
+            _NoAnimRoute(builder: (_) => SettleManualCreditPage(
+              customerId: widget.customerId,
+              customerData: widget.customerData,
+              currentBalance: currentBalance,
+              invoiceNumber: invoiceNumber,
+              billAmount: amount,
+              creditDocId: doc.id,
+            )),
+          ).then((settled) { if (settled == true && mounted) setState(() {}); }),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row - Invoice & Date
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        const HeroIcon(HeroIcons.documentText, size: 16, color: kPrimaryColor),
-                        const SizedBox(width: 8),
-                        Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: kPrimaryColor)),
-                      ],
-                    ),
-                    if (billDate != null)
-                      Text(
-                        '${billDate.day.toString().padLeft(2, '0')}-${billDate.month.toString().padLeft(2, '0')}-${billDate.year}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54),
-                      ),
-                  ],
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                  const SizedBox(width: 5),
+                  Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                ]),
+                Text(
+                  billDate != null ? '${billDate.day.toString().padLeft(2,'0')} ${DateFormat('MMM').format(billDate)} ${billDate.year}' : '--',
+                  style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500),
                 ),
-                // Receipt Number Row (shown when receipt number is available after settlement)
-                if (receiptNumber.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const HeroIcon(HeroIcons.hashtag, size: 14, color: kPrimaryColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Receipt No: $receiptNumber',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kPrimaryColor),
-                      ),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-
-                // Due Date Row
-                if (dueDate != null) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: dueDateColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        HeroIcon(HeroIcons.calendarDays, size: 14, color: dueDateColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          '$dueDateLabel: ${dueDate.day.toString().padLeft(2, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.year}',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: dueDateColor),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: Text(widget.customerData['name'] ?? 'Customer',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87))),
+                Text('$_currencySymbol${amount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(dueDate != null ? (isOverdue || isNearDue ? dueDateLabel : 'Due date') : 'Credit bill',
+                      style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: dueDateColor.withValues(alpha: isOverdue || isNearDue ? 1 : 0.7), letterSpacing: 0.5)),
+                  if (dueDate != null)
+                    Text('${dueDate.day.toString().padLeft(2,'0')}-${dueDate.month.toString().padLeft(2,'0')}-${dueDate.year}',
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: dueDateColor)),
+                ]),
+                Row(children: [
+                  // share buttons
+                  Builder(builder: (ctx) {
+                    final customerName = (widget.customerData['name'] ?? '').toString();
+                    final msg = 'Dear $customerName,\n\nPending credit: Invoice #$invoiceNumber\nAmount: $_currencySymbol${amount.toStringAsFixed(2)}\n\nPlease settle. Thank you!';
+                    final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
+                    final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
+                    return Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (hasPhone) GestureDetector(
+                        onTap: () async {
+                          final url = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
+                          if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3))),
+                          child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 14),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-
-                const Divider(height: 1, color: kGrey100),
-                const SizedBox(height: 12),
-
-                // Amount Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        const SizedBox(height: 4),
-                        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kPrimaryColor)),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        // WhatsApp direct share button
-                        Builder(builder: (context) {
-                          final customerName = (widget.customerData['name'] ?? '').toString();
-                          final duePart = dueDate != null
-                              ? '\nDue Date : ${dueDate.day.toString().padLeft(2, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.year}'
-                              : '';
-                          final receiptPart = receiptNumber.isNotEmpty ? '\nReceipt  : $receiptNumber' : '';
-                          final msg =
-                              'Dear $customerName,\n\n'
-                              'This is a reminder for your pending credit bill.\n\n'
-                              'Invoice  : #$invoiceNumber'
-                              '$duePart'
-                              '$receiptPart\n'
-                              'Amount   : $_currencySymbol${amount.toStringAsFixed(2)}\n\n'
-                              'Please settle at the earliest. Thank you!';
-                          final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
-                          final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (hasPhone)
-                                GestureDetector(
-                                  onTap: () async {
-                                    final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
-                                    if (await launcher.canLaunchUrl(waUrl)) {
-                                      await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
-                                    }
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF25D366).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
-                                    ),
-                                    child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
-                                  ),
-                                ),
-                              if (hasPhone) const SizedBox(width: 6),
-                              // General share button
-                              GestureDetector(
-                                onTap: () => Share.share(msg, subject: 'Credit Bill Reminder – $customerName'),
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: kPrimaryColor.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
-                                  ),
-                                  child: const HeroIcon(HeroIcons.share, color: kPrimaryColor, size: 16),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: kGoogleGreen.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
-                                ),
-                                child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
-                              ),
-                            ],
-                          );
-                        }),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      ),
+                      if (hasPhone) const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withValues(alpha: 0.2))),
+                        child: const Text('SETTLE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                      ),
+                      const SizedBox(width: 8),
+                      const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                    ]);
+                  }),
+                ]),
+              ]),
+            ]),
           ),
         ),
       ),
@@ -5749,7 +5617,6 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
     final note = (data['note'] ?? 'Manual Credit Added').toString();
     final dateStr = data['date'] as String?;
     final method = (data['method'] ?? 'Cash').toString();
-    final receiptNumber = (data['receiptNumber'] ?? '').toString();
 
     DateTime? addedDate;
     if (dateStr != null) addedDate = DateTime.tryParse(dateStr);
@@ -5758,7 +5625,7 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
       decoration: BoxDecoration(
         color: kWhite,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.purple.withOpacity(0.3)),
+        border: Border.all(color: Colors.purple.withValues(alpha: 0.3)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -5766,178 +5633,75 @@ class _CustomerCreditDetailsPageState extends State<CustomerCreditDetailsPage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(
             context,
-            CupertinoPageRoute(
-              builder: (_) => SettleManualCreditPage(
-                customerId: widget.customerId,
-                customerData: widget.customerData,
-                currentBalance: widget.currentBalance,
-                billAmount: amount,
-                creditDocId: doc.id,
-                receiptNumber: receiptNumber.isNotEmpty ? receiptNumber : null,
-              ),
-            ),
-          ).then((settled) {
-            if (settled == true && mounted) setState(() {});
-          }),
+            _NoAnimRoute(builder: (_) => SettleManualCreditPage(
+              customerId: widget.customerId,
+              customerData: widget.customerData,
+              currentBalance: widget.currentBalance,
+              billAmount: amount,
+              creditDocId: doc.id,
+            )),
+          ).then((settled) { if (settled == true && mounted) setState(() {}); }),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const HeroIcon(HeroIcons.plusCircle, size: 14, color: Colors.purple),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text('Manual Credit', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.purple)),
-                      ],
-                    ),
-                    if (addedDate != null)
-                      Text(
-                        '${addedDate.day.toString().padLeft(2, '0')}-${addedDate.month.toString().padLeft(2, '0')}-${addedDate.year}',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kBlack54),
-                      ),
-                  ],
-                ),
-                if (receiptNumber.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const HeroIcon(HeroIcons.hashtag, size: 14, color: Colors.purple),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Receipt No: $receiptNumber',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.purple),
-                      ),
-                    ],
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: Colors.purple.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: const HeroIcon(HeroIcons.plusCircle, size: 12, color: Colors.purple),
                   ),
-                ],
-                const SizedBox(height: 10),
-                // Note
-                if (note.isNotEmpty)
-                  Text(note, style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 10),
-                const Divider(height: 1, color: kGrey100),
-                const SizedBox(height: 10),
-                // Amount & Settle row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('CREDIT AMOUNT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                        const SizedBox(height: 4),
-                        Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.purple)),
-                      ],
-                    ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        // Payment method badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.purple.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              HeroIcon(
-                                method.toLowerCase() == 'online' ? HeroIcons.buildingLibrary : HeroIcons.banknotes,
-                                color: Colors.purple, size: 11,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(method.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.purple)),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Settle button
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // WhatsApp + Share + Settle
-                            Builder(builder: (context) {
-                              final customerName = (widget.customerData['name'] ?? '').toString();
-                              final receiptPart = receiptNumber.isNotEmpty ? '\nReceipt  : $receiptNumber' : '';
-                              final msg =
-                                  'Dear $customerName,\n\n'
-                                  'This is a reminder for your pending manual credit.\n\n'
-                                  'Amount   : $_currencySymbol${amount.toStringAsFixed(2)}\n'
-                                  'Method   : $method'
-                                  '$receiptPart\n\n'
-                                  'Please settle at the earliest. Thank you!';
-                              final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
-                              final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (hasPhone)
-                                    GestureDetector(
-                                      onTap: () async {
-                                        final waUrl = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
-                                        if (await launcher.canLaunchUrl(waUrl)) {
-                                          await launcher.launchUrl(waUrl, mode: launcher.LaunchMode.externalApplication);
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF25D366).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(10),
-                                          border: Border.all(color: const Color(0xFF25D366).withOpacity(0.3)),
-                                        ),
-                                        child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 16),
-                                      ),
-                                    ),
-                                  if (hasPhone) const SizedBox(width: 6),
-                                  // General share
-                                  GestureDetector(
-                                    onTap: () => Share.share(msg, subject: 'Manual Credit Reminder – $customerName'),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple.withOpacity(0.08),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(color: Colors.purple.withOpacity(0.2)),
-                                      ),
-                                      child: const HeroIcon(HeroIcons.share, color: Colors.purple, size: 16),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: kGoogleGreen.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(color: kGoogleGreen.withOpacity(0.2)),
-                                    ),
-                                    child: const Text('SETTLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kGoogleGreen)),
-                                  ),
-                                ],
-                              );
-                            }),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
+                  const SizedBox(width: 6),
+                  const Text('Manual Credit', style: TextStyle(fontWeight: FontWeight.w900, color: Colors.purple, fontSize: 13)),
+                ]),
+                Text(
+                  addedDate != null ? '${addedDate.day.toString().padLeft(2,'0')} ${DateFormat('MMM').format(addedDate)} ${addedDate.year}' : '--',
+                  style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500),
                 ),
-              ],
-            ),
+              ]),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(child: Text(note, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Text('$_currencySymbol${amount.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Method', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                  Text(method, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                ]),
+                Row(children: [
+                  Builder(builder: (ctx) {
+                    final customerName = (widget.customerData['name'] ?? '').toString();
+                    final msg = 'Dear $customerName,\n\nManual credit pending: $_currencySymbol${amount.toStringAsFixed(2)}\nMethod: $method\n\nPlease settle. Thank you!';
+                    final cleanPhone = widget.customerId.replaceAll(RegExp(r'[\s\-+()]'), '');
+                    final hasPhone = RegExp(r'^\d{7,15}$').hasMatch(cleanPhone);
+                    return Row(mainAxisSize: MainAxisSize.min, children: [
+                      if (hasPhone) GestureDetector(
+                        onTap: () async {
+                          final url = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(msg)}');
+                          if (await launcher.canLaunchUrl(url)) await launcher.launchUrl(url, mode: launcher.LaunchMode.externalApplication);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: const Color(0xFF25D366).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF25D366).withValues(alpha: 0.3))),
+                          child: const HeroIcon(HeroIcons.chatBubbleLeft, color: Color(0xFF25D366), size: 14),
+                        ),
+                      ),
+                      if (hasPhone) const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: kGoogleGreen.withValues(alpha: 0.2))),
+                        child: const Text('SETTLE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kGoogleGreen)),
+                      ),
+                      const SizedBox(width: 8),
+                      const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                    ]);
+                  }),
+                ]),
+              ]),
+            ]),
           ),
         ),
       ),

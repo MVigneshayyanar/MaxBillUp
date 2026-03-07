@@ -287,37 +287,39 @@ class _QuotationsListPageState extends State<QuotationsListPage> {
             child: Column(
               children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text("${data['quotationNumber']}",
-                      style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: R.sp(context, 13))),
+                  Row(children: [
+                    Icon(Icons.description_outlined, size: R.sp(context, 14), color: kPrimaryColor),
+                    SizedBox(width: R.sp(context, 5)),
+                    Text("${data['quotationNumber']}",
+                        style: TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: R.sp(context, 13))),
+                  ]),
                   Text(
                       data['date'] != null
                           ? DateFormat('dd MMM yyyy • hh:mm a').format(DateTime.parse(data['date']))
                           : '',
-                      style: TextStyle(fontSize: R.sp(context, 10), color: kBlack54, fontWeight: FontWeight.w500))
+                      style: TextStyle(fontSize: R.sp(context, 10.5), color: Colors.black, fontWeight: FontWeight.w500)),
                 ]),
                 SizedBox(height: R.sp(context, 10)),
                 Row(children: [
-                  Container(
-                    padding: R.all(context, 6),
-                    decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                    child: Icon(Icons.person_rounded, size: R.sp(context, 16), color: kBlack54),
-                  ),
-                  SizedBox(width: R.sp(context, 10)),
                   Expanded(
                       child: Text(data['customerName'] ?? 'Guest',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 14), color: kOrange))),
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: R.sp(context, 14), color: Colors.black87))),
                   Text("$_currencySymbol${total.toStringAsFixed(2)}",
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), color: kPrimaryColor)),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: R.sp(context, 15), color: kGoogleGreen)),
                 ]),
                 Divider(height: R.sp(context, 20), color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text("Quoted by",
-                        style: TextStyle(fontSize: R.sp(context, 9), fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                        style: TextStyle(fontSize: R.sp(context, 8), fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(quotedBy,
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 10), color: kBlack87))
+                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: R.sp(context, 10), color: kBlack87)),
                   ]),
-                  _badge(billed)
+                  Row(children: [
+                    _badge(billed),
+                    SizedBox(width: R.sp(context, 8)),
+                    Icon(Icons.chevron_right, color: kPrimaryColor, size: R.sp(context, 18)),
+                  ]),
                 ]),
               ],
             ),

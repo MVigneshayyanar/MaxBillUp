@@ -269,6 +269,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
     final amount = (data['amount'] ?? 0.0) as num;
     final ts = data['timestamp'] as Timestamp?;
     final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final expenseNumber = (data['expenseNumber'] ?? data['referenceNumber'] ?? '').toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -283,7 +284,7 @@ class _ExpensesPageState extends State<ExpensesPage> {
           onTap: () {
             Navigator.push(
               context,
-              CupertinoPageRoute(
+              MaterialPageRoute(
                 builder: (context) => ExpenseDetailsPage(
                   expenseId: id,
                   expenseData: data,
@@ -293,48 +294,50 @@ class _ExpensesPageState extends State<ExpensesPage> {
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Removed expense reference number as per requirement
-                    Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
-                  ],
-                ),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Row(children: [
+                    const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                    const SizedBox(width: 5),
+                    Text(expenseNumber.isNotEmpty ? expenseNumber : 'Expense',
+                        style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                  ]),
+                  Text(dateStr, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                ]),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kOrange.withOpacity(0.1),
-                      radius: 18,
-                      child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(data['expenseName'] ?? 'Expense',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBlack87), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text(data['expenseType'] ?? 'General',
-                              style: const TextStyle(color: kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                        ],
+                Row(children: [
+                  Expanded(
+                    child: Text(data['expenseName'] ?? 'Expense',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                  Text("$_currencySymbol${amount.toStringAsFixed(2)}",
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kErrorColor)),
+                ]),
+                const Divider(height: 20, color: kGreyBg),
+                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text("Type", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                    Text(data['expenseType'] ?? 'General',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                  ]),
+                  Row(children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: kErrorColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: kErrorColor.withValues(alpha: 0.2)),
                       ),
+                      child: Text((data['paymentMode'] ?? 'Cash').toUpperCase(),
+                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ),
-                    Text("$_currencySymbol${amount.toStringAsFixed(2)}",
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kErrorColor)),
-                  ],
-                ),
-                const Divider(height: 24, color: kGrey100),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text((data['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                    const HeroIcon(HeroIcons.chevronRight, size: 12, color: kGrey400),
-                  ],
-                ),
+                    const SizedBox(width: 8),
+                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                  ]),
+                ]),
               ],
             ),
           ),
