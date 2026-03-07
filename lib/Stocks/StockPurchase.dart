@@ -220,8 +220,13 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
 
   Widget _buildPurchaseCard(BuildContext context, String id, Map<String, dynamic> data) {
     final ts = data['timestamp'] as Timestamp?;
-    final dateStr = ts != null ? DateFormat('dd MMM yyyy • hh:mm a').format(ts.toDate()) : 'N/A';
+    final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
     final amount = (data['totalAmount'] ?? 0.0).toDouble();
+    final paidAmount = (data['paidAmount'] ?? 0.0).toDouble();
+    final creditAmount = (data['creditAmount'] ?? amount - paidAmount).toDouble();
+    final paymentMode = (data['paymentMode'] ?? 'Cash').toString();
+    final supplierName = (data['supplierName'] ?? 'Unknown Supplier').toString();
+    final invoiceNumber = (data['invoiceNumber'] ?? 'N/A').toString();
 
     return Container(
       decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
@@ -231,41 +236,42 @@ class _StockPurchasePageState extends State<StockPurchasePage> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => Navigator.push(context, CupertinoPageRoute(builder: (_) => StockPurchaseDetailsPage(purchaseId: id, purchaseData: data, currencySymbol: _currencySymbol))),
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('${data['invoiceNumber'] ?? 'N/A'}', style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 12)),
-                    Text(dateStr, style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kOrange.withOpacity(0.1), radius: 18,
-                      child: const HeroIcon(HeroIcons.buildingStorefront, color: kOrange, size: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              // Row 1: invoice# | date
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const HeroIcon(HeroIcons.buildingStorefront, size: 14, color: kPrimaryColor),
+                  const SizedBox(width: 5),
+                  Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                ]),
+                Text(dateStr, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 10),
+              // Row 2: supplier name | amount
+              Row(children: [
+                Expanded(child: Text(supplierName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kGoogleGreen)),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              // Row 3: payment mode + credit badge | chevron
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Payment mode', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                  Text(paymentMode, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                ]),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  if (creditAmount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: kErrorColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: kErrorColor.withValues(alpha: 0.2))),
+                      child: Text('Credit: $_currencySymbol${creditAmount.toStringAsFixed(0)}', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor)),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(data['supplierName'] ?? 'Unknown Supplier',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    ),
-                    Text('$_currencySymbol${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
-                  ],
-                ),
-                const Divider(height: 24, color: kGrey100),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text((data['paymentMode'] ?? 'Cash').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
-                    const HeroIcon(HeroIcons.chevronRight, size: 12, color: kGrey400),
-                  ],
-                ),
-              ],
-            ),
+                  if (creditAmount > 0) const SizedBox(width: 8),
+                  const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                ]),
+              ]),
+            ]),
           ),
         ),
       ),

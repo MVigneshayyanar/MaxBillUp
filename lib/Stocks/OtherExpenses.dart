@@ -256,61 +256,70 @@ class _OtherExpensesPageState extends State<OtherExpensesPage> {
                         final dateString =
                         date != null ? DateFormat('dd MMM yyyy').format(date) : 'N/A';
 
-                        return Container(
+                    return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: _cardBorder),
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)
-                            ],
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                CupertinoPageRoute(
-                                  builder: (context) => OtherExpenseDetailsPage(
-                                    expenseId: expenses[index].id,
-                                    expenseData: data,
-                                    currencySymbol: _currencySymbol,
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  CupertinoPageRoute(
+                                    builder: (context) => OtherExpenseDetailsPage(
+                                      expenseId: expenses[index].id,
+                                      expenseData: data,
+                                      currencySymbol: _currencySymbol,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            title: Text(
-                              title,
-                              style: const TextStyle(
-                                fontSize: 16,
-                               fontWeight: FontWeight.bold,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (description.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    description,
-                                    style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                                const SizedBox(height: 4),
-                                Text(dateString,
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                              ],
-                            ),
-                            trailing: Text(
-                              '$_currencySymbol${amount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                               fontWeight: FontWeight.bold,
-                                color: _errorColor,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                child: Column(children: [
+                                  // Row 1: title icon + title | date
+                                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                    Row(children: [
+                                      const HeroIcon(HeroIcons.documentText, size: 14, color: _primaryColor),
+                                      const SizedBox(width: 5),
+                                      Text(
+                                        title.length > 22 ? '${title.substring(0, 22)}…' : title,
+                                        style: const TextStyle(fontWeight: FontWeight.w900, color: _primaryColor, fontSize: 13),
+                                      ),
+                                    ]),
+                                    Text(dateString, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                                  ]),
+                                  const SizedBox(height: 10),
+                                  // Row 2: description | amount
+                                  Row(children: [
+                                    Expanded(
+                                      child: description.isNotEmpty
+                                          ? Text(description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis)
+                                          : const Text('No description', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13, color: Colors.black54)),
+                                    ),
+                                    Text(
+                                      '$_currencySymbol${amount.toStringAsFixed(2)}',
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: _errorColor),
+                                    ),
+                                  ]),
+                                  const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                                  // Row 3: expense type label | chevron
+                                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      const Text('Expense', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.black54, letterSpacing: 0.5)),
+                                      Text(
+                                        (data['category'] ?? data['expenseType'] ?? 'Other').toString(),
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: Colors.black87),
+                                      ),
+                                    ]),
+                                    const HeroIcon(HeroIcons.chevronRight, color: _primaryColor, size: 16),
+                                  ]),
+                                ]),
                               ),
                             ),
                           ),

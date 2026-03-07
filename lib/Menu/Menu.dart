@@ -46,6 +46,7 @@ import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:heroicons/heroicons.dart';
 
 import '../Sales/components/common_widgets.dart';
+import 'package:maxbillup/Sales/nq.dart';
 
 /// A [MaterialPageRoute] with zero transition duration — prevents the black
 /// flash that occurs when [PageRouteBuilder] has no background set.
@@ -7623,10 +7624,64 @@ class _EditBillPageState extends State<EditBillPage> {
                     children: [
                       _buildSectionLabel('BILLING ITEMS'),
                       GestureDetector(
-                        onTap: _showAddProductDialog,
+                        onTap: () async {
+                          // Build current cart items to pre-populate nq.dart
+                          final currentCartItems = _items.map((item) {
+                            final qty = (item['quantity'] is int)
+                                ? (item['quantity'] as int).toDouble()
+                                : double.tryParse(item['quantity'].toString()) ?? 1.0;
+                            return CartItem(
+                              productId: item['productId'] ?? '',
+                              name: item['name'] ?? '',
+                              price: (item['price'] ?? 0).toDouble(),
+                              quantity: qty,
+                              taxName: item['taxName'],
+                              taxPercentage: item['taxPercentage'] != null ? (item['taxPercentage'] as num).toDouble() : null,
+                              taxType: item['taxType'],
+                            );
+                          }).toList();
+
+                          final result = await Navigator.push<List<CartItem>>(
+                            context,
+                            CupertinoPageRoute(
+                              builder: (_) => NewQuotationPage(
+                                uid: (widget.invoiceData['staffId'] ?? '').toString(),
+                                userEmail: widget.invoiceData['userEmail']?.toString(),
+                                isEditMode: true,
+                                initialQuotationData: {
+                                  'customerName': _selectedCustomerName,
+                                  'customerPhone': _selectedCustomerPhone,
+                                  'items': currentCartItems.map((c) => {
+                                    'productId': c.productId,
+                                    'name': c.name,
+                                    'price': c.price,
+                                    'quantity': c.quantity,
+                                    'taxName': c.taxName,
+                                    'taxPercentage': c.taxPercentage,
+                                    'taxType': c.taxType,
+                                  }).toList(),
+                                },
+                              ),
+                            ),
+                          );
+
+                          if (result != null && result.isNotEmpty && mounted) {
+                            setState(() {
+                              _items = result.map((c) => {
+                                'productId': c.productId,
+                                'name': c.name,
+                                'price': c.price,
+                                'quantity': c.quantity,
+                                'taxName': c.taxName,
+                                'taxPercentage': c.taxPercentage,
+                                'taxType': c.taxType,
+                              }).toList();
+                            });
+                          }
+                        },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(color: kHeaderColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                          decoration: BoxDecoration(color: kHeaderColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
                           child: const Row(
                             children: [
                               HeroIcon(HeroIcons.plusCircle, size: 14, color: kHeaderColor),

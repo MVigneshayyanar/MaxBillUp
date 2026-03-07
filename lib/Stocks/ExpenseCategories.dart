@@ -204,30 +204,47 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: kGrey200),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          leading: Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              color: kPrimaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (ctx) => _EditDeleteCategoryDialog(
+                                docId: categories[index].id,
+                                initialName: name,
+                                onChanged: () => setState(() {}),
+                              ),
                             ),
-                            child: const HeroIcon(HeroIcons.tag, color: kPrimaryColor, size: 20),
-                          ),
-                          title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
-                          subtitle: Text('Created: $dateStr', style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
-                          trailing: IconButton(
-                            icon: const HeroIcon(HeroIcons.pencilSquare, color: kPrimaryColor, size: 26),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => _EditDeleteCategoryDialog(
-                                  docId: categories[index].id,
-                                  initialName: name,
-                                  onChanged: () => setState(() {}),
-                                ),
-                              );
-                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Column(children: [
+                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  Row(children: [
+                                    const HeroIcon(HeroIcons.tag, size: 14, color: kPrimaryColor),
+                                    const SizedBox(width: 5),
+                                    Text(name.length > 24 ? '${name.substring(0, 24)}…' : name,
+                                        style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                                  ]),
+                                  Text('Created: $dateStr', style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                                ]),
+                                const Divider(height: 20, color: kGreyBg),
+                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    Text('Expense type', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                                  ]),
+                                  Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(color: kPrimaryColor.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: kPrimaryColor.withValues(alpha: 0.2))),
+                                      child: const Text('EDIT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kPrimaryColor)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                                  ]),
+                                ]),
+                              ]),
+                            ),
                           ),
                         ),
                       );
@@ -337,34 +354,48 @@ class _ExpenseCategoriesPageState extends State<ExpenseCategoriesPage> with Sing
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: kGrey200),
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(14),
-                          leading: Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              color: kOrange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(10),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => showDialog(
+                              context: context,
+                              builder: (ctx) => _EditDeleteExpenseNameDialog(
+                                docId: expenseNames[index].id,
+                                initialName: name,
+                                onChanged: () => setState(() {}),
+                              ),
                             ),
-                            child: const HeroIcon(HeroIcons.documentText, color: kOrange, size: 20),
-                          ),
-                          title: Text(name, style: const TextStyle(fontSize: 15,fontWeight: FontWeight.bold, color: kBlack87)),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text('Used $usageCount times • Last: $dateStr',
-                                style: const TextStyle(fontSize: 11, color: kBlack54, fontWeight: FontWeight.w500)),
-                          ),
-                          trailing: IconButton(
-                            icon: const HeroIcon(HeroIcons.pencilSquare, color: kPrimaryColor, size: 26),
-                            onPressed: () {
-                              showDialog(
-                                context: context,
-                                builder: (ctx) => _EditDeleteExpenseNameDialog(
-                                  docId: expenseNames[index].id,
-                                  initialName: name,
-                                  onChanged: () => setState(() {}),
-                                ),
-                              );
-                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              child: Column(children: [
+                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  Row(children: [
+                                    const HeroIcon(HeroIcons.documentText, size: 14, color: kOrange),
+                                    const SizedBox(width: 5),
+                                    Text(name.length > 24 ? '${name.substring(0, 24)}…' : name,
+                                        style: const TextStyle(fontWeight: FontWeight.w900, color: kOrange, fontSize: 13)),
+                                  ]),
+                                  Text('Last: $dateStr', style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                                ]),
+                                const Divider(height: 20, color: kGreyBg),
+                                Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                    const Text('Usage count', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                                    Text('$usageCount times', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                                  ]),
+                                  Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      decoration: BoxDecoration(color: kOrange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10), border: Border.all(color: kOrange.withValues(alpha: 0.2))),
+                                      child: const Text('EDIT', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kOrange)),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                                  ]),
+                                ]),
+                              ]),
+                            ),
                           ),
                         ),
                       );

@@ -21,6 +21,8 @@ class NewQuotationPage extends StatefulWidget {
   final String? userEmail;
   final String? editQuotationId;
   final Map<String, dynamic>? initialQuotationData;
+  final bool isEditMode; // When true, bottom bar shows "Use Items" instead of Quotation
+  final void Function(List<CartItem>)? onItemsConfirmed;
 
   const NewQuotationPage({
     super.key,
@@ -28,6 +30,8 @@ class NewQuotationPage extends StatefulWidget {
     this.userEmail,
     this.editQuotationId,
     this.initialQuotationData,
+    this.isEditMode = false,
+    this.onItemsConfirmed,
   });
 
   @override
@@ -635,7 +639,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
             // High-Density Quotation Button
             Expanded(
               child: GestureDetector(
-                onTap: _createQuotation,
+                onTap: widget.isEditMode ? _useItems : _createQuotation,
                 child: Container(
                   height: R.sp(context, 56),
                   decoration: BoxDecoration(
@@ -645,7 +649,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      HeroIcon(HeroIcons.documentText, color: kWhite, size: R.sp(context, 20)),
+                      HeroIcon(widget.isEditMode ? HeroIcons.checkCircle : HeroIcons.documentText, color: kWhite, size: R.sp(context, 20)),
                       SizedBox(width: R.sp(context, 12)),
                       Text(
                         "$_currencySymbol${AmountFormatter.format(_sharedCartItems?.fold(0.0, (sum, item) => sum + (item.price * item.quantity)) ?? 0.0)}",
@@ -655,7 +659,7 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
                       Container(width: 1, height: R.sp(context, 16), color: kWhite.withOpacity(0.3)),
                       SizedBox(width: R.sp(context, 10)),
                       Text(
-                        widget.editQuotationId != null ? context.tr('UPDATE') : context.tr('QUOTE'),
+                        widget.isEditMode ? 'Update' : (widget.editQuotationId != null ? context.tr('UPDATE') : context.tr('QUOTE')),
                         style: TextStyle(color: kWhite, fontSize: R.sp(context, 13), fontWeight: FontWeight.w800, letterSpacing: 0.5),
                       ),
                     ],
@@ -681,6 +685,17 @@ class _NewQuotationPageState extends State<NewQuotationPage> with SingleTickerPr
       },
       selectedCustomerPhone: _selectedCustomerPhone,
     );
+  }
+
+  void _useItems() {
+    if (_sharedCartItems == null || _sharedCartItems!.isEmpty) {
+      CommonWidgets.showSnackBar(context, 'Add items first', bgColor: kOrange);
+      return;
+    }
+    if (widget.onItemsConfirmed != null) {
+      widget.onItemsConfirmed!(_sharedCartItems!);
+    }
+    Navigator.pop(context, _sharedCartItems);
   }
 
   void _createQuotation() {

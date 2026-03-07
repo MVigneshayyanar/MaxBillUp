@@ -305,9 +305,10 @@ class _ProductsPageState extends State<ProductsPage> {
     final stockEnabled = data['stockEnabled'] ?? false;
     final stock = (data['currentStock'] ?? 0.0).toDouble();
     final category = data['category'] ?? 'General';
-    final taxType = data['taxName'] ?? 'GST';
+    final taxType = (data['taxName'] ?? '').toString().trim();
     final taxPercent = (data['taxPercentage'] ?? 0.0).toDouble();
     final isFavorite = data['isFavorite'] ?? false;
+    final hasTax = taxType.isNotEmpty && taxPercent > 0;
 
     final isOutOfStock = stockEnabled && stock <= 0;
     final isLowStock = stockEnabled && stock > 0 && stock < 10;
@@ -413,10 +414,11 @@ class _ProductsPageState extends State<ProductsPage> {
                             "$_currencySymbol${AmountFormatter.format(price)}",
                             style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kPrimaryColor),
                           ),
-                          Text(
-                            '$taxType (${taxPercent.toStringAsFixed(1)}%)',
-                            style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600),
-                          ),
+                          if (hasTax)
+                            Text(
+                              '$taxType (${taxPercent.toStringAsFixed(1)}%)',
+                              style: const TextStyle(fontSize: 10, color: kBlack54, fontWeight: FontWeight.w600),
+                            ),
                         ],
                       ),
                     ],
@@ -430,7 +432,7 @@ class _ProductsPageState extends State<ProductsPage> {
                       // Delete button
 
                       const SizedBox(width: 8),
-                      const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 14),
+                      const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
                     ],
                   ),
               ],

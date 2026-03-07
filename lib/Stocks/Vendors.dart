@@ -263,15 +263,15 @@ class _VendorsPageState extends State<VendorsPage> {
     final totalPurchases = vendor['totalPurchases'] as double;
     final purchaseCount = vendor['purchaseCount'] as int;
     final isFromStockPurchase = vendor['source'] == 'stock_purchase';
+    final phone = (vendor['phone'] ?? '').toString();
+    final gstin = (vendor['gstin'] ?? '').toString();
 
     String lastPurchaseText = '';
     if (vendor['lastPurchaseDate'] != null) {
       try {
         final lastDate = (vendor['lastPurchaseDate'] as Timestamp).toDate();
-        lastPurchaseText = 'Last: ${DateFormat('dd MMM yyyy').format(lastDate)}';
-      } catch (e) {
-        lastPurchaseText = '';
-      }
+        lastPurchaseText = DateFormat('dd MMM yyyy').format(lastDate);
+      } catch (_) {}
     }
 
     return Container(
@@ -284,100 +284,60 @@ class _VendorsPageState extends State<VendorsPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showEditVendorDialog(context, vendor), // Quick access to edit
+          onTap: () => Navigator.push(
+            context,
+            CupertinoPageRoute(builder: (_) => VendorDetailsPage(vendor: vendor, currencySymbol: _currencySymbol)),
+          ).then((_) => _loadVendors()),
           child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kPrimaryColor.withOpacity(0.1),
-                      radius: 20,
-                      child: Text(
-                        (vendor['name'] ?? 'V').toString().isNotEmpty
-                            ? (vendor['name'] ?? 'V').toString()[0].toUpperCase()
-                            : 'V',
-                        style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  vendor['name'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (isFromStockPurchase)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: kGoogleGreen.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'SUPPLIER',
-                                    style: TextStyle(fontSize: 8, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            children: [
-                              const HeroIcon(HeroIcons.devicePhoneMobile, size: 12, color: kBlack54),
-                              const SizedBox(width: 6),
-                              Text(vendor['phone'] ?? '--', style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    _buildPopupMenu(vendor),
-                  ],
-                ),
-                const Divider(height: 24, color: kGrey100),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: kPrimaryColor.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '$purchaseCount BILLS',
-                        style: const TextStyle(fontSize: 9, color: kPrimaryColor, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: kOrange.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '$_currencySymbol${totalPurchases.toStringAsFixed(0)}',
-                        style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                      ),
-                    ),
-                    const Spacer(),
-                    if (lastPurchaseText.isNotEmpty)
-                      Text(lastPurchaseText.toUpperCase(), style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w800, letterSpacing: 0.2)),
-                  ],
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Column(children: [
+              // Row 1: vendor name | supplier badge or last purchase date
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Row(children: [
+                  const HeroIcon(HeroIcons.buildingStorefront, size: 14, color: kOrange),
+                  const SizedBox(width: 5),
+                  Text(
+                    (vendor['name'] ?? 'Unknown').toString().length > 22
+                        ? '${(vendor['name'] ?? 'Unknown').toString().substring(0, 22)}…'
+                        : (vendor['name'] ?? 'Unknown').toString(),
+                    style: const TextStyle(fontWeight: FontWeight.w900, color: kOrange, fontSize: 13),
+                  ),
+                ]),
+                if (isFromStockPurchase)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(color: kGoogleGreen.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    child: const Text('SUPPLIER', style: TextStyle(fontSize: 8, color: kGoogleGreen, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  )
+                else if (lastPurchaseText.isNotEmpty)
+                  Text('Last: $lastPurchaseText', style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+              ]),
+              const SizedBox(height: 10),
+              // Row 2: phone (or gstin) | total spent
+              Row(children: [
+                Expanded(child: Row(children: [
+                  const HeroIcon(HeroIcons.devicePhoneMobile, size: 12, color: kBlack54),
+                  const SizedBox(width: 4),
+                  Text(phone.isNotEmpty ? phone : (gstin.isNotEmpty ? gstin : '--'),
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87)),
+                ])),
+                Text('$_currencySymbol${totalPurchases.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kGoogleGreen)),
+              ]),
+              const Divider(height: 20, color: kGreyBg),
+              // Row 3: bills count | popup menu + chevron
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Total bills', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                  Text('$purchaseCount bill(s)', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                ]),
+                Row(mainAxisSize: MainAxisSize.min, children: [
+                  _buildPopupMenu(vendor),
+                  const SizedBox(width: 4),
+                  const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                ]),
+              ]),
+            ]),
           ),
         ),
       ),
@@ -593,37 +553,298 @@ class _VendorsPageState extends State<VendorsPage> {
         return Container(
           decoration: BoxDecoration(color: kGreyBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: filled ? kPrimaryColor : kGrey200, width: filled ? 1.5 : 1.0)),
           child: ValueListenableBuilder<TextEditingValue>(
-      valueListenable: ctrl,
-      builder: (context, value, _) {
-        final bool hasText = value.text.isNotEmpty;
-        return TextField(
-            controller: ctrl, keyboardType: type, maxLines: maxLines,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
-            decoration: InputDecoration(hintText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18),
-              filled: true,
-              fillColor: const Color(0xFFF8F9FA),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
-              ),
-              labelStyle: TextStyle(color: hasText ? kPrimaryColor : kBlack54, fontSize: 13, fontWeight: FontWeight.w600),
-              floatingLabelStyle: TextStyle(color: hasText ? kPrimaryColor : kPrimaryColor, fontSize: 11, fontWeight: FontWeight.w900),
-            ),
-          
-);
-      },
-    ),
+            valueListenable: ctrl,
+            builder: (context, value, _) {
+              final bool hasText = value.text.isNotEmpty;
+              return TextField(
+                controller: ctrl, keyboardType: type, maxLines: maxLines,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
+                decoration: InputDecoration(hintText: label, prefixIcon: HeroIcon(icon, color: filled ? kPrimaryColor : kBlack54, size: 18),
+                  filled: true, fillColor: const Color(0xFFF8F9FA),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 2.0)),
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 }
+
+// ==========================================
+// VENDOR DETAILS PAGE
+// ==========================================
+class VendorDetailsPage extends StatefulWidget {
+  final Map<String, dynamic> vendor;
+  final String currencySymbol;
+
+  const VendorDetailsPage({super.key, required this.vendor, required this.currencySymbol});
+
+  @override
+  State<VendorDetailsPage> createState() => _VendorDetailsPageState();
+}
+
+class _VendorDetailsPageState extends State<VendorDetailsPage> {
+  late Map<String, dynamic> _vendor;
+  List<Map<String, dynamic>> _purchases = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _vendor = Map<String, dynamic>.from(widget.vendor);
+    _loadPurchases();
+  }
+
+  Future<void> _loadPurchases() async {
+    setState(() => _isLoading = true);
+    try {
+      final col = await FirestoreService().getStoreCollection('stockPurchases');
+      final supplierName = (_vendor['name'] ?? '').toString();
+      final snap = await col.where('supplierName', isEqualTo: supplierName).orderBy('timestamp', descending: true).get();
+      if (mounted) {
+        setState(() {
+          _purchases = snap.docs.map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>}).toList();
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (_vendor['name'] ?? 'Vendor').toString();
+    final phone = (_vendor['phone'] ?? '').toString();
+    final gstin = (_vendor['gstin'] ?? '').toString();
+    final address = (_vendor['address'] ?? '').toString();
+    final totalPurchases = (_vendor['totalPurchases'] ?? 0.0).toDouble();
+    final purchaseCount = (_vendor['purchaseCount'] ?? 0) as int;
+
+    return Scaffold(
+      backgroundColor: kGreyBg,
+      appBar: AppBar(
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+        title: Text(name, style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
+        backgroundColor: kPrimaryColor,
+        leading: IconButton(
+          icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const HeroIcon(HeroIcons.pencilSquare, color: kWhite, size: 20),
+            onPressed: () => _showEditDialog(context),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        color: kPrimaryColor,
+        onRefresh: _loadPurchases,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Vendor Info Card
+            Container(
+              decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+              padding: const EdgeInsets.all(16),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  CircleAvatar(
+                    backgroundColor: kOrange.withValues(alpha: 0.12),
+                    radius: 24,
+                    child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'V',
+                        style: const TextStyle(color: kOrange, fontWeight: FontWeight.w900, fontSize: 20)),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17, color: kBlack87)),
+                    if (phone.isNotEmpty) Row(children: [
+                      const HeroIcon(HeroIcons.devicePhoneMobile, size: 12, color: kBlack54),
+                      const SizedBox(width: 4),
+                      Text(phone, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
+                    ]),
+                    if (gstin.isNotEmpty) Row(children: [
+                      const HeroIcon(HeroIcons.documentText, size: 12, color: kBlack54),
+                      const SizedBox(width: 4),
+                      Text('GSTIN: $gstin', style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500)),
+                    ]),
+                    if (address.isNotEmpty) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const HeroIcon(HeroIcons.mapPin, size: 12, color: kBlack54),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(address, style: const TextStyle(fontSize: 12, color: kBlack54, fontWeight: FontWeight.w500))),
+                    ]),
+                  ])),
+                ]),
+                const Divider(height: 20, color: kGreyBg),
+                // Summary stats row
+                Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+                  _buildStat('BILLS', purchaseCount.toString(), kPrimaryColor),
+                  _buildStat('TOTAL SPENT', '${widget.currencySymbol}${totalPurchases.toStringAsFixed(0)}', kGoogleGreen),
+                ]),
+              ]),
+            ),
+            const SizedBox(height: 16),
+
+            // Purchase History Header
+            const Padding(
+              padding: EdgeInsets.only(left: 4, bottom: 12),
+              child: Text('Purchase History', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBlack87)),
+            ),
+
+            // Purchase Bills
+            if (_isLoading)
+              const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator(color: kPrimaryColor)))
+            else if (_purchases.isEmpty)
+              Center(child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(children: [
+                  const HeroIcon(HeroIcons.shoppingCart, size: 48, color: kGrey300),
+                  const SizedBox(height: 12),
+                  const Text('No purchase bills found', style: TextStyle(color: kBlack54, fontWeight: FontWeight.w600)),
+                ]),
+              ))
+            else
+              ...List.generate(_purchases.length, (i) {
+                final p = _purchases[i];
+                final ts = p['timestamp'] as Timestamp?;
+                final dateStr = ts != null ? DateFormat('dd MMM yyyy').format(ts.toDate()) : 'N/A';
+                final amount = (p['totalAmount'] ?? 0.0).toDouble();
+                final paidAmount = (p['paidAmount'] ?? 0.0).toDouble();
+                final creditAmount = (amount - paidAmount).clamp(0.0, double.infinity);
+                final invoiceNumber = (p['invoiceNumber'] ?? 'N/A').toString();
+                final paymentMode = (p['paymentMode'] ?? 'Cash').toString();
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Container(
+                    decoration: BoxDecoration(color: kWhite, borderRadius: BorderRadius.circular(12), border: Border.all(color: kGrey200)),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      child: Column(children: [
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Row(children: [
+                            const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
+                            const SizedBox(width: 5),
+                            Text(invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                          ]),
+                          Text(dateStr, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500)),
+                        ]),
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Expanded(child: Text('Total Amount', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.black87))),
+                          Text('${widget.currencySymbol}${amount.toStringAsFixed(2)}',
+                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kGoogleGreen)),
+                        ]),
+                        const Divider(height: 20, color: kGreyBg),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            const Text('Payment mode', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
+                            Text(paymentMode, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                          ]),
+                          if (creditAmount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(color: kErrorColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10), border: Border.all(color: kErrorColor.withValues(alpha: 0.2))),
+                              child: Text('Credit: ${widget.currencySymbol}${creditAmount.toStringAsFixed(0)}',
+                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kErrorColor)),
+                            ),
+                        ]),
+                      ]),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStat(String label, String value, Color color) {
+    return Column(children: [
+      Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: color)),
+      Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBlack54, letterSpacing: 0.5)),
+    ]);
+  }
+
+  void _showEditDialog(BuildContext context) {
+    final nameCtrl = TextEditingController(text: _vendor['name']);
+    final phoneCtrl = TextEditingController(text: _vendor['phone']);
+    final gstinCtrl = TextEditingController(text: _vendor['gstin']);
+    final addressCtrl = TextEditingController(text: _vendor['address']);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: kWhite,
+        title: const Text('Edit Vendor', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          _buildField(nameCtrl, 'Vendor Name'),
+          const SizedBox(height: 12),
+          _buildField(phoneCtrl, 'Phone', type: TextInputType.phone),
+          const SizedBox(height: 12),
+          _buildField(gstinCtrl, 'GSTIN'),
+          const SizedBox(height: 12),
+          _buildField(addressCtrl, 'Address', maxLines: 2),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: kBlack54, fontWeight: FontWeight.bold))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: kPrimaryColor, elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+            onPressed: () async {
+              if (nameCtrl.text.trim().isEmpty) return;
+              try {
+                final col = await FirestoreService().getStoreCollection('vendors');
+                await col.doc(_vendor['id']).update({
+                  'name': nameCtrl.text.trim(),
+                  'phone': phoneCtrl.text.trim(),
+                  'gstin': gstinCtrl.text.trim().isEmpty ? null : gstinCtrl.text.trim(),
+                  'address': addressCtrl.text.trim().isEmpty ? null : addressCtrl.text.trim(),
+                  'lastUpdated': FieldValue.serverTimestamp(),
+                });
+                if (mounted) {
+                  setState(() {
+                    _vendor['name'] = nameCtrl.text.trim();
+                    _vendor['phone'] = phoneCtrl.text.trim();
+                    _vendor['gstin'] = gstinCtrl.text.trim();
+                    _vendor['address'] = addressCtrl.text.trim();
+                  });
+                  Navigator.pop(ctx);
+                }
+              } catch (e) { debugPrint(e.toString()); }
+            },
+            child: const Text('Save', style: TextStyle(color: kWhite, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildField(TextEditingController ctrl, String hint, {TextInputType type = TextInputType.text, int maxLines = 1}) {
+    return TextField(
+      controller: ctrl,
+      keyboardType: type,
+      maxLines: maxLines,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: kGreyBg,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kGrey200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kPrimaryColor, width: 1.5)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      ),
+    );
+  }
+}
+

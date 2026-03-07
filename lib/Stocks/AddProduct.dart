@@ -874,12 +874,6 @@ class _AddProductPageState extends State<AddProductPage> {
                 _buildTaxTypeSelector(),
                 const SizedBox(height: 16),
                 _buildModernTextField(
-                  controller: _hsnController,
-                  label: "HSN / SAC Code",
-                  icon: HeroIcons.clipboardDocumentList,
-                ),
-                const SizedBox(height: 16),
-                _buildModernTextField(
                   controller: _locationController,
                   label: "Product Location",
                   icon: HeroIcons.mapPin,
