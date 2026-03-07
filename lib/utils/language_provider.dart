@@ -674,7 +674,7 @@ class LanguageProvider extends ChangeNotifier {
       'sales_transactions': 'Sales & Transactions',
       'item_sales_report': 'Item Sales Report',
       'inventory_products': 'Inventory & Products',
-      'low_stock_products': 'Low Stock Products',
+      'low_stock_products': 'Low Stock Items',
       'financials_tax': 'Financials & Tax',
       'hsn_report': 'HSN Report',
       'staff_sale_report': 'Staff Sale Report',

@@ -70,9 +70,9 @@ class CommonBottomNav extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildNavItem(context, 0, HeroIcons.squares2x2, context.tr('menu')),
-                  _buildNavItem(context, 1, HeroIcons.chartBar, context.tr('reports')),
+                  _buildNavItem(context, 1, HeroIcons.chartBar, context.tr('Growth+')),
                   _buildNavItem(context, 2, HeroIcons.plusCircle, context.tr('new_sale')),
-                  _buildNavItem(context, 3, HeroIcons.archiveBox, context.tr('Products')),
+                  _buildNavItem(context, 3, HeroIcons.archiveBox, context.tr("Items")),
                   _buildNavItem(context, 4, HeroIcons.cog6Tooth, context.tr('settings')),
                 ],
               ),
