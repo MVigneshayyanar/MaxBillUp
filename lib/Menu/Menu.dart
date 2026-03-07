@@ -47,8 +47,18 @@ import 'package:heroicons/heroicons.dart';
 
 import '../Sales/components/common_widgets.dart';
 
-
-
+/// A [MaterialPageRoute] with zero transition duration — prevents the black
+/// flash that occurs when [PageRouteBuilder] has no background set.
+class _NoAnimRoute<T> extends MaterialPageRoute<T> {
+  _NoAnimRoute({required super.builder});
+  @override
+  Duration get transitionDuration => Duration.zero;
+  @override
+  Duration get reverseTransitionDuration => Duration.zero;
+  @override
+  Widget buildTransitions(BuildContext context, Animation<double> animation,
+      Animation<double> secondaryAnimation, Widget child) => child;
+}
 
 // ==========================================
 // VIDEO TUTORIAL PAGE
@@ -752,7 +762,14 @@ class _MenuPageState extends State<MenuPage> {
                 }
 
                 // All checks passed, open the page
-                setState(() => _currentView = viewKey);
+                if (viewKey == 'BillHistory') {
+                  Navigator.push(
+                    context,
+                    _NoAnimRoute(builder: (_) => SalesHistoryPage(uid: widget.uid, userEmail: widget.userEmail, onBack: () => Navigator.pop(context))),
+                  );
+                } else {
+                  setState(() => _currentView = viewKey);
+                }
               },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
@@ -1195,7 +1212,7 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
             icon: const HeroIcon(HeroIcons.arrowLeft, color: kWhite, size: 22),
             onPressed: widget.onBack,
           ),
-          title: Text(context.tr('billhistory'),
+          title: Text(context.tr("Manage Bills"),
               style: const TextStyle(color: kWhite, fontWeight: FontWeight.w700, fontSize: 18)),
         ),
         body: Column(
@@ -1407,22 +1424,17 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                   Row(children: [
                     const HeroIcon(HeroIcons.documentText, size: 14, color: kPrimaryColor),
                     const SizedBox(width: 5),
-                    Text("Invoice $inv", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
+                    Text("$inv", style: const TextStyle(fontWeight: FontWeight.w900, color: kPrimaryColor, fontSize: 13)),
                   ]),
                   Text(formattedDateTime, style: const TextStyle(fontSize: 10.5, color: Colors.black, fontWeight: FontWeight.w500))
                 ]),
                 const SizedBox(height: 10),
                 Row(children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(color: kGreyBg, shape: BoxShape.circle),
-                    child: const HeroIcon(HeroIcons.user, size: 16, color: kBlack54),
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
-                    child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kOrange)),
+                    child: Text(customerName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
                   ),
-                  Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kPrimaryColor)),
+                  Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: kSuccessGreen)),
+
                 ]),
                 const Divider(height: 20, color: kGreyBg),
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -1430,7 +1442,11 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
                     const Text("Billed by", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
                     Text(staffName, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87))
                   ]),
-                  _badge(isSettled, isCancelled, isEdited, isReturned)
+                  Row(children: [
+                    _badge(isSettled, isCancelled, isEdited, isReturned),
+                    const SizedBox(width: 8),
+                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 16),
+                  ]),
                 ]),
               ],
             ),
@@ -1523,25 +1539,23 @@ class _SalesHistoryPageState extends State<SalesHistoryPage> {
 
       Navigator.push(
         context,
-        CupertinoPageRoute(
-          builder: (context) => BillPage(
-            uid: widget.uid,
-            cartItems: cartItems,
-            totalAmount: total,
-            userEmail: widget.userEmail,
-            savedOrderId: isUnsettledSale ? null : doc.id,
-            existingInvoiceNumber: data['invoiceNumber'],
-            unsettledSaleId: isUnsettledSale ? doc.id : null,
-            discountAmount: (data['discount'] ?? 0.0).toDouble(),
-            customerPhone: data['customerPhone'],
-            customerName: data['customerName'],
-            customerGST: data['customerGST'],
-            quotationId: data['quotationId'],
-          ),
-        ),
+        _NoAnimRoute(builder: (_) => BillPage(
+          uid: widget.uid,
+          cartItems: cartItems,
+          totalAmount: total,
+          userEmail: widget.userEmail,
+          savedOrderId: isUnsettledSale ? null : doc.id,
+          existingInvoiceNumber: data['invoiceNumber'],
+          unsettledSaleId: isUnsettledSale ? doc.id : null,
+          discountAmount: (data['discount'] ?? 0.0).toDouble(),
+          customerPhone: data['customerPhone'],
+          customerName: data['customerName'],
+          customerGST: data['customerGST'],
+          quotationId: data['quotationId'],
+        )),
       );
     } else {
-      Navigator.push(context, CupertinoPageRoute(builder: (context) => SalesDetailPage(documentId: doc.id, initialData: data, uid: widget.uid, currencySymbol: _currencySymbol)));
+      Navigator.push(context, _NoAnimRoute(builder: (_) => SalesDetailPage(documentId: doc.id, initialData: data, uid: widget.uid, currencySymbol: _currencySymbol)));
     }
   }
 
@@ -2236,7 +2250,7 @@ class SalesDetailPage extends StatelessWidget {
                                               if ((data['onlineReceived_split'] ?? 0).toDouble() > 0)
                                                 _buildPaymentSplitRow(HeroIcons.buildingLibrary, 'Online', (data['onlineReceived_split'] ?? 0).toDouble(), kPrimaryColor),
                                               if ((data['creditIssued_split'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit', (data['creditIssued_split'] ?? 0).toDouble(), kErrorColor),
+                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit', (data['creditIssued_split'] ?? 0).toDouble(), kOrange),
                                             ] else if (data['paymentMode'] == 'Credit') ...[
                                               // For Credit payment mode
                                               // Check if partial payment fields exist (when some amount was paid)
@@ -2246,7 +2260,7 @@ class SalesDetailPage extends StatelessWidget {
                                                 _buildPaymentSplitRow(HeroIcons.buildingLibrary, 'Online Paid', (data['onlineReceived_partial'] ?? 0).toDouble(), kPrimaryColor),
                                               // Show credit amount
                                               if ((data['creditIssued_partial'] ?? 0).toDouble() > 0)
-                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit Issued', (data['creditIssued_partial'] ?? 0).toDouble(), kErrorColor)
+                                                _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit Issued', (data['creditIssued_partial'] ?? 0).toDouble(), kOrange)
                                               else if ((data['cashReceived_partial'] ?? 0).toDouble() == 0 && (data['onlineReceived_partial'] ?? 0).toDouble() == 0)
                                                 // Fully credit - calculate from total and cashReceived
                                                 _buildPaymentSplitRow(HeroIcons.creditCard, 'Credit Issued',
@@ -2736,7 +2750,7 @@ class SalesDetailPage extends StatelessWidget {
             }
             if (await PlanPermissionHelper.canEditBill()) {
               // Always open the edit page; the user can switch to Split within EditBillPage.
-              if (context.mounted) Navigator.push(context, CupertinoPageRoute(builder: (_) => EditBillPage(documentId: documentId, invoiceData: data)));
+              if (context.mounted) Navigator.push(context, _NoAnimRoute(builder: (_) => EditBillPage(documentId: documentId, invoiceData: data)));
             } else {
               if (context.mounted) PlanPermissionHelper.showUpgradeDialog(context, 'Edit Bill', uid: uid);
             }
@@ -6583,32 +6597,41 @@ class _CustomersPageState extends State<CustomersPage> {
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: kPrimaryColor.withOpacity(0.08),
-                      radius: 20,
-                      child: Text((data['name'] ?? 'U')[0].toUpperCase(),
-                          style: const TextStyle(color: kPrimaryColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                    ),
-                    const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(data['name'] ?? 'Unknown',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                          Row(
+                            children: [
+                              Text(data['name'] ?? 'Unknown',
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
+                              if ((data['rating'] ?? 0) > 0) ...[
+                                const SizedBox(width: 8),
+                                ...List.generate(5, (i) {
+                                  final rating = (data['rating'] ?? 0) as num;
+                                  return HeroIcon(
+                                    HeroIcons.star,
+                                    size: 12,
+                                    color: i < rating ? kOrange : kGrey300,
+                                    style: i < rating ? HeroIconStyle.solid : HeroIconStyle.outline,
+                                  );
+                                }),
+                              ],
+                            ],
+                          ),
                           Text(data['phone'] ?? '--',
                               style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
-                    const HeroIcon(HeroIcons.chevronRight, color: kGrey400, size: 20),
+                    const HeroIcon(HeroIcons.chevronRight, color: kPrimaryColor, size: 20),
                   ],
                 ),
                 const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Divider(height: 1, color: kGrey100)),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildManagerStatItem("Total sales", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kPrimaryColor),
+                    _buildManagerStatItem("Total sales", "${(data['totalSales'] ?? 0).toStringAsFixed(0)}", kSuccessGreen),
                     _buildManagerStatItem("Credit due", "${(data['balance'] ?? 0).toStringAsFixed(0)}", kErrorRed, align: CrossAxisAlignment.end),
                   ],
                 ),
