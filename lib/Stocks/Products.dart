@@ -399,7 +399,7 @@ class _ProductsPageState extends State<ProductsPage> {
                               ? const HeroIcon(HeroIcons.heart, color: kPrimaryColor, size: 14)
                               : Text(
                             _formatCategoryName(category),
-                            style: const TextStyle(fontSize: 9, color: kOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                            style: const TextStyle(fontSize: 9, color: kBlack54, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                           ),
                           if (stockEnabled)
                             _buildStockBadge(stock, isOutOfStock, isLowStock),

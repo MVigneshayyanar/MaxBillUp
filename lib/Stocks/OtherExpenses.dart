@@ -369,6 +369,30 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
   DateTime _selectedDate = DateTime.now();
   String _paymentMode = 'Cash';
   bool _isLoading = false;
+  List<String> _titleSuggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTitleSuggestions();
+  }
+
+  Future<void> _loadTitleSuggestions() async {
+    try {
+      // Load unique titles from previous otherExpenses
+      final col = await FirestoreService().getStoreCollection('otherExpenses');
+      final snap = await col.limit(200).get();
+      final titles = <String>{};
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final t = (data['title'] ?? '').toString().trim();
+        if (t.isNotEmpty) titles.add(t);
+      }
+      if (mounted) setState(() => _titleSuggestions = titles.toList()..sort());
+    } catch (e) {
+      debugPrint('Error loading title suggestions: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -461,7 +485,7 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTextField('Title *', _titleController, HeroIcons.pencil),
+            _buildAutocompleteTitleField(),
             const SizedBox(height: 16),
             _buildTextField('Amount *', _amountController, HeroIcons.currencyRupee, isNum: true),
             const SizedBox(height: 16),
@@ -537,6 +561,84 @@ class _CreateOtherExpensePageState extends State<CreateOtherExpensePage> {
 );
       },
     ),
+      ],
+    );
+  }
+
+  Widget _buildAutocompleteTitleField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Title *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          optionsBuilder: (v) {
+            if (v.text.isEmpty) return _titleSuggestions.take(10);
+            return _titleSuggestions
+                .where((s) => s.toLowerCase().contains(v.text.toLowerCase()))
+                .take(10);
+          },
+          onSelected: (s) => _titleController.text = s,
+          fieldViewBuilder: (ctx, ctrl, focus, onSub) {
+            if (_titleController.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text = _titleController.text;
+            ctrl.addListener(() => _titleController.text = ctrl.text);
+            return ValueListenableBuilder<TextEditingValue>(
+              valueListenable: ctrl,
+              builder: (context, value, _) {
+                final bool hasText = value.text.isNotEmpty;
+                return TextField(
+                  controller: ctrl,
+                  focusNode: focus,
+                  decoration: InputDecoration(
+                    prefixIcon: const HeroIcon(HeroIcons.pencil, color: _primaryColor, size: 20),
+                    filled: true,
+                    fillColor: const Color(0xFFF8F9FA),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: hasText ? kPrimaryColor : kGrey200, width: hasText ? 1.5 : 1.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: kPrimaryColor, width: 2.0),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+          optionsViewBuilder: (ctx, onSel, options) => Align(
+            alignment: Alignment.topLeft,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: MediaQuery.of(context).size.width - 40,
+                constraints: const BoxConstraints(maxHeight: 200),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _cardBorder)),
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF5F5F5)),
+                  itemBuilder: (ctx, i) {
+                    final name = options.elementAt(i);
+                    return ListTile(
+                      dense: true,
+                      leading: const HeroIcon(HeroIcons.clock, size: 16, color: Colors.black54),
+                      title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      onTap: () => onSel(name),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }

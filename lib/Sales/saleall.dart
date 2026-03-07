@@ -1217,7 +1217,7 @@ class _SaleAllPageState extends State<SaleAllPage> {
                                 style: TextStyle(
                                   fontSize: R.sp(context, 9),
                                   fontWeight: FontWeight.w700,
-                                  color: kOrange,
+                                  color: kBlack54,
                                   letterSpacing: 0.3,
                                 ),
                               ),

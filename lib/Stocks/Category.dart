@@ -324,14 +324,11 @@ class _CategoryPageState extends State<CategoryPage> {
                     color: kPrimaryColor.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Center(
-                    child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(color: kPrimaryColor, fontSize: 20, fontWeight: FontWeight.w900),
-                    ),
+                  child: const Center(
+                    child: HeroIcon(HeroIcons.tag, color: kPrimaryColor, size: 24),
                   ),
                 ),
-                title: Text(_formatCategoryName(name), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kOrange)),
+                title: Text(_formatCategoryName(name), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
                 subtitle: Text('$count ${count == 1 ? "Product" : "Products"}',
                     style: const TextStyle(color: kBlack54, fontSize: 12, fontWeight: FontWeight.w600)),
                 trailing: (_hasPermission('addCategory') || isAdmin)

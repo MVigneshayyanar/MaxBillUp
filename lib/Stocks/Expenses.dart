@@ -419,14 +419,53 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
   Future<void> _loadExpenseNameSuggestions() async {
     try {
       final col = await FirestoreService().getStoreCollection('expenseNames');
-      final snap = await col.orderBy('usageCount', descending: true).limit(50).get();
+      // Try with orderBy first, fallback to plain get if index missing
+      QuerySnapshot snap;
+      try {
+        snap = await col.orderBy('usageCount', descending: true).limit(50).get();
+      } catch (_) {
+        snap = await col.limit(50).get();
+      }
+      final names = <String>[];
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final n = (data['name'] ?? '').toString().trim();
+        if (n.isNotEmpty) names.add(n);
+      }
+
+      // Also load unique expense names from past expenses as fallback
+      if (names.isEmpty) {
+        try {
+          final expCol = await FirestoreService().getStoreCollection('expenses');
+          final expSnap = await expCol.limit(100).get();
+          final seen = <String>{};
+          for (final doc in expSnap.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final n = (data['expenseName'] ?? '').toString().trim();
+            if (n.isNotEmpty && seen.add(n)) names.add(n);
+          }
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() {
-          _expenseNameSuggestions = snap.docs.map((doc) => doc['name'].toString()).toList();
+          _expenseNameSuggestions = names;
         });
       }
     } catch (e) {
       debugPrint('Error loading expense names: $e');
+      // Last resort: load from expenses collection
+      try {
+        final expCol = await FirestoreService().getStoreCollection('expenses');
+        final expSnap = await expCol.limit(100).get();
+        final names = <String>{};
+        for (final doc in expSnap.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final n = (data['expenseName'] ?? '').toString().trim();
+          if (n.isNotEmpty) names.add(n);
+        }
+        if (mounted) setState(() => _expenseNameSuggestions = names.toList());
+      } catch (_) {}
     }
   }
 
@@ -704,6 +743,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       int maxLines = 1,
       bool isMandatory = false,
       VoidCallback? onChanged,
+      FocusNode? focusNode,
       String? Function(String?)? validator}) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
@@ -711,6 +751,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
         final bool hasText = value.text.isNotEmpty;
         return TextFormField(
           controller: ctrl,
+          focusNode: focusNode,
           keyboardType: type,
           maxLines: maxLines,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
@@ -795,7 +836,7 @@ class _CreateExpensePageState extends State<CreateExpensePage> {
       fieldViewBuilder: (ctx, ctrl, focus, onSub) {
         if (_expenseNameController.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text = _expenseNameController.text;
         ctrl.addListener(() => _expenseNameController.text = ctrl.text);
-        return _buildModernField(ctrl, 'Expense Name *', HeroIcons.tag, isMandatory: true);
+        return _buildModernField(ctrl, 'Expense Name *', HeroIcons.tag, isMandatory: true, focusNode: focus);
       },
       optionsViewBuilder: (ctx, onSel, options) => Align(
         alignment: Alignment.topLeft,

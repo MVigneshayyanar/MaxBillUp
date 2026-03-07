@@ -329,7 +329,7 @@ class _VendorsPageState extends State<VendorsPage> {
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Total bills', style: TextStyle(fontSize: 8, fontWeight: FontWeight.w700, color: kBlack54, letterSpacing: 0.5)),
-                  Text('$purchaseCount bill(s)', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
+                  Text('$purchaseCount ${purchaseCount == 1 ? 'bill' : 'bills'}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 10, color: kBlack87)),
                 ]),
                 Row(mainAxisSize: MainAxisSize.min, children: [
                   _buildPopupMenu(vendor),
@@ -605,15 +605,46 @@ class _VendorDetailsPageState extends State<VendorDetailsPage> {
     try {
       final col = await FirestoreService().getStoreCollection('stockPurchases');
       final supplierName = (_vendor['name'] ?? '').toString();
-      final snap = await col.where('supplierName', isEqualTo: supplierName).orderBy('timestamp', descending: true).get();
+      final vendorId = (_vendor['id'] ?? '').toString();
+
+      // Try query by supplierName first
+      var snap = await col.where('supplierName', isEqualTo: supplierName).orderBy('timestamp', descending: true).get();
+
+      // If no results, try by vendorId
+      if (snap.docs.isEmpty && vendorId.isNotEmpty) {
+        snap = await col.where('vendorId', isEqualTo: vendorId).orderBy('timestamp', descending: true).get();
+      }
+
       if (mounted) {
         setState(() {
           _purchases = snap.docs.map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>}).toList();
           _isLoading = false;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Error loading vendor purchases: $e');
+      // Fallback: try without orderBy (index might be missing)
+      try {
+        final col = await FirestoreService().getStoreCollection('stockPurchases');
+        final supplierName = (_vendor['name'] ?? '').toString();
+        final snap = await col.where('supplierName', isEqualTo: supplierName).get();
+        if (mounted) {
+          final docs = snap.docs.map((d) => {'id': d.id, ...d.data() as Map<String, dynamic>}).toList();
+          // Sort manually
+          docs.sort((a, b) {
+            final tsA = a['timestamp'] as Timestamp?;
+            final tsB = b['timestamp'] as Timestamp?;
+            if (tsA == null || tsB == null) return 0;
+            return tsB.compareTo(tsA);
+          });
+          setState(() {
+            _purchases = docs;
+            _isLoading = false;
+          });
+        }
+      } catch (_) {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -686,7 +717,7 @@ class _VendorDetailsPageState extends State<VendorDetailsPage> {
                 const Divider(height: 20, color: kGreyBg),
                 // Summary stats row
                 Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                  _buildStat('BILLS', purchaseCount.toString(), kPrimaryColor),
+                  _buildStat(_purchases.length == 1 ? 'BILL' : 'BILLS', _isLoading ? purchaseCount.toString() : _purchases.length.toString(), kPrimaryColor),
                   _buildStat('TOTAL SPENT', '${widget.currencySymbol}${totalPurchases.toStringAsFixed(0)}', kGoogleGreen),
                 ]),
               ]),

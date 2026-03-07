@@ -597,6 +597,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       int maxLines = 1,
       bool isMandatory = false,
       VoidCallback? onChanged,
+      FocusNode? focusNode,
       String? Function(String?)? validator}) {
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: ctrl,
@@ -604,6 +605,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
         final bool hasText = value.text.isNotEmpty;
         return TextFormField(
           controller: ctrl,
+          focusNode: focusNode,
           keyboardType: type,
           maxLines: maxLines,
           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBlack87),
@@ -653,7 +655,7 @@ class _CreateStockPurchasePageState extends State<CreateStockPurchasePage> {
       fieldViewBuilder: (ctx, ctrl, focus, onSub) {
         if (_supplierNameController.text.isNotEmpty && ctrl.text.isEmpty) ctrl.text = _supplierNameController.text;
         ctrl.addListener(() => _supplierNameController.text = ctrl.text);
-        return _buildModernField(ctrl, 'Supplier Name *', HeroIcons.buildingStorefront, isMandatory: true);
+        return _buildModernField(ctrl, 'Supplier Name *', HeroIcons.buildingStorefront, isMandatory: true, focusNode: focus);
       },
       optionsViewBuilder: (ctx, onSel, options) => Align(
         alignment: Alignment.topLeft,
