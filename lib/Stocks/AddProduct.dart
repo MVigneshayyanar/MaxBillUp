@@ -56,6 +56,7 @@ class _AddProductPageState extends State<AddProductPage> {
   String _lowStockAlertType = 'Count';
   bool _isFavorite = false;
   bool _isLoading = false;
+  bool _advancedExpanded = false;
 
   // Tax State
   String _selectedTaxType = 'Add Tax at Billing';
@@ -766,96 +767,131 @@ class _AddProductPageState extends State<AddProductPage> {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
-                children: [
-                  _buildSectionHeader("Basic Details"),
-                  _buildCategoryDropdown(),
-                  const SizedBox(height: 16),
-                  _buildItemNameWithFavorite(),
-                  const SizedBox(height: 16),
-                  _buildProductCodeField(),
-                  const SizedBox(height: 16),
-                  _buildModernTextField(
-                    controller: _priceController,
-                    label: "Price",
-                    icon: HeroIcons.banknotes,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    isRequired: true,
-                    hint: "0.00",
-                  ),
-                  const SizedBox(height: 16),
-                  _buildTrackStockAndQuantity(),
-                  const SizedBox(height: 16),
-                  _buildUnitDropdown(),
-                  const SizedBox(height: 24),
-
-                  // ADVANCED SECTION
-                  Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: EdgeInsets.zero,
-                      title: _buildSectionHeader("Advanced Details"),
-                      iconColor: kPrimaryColor,
-                      collapsedIconColor: kBlack54,
-                      children: [
-                        const SizedBox(height: 12),
-                        _buildModernTextField(
-                          controller: _barcodeController,
-                          label: "Barcode String",
-                          icon: HeroIcons.qrCode,
-                          hint: "Scan or type barcode",
-                          suffixIcon: HeroIcons.viewfinderCircle,
-                          onSuffixTap: _scanBarcode,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildModernTextField(
-                          controller: _costPriceController,
-                          label: "Total Cost Price",
-                          icon: HeroIcons.shoppingCart,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          hint: "0.00",
-                          // Add a helper text to educate user
-                        ),
-                        const SizedBox(height: 16),
-                        _buildModernTextField(
-                          controller: _mrpController,
-                          label: "MRP",
-                          icon: HeroIcons.tag,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          hint: "Maximum Retail Price",
-                        ),
-                        const SizedBox(height: 16),
-                        _buildTaxDropdown(),
-                        const SizedBox(height: 16),
-                        _buildTaxTypeSelector(),
-                        const SizedBox(height: 16),
-                        _buildModernTextField(
-                          controller: _hsnController,
-                          label: "HSN / SAC Code",
-                          icon: HeroIcons.clipboardDocumentList,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildModernTextField(
-                          controller: _locationController,
-                          label: "Product Location",
-                          icon: HeroIcons.mapPin,
-                          hint: "e.g. Shelf A3, Warehouse B",
-                        ),
-                        const SizedBox(height: 16),
-                        _buildExpiryDateField(),
-                      ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionHeader("Basic Details"),
+                    _buildCategoryDropdown(),
+                    const SizedBox(height: 16),
+                    _buildItemNameWithFavorite(),
+                    const SizedBox(height: 16),
+                    _buildProductCodeField(),
+                    const SizedBox(height: 16),
+                    _buildModernTextField(
+                      controller: _priceController,
+                      label: "Price",
+                      icon: HeroIcons.banknotes,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      isRequired: true,
+                      hint: "0.00",
                     ),
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 16),
+                    _buildTrackStockAndQuantity(),
+                    const SizedBox(height: 16),
+                    _buildUnitDropdown(),
+                    const SizedBox(height: 24),
+
+                    // ADVANCED SECTION
+                    _buildAdvancedSection(),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
             _buildBottomSaveButton(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAdvancedSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Tappable header row
+        InkWell(
+          onTap: () => setState(() => _advancedExpanded = !_advancedExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Expanded(child: _buildSectionHeader("Advanced Details")),
+                AnimatedRotation(
+                  turns: _advancedExpanded ? 0.5 : 0,
+                  duration: const Duration(milliseconds: 250),
+                  child: Icon(
+                    Icons.expand_more,
+                    color: _advancedExpanded ? kPrimaryColor : kBlack54,
+                    size: 22,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        // Animated expand/collapse — keeps widgets in tree so ListView count is stable
+        AnimatedSize(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: Alignment.topCenter,
+          child: Offstage(
+            offstage: !_advancedExpanded,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 12),
+                _buildModernTextField(
+                  controller: _barcodeController,
+                  label: "Barcode String",
+                  icon: HeroIcons.qrCode,
+                  hint: "Scan or type barcode",
+                  suffixIcon: HeroIcons.viewfinderCircle,
+                  onSuffixTap: _scanBarcode,
+                ),
+                const SizedBox(height: 16),
+                _buildModernTextField(
+                  controller: _costPriceController,
+                  label: "Total Cost Price",
+                  icon: HeroIcons.shoppingCart,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  hint: "0.00",
+                ),
+                const SizedBox(height: 16),
+                _buildModernTextField(
+                  controller: _mrpController,
+                  label: "MRP",
+                  icon: HeroIcons.tag,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  hint: "Maximum Retail Price",
+                ),
+                const SizedBox(height: 16),
+                _buildTaxDropdown(),
+                const SizedBox(height: 16),
+                _buildTaxTypeSelector(),
+                const SizedBox(height: 16),
+                _buildModernTextField(
+                  controller: _hsnController,
+                  label: "HSN / SAC Code",
+                  icon: HeroIcons.clipboardDocumentList,
+                ),
+                const SizedBox(height: 16),
+                _buildModernTextField(
+                  controller: _locationController,
+                  label: "Product Location",
+                  icon: HeroIcons.mapPin,
+                  hint: "e.g. Shelf A3, Warehouse B",
+                ),
+                const SizedBox(height: 16),
+                _buildExpiryDateField(),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

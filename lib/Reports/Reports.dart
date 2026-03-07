@@ -26,7 +26,7 @@ import 'package:maxbillup/services/currency_service.dart';
 // ==========================================
 // MODERN DESIGN SYSTEM TOKENS
 // ==========================================
- // Material Blue
+// Material Blue
 const Color kBackgroundColor = Colors.white; // Unified White Background
 const Color kSurfaceColor = Colors.white;
 const Color kTextPrimary = Color(0xFF1F2937); // Dark Grey
@@ -352,7 +352,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 Container(
                   width: 46, height: 46,
                   decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.08),
+                    color: color.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: HeroIcon(icon, color: color, size: 22),
@@ -887,29 +887,29 @@ class _EmptyChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
- AppBar _buildModernAppBar(String title, VoidCallback onBack, {VoidCallback? onDownload}) {
-   return AppBar(
-     // Rounded bottom corners for modern look
-     shape: const RoundedRectangleBorder(
-       borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-     ),
-     leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white, size: 20), onPressed: onBack),
-     title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
-     backgroundColor: kPrimaryColor,
-     elevation: 0,
-     centerTitle: true,
-     actions: onDownload != null
-         ? [
-             IconButton(
-               icon: const HeroIcon(HeroIcons.arrowDownTray, color: Colors.white, size: 22),
-               onPressed: onDownload,
-               tooltip: 'Download PDF',
-             ),
-             const SizedBox(width: 8),
-           ]
-         : null,
-   );
- }
+AppBar _buildModernAppBar(String title, VoidCallback onBack, {VoidCallback? onDownload}) {
+  return AppBar(
+    // Rounded bottom corners for modern look
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+    ),
+    leading: IconButton(icon: const HeroIcon(HeroIcons.arrowLeft, color: Colors.white, size: 20), onPressed: onBack),
+    title: Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18)),
+    backgroundColor: kPrimaryColor,
+    elevation: 0,
+    centerTitle: true,
+    actions: onDownload != null
+        ? [
+      IconButton(
+        icon: const HeroIcon(HeroIcons.arrowDownTray, color: Colors.white, size: 22),
+        onPressed: onDownload,
+        tooltip: 'Download PDF',
+      ),
+      const SizedBox(width: 8),
+    ]
+        : null,
+  );
+}
 
 // ==========================================
 // PDF REPORT GENERATOR HELPER
@@ -1432,13 +1432,13 @@ class ReportPdfGenerator {
                         colors: [kIncomeGreen, kIncomeGreen.withValues(alpha: 0.7)],
                       ),
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: kIncomeGreen.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      // boxShadow: [
+                      //   BoxShadow(
+                      //     color: kIncomeGreen.withValues(alpha: 0.3),
+                      //     blurRadius: 8,
+                      //     offset: const Offset(0, 2),
+                      //   ),
+                      //],
                     ),
                     child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 28),
                   ),
@@ -1512,7 +1512,7 @@ class ReportPdfGenerator {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       decoration: BoxDecoration(
-                          color: kIncomeGreen.withValues(alpha: 0.1),
+                        color: kIncomeGreen.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: kIncomeGreen.withValues(alpha: 0.3)),
                       ),
@@ -1934,9 +1934,9 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-            color: kPrimaryColor.withValues(alpha: 0.08),
+              color: kPrimaryColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kPrimaryColor.withValues(alpha: 0.1)),
+              border: Border.all(color: kPrimaryColor.withValues(alpha: 0.1)),
             ),
             child: Column(
               children: [
@@ -2027,7 +2027,7 @@ class _AnalyticsPageState extends State<AnalyticsPage> {
           height: 140,
           child: BarChart(
             BarChartData(
-            gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withValues(alpha: 0.15), strokeWidth: 1)),
+              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withValues(alpha: 0.15), strokeWidth: 1)),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -2326,343 +2326,343 @@ class _DayBookPageState extends State<DayBookPage> {
                           return StreamBuilder<QuerySnapshot>(
                             stream: streamsSnapshot.data![4],
                             builder: (context, purchaseCreditsSnapshot) {
-                      if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData) {
-                        return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                      }
+                              if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData) {
+                                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                              }
 
-                      // Filter data for selected date
-                      final filteredSales = salesSnapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                        if (dt == null) return false;
-                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
-                      }).toList();
+                              // Filter data for selected date
+                              final filteredSales = salesSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
 
-                      final filteredExpenses = expenseSnapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                        if (dt == null) return false;
-                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
-                      }).toList();
+                              final filteredExpenses = expenseSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
 
-                      final filteredPurchases = purchaseSnapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                        if (dt == null) return false;
-                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
-                      }).toList();
+                              final filteredPurchases = purchaseSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
 
-                      // Filter credits for selected date
-                      final filteredCredits = creditsSnapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                        if (dt == null) return false;
-                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
-                      }).toList();
+                              // Filter credits for selected date
+                              final filteredCredits = creditsSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
 
-                      // Filter purchase credits for selected date
-                      final filteredPurchaseCredits = purchaseCreditsSnapshot.data!.docs.where((doc) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        DateTime? dt;
-                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                        if (dt == null) return false;
-                        return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
-                      }).toList();
+                              // Filter purchase credits for selected date
+                              final filteredPurchaseCredits = purchaseCreditsSnapshot.data!.docs.where((doc) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                DateTime? dt;
+                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                if (dt == null) return false;
+                                return DateFormat('yyyy-MM-dd').format(dt) == selectedDateStr;
+                              }).toList();
 
-                      // Calculate comprehensive stats
-                      int totalSalesCount = 0, totalExpensesCount = 0, totalPurchasesCount = 0;
-                      double totalSalesAmount = 0, totalExpensesAmount = 0, totalPurchasesAmount = 0;
-                      double saleCreditGiven = 0, saleCreditReceived = 0;
-                      double purchaseCreditAdded = 0, purchaseCreditPaid = 0;
-                      double additionCredit = 0; // Manual credit additions from customer profile
+                              // Calculate comprehensive stats
+                              int totalSalesCount = 0, totalExpensesCount = 0, totalPurchasesCount = 0;
+                              double totalSalesAmount = 0, totalExpensesAmount = 0, totalPurchasesAmount = 0;
+                              double saleCreditGiven = 0, saleCreditReceived = 0;
+                              double purchaseCreditAdded = 0, purchaseCreditPaid = 0;
+                              double additionCredit = 0; // Manual credit additions from customer profile
 
-                      // Payment breakdown
-                      double paymentOutCash = 0, paymentOutOnline = 0;
-                      double paymentInCash = 0, paymentInOnline = 0;
+                              // Payment breakdown
+                              double paymentOutCash = 0, paymentOutOnline = 0;
+                              double paymentInCash = 0, paymentInOnline = 0;
 
-                      // Build transaction rows
-                      List<Map<String, dynamic>> allTransactions = [];
+                              // Build transaction rows
+                              List<Map<String, dynamic>> allTransactions = [];
 
-                      // Process Sales
-                      for (var doc in filteredSales) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final String status = (data['status'] ?? '').toString().toLowerCase();
-                        if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                          continue;
-                        }
+                              // Process Sales
+                              for (var doc in filteredSales) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final String status = (data['status'] ?? '').toString().toLowerCase();
+                                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                                  continue;
+                                }
 
-                        double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+                                double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                                String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
-                        totalSalesCount++;
-                        totalSalesAmount += total;
+                                totalSalesCount++;
+                                totalSalesAmount += total;
 
-                        // Track cash in — handle each payment mode correctly
-                        if (mode.contains('split')) {
-                          // Split: read individual cash & online amounts saved in Firestore
-                          final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
-                          final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
-                          final splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
-                          paymentInCash += splitCash;
-                          paymentInOnline += splitOnline;
-                          if (splitCredit > 0) saleCreditGiven += splitCredit;
-                        } else if (mode.contains('cash')) {
-                          paymentInCash += total;
-                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                          paymentInOnline += total;
-                        } else if (mode.contains('credit')) {
-                          // Full credit sale — partial cash portion tracked separately
-                          final partialCash = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
-                          final creditIssued = double.tryParse(data['creditIssued_partial']?.toString() ?? '0') ?? total;
-                          if (partialCash > 0) paymentInCash += partialCash;
-                          saleCreditGiven += creditIssued;
-                        }
+                                // Track cash in — handle each payment mode correctly
+                                if (mode.contains('split')) {
+                                  // Split: read individual cash & online amounts saved in Firestore
+                                  final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                                  final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                                  final splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
+                                  paymentInCash += splitCash;
+                                  paymentInOnline += splitOnline;
+                                  if (splitCredit > 0) saleCreditGiven += splitCredit;
+                                } else if (mode.contains('cash')) {
+                                  paymentInCash += total;
+                                } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                                  paymentInOnline += total;
+                                } else if (mode.contains('credit')) {
+                                  // Full credit sale — partial cash portion tracked separately
+                                  final partialCash = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
+                                  final creditIssued = double.tryParse(data['creditIssued_partial']?.toString() ?? '0') ?? total;
+                                  if (partialCash > 0) paymentInCash += partialCash;
+                                  saleCreditGiven += creditIssued;
+                                }
 
-                        // cashIn = actual cash/online received (not the credit portion)
-                        double cashInAmount;
-                        if (mode.contains('split')) {
-                          final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
-                          final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
-                          cashInAmount = splitCash + splitOnline;
-                        } else if (mode.contains('credit')) {
-                          cashInAmount = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
-                        } else {
-                          cashInAmount = total;
-                        }
+                                // cashIn = actual cash/online received (not the credit portion)
+                                double cashInAmount;
+                                if (mode.contains('split')) {
+                                  final splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                                  final splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                                  cashInAmount = splitCash + splitOnline;
+                                } else if (mode.contains('credit')) {
+                                  cashInAmount = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
+                                } else {
+                                  cashInAmount = total;
+                                }
 
-                        allTransactions.add({
-                          'category': 'Sale',
-                          'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
-                          'name': data['customerName']?.toString() ?? 'Guest',
-                          'total': total,
-                          'cashIn': cashInAmount,
-                          'cashOut': 0.0,
-                          'timestamp': data['timestamp'],
-                          'paymentMode': mode,
-                        });
-                      }
+                                allTransactions.add({
+                                  'category': 'Sale',
+                                  'particulars': data['invoiceNumber']?.toString() ?? 'N/A',
+                                  'name': data['customerName']?.toString() ?? 'Guest',
+                                  'total': total,
+                                  'cashIn': cashInAmount,
+                                  'cashOut': 0.0,
+                                  'timestamp': data['timestamp'],
+                                  'paymentMode': mode,
+                                });
+                              }
 
-                      // Process Credits (for Sale Credit Received and Manual Additions)
-                      for (var doc in filteredCredits) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final type = (data['type'] ?? '').toString().toLowerCase();
-                        final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                        final method = (data['method'] ?? 'Cash').toString().toLowerCase();
+                              // Process Credits (for Sale Credit Received and Manual Additions)
+                              for (var doc in filteredCredits) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final type = (data['type'] ?? '').toString().toLowerCase();
+                                final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                final method = (data['method'] ?? 'Cash').toString().toLowerCase();
 
-                        // Skip entries that are payment-log entries created alongside a sale
-                        // ('sale_payment' = Cash/Online sale log, 'credit_sale' = credit sale log)
-                        // These are already fully counted from the 'sales' collection above.
-                        if (type == 'sale_payment' || type == 'credit_sale') continue;
+                                // Skip entries that are payment-log entries created alongside a sale
+                                // ('sale_payment' = Cash/Online sale log, 'credit_sale' = credit sale log)
+                                // These are already fully counted from the 'sales' collection above.
+                                if (type == 'sale_payment' || type == 'credit_sale') continue;
 
-                        // 'payment_received', 'credit_payment', 'settlement' = customer repaid credit
-                        if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
-                          // Customer paid back credit
-                          saleCreditReceived += amount;
+                                // 'payment_received', 'credit_payment', 'settlement' = customer repaid credit
+                                if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                                  // Customer paid back credit
+                                  saleCreditReceived += amount;
 
-                          // Track payment method
-                          if (method.contains('cash')) {
-                            paymentInCash += amount;
-                          } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
-                            paymentInOnline += amount;
-                          }
+                                  // Track payment method
+                                  if (method.contains('cash')) {
+                                    paymentInCash += amount;
+                                  } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                                    paymentInOnline += amount;
+                                  }
 
-                          allTransactions.add({
-                            'category': 'Credit Collected',
-                            'particulars': data['invoiceNumber']?.toString() ?? 'Payment',
-                            'name': data['customerName']?.toString() ?? 'Customer',
-                            'total': amount,
-                            'cashIn': amount,
-                            'cashOut': 0.0,
-                            'timestamp': data['timestamp'],
-                            'paymentMode': method,
-                          });
-                        } else if (type == 'add_credit') {
-                           // Manual credit addition from customer profile (store gives credit OUT to customer)
-                           additionCredit += amount;
+                                  allTransactions.add({
+                                    'category': 'Credit Collected',
+                                    'particulars': data['invoiceNumber']?.toString() ?? 'Payment',
+                                    'name': data['customerName']?.toString() ?? 'Customer',
+                                    'total': amount,
+                                    'cashIn': amount,
+                                    'cashOut': 0.0,
+                                    'timestamp': data['timestamp'],
+                                    'paymentMode': method,
+                                  });
+                                } else if (type == 'add_credit') {
+                                  // Manual credit addition from customer profile (store gives credit OUT to customer)
+                                  additionCredit += amount;
 
-                           // Track as Money OUT — store is giving credit to customer
-                           if (method.contains('cash')) {
-                             paymentOutCash += amount;
-                           } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
-                             paymentOutOnline += amount;
-                           }
+                                  // Track as Money OUT — store is giving credit to customer
+                                  if (method.contains('cash')) {
+                                    paymentOutCash += amount;
+                                  } else if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                                    paymentOutOnline += amount;
+                                  }
 
-                           allTransactions.add({
-                            'category': 'Manual Credit',
-                            'particulars': data['note']?.toString() ?? 'Manual Credit Entry',
-                            'name': data['customerName']?.toString() ?? 'Customer',
-                            'total': amount,
-                            'cashIn': 0.0,
-                            'cashOut': amount,
-                            'timestamp': data['timestamp'],
-                            'paymentMode': method.isNotEmpty ? method : 'credit',
-                          });
-                        }
-                      }
+                                  allTransactions.add({
+                                    'category': 'Manual Credit',
+                                    'particulars': data['note']?.toString() ?? 'Manual Credit Entry',
+                                    'name': data['customerName']?.toString() ?? 'Customer',
+                                    'total': amount,
+                                    'cashIn': 0.0,
+                                    'cashOut': amount,
+                                    'timestamp': data['timestamp'],
+                                    'paymentMode': method.isNotEmpty ? method : 'credit',
+                                  });
+                                }
+                              }
 
-                      // Process Purchase Credits
-                      for (var doc in filteredPurchaseCredits) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        final type = (data['type'] ?? '').toString().toLowerCase();
-                        final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                        final status = (data['status'] ?? '').toString().toLowerCase();
-                        final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
+                              // Process Purchase Credits
+                              for (var doc in filteredPurchaseCredits) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                final type = (data['type'] ?? '').toString().toLowerCase();
+                                final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                final status = (data['status'] ?? '').toString().toLowerCase();
+                                final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
 
-                        if (type.contains('purchase') || type.contains('expense') || type.isEmpty || doc.reference.path.contains('purchaseCreditNotes')) {
-                          // Purchase on credit
-                          purchaseCreditAdded += amount;
+                                if (type.contains('purchase') || type.contains('expense') || type.isEmpty || doc.reference.path.contains('purchaseCreditNotes')) {
+                                  // Purchase on credit
+                                  purchaseCreditAdded += amount;
 
-                          // If there's a paid amount, track it as purchase credit paid
-                          if (paidAmount > 0) {
-                            purchaseCreditPaid += paidAmount;
-                            paymentOutCash += paidAmount; // Assume cash payment
+                                  // If there's a paid amount, track it as purchase credit paid
+                                  if (paidAmount > 0) {
+                                    purchaseCreditPaid += paidAmount;
+                                    paymentOutCash += paidAmount; // Assume cash payment
 
-                            allTransactions.add({
-                              'category': 'Purchase Credit Paid',
-                              'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
-                              'name': data['supplierName']?.toString() ?? 'Supplier',
-                              'total': paidAmount,
-                              'cashIn': 0.0,
-                              'cashOut': paidAmount,
-                              'timestamp': data['timestamp'],
-                              'paymentMode': 'cash',
-                            });
-                          }
+                                    allTransactions.add({
+                                      'category': 'Purchase Credit Paid',
+                                      'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
+                                      'name': data['supplierName']?.toString() ?? 'Supplier',
+                                      'total': paidAmount,
+                                      'cashIn': 0.0,
+                                      'cashOut': paidAmount,
+                                      'timestamp': data['timestamp'],
+                                      'paymentMode': 'cash',
+                                    });
+                                  }
 
-                          if (amount > paidAmount) {
-                            allTransactions.add({
-                              'category': 'Purchase Credit',
-                              'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
-                              'name': data['supplierName']?.toString() ?? 'Supplier',
-                              'total': amount - paidAmount,
-                              'cashIn': 0.0,
-                              'cashOut': 0.0,
-                              'timestamp': data['timestamp'],
-                              'paymentMode': 'credit',
-                            });
-                          }
-                        }
-                      }
+                                  if (amount > paidAmount) {
+                                    allTransactions.add({
+                                      'category': 'Purchase Credit',
+                                      'particulars': data['invoiceNumber']?.toString() ?? data['creditNoteNumber']?.toString() ?? '--',
+                                      'name': data['supplierName']?.toString() ?? 'Supplier',
+                                      'total': amount - paidAmount,
+                                      'cashIn': 0.0,
+                                      'cashOut': 0.0,
+                                      'timestamp': data['timestamp'],
+                                      'paymentMode': 'credit',
+                                    });
+                                  }
+                                }
+                              }
 
-                      // Process Expenses
-                      for (var doc in filteredExpenses) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+                              // Process Expenses
+                              for (var doc in filteredExpenses) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
-                        totalExpensesCount++;
-                        totalExpensesAmount += amount;
+                                totalExpensesCount++;
+                                totalExpensesAmount += amount;
 
-                        // Track cash out
-                        if (mode.contains('cash')) {
-                          paymentOutCash += amount;
-                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                          paymentOutOnline += amount;
-                        }
+                                // Track cash out
+                                if (mode.contains('cash')) {
+                                  paymentOutCash += amount;
+                                } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                                  paymentOutOnline += amount;
+                                }
 
-                        allTransactions.add({
-                          'category': 'Expense',
-                          'particulars': data['category']?.toString() ?? 'VI EXPENSE',
-                          'name': data['name']?.toString() ?? 'SELF',
-                          'total': amount,
-                          'cashIn': 0.0,
-                          'cashOut': amount,
-                          'timestamp': data['timestamp'],
-                          'paymentMode': mode,
-                        });
-                      }
+                                allTransactions.add({
+                                  'category': 'Expense',
+                                  'particulars': data['category']?.toString() ?? 'VI EXPENSE',
+                                  'name': data['name']?.toString() ?? 'SELF',
+                                  'total': amount,
+                                  'cashIn': 0.0,
+                                  'cashOut': amount,
+                                  'timestamp': data['timestamp'],
+                                  'paymentMode': mode,
+                                });
+                              }
 
-                      // Process Purchases
-                      for (var doc in filteredPurchases) {
-                        final data = doc.data() as Map<String, dynamic>;
-                        double amount = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
-                        String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+                              // Process Purchases
+                              for (var doc in filteredPurchases) {
+                                final data = doc.data() as Map<String, dynamic>;
+                                double amount = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
+                                String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
-                        totalPurchasesCount++;
-                        totalPurchasesAmount += amount;
+                                totalPurchasesCount++;
+                                totalPurchasesAmount += amount;
 
-                        // Track cash out
-                        if (mode.contains('cash')) {
-                          paymentOutCash += amount;
-                        } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                          paymentOutOnline += amount;
-                        }
+                                // Track cash out
+                                if (mode.contains('cash')) {
+                                  paymentOutCash += amount;
+                                } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                                  paymentOutOnline += amount;
+                                }
 
-                        allTransactions.add({
-                          'category': 'Purchase',
-                          'particulars': data['invoiceNumber']?.toString() ?? '--',
-                          'name': data['supplierName']?.toString() ?? 'Supplier',
-                          'total': amount,
-                          'cashIn': 0.0,
-                          'cashOut': amount,
-                          'timestamp': data['timestamp'],
-                          'paymentMode': mode,
-                        });
-                      }
+                                allTransactions.add({
+                                  'category': 'Purchase',
+                                  'particulars': data['invoiceNumber']?.toString() ?? '--',
+                                  'name': data['supplierName']?.toString() ?? 'Supplier',
+                                  'total': amount,
+                                  'cashIn': 0.0,
+                                  'cashOut': amount,
+                                  'timestamp': data['timestamp'],
+                                  'paymentMode': mode,
+                                });
+                              }
 
-                      // Sort transactions by time
-                      allTransactions.sort((a, b) {
-                        DateTime? dtA, dtB;
-                        if (a['timestamp'] != null && a['timestamp'] is Timestamp) dtA = (a['timestamp'] as Timestamp).toDate();
-                        if (b['timestamp'] != null && b['timestamp'] is Timestamp) dtB = (b['timestamp'] as Timestamp).toDate();
-                        if (dtA == null || dtB == null) return 0;
-                        return dtA.compareTo(dtB);
-                      });
+                              // Sort transactions by time
+                              allTransactions.sort((a, b) {
+                                DateTime? dtA, dtB;
+                                if (a['timestamp'] != null && a['timestamp'] is Timestamp) dtA = (a['timestamp'] as Timestamp).toDate();
+                                if (b['timestamp'] != null && b['timestamp'] is Timestamp) dtB = (b['timestamp'] as Timestamp).toDate();
+                                if (dtA == null || dtB == null) return 0;
+                                return dtA.compareTo(dtB);
+                              });
 
-                      // Update state for PDF download
-                      _dayBookData = allTransactions;
-                      _dayBookTotal = totalSalesAmount;
+                              // Update state for PDF download
+                              _dayBookData = allTransactions;
+                              _dayBookTotal = totalSalesAmount;
 
-                      return Column(
-                        children: [
-                          // Date Selector
-
-                          _buildDayBookDateSelector(),
-                          Expanded(
-                            child: SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.only(bottom: 100),
-                              child: Column(
+                              return Column(
                                 children: [
-                                  // Summary Cards
-                                  _buildDayBookSummaryCards(
-                                    totalSalesCount, totalSalesAmount,
-                                    totalExpensesCount, totalExpensesAmount,
-                                    totalPurchasesCount, totalPurchasesAmount,
-                                    saleCreditGiven, saleCreditReceived,
-                                    purchaseCreditAdded, purchaseCreditPaid,
-                                    additionCredit,
+                                  // Date Selector
+
+                                  _buildDayBookDateSelector(),
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      physics: const BouncingScrollPhysics(),
+                                      padding: const EdgeInsets.only(bottom: 100),
+                                      child: Column(
+                                        children: [
+                                          // Summary Cards
+                                          _buildDayBookSummaryCards(
+                                            totalSalesCount, totalSalesAmount,
+                                            totalExpensesCount, totalExpensesAmount,
+                                            totalPurchasesCount, totalPurchasesAmount,
+                                            saleCreditGiven, saleCreditReceived,
+                                            purchaseCreditAdded, purchaseCreditPaid,
+                                            additionCredit,
+                                          ),
+
+                                          const SizedBox(height: 20),
+
+                                          // Payment Breakdown
+                                          _buildDayBookPaymentBreakdown(
+                                            paymentOutCash, paymentOutOnline,
+                                            paymentInCash, paymentInOnline,
+                                          ),
+
+                                          const SizedBox(height: 20),
+
+                                          // Transaction Timeline
+                                          _buildDayBookTransactionTable(allTransactions),
+
+                                          const SizedBox(height: 30),
+                                        ],
+                                      ),
+                                    ),
                                   ),
-
-                                  const SizedBox(height: 20),
-
-                                  // Payment Breakdown
-                                  _buildDayBookPaymentBreakdown(
-                                    paymentOutCash, paymentOutOnline,
-                                    paymentInCash, paymentInOnline,
-                                  ),
-
-                                  const SizedBox(height: 20),
-
-                                  // Transaction Timeline
-                                  _buildDayBookTransactionTable(allTransactions),
-
-                                  const SizedBox(height: 30),
                                 ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
+                              );
                             },
                           );
                         },
@@ -2846,13 +2846,13 @@ class _DayBookPageState extends State<DayBookPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: isCancelled || isReturned ? statusColor.withOpacity(0.3) : kBorderColor.withOpacity(0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: Colors.black.withOpacity(0.02),
+        //     blurRadius: 4,
+        //     offset: const Offset(0, 2),
+        //   ),
+        // ],
       ),
       child: Column(
         children: [
@@ -2872,7 +2872,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                      color: modeColor.withValues(alpha: 0.15),
+                    color: modeColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -2909,7 +2909,7 @@ class _DayBookPageState extends State<DayBookPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: statusColor.withOpacity(0.3)),
                   ),
@@ -2934,7 +2934,7 @@ class _DayBookPageState extends State<DayBookPage> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                          color: kPrimaryColor.withValues(alpha: 0.1),
+                        color: kPrimaryColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Icon(Icons.person_rounded, size: 16, color: kPrimaryColor),
@@ -3042,8 +3042,8 @@ class _DayBookPageState extends State<DayBookPage> {
                         icon: mode.contains('online') || mode.contains('upi')
                             ? Icons.credit_card_rounded
                             : mode.contains('credit')
-                                ? Icons.event_note_rounded
-                                : Icons.money_rounded,
+                            ? Icons.event_note_rounded
+                            : Icons.money_rounded,
                         label: 'PAYMENT',
                         value: mode,
                         color: modeColor,
@@ -3119,7 +3119,7 @@ class _DayBookPageState extends State<DayBookPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
@@ -3183,13 +3183,13 @@ class _DayBookPageState extends State<DayBookPage> {
                   color: kSurfaceColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: kPrimaryColor.withOpacity(0.25)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: kPrimaryColor.withOpacity(0.06),
-                      blurRadius: 8,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  // boxShadow: [
+                  //   BoxShadow(
+                  //     color: kPrimaryColor.withOpacity(0.06),
+                  //     blurRadius: 8,
+                  //     offset: const Offset(0, 3),
+                  //   ),
+                  // ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -3463,8 +3463,8 @@ class _DayBookPageState extends State<DayBookPage> {
                     Icons.add_rounded, kGoogleRed),
                 _divider(),
                 _buildCreditDetailRow(
-                    'Purchase Credit Paid', purchaseCreditPaid,
-                    Icons.check_rounded, kGoogleRed,
+                  'Purchase Credit Paid', purchaseCreditPaid,
+                  Icons.check_rounded, kGoogleRed,
                 )
               ],
             ),
@@ -3597,12 +3597,12 @@ class _DayBookPageState extends State<DayBookPage> {
           color: kSurfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: kBorderColor.withOpacity(0.35)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 3))
-          ],
+          // boxShadow: [
+          //   BoxShadow(
+          //       color: Colors.black.withOpacity(0.04),
+          //       blurRadius: 8,
+          //       offset: const Offset(0, 3))
+          // ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -4159,7 +4159,7 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
                         try {
                           for (var it in (data['items'] as List)) {
                             double unitCost = double.tryParse(
-                                  it['cost']?.toString() ?? it['costPrice']?.toString() ?? it['purchasePrice']?.toString() ?? '0') ?? 0;
+                                it['cost']?.toString() ?? it['costPrice']?.toString() ?? it['purchasePrice']?.toString() ?? '0') ?? 0;
                             double qty = double.tryParse(it['quantity']?.toString() ?? '0') ?? 0;
                             saleCost += unitCost * qty;
                           }
@@ -4400,9 +4400,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        // boxShadow: [
+        //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        // ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4631,9 +4631,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        // boxShadow: [
+        //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        // ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4772,9 +4772,9 @@ class _SalesSummaryPageState extends State<SalesSummaryPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        // boxShadow: [
+        //   BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        // ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4952,7 +4952,7 @@ class FullSalesHistoryPage extends StatelessWidget {
         if (!streamSnapshot.hasData) {
           return Scaffold(
             backgroundColor: kBackgroundColor,
-            appBar: _buildModernAppBar("Sales History", onBack),
+            appBar: _buildModernAppBar("Sales Record", onBack),
             body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
           );
         }
@@ -5068,13 +5068,13 @@ class FullSalesHistoryPage extends StatelessWidget {
 
   // --- EXECUTIVE UI COMPONENTS ---
 
-    Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title) {
     return Text(
       title,
       // Enforce minimum font size 11 for better readability on product pages
       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2),
     );
-    }
+  }
 
   Widget _buildExecutiveHistoryHeader(double total, int count) {
     return Container(
@@ -5552,7 +5552,7 @@ class TopCustomersPage extends StatelessWidget {
       child: Column(
         children: [
           Container(
-              color: kBackgroundColor.withValues(alpha: 0.5),
+            color: kBackgroundColor.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               children: const [
@@ -5726,7 +5726,7 @@ class _StockReportPageState extends State<StockReportPage> {
             return Scaffold(
               backgroundColor: kBackgroundColor,
               appBar: _buildModernAppBar(
-                "Inventory Valuation",
+                "Stock Report",
                 widget.onBack,
                 onDownload: () => _downloadPdf(context, filteredDocs, totalInventoryValue, totalStockCount, totalRetailValue, potentialProfit),
               ),
@@ -6857,42 +6857,42 @@ class _TopProductsPageState extends State<TopProductsPage> {
                       Expanded(
                         child: _selectedTab == 0
                             ? CustomScrollView(
-                                physics: const BouncingScrollPhysics(),
-                                slivers: [
-                                  if (sortedProducts.isNotEmpty) ...[
-                                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                                      sliver: SliverToBoxAdapter(child: _buildSectionHeader("Revenue contribution")),
-                                    ),
-                                    const SliverToBoxAdapter(child: SizedBox(height: 10)),
-                                    SliverToBoxAdapter(
-                                      child: _buildContributionGraph(sortedProducts, 'amount', kPrimaryColor),
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            if (sortedProducts.isNotEmpty) ...[
+                              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                sliver: SliverToBoxAdapter(child: _buildSectionHeader("Revenue contribution")),
+                              ),
+                              const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                              SliverToBoxAdapter(
+                                child: _buildContributionGraph(sortedProducts, 'amount', kPrimaryColor),
+                              ),
+                            ],
+                            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              sliver: SliverToBoxAdapter(
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    _buildSectionHeader("Product Performance Ledger"),
+                                    Text(
+                                      "${sortedProducts.length} ITEMS",
+                                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
                                     ),
                                   ],
-                                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
-                                  SliverPadding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                                    sliver: SliverToBoxAdapter(
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          _buildSectionHeader("Product Performance Ledger"),
-                                          Text(
-                                            "${sortedProducts.length} ITEMS",
-                                            style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kPrimaryColor),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  const SliverToBoxAdapter(child: SizedBox(height: 8)),
-                                  sortedProducts.isEmpty
-                                      ? const SliverFillRemaining(child: Center(child: Text("No entries found", style: TextStyle(color: kTextSecondary))))
-                                      : SliverToBoxAdapter(child: _buildHighDensityProductTable(sortedProducts)),
-                                  const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                                ],
-                              )
+                                ),
+                              ),
+                            ),
+                            const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                            sortedProducts.isEmpty
+                                ? const SliverFillRemaining(child: Center(child: Text("No entries found", style: TextStyle(color: kTextSecondary))))
+                                : SliverToBoxAdapter(child: _buildHighDensityProductTable(sortedProducts)),
+                            const SliverToBoxAdapter(child: SizedBox(height: 40)),
+                          ],
+                        )
                             : _buildNotSoldProductList(notSoldProducts),
                       ),
                     ],
@@ -6926,7 +6926,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-            Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text("Total Product Revenue", style: TextStyle(color: kTextSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.8)),
@@ -6984,7 +6984,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
     );
   }
 
-    Widget _buildContributionGraph(List<MapEntry<String, Map<String, dynamic>>> data, String key, Color barColor) {
+  Widget _buildContributionGraph(List<MapEntry<String, Map<String, dynamic>>> data, String key, Color barColor) {
     // Top 6 products for chart clarity
     final chartData = data.take(6).toList();
     final double maxVal = _getMaxValue(chartData, key);
@@ -7047,8 +7047,8 @@ class _TopProductsPageState extends State<TopProductsPage> {
                   final colorIndex = e.key % kChartColorsList.length;
                   // Each bar represents top product revenue
                   return BarChartGroupData(
-                     x: e.key,
-                     barRods: [
+                    x: e.key,
+                    barRods: [
                       BarChartRodData(
                         toY: (e.value.value[key] as double),
                         color: kChartColorsList[colorIndex],
@@ -7060,13 +7060,13 @@ class _TopProductsPageState extends State<TopProductsPage> {
                           color: kBorderColor.withValues(alpha: 0.1),
                         ),
                       )
-                     ],
-                   );
-                 }).toList(),
-               ),
-             ),
-           ),
-           const SizedBox(height: 8),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           // Caption
           Text(
             "Top products by revenue contribution",
@@ -7075,7 +7075,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
         ],
       ),
     );
-    }
+  }
 
   double _getMaxValue(List<MapEntry<String, Map<String, dynamic>>> data, String key) {
     if (data.isEmpty) return 100;
@@ -7086,16 +7086,16 @@ class _TopProductsPageState extends State<TopProductsPage> {
     return max == 0 ? 100 : max;
   }
 
-    Widget _buildHighDensityProductTable(List<MapEntry<String, Map<String, dynamic>>> rows) {
-     return Container(
-       width: double.infinity,
-       decoration: BoxDecoration(
-         color: kSurfaceColor,
-         border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
-       ),
-       child: Column(
-         children: [
-           Container(
+  Widget _buildHighDensityProductTable(List<MapEntry<String, Map<String, dynamic>>> rows) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        border: Border.symmetric(horizontal: BorderSide(color: kBorderColor.withOpacity(0.5))),
+      ),
+      child: Column(
+        children: [
+          Container(
             color: kBackgroundColor.withValues(alpha: 0.5),
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
@@ -7109,12 +7109,12 @@ class _TopProductsPageState extends State<TopProductsPage> {
             ),
           ),
           ...rows.asMap().entries.map((entry) => _buildProductTableRowWithIndex(entry.key, entry.value)).toList(),
-         ],
-       ),
-     );
-     }
+        ],
+      ),
+    );
+  }
 
-    Widget _buildProductTableRowWithIndex(int index, MapEntry<String, Map<String, dynamic>> entry) {
+  Widget _buildProductTableRowWithIndex(int index, MapEntry<String, Map<String, dynamic>> entry) {
     final name = entry.key;
     final qty = (entry.value['quantity'] as double);
     final amount = (entry.value['amount'] as double);
@@ -7152,7 +7152,7 @@ class _TopProductsPageState extends State<TopProductsPage> {
         ],
       ),
     );
-    }
+  }
 
   Widget _buildProductTableRow(MapEntry<String, Map<String, dynamic>> entry) {
     return Container(
@@ -7710,7 +7710,7 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month, 1);
   DateTime _endDate = DateTime.now();
 
-  bool _showByCategory = false;
+  bool _showCombinedCategory = false;
 
   @override
   void initState() {
@@ -7742,28 +7742,37 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
     return !date.isBefore(s) && !date.isAfter(e);
   }
 
-  void _downloadPdf(BuildContext context, List<Map<String, dynamic>> all, double totalOp, double totalStock) {
+  void _downloadPdf(BuildContext context, List<Map<String, dynamic>> all, double totalAmount, double cashTotal, double onlineTotal, double creditTotal) {
     final rows = all.map((e) => [
       e['title']?.toString() ?? 'N/A',
       e['category']?.toString() ?? e['type']?.toString() ?? 'N/A',
       "$_currencySymbol${(e['amount'] as double).toStringAsFixed(2)}",
-      e['paymentMode']?.toString() ?? 'Cash'
+      e['paymentMode']?.toString() ?? 'Cash',
+      e['date'] is DateTime ? DateFormat('dd/MM/yy').format(e['date'] as DateTime) : '--',
     ]).toList();
 
     ReportPdfGenerator.generateAndDownloadPdf(
       context: context,
-      reportTitle: 'EXECUTIVE EXPENSE AUDIT - ${DateFormat('dd MMM yyyy').format(DateTime.now())}',
-      headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT', 'PAYMENT MODE'],
+      reportTitle: 'Expense Report - ${DateFormat('MMMM yyyy').format(_startDate)}',
+      headers: ['DESCRIPTION', 'CATEGORY', 'AMOUNT', 'MODE', 'DATE'],
       rows: rows,
       summaryTitle: 'TOTAL EXPENDITURE',
-      summaryValue: "$_currencySymbol${(totalOp + totalStock).toStringAsFixed(2)}",
+      summaryValue: "$_currencySymbol${totalAmount.toStringAsFixed(2)}",
       additionalSummary: {
         'Period': '${DateFormat('dd/MM/yy').format(_startDate)} - ${DateFormat('dd/MM/yy').format(_endDate)}',
-        'Operational': '$_currencySymbol${totalOp.toStringAsFixed(2)}',
-        'Stock Purchase': '$_currencySymbol${totalStock.toStringAsFixed(2)}',
-        'Audit Count': '${all.length} Records'
+        'Cash Payments': '$_currencySymbol${cashTotal.toStringAsFixed(2)}',
+        'Online Payments': '$_currencySymbol${onlineTotal.toStringAsFixed(2)}',
+        'Credit Outstanding': '$_currencySymbol${creditTotal.toStringAsFixed(2)}',
+        'Total Records': '${all.length}',
       },
     );
+  }
+
+  String _getInitials(String name) {
+    final words = name.trim().split(RegExp(r'\s+'));
+    if (words.length >= 2) return '${words[0][0]}${words[1][0]}'.toUpperCase();
+    if (name.length >= 2) return name.substring(0, 2).toUpperCase();
+    return name.isNotEmpty ? name[0].toUpperCase() : '?';
   }
 
   @override
@@ -7773,15 +7782,14 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('expenses'),
-          _firestoreService.getCollectionStream('stockPurchases')
+          _firestoreService.getCollectionStream('stockPurchases'),
+          _firestoreService.getCollectionStream('purchaseCreditNotes'),
         ]),
         builder: (context, streams) {
           if (!streams.hasData) {
             return Scaffold(
               appBar: _buildModernAppBar("Expense Report", widget.onBack),
-              body: const Center(
-                  child: CircularProgressIndicator(
-                      color: kPrimaryColor, strokeWidth: 2)),
+              body: const Center(child: CircularProgressIndicator(color: kPrimaryColor, strokeWidth: 2)),
             );
           }
           return StreamBuilder<QuerySnapshot>(
@@ -7790,167 +7798,247 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
               return StreamBuilder<QuerySnapshot>(
                 stream: streams.data![1],
                 builder: (ctx, stockSnap) {
-                  if (!expSnap.hasData || !stockSnap.hasData) {
-                    return Scaffold(
-                      appBar: _buildModernAppBar("Expense Report", widget.onBack),
-                      body: const Center(
-                          child: CircularProgressIndicator(color: kPrimaryColor)),
-                    );
-                  }
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: streams.data![2],
+                    builder: (ctx, creditNotesSnap) {
+                      if (!expSnap.hasData || !stockSnap.hasData || !creditNotesSnap.hasData) {
+                        return Scaffold(
+                          appBar: _buildModernAppBar("Expense Report", widget.onBack),
+                          body: const Center(child: CircularProgressIndicator(color: kPrimaryColor)),
+                        );
+                      }
 
-                  // ── Data processing (unchanged) ──
-                  List<Map<String, dynamic>> all = [];
-                  double totalOp = 0, totalStock = 0;
-                  int periodDays = _endDate.difference(_startDate).inDays + 1;
-                  DateTime prevStart = _startDate.subtract(Duration(days: periodDays));
-                  DateTime prevEnd = _startDate.subtract(const Duration(days: 1));
-                  double prevTotal = 0;
-                  Map<String, double> categoryTotals = {};
-                  Map<int, double> timeTotals = {};
+                      // ── Calculate actual remaining credit from purchaseCreditNotes ──
+                      // This reflects settled payments (paidAmount updates when user settles)
+                      double totalRemainingCredit = 0;
+                      double expRemainingCredit = 0;
+                      double purchRemainingCredit = 0;
+                      for (var doc in creditNotesSnap.data!.docs) {
+                        final cnData = doc.data() as Map<String, dynamic>;
+                        final cnAmt = ((cnData['amount'] ?? 0.0) as num).toDouble();
+                        final cnPaid = ((cnData['paidAmount'] ?? 0.0) as num).toDouble();
+                        final remaining = (cnAmt - cnPaid).clamp(0.0, double.infinity);
 
-                  for (var d in expSnap.data!.docs) {
-                    var data = d.data() as Map<String, dynamic>;
-                    double amt = double.tryParse(data['amount'].toString()) ?? 0;
-                    DateTime? dt;
-                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                    if (_isInRange(dt, _startDate, _endDate)) {
-                      totalOp += amt;
-                      String category = data['category']?.toString() ?? 'Operational';
-                      categoryTotals[category] = (categoryTotals[category] ?? 0) + amt;
-                      if (periodDays <= 1 && dt != null) timeTotals[dt.hour] = (timeTotals[dt.hour] ?? 0) + amt;
-                      else if (dt != null) timeTotals[dt.day] = (timeTotals[dt.day] ?? 0) + amt;
-                      all.add({
-                        'title': data['title'] ?? 'Operational Expense',
-                        'amount': amt, 'type': 'Operational',
-                        'category': category, 'date': dt ?? DateTime.now(),
-                        'paymentMode': data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash'),
-                      });
-                    } else if (_isInRange(dt, prevStart, prevEnd)) prevTotal += amt;
-                  }
+                        // Check timestamp to see if it falls in the selected date range
+                        DateTime? cnDt;
+                        if (cnData['timestamp'] != null) cnDt = (cnData['timestamp'] as Timestamp).toDate();
 
-                  for (var d in stockSnap.data!.docs) {
-                    var data = d.data() as Map<String, dynamic>;
-                    double amt = double.tryParse(data['totalAmount']?.toString() ?? data['total']?.toString() ?? '0') ?? 0;
-                    DateTime? dt;
-                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                    if (_isInRange(dt, _startDate, _endDate)) {
-                      totalStock += amt;
-                      categoryTotals['Inventory Purchase'] = (categoryTotals['Inventory Purchase'] ?? 0) + amt;
-                      if (periodDays <= 1 && dt != null) timeTotals[dt.hour] = (timeTotals[dt.hour] ?? 0) + amt;
-                      else if (dt != null) timeTotals[dt.day] = (timeTotals[dt.day] ?? 0) + amt;
-                      all.add({
-                        'title': 'Inventory Purchase', 'amount': amt,
-                        'type': 'Stock', 'category': 'Inventory Purchase',
-                        'date': dt ?? DateTime.now(),
-                        'paymentMode': data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash'),
-                      });
-                    } else if (_isInRange(dt, prevStart, prevEnd)) prevTotal += amt;
-                  }
+                        if (_isInRange(cnDt, _startDate, _endDate) && remaining > 0) {
+                          totalRemainingCredit += remaining;
+                          // Distinguish expense credit vs purchase credit
+                          final cnType = (cnData['type'] ?? '').toString().toLowerCase();
+                          final cnSupplier = (cnData['supplierName'] ?? '').toString().toLowerCase();
+                          if (cnType.contains('expense') || cnSupplier.startsWith('expense:')) {
+                            expRemainingCredit += remaining;
+                          } else {
+                            purchRemainingCredit += remaining;
+                          }
+                        }
+                      }
 
-                  all.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
-                  double currentTotal = totalOp + totalStock;
-                  double diff = currentTotal - prevTotal;
-                  double diffPercent = prevTotal > 0 ? (diff.abs() / prevTotal) * 100 : 0;
-                  bool isHigher = currentTotal > prevTotal;
+                      // ── Data processing ──
+                      List<Map<String, dynamic>> all = [];
+                      double totalAmount = 0;
+                      Map<String, double> categoryTotals = {};
+                      Map<int, double> dayTotals = {};
+                      Map<int, double> expDayTotals = {};
+                      Map<int, double> purchDayTotals = {};
+                      double cashTotal = 0, onlineTotal = 0;
+                      int expenseCount = 0;
+                      int opExpCount = 0, purchaseCount = 0;
+                      double opExpTotal = 0, purchaseTotal = 0;
+                      Map<String, Map<String, dynamic>> nameGrouped = {};
 
-                  return Scaffold(
-                    backgroundColor: kBackgroundColor,
-                    appBar: _buildModernAppBar(
-                      "Expense Report",
-                      widget.onBack,
-                      onDownload: () => _downloadPdf(context, all, totalOp, totalStock),
-                    ),
-                    body: CustomScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      slivers: [
-                        // Date filter
-                        SliverToBoxAdapter(
-                          child: DateFilterWidget(
-                            selectedOption: _selectedFilter,
-                            startDate: _startDate,
-                            endDate: _endDate,
-                            onDateChanged: _onDateChanged,
-                          ),
+                      for (var d in expSnap.data!.docs) {
+                        var data = d.data() as Map<String, dynamic>;
+                        double amt = double.tryParse(data['amount'].toString()) ?? 0;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        String mode = (data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash')).toString();
+
+                        if (_isInRange(dt, _startDate, _endDate)) {
+                          totalAmount += amt;
+                          expenseCount++;
+                          opExpCount++;
+                          opExpTotal += amt;
+                          // Firestore fields: expenseName, expenseType (not title/category)
+                          String category = data['expenseType']?.toString() ?? data['category']?.toString() ?? 'General';
+                          String title = data['expenseName']?.toString() ?? data['title']?.toString() ?? 'Expense';
+                          categoryTotals[category] = (categoryTotals[category] ?? 0) + amt;
+                          if (dt != null) {
+                            dayTotals[dt.day] = (dayTotals[dt.day] ?? 0) + amt;
+                            expDayTotals[dt.day] = (expDayTotals[dt.day] ?? 0) + amt;
+                          }
+                          // Payment mode breakdown using actual paid/credit amounts
+                          final modeLower = mode.toLowerCase();
+                          if (modeLower == 'credit') {
+                            double paid = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
+                            cashTotal += paid;
+                          } else if (modeLower.contains('online') || modeLower.contains('upi') || modeLower.contains('card')) {
+                            onlineTotal += amt;
+                          } else if (modeLower == 'split') {
+                            double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                            double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                            cashTotal += splitCash;
+                            onlineTotal += splitOnline;
+                          } else {
+                            cashTotal += amt;
+                          }
+                          final key = _showCombinedCategory ? category : title;
+                          if (!nameGrouped.containsKey(key)) nameGrouped[key] = {'category': category, 'count': 0, 'amount': 0.0};
+                          nameGrouped[key]!['count'] = (nameGrouped[key]!['count'] as int) + 1;
+                          nameGrouped[key]!['amount'] = (nameGrouped[key]!['amount'] as double) + amt;
+                          all.add({'title': title, 'amount': amt, 'type': 'Expense', 'category': category, 'date': dt ?? DateTime.now(), 'paymentMode': mode});
+                        }
+                      }
+
+                      for (var d in stockSnap.data!.docs) {
+                        var data = d.data() as Map<String, dynamic>;
+                        double amt = double.tryParse(data['totalAmount']?.toString() ?? data['total']?.toString() ?? '0') ?? 0;
+                        DateTime? dt;
+                        if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                        else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                        String mode = (data['paymentMode'] ?? (data['isOnline'] == true ? 'Online' : 'Cash')).toString();
+
+                        if (_isInRange(dt, _startDate, _endDate)) {
+                          totalAmount += amt;
+                          expenseCount++;
+                          purchaseCount++;
+                          purchaseTotal += amt;
+                          String category = 'Purchase';
+                          String title = data['supplierName']?.toString() ?? 'Purchase';
+                          categoryTotals[category] = (categoryTotals[category] ?? 0) + amt;
+                          if (dt != null) {
+                            dayTotals[dt.day] = (dayTotals[dt.day] ?? 0) + amt;
+                            purchDayTotals[dt.day] = (purchDayTotals[dt.day] ?? 0) + amt;
+                          }
+                          // Payment mode breakdown using actual paid/credit amounts
+                          final modeLower = mode.toLowerCase();
+                          if (modeLower == 'credit') {
+                            double paid = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
+                            cashTotal += paid;
+                          } else if (modeLower.contains('online') || modeLower.contains('upi') || modeLower.contains('card')) {
+                            onlineTotal += amt;
+                          } else if (modeLower == 'split') {
+                            double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
+                            double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
+                            cashTotal += splitCash;
+                            onlineTotal += splitOnline;
+                          } else {
+                            cashTotal += amt;
+                          }
+                          final key = _showCombinedCategory ? category : title;
+                          if (!nameGrouped.containsKey(key)) nameGrouped[key] = {'category': category, 'count': 0, 'amount': 0.0};
+                          nameGrouped[key]!['count'] = (nameGrouped[key]!['count'] as int) + 1;
+                          nameGrouped[key]!['amount'] = (nameGrouped[key]!['amount'] as double) + amt;
+                          all.add({'title': title, 'amount': amt, 'type': 'Stock', 'category': category, 'date': dt ?? DateTime.now(), 'paymentMode': mode});
+                        }
+                      }
+
+                      all.sort((a, b) => (b['date'] as DateTime).compareTo(a['date'] as DateTime));
+                      var sortedNameEntries = nameGrouped.entries.toList()..sort((a, b) => (b.value['amount'] as double).compareTo(a.value['amount'] as double));
+                      var sortedCategories = categoryTotals.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+
+                      return Scaffold(
+                        backgroundColor: kGreyBg,
+                        appBar: _buildModernAppBar(
+                          "Expense Report",
+                          widget.onBack,
+                          onDownload: () => _downloadPdf(context, all, totalAmount, cashTotal, onlineTotal, totalRemainingCredit),
                         ),
-
-                        // Executive ribbon
-                        SliverToBoxAdapter(
-                          child: _buildExecutiveRibbon(
-                              totalOp, totalStock, all.length,
-                              diff, diffPercent, isHigher),
-                        ),
-
-                        // Chart + header
-                        SliverPadding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          sliver: SliverList(
-                            delegate: SliverChildListDelegate([
-                              const SizedBox(height: 12),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildSectionHeader("Spending Analysis"),
-                                  _buildToggleViewSwitch(),
-                                ],
+                        body: CustomScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          slivers: [
+                            SliverToBoxAdapter(
+                              child: DateFilterWidget(
+                                selectedOption: _selectedFilter,
+                                startDate: _startDate,
+                                endDate: _endDate,
+                                onDateChanged: _onDateChanged,
                               ),
-                              const SizedBox(height: 8),
-                              _buildChartContainer(timeTotals, categoryTotals, periodDays <= 1),
-                              const SizedBox(height: 14),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _buildSectionHeader("Audit Trail"),
-                                  Text(
-                                    "${all.length} RECORDS",
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: kTextSecondary),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                            ]),
-                          ),
-                        ),
+                            ),
 
-                        // Empty state
-                        if (all.isEmpty)
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 36),
-                              child: Column(
-                                children: [
-                                  Icon(Icons.inbox_rounded,
-                                      size: 42,
-                                      color: kTextSecondary.withOpacity(0.2)),
+                            // ── Expense Summary Strip ──
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                child: _buildExpSummaryStrip(expenseCount, totalAmount, opExpCount, opExpTotal, purchaseCount, purchaseTotal),
+                              ),
+                            ),
+
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate([
+                                  const SizedBox(height: 4),
+                                  _buildExpSectionLabel("EXPENSE & PURCHASE TIMELINE"),
                                   const SizedBox(height: 8),
-                                  const Text(
-                                    "No expenses for this period",
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: kTextSecondary),
+                                  _buildExpTimelineCard(dayTotals, expDayTotals, purchDayTotals),
+                                  const SizedBox(height: 20),
+
+                                  _buildExpSectionLabel("EXPENSE CATEGORY"),
+                                  const SizedBox(height: 8),
+                                  _buildExpCategoryCard(sortedCategories, expenseCount, totalAmount),
+                                  const SizedBox(height: 20),
+
+                                  _buildExpSectionLabel("EXPENSE BY CATEGORY"),
+                                  const SizedBox(height: 8),
+                                  _buildExpCombinedToggle(),
+                                  const SizedBox(height: 8),
+                                ]),
+                              ),
+                            ),
+
+                            // ── Expense Name Table ──
+                            if (sortedNameEntries.isEmpty)
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 36),
+                                  child: Column(
+                                    children: [
+                                      Icon(Icons.inbox_rounded, size: 42, color: kTextSecondary.withValues(alpha: 0.2)),
+                                      const SizedBox(height: 8),
+                                      const Text("No expenses for this period", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kTextSecondary)),
+                                    ],
                                   ),
-                                ],
+                                ),
+                              )
+                            else
+                              SliverPadding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                sliver: SliverList(
+                                  delegate: SliverChildBuilderDelegate(
+                                        (context, i) => _buildExpNameRow(sortedNameEntries[i], totalAmount, i),
+                                    childCount: sortedNameEntries.length,
+                                  ),
+                                ),
+                              ),
+
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              sliver: SliverList(
+                                delegate: SliverChildListDelegate([
+                                  const SizedBox(height: 20),
+                                  _buildExpSectionLabel("PAYMENT BREAKDOWN"),
+                                  const SizedBox(height: 8),
+                                  _buildExpPaymentCard(cashTotal, onlineTotal, totalRemainingCredit),
+
+                                  // ── Credit Outstanding Section ──
+                                  if (totalRemainingCredit > 0) ...[
+                                    const SizedBox(height: 20),
+                                    _buildExpSectionLabel("CREDIT OUTSTANDING"),
+                                    const SizedBox(height: 8),
+                                    _buildExpCreditCard(totalRemainingCredit, expRemainingCredit, purchRemainingCredit),
+                                  ],
+                                  const SizedBox(height: 30),
+                                ]),
                               ),
                             ),
-                          )
-                        else
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(12, 0, 12, 32),
-                            sliver: SliverList(
-                              delegate: SliverChildBuilderDelegate(
-                                (context, i) =>
-                                    _buildHighDensityExpenseRow(all[i]),
-                                childCount: all.length,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                          ],
+                        ),
+                      );
+                    },
                   );
                 },
               );
@@ -7961,413 +8049,579 @@ class _ExpenseReportPageState extends State<ExpenseReportPage> {
     );
   }
 
-  // ─── SECTION HEADER ──────────────────────────────────
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          color: kTextSecondary,
-          letterSpacing: 1.1),
-    );
+  // ─── Section Label (matches SalesSummary _buildSectionLabel) ───
+  Widget _buildExpSectionLabel(String text) {
+    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1.2));
   }
 
-  // ─── TOGGLE SWITCH ───────────────────────────────────
-  Widget _buildToggleViewSwitch() {
-    return Container(
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: kBorderColor),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _toggleChip("Time", !_showByCategory,
-              () => setState(() => _showByCategory = false), isLeft: true),
-          _toggleChip("Category", _showByCategory,
-              () => setState(() => _showByCategory = true), isRight: true),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleChip(String label, bool active, VoidCallback onTap,
-      {bool isLeft = false, bool isRight = false}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: active ? kPrimaryColor.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.horizontal(
-            left: isLeft ? const Radius.circular(6) : Radius.zero,
-            right: isRight ? const Radius.circular(6) : Radius.zero,
+  // ─── Summary Strip (matches SalesSummary _buildBillSummaryStrip) ───
+  Widget _buildExpSummaryStrip(int count, double total, int opCount, double opTotal, int purchCount, double purchTotal) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: kSurfaceColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
           ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              color: active ? kPrimaryColor : kTextSecondary),
-        ),
-      ),
-    );
-  }
-
-  // ─── EXECUTIVE RIBBON ────────────────────────────────
-  Widget _buildExecutiveRibbon(double op, double stock, int count,
-      double diff, double diffPercent, bool isHigher) {
-    final total = op + stock;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        border:
-            Border(bottom: BorderSide(color: kBorderColor.withOpacity(0.4))),
-      ),
-      child: Row(
-        children: [
-          // Left — total + trend
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("TOTAL EXPENDITURE",
-                    style: TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        color: kTextSecondary,
-                        letterSpacing: 0.8)),
-                const SizedBox(height: 2),
-                Text(
-                  "$_currencySymbol${total.toStringAsFixed(2)}",
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                      color: kExpenseRed,
-                      letterSpacing: -0.5),
-                ),
-                const SizedBox(height: 3),
-                Row(
+          child: Row(
+            children: [
+              Expanded(
+                child: Row(
                   children: [
-                    Icon(
-                      isHigher
-                          ? Icons.trending_up_rounded
-                          : Icons.trending_down_rounded,
-                      size: 12,
-                      color: isHigher ? kExpenseRed : kIncomeGreen,
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: kExpenseRed.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+                      child: const Icon(Icons.receipt_long_rounded, color: kExpenseRed, size: 16),
                     ),
-                    const SizedBox(width: 3),
-                    Text(
-                      "${diffPercent.toStringAsFixed(1)}% vs prev",
-                      style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isHigher ? kExpenseRed : kIncomeGreen),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("TOTAL EXPENDITURE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                        Text("$_currencySymbol${total.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kExpenseRed)),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-
-          // Right — OP / STOCK chips
-          Row(
-            children: [
-              _buildRibbonChip("OP", op, kExpenseRed),
-              const SizedBox(width: 8),
-              _buildRibbonChip("STOCK", stock, kWarningOrange),
+              ),
+              Container(width: 1, height: 30, color: kBorderColor),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("RECORDS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                        Text("$count", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kTextPrimary)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRibbonChip(String label, double val, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.07),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            "$_currencySymbol${val.toStringAsFixed(0)}",
-            style: TextStyle(
-                fontSize: 12, fontWeight: FontWeight.w900, color: color),
-          ),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  color: kTextSecondary)),
-        ],
-      ),
-    );
-  }
-
-  // ─── CHART CONTAINER ─────────────────────────────────
-  Widget _buildChartContainer(Map<int, double> timeTotals,
-      Map<String, double> categoryTotals, bool isHourly) {
-    final bool isEmpty = (!_showByCategory && timeTotals.isEmpty) ||
-        (_showByCategory && categoryTotals.isEmpty);
-
-    return Container(
-      height: 150,
-      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: kBorderColor.withOpacity(0.5)),
-      ),
-      child: isEmpty
-          ? Center(
-              child: Text(
-                "No chart data for this period",
-                style: TextStyle(
-                    fontSize: 11,
-                    color: kTextSecondary.withOpacity(0.6),
-                    fontWeight: FontWeight.w600),
-              ),
-            )
-          : !_showByCategory
-              ? _buildTimeBarChart(timeTotals, isHourly)
-              : _buildCategoryPieChart(categoryTotals),
-    );
-  }
-
-  // ─── PIE CHART ───────────────────────────────────────
-  Widget _buildCategoryPieChart(Map<String, double> categoryTotals) {
-    final sections = <PieChartSectionData>[];
-    final legend = <Widget>[];
-    int i = 0;
-
-    categoryTotals.forEach((cat, amt) {
-      if (amt <= 0) return;
-      final color = kChartColorsList[i % kChartColorsList.length];
-      sections.add(PieChartSectionData(
-          color: color, value: amt, title: '', radius: 18));
-      legend.add(Padding(
-        padding: const EdgeInsets.only(bottom: 4),
-        child: Row(
+        ),
+        const SizedBox(height: 8),
+        // Expense vs Purchase breakdown
+        Row(
           children: [
-            Container(
-                width: 7,
-                height: 7,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle)),
-            const SizedBox(width: 5),
             Expanded(
-                child: Text(cat,
-                    style: const TextStyle(
-                        fontSize: 9,
-                        color: kTextSecondary,
-                        fontWeight: FontWeight.w600),
-                    overflow: TextOverflow.ellipsis)),
-            Text("$_currencySymbol${amt.toStringAsFixed(0)}",
-                style: const TextStyle(
-                    fontSize: 9, fontWeight: FontWeight.w800)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: kSurfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kExpenseRed.withValues(alpha: 0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: kExpenseRed.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.shopping_cart_outlined, size: 14, color: kExpenseRed),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Expense ($opCount)", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kTextSecondary)),
+                          Text("$_currencySymbol${opTotal.toStringAsFixed(0)}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kExpenseRed)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: kSurfaceColor,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kWarningOrange.withValues(alpha: 0.15)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(color: kWarningOrange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                      child: const Icon(Icons.inventory_2_outlined, size: 14, color: kWarningOrange),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Purchase ($purchCount)", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kTextSecondary)),
+                          Text("$_currencySymbol${purchTotal.toStringAsFixed(0)}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWarningOrange)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
-        ),
-      ));
-      i++;
-    });
-
-    return Row(
-      children: [
-        Expanded(
-          flex: 4,
-          child: PieChart(PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 28,
-              sections: sections)),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          flex: 6,
-          child: SingleChildScrollView(
-              child: Column(children: legend)),
         ),
       ],
     );
   }
 
-  // ─── BAR CHART ───────────────────────────────────────
-  Widget _buildTimeBarChart(Map<int, double> timeTotals, bool isHourly) {
-    if (timeTotals.isEmpty) return const SizedBox();
-    return BarChart(BarChartData(
-      alignment: BarChartAlignment.spaceAround,
-      barTouchData: BarTouchData(enabled: true),
-      gridData: FlGridData(
-          show: true,
-          drawVerticalLine: false,
-          getDrawingHorizontalLine: (v) =>
-              FlLine(color: kBorderColor.withOpacity(0.15), strokeWidth: 1)),
-      borderData: FlBorderData(show: false),
-      titlesData: FlTitlesData(
-        topTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles:
-            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        bottomTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (v, m) {
-              int val = v.toInt();
-              String lbl = '';
-              if (isHourly) {
-                if (val % 6 != 0) return const SizedBox();
-                lbl =
-                    '${val > 12 ? val - 12 : (val == 0 ? 12 : val)}${val >= 12 ? 'p' : 'a'}';
-              } else {
-                lbl = val.toString();
-              }
-              return Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(lbl,
-                    style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w700,
-                        color: kTextSecondary)),
-              );
-            },
-          ),
-        ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            reservedSize: 28,
-            getTitlesWidget: (v, m) {
-              if (v == 0) return const SizedBox();
-              return Text(
-                  v >= 1000
-                      ? '${(v / 1000).toStringAsFixed(0)}k'
-                      : v.toStringAsFixed(0),
-                  style: const TextStyle(
-                      fontSize: 8,
-                      color: kTextSecondary,
-                      fontWeight: FontWeight.w600));
-            },
-          ),
-        ),
-      ),
-      barGroups: timeTotals.entries
-          .map((e) => _makeBarGroup(e.key, e.value, kChartRed))
-          .toList(),
-    ));
-  }
-
-  BarChartGroupData _makeBarGroup(int x, double y, Color color) {
-    return BarChartGroupData(x: x, barRods: [
-      BarChartRodData(
-          toY: y > 0 ? y : 1,
-          color: color,
-          width: 7,
-          borderRadius: BorderRadius.circular(2)),
-    ]);
-  }
-
-  // ─── EXPENSE ROW ─────────────────────────────────────
-  Widget _buildHighDensityExpenseRow(Map<String, dynamic> data) {
-    final bool isStock = data['type'] == 'Stock';
-    final Color color = isStock ? kWarningOrange : kExpenseRed;
-    final String dateStr = data['date'] is DateTime
-        ? DateFormat('dd MMM').format(data['date'] as DateTime)
-        : '--';
-    final String paymentMode =
-        data['paymentMode'].toString().toUpperCase();
+  // ─── Timeline Chart (matches SalesSummary _buildRevenueTimelineCard) ───
+  Widget _buildExpTimelineCard(Map<int, double> dayTotals, Map<int, double> expDays, Map<int, double> purchDays) {
+    final allDays = dayTotals.keys.toList()..sort();
+    int peakDay = 0;
+    double peakVal = 0;
+    dayTotals.forEach((d, v) { if (v > peakVal) { peakVal = v; peakDay = d; } });
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kBorderColor.withOpacity(0.35)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-                color: color.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8)),
-            child: Icon(
-                isStock
-                    ? Icons.inventory_2_outlined
-                    : Icons.outbox_rounded,
-                color: color,
-                size: 15),
-          ),
-          const SizedBox(width: 10),
-
-          // Title + meta
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  data['title'].toString(),
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                      color: Colors.black87),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  "$dateStr · ${(data['category']?.toString() ?? data['type'].toString()).toUpperCase()}",
-                  style: const TextStyle(
-                      fontSize: 9,
-                      color: kTextSecondary,
-                      fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-          ),
-
-          // Amount + mode
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "$_currencySymbol${(data['amount'] as double).toStringAsFixed(0)}",
-                style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                    color: color,
-                    letterSpacing: -0.3),
+              Row(children: [
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: kChartRed, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 4),
+                const Text("Expense", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                const SizedBox(width: 10),
+                Container(width: 10, height: 10, decoration: BoxDecoration(color: kWarningOrange, borderRadius: BorderRadius.circular(2))),
+                const SizedBox(width: 4),
+                const Text("Purchase", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+              ]),
+              Text("Peak: Day $peakDay", style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 150,
+            child: allDays.isEmpty
+                ? const Center(child: Text('No data', style: TextStyle(color: kTextSecondary, fontSize: 12)))
+                : BarChart(BarChartData(
+              alignment: BarChartAlignment.spaceAround,
+              gridData: FlGridData(
+                show: true, drawVerticalLine: false,
+                getDrawingHorizontalLine: (v) => FlLine(color: kBorderColor.withValues(alpha: 0.4), strokeWidth: 1),
               ),
-              const SizedBox(height: 2),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: kBorderColor.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(4),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true, reservedSize: 22,
+                  getTitlesWidget: (v, m) {
+                    int d = v.toInt();
+                    if (allDays.length > 10 && d % 3 != 1) return const SizedBox();
+                    return Padding(padding: const EdgeInsets.only(top: 4), child: Text('$d', style: const TextStyle(fontSize: 9, color: kTextSecondary, fontWeight: FontWeight.w700)));
+                  },
+                )),
+                leftTitles: AxisTitles(sideTitles: SideTitles(
+                  showTitles: true, reservedSize: 36,
+                  getTitlesWidget: (v, m) {
+                    if (v == 0) return const SizedBox();
+                    String label = v >= 1000 ? '${(v / 1000).toStringAsFixed(0)}K' : v.toStringAsFixed(0);
+                    return Text(label, style: const TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.w600));
+                  },
+                )),
+              ),
+              barGroups: allDays.map((day) {
+                final expVal = expDays[day] ?? 0;
+                final purchVal = purchDays[day] ?? 0;
+                final barWidth = allDays.length > 20 ? 3.0 : allDays.length > 10 ? 4.0 : 5.0;
+                return BarChartGroupData(x: day, barRods: [
+                  if (expVal > 0) BarChartRodData(toY: expVal, color: kChartRed, width: barWidth, borderRadius: const BorderRadius.vertical(top: Radius.circular(2))),
+                  if (purchVal > 0) BarChartRodData(toY: purchVal, color: kWarningOrange, width: barWidth, borderRadius: const BorderRadius.vertical(top: Radius.circular(2))),
+                  if (expVal == 0 && purchVal == 0) BarChartRodData(toY: 0, color: kBorderColor, width: barWidth),
+                ], barsSpace: 2);
+              }).toList(),
+            )),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Category Donut Card (matches SalesSummary _buildPaymentStructureCard pattern) ───
+  Widget _buildExpCategoryCard(List<MapEntry<String, double>> sorted, int count, double total) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 130,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 32,
+                        sections: sorted.isEmpty
+                            ? [PieChartSectionData(color: kBorderColor.withValues(alpha: 0.3), value: 1, title: '', radius: 14)]
+                            : sorted.asMap().entries.map((e) {
+                          final c = kChartColorsList[e.key % kChartColorsList.length];
+                          return PieChartSectionData(color: c, value: e.value.value, title: '', radius: 14);
+                        }).toList(),
+                      )),
+                      Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text("$count", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kTextPrimary)),
+                        const Text("Recorded", style: TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ]),
+                    ],
+                  ),
                 ),
-                child: Text(
-                  paymentMode,
-                  style: const TextStyle(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                      color: kTextSecondary),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 6,
+                child: Column(
+                  children: sorted.map((entry) {
+                    final idx = sorted.indexOf(entry);
+                    final color = kChartColorsList[idx % kChartColorsList.length];
+                    final pct = total > 0 ? (entry.value / total * 100) : 0.0;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(children: [
+                        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(entry.key, style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                        Text("${entry.value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextPrimary)),
+                        const SizedBox(width: 6),
+                        Text("${pct.toStringAsFixed(0)}%", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
+                      ]),
+                    );
+                  }).toList(),
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: kExpenseRed.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(children: [
+                  const Icon(Icons.account_balance_wallet_rounded, size: 14, color: kExpenseRed),
+                  const SizedBox(width: 6),
+                  const Text("Total Expenditure", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kExpenseRed)),
+                ]),
+                Text("$_currencySymbol${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kExpenseRed)),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  // ─── Combined Category Toggle ───
+  Widget _buildExpCombinedToggle() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _showCombinedCategory = !_showCombinedCategory),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: _showCombinedCategory ? kPrimaryColor.withValues(alpha: 0.08) : kSurfaceColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: _showCombinedCategory ? kPrimaryColor.withValues(alpha: 0.3) : kBorderColor.withValues(alpha: 0.5)),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(_showCombinedCategory ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded, size: 16, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary),
+              const SizedBox(width: 6),
+              Text("Show Combined Category", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _showCombinedCategory ? kPrimaryColor : kTextSecondary)),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─── Name Row (matches app's _buildBreakdownRow pattern) ───
+  Widget _buildExpNameRow(MapEntry<String, Map<String, dynamic>> entry, double total, int idx) {
+    final name = entry.key;
+    final double amt = entry.value['amount'] as double;
+    final int count = entry.value['count'] as int;
+    final String category = entry.value['category'] as String;
+    final double pct = total > 0 ? (amt / total * 100) : 0.0;
+    final Color avatarColor = kChartColorsList[idx % kChartColorsList.length];
+    final String initials = _getInitials(name);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34, height: 34,
+            decoration: BoxDecoration(color: avatarColor.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
+            alignment: Alignment.center,
+            child: Text(initials, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: avatarColor)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary), maxLines: 1, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 2),
+                Text(category.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary, letterSpacing: 0.3)),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text("$_currencySymbol${amt.toStringAsFixed(1)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kExpenseRed)),
+              const SizedBox(height: 2),
+              Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: kExpenseRed.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                  child: Text("${pct.toStringAsFixed(1)}%", style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kExpenseRed)),
+                ),
+                const SizedBox(width: 4),
+                Text("×$count", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: kTextSecondary)),
+              ]),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Payment Card (matches SalesSummary _buildPaymentStructureCard) ───
+  Widget _buildExpPaymentCard(double cash, double online, double credit) {
+    final total = cash + online + credit;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBorderColor.withValues(alpha: 0.5)),
+        //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Expanded(child: Row(children: [
+              Icon(Icons.pie_chart_outline_rounded, color: kTextSecondary, size: 14),
+              SizedBox(width: 6),
+              Text("Payment Breakdown", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600)),
+            ])),
+            Text("$_currencySymbol${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kTextPrimary)),
+          ]),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                flex: 4,
+                child: SizedBox(
+                  height: 130,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PieChart(PieChartData(
+                        sectionsSpace: 3,
+                        centerSpaceRadius: 32,
+                        sections: [
+                          if (cash > 0) PieChartSectionData(color: kIncomeGreen, value: cash, title: '', radius: 14),
+                          if (online > 0) PieChartSectionData(color: kChartBlue, value: online, title: '', radius: 14),
+                          if (credit > 0) PieChartSectionData(color: kWarningOrange, value: credit, title: '', radius: 14),
+                          if (total == 0) PieChartSectionData(color: kBorderColor.withValues(alpha: 0.3), value: 1, title: '', radius: 14),
+                        ],
+                      )),
+                      Column(mainAxisSize: MainAxisSize.min, children: [
+                        Text("$_currencySymbol${total.toStringAsFixed(0)}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kTextPrimary)),
+                        const Text("Total", style: TextStyle(fontSize: 8, color: kTextSecondary, fontWeight: FontWeight.w600)),
+                      ]),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 6,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildExpLegendRow(kIncomeGreen, 'Cash', cash, total),
+                    _buildExpLegendRow(kChartBlue, 'Online', online, total),
+                    if (credit > 0) _buildExpLegendRow(kWarningOrange, 'Credit', credit, total),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(color: kIncomeGreen.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(10)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Row(children: [
+                  Icon(Icons.account_balance_wallet_rounded, size: 14, color: kIncomeGreen),
+                  SizedBox(width: 6),
+                  Text("Cash + Online paid", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kIncomeGreen)),
+                ]),
+                Text("$_currencySymbol${(cash + online).toStringAsFixed(0)}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kIncomeGreen)),
+              ],
+            ),
+          ),
+          if (credit > 0) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(color: kWarningOrange.withValues(alpha: 0.06), borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Row(children: [
+                    Icon(Icons.credit_card_rounded, size: 14, color: kWarningOrange),
+                    SizedBox(width: 6),
+                    Text("Credit (to pay)", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: kWarningOrange)),
+                  ]),
+                  Text("$_currencySymbol${credit.toStringAsFixed(0)}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: kWarningOrange)),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Credit Outstanding Card ───
+  Widget _buildExpCreditCard(double totalCredit, double expCredit, double purchCredit) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kWarningOrange.withValues(alpha: 0.3)),
+        //boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: kWarningOrange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.credit_card_rounded, color: kWarningOrange, size: 16),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("REMAINING TO PAY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary, letterSpacing: 1)),
+                  Text("Credit outstanding for this period", style: TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            Text("$_currencySymbol${totalCredit.toStringAsFixed(2)}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kWarningOrange)),
+          ]),
+          const SizedBox(height: 14),
+          // Expense credit row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: kExpenseRed.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kExpenseRed.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: kExpenseRed.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.shopping_cart_outlined, size: 14, color: kExpenseRed),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text("Expense Credit", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary)),
+                ),
+                Text("$_currencySymbol${expCredit.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kExpenseRed)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Purchase credit row
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: kWarningOrange.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: kWarningOrange.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(color: kWarningOrange.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.inventory_2_outlined, size: 14, color: kWarningOrange),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Text("Purchase Credit", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kTextPrimary)),
+                ),
+                Text("$_currencySymbol${purchCredit.toStringAsFixed(2)}", style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kWarningOrange)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpLegendRow(Color color, String label, double value, double total) {
+    final pct = total > 0 ? (value / total * 100) : 0.0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 8),
+        Expanded(child: Text(label, style: const TextStyle(fontSize: 10, color: kTextSecondary, fontWeight: FontWeight.w600))),
+        Text("${value.toStringAsFixed(0)}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: kTextPrimary)),
+        const SizedBox(width: 6),
+        Text("${pct.toStringAsFixed(0)}%", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: color)),
+      ]),
     );
   }
 }
@@ -8511,45 +8765,45 @@ class _TaxReportPageState extends State<TaxReportPage> {
         backgroundColor: kBackgroundColor,
         appBar: _buildModernAppBar("Tax Report Period", widget.onBack),
         // In build(), replace the !_showReport body:
-body: SafeArea(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSectionHeader("SELECT AUDIT DURATION"),
-        const SizedBox(height: 10),
-        _buildDateTile("START DATE", _fromDate, _selectFromDate),
-        const SizedBox(height: 8),
-        _buildDateTile("END DATE", _toDate, _selectToDate),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: (_fromDate != null && _toDate != null)
-                ? () => setState(() => _showReport = true)
-                : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kPrimaryColor,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text(
-              'GENERATE AUDIT REPORT',
-              style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  letterSpacing: 0.8),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionHeader("SELECT AUDIT DURATION"),
+                const SizedBox(height: 10),
+                _buildDateTile("START DATE", _fromDate, _selectFromDate),
+                const SizedBox(height: 8),
+                _buildDateTile("END DATE", _toDate, _selectToDate),
+                const Spacer(),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: (_fromDate != null && _toDate != null)
+                        ? () => setState(() => _showReport = true)
+                        : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kPrimaryColor,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      'GENERATE AUDIT REPORT',
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: 0.8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
-      ],
-    ),
-  ),
-),
 
       );
     }
@@ -8603,8 +8857,8 @@ body: SafeArea(
                       builder: (context, creditNoteSnapshot) {
                         if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
                           return Scaffold(
-                            appBar: _buildModernAppBar("Tax Report", () => setState(() => _showReport = false)),
-                            body: const Center(child: CircularProgressIndicator(color: kPrimaryColor))
+                              appBar: _buildModernAppBar("Tax Report", () => setState(() => _showReport = false)),
+                              body: const Center(child: CircularProgressIndicator(color: kPrimaryColor))
                           );
                         }
 
@@ -8688,14 +8942,14 @@ body: SafeArea(
                         double totalPurchaseGST = 0;
 
                         void processInward(
-                          QuerySnapshot snap,
-                          String cat,
-                          String amtKey,
-                          String gstKey,
-                          String gstNumKey, {
-                            String invoiceKey = 'invoiceNumber',
-                            String invoiceAutoKey = '',
-                          }) {
+                            QuerySnapshot snap,
+                            String cat,
+                            String amtKey,
+                            String gstKey,
+                            String gstNumKey, {
+                              String invoiceKey = 'invoiceNumber',
+                              String invoiceAutoKey = '',
+                            }) {
                           for (var doc in snap.docs) {
                             final data = doc.data() as Map<String, dynamic>;
                             DateTime? dt;
@@ -8751,40 +9005,40 @@ body: SafeArea(
                         double totalNetTax = totalTaxAmount + gstNetLiability;
 
                         return Scaffold(
-                           backgroundColor: kBackgroundColor,
-                           appBar: _buildModernAppBar(
-                             "Tax Report",
-                             () => setState(() => _showReport = false),
-                            onDownload: () => _downloadPdf(
-                               context: context,
-                               taxableDocs: taxableDocs,
-                               totalTaxAmount: totalTaxAmount,
-                               taxBreakdown: taxBreakdown,
-                               salesRows: salesRows,
-                               purchaseRows: purchaseRows,
-                               totalSalesGST: totalSalesGST,
-                               totalPurchaseGST: totalPurchaseGST,
-                               netLiability: gstNetLiability
-                             )
+                          backgroundColor: kBackgroundColor,
+                          appBar: _buildModernAppBar(
+                              "Tax Report",
+                                  () => setState(() => _showReport = false),
+                              onDownload: () => _downloadPdf(
+                                  context: context,
+                                  taxableDocs: taxableDocs,
+                                  totalTaxAmount: totalTaxAmount,
+                                  taxBreakdown: taxBreakdown,
+                                  salesRows: salesRows,
+                                  purchaseRows: purchaseRows,
+                                  totalSalesGST: totalSalesGST,
+                                  totalPurchaseGST: totalPurchaseGST,
+                                  netLiability: gstNetLiability
+                              )
                           ),
-                           bottomNavigationBar: SafeArea(
-                             child: Container(
-                               height: 130,
-                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                               color: kSurfaceColor,
-                               child: _buildTaxSummary(salesRows, purchaseRows),
-                             ),
-                           ),
-                           body: CustomScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              slivers: [
-                             SliverPadding(
-                              padding: const EdgeInsets.only(
-                                left: 12, right: 12, top: 12,
-                                bottom: 120, // Enough to clear the floating bottom bar if it overlap
-                              ),
-                             sliver: SliverList(
-                               delegate: SliverChildListDelegate([
+                          bottomNavigationBar: SafeArea(
+                            child: Container(
+                              height: 130,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              color: kSurfaceColor,
+                              child: _buildTaxSummary(salesRows, purchaseRows),
+                            ),
+                          ),
+                          body: CustomScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              SliverPadding(
+                                padding: const EdgeInsets.only(
+                                  left: 12, right: 12, top: 12,
+                                  bottom: 120, // Enough to clear the floating bottom bar if it overlap
+                                ),
+                                sliver: SliverList(
+                                  delegate: SliverChildListDelegate([
                                     // Date range card
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -8825,10 +9079,10 @@ body: SafeArea(
                                     _buildGstTable(purchaseRows),
                                     const SizedBox(height: 24),
                                   ]),
-                               ),
-                             ),
-                           ],
-                         ),
+                                ),
+                              ),
+                            ],
+                          ),
                         );
                       },
                     );
@@ -8845,446 +9099,446 @@ body: SafeArea(
   // --- EXECUTIVE UI COMPONENTS ---
 
 // ─── SECTION HEADER ──────────────────────────────────
-Widget _buildSectionHeader(String title) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 2),
-    child: Text(
-      title,
-      style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          color: kTextSecondary,
-          letterSpacing: 1.1),
-    ),
-  );
-}
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Text(
+        title,
+        style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: kTextSecondary,
+            letterSpacing: 1.1),
+      ),
+    );
+  }
 
 // ─── DATE TILE ───────────────────────────────────────
-Widget _buildDateTile(String label, DateTime? date, VoidCallback onTap) {
-  return InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(10),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: kSurfaceColor,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kBorderColor),
+  Widget _buildDateTile(String label, DateTime? date, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: kSurfaceColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: kBorderColor),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded,
+                size: 14, color: kPrimaryColor.withOpacity(0.7)),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: kTextSecondary,
+                        letterSpacing: 0.8)),
+                const SizedBox(height: 2),
+                Text(
+                  date != null
+                      ? DateFormat('dd MMM yyyy').format(date)
+                      : 'Tap to select',
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color:
+                      date != null ? Colors.black87 : kTextSecondary),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.keyboard_arrow_down_rounded,
+                color: kPrimaryColor.withOpacity(0.4), size: 18),
+          ],
+        ),
       ),
-      child: Row(
-        children: [
-          Icon(Icons.calendar_today_rounded,
-              size: 14, color: kPrimaryColor.withOpacity(0.7)),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      color: kTextSecondary,
-                      letterSpacing: 0.8)),
-              const SizedBox(height: 2),
-              Text(
-                date != null
-                    ? DateFormat('dd MMM yyyy').format(date)
-                    : 'Tap to select',
-                style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color:
-                        date != null ? Colors.black87 : kTextSecondary),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Icon(Icons.keyboard_arrow_down_rounded,
-              color: kPrimaryColor.withOpacity(0.4), size: 18),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
 // ─── UNIFIED TAX HEADER ──────────────────────────────
 
 
-Widget _buildTag(String label, Color color) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6)),
-    child: Text(label,
-        style: TextStyle(
-            fontSize: 10, fontWeight: FontWeight.w700, color: color)),
-  );
-}
+  Widget _buildTag(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(6)),
+      child: Text(label,
+          style: TextStyle(
+              fontSize: 10, fontWeight: FontWeight.w700, color: color)),
+    );
+  }
 
 // ─── BREAKDOWN MATRIX ────────────────────────────────
-Widget _buildBreakdownMatrix(List<MapEntry<String, double>> types) {
-  return Container(
-    padding: const EdgeInsets.all(10),
-    decoration: BoxDecoration(
-      color: kSurfaceColor,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: kBorderColor.withOpacity(0.5)),
-    ),
-    child: Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: types.map((entry) {
-        return Container(
-          width: (MediaQuery.of(context).size.width - 64) / 2,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: kBackgroundColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: kBorderColor.withOpacity(0.35)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                entry.key.toUpperCase(),
-                style: const TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    color: kTextSecondary,
-                    letterSpacing: 0.5),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                "$_currencySymbol${entry.value.toStringAsFixed(2)}",
-                style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.black87),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    ),
-  );
-}
+  Widget _buildBreakdownMatrix(List<MapEntry<String, double>> types) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: types.map((entry) {
+          return Container(
+            width: (MediaQuery.of(context).size.width - 64) / 2,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: kBackgroundColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: kBorderColor.withOpacity(0.35)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.key.toUpperCase(),
+                  style: const TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      color: kTextSecondary,
+                      letterSpacing: 0.5),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  "$_currencySymbol${entry.value.toStringAsFixed(2)}",
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.black87),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
 
 // ─── GST TABLE ───────────────────────────────────────
-Widget _buildGstTable(List<Map<String, dynamic>> rows,
-    {Color headerColor = kPrimaryColor}) {
-  double totalAmount = 0, totalTax = 0;
-  for (var r in rows) {
-    totalAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
-    totalTax += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
-  }
+  Widget _buildGstTable(List<Map<String, dynamic>> rows,
+      {Color headerColor = kPrimaryColor}) {
+    double totalAmount = 0, totalTax = 0;
+    for (var r in rows) {
+      totalAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
+      totalTax += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
+    }
 
-  // Compact column style
-  const headerStyle = TextStyle(
-      fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary);
-  const cellStyle =
-      TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.black87);
-  const dimStyle =
-      TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary);
+    // Compact column style
+    const headerStyle = TextStyle(
+        fontSize: 9, fontWeight: FontWeight.w900, color: kTextSecondary);
+    const cellStyle =
+    TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.black87);
+    const dimStyle =
+    TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: kTextSecondary);
 
-  return Container(
-    width: double.infinity,
-    decoration: BoxDecoration(
-      color: kSurfaceColor,
-      borderRadius: BorderRadius.circular(10),
-      border: Border.all(color: kBorderColor.withOpacity(0.5)),
-    ),
-    child: Column(
-      children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-          decoration: BoxDecoration(
-            color: headerColor.withOpacity(0.08),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(9)),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: kSurfaceColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: kBorderColor.withOpacity(0.5)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            decoration: BoxDecoration(
+              color: headerColor.withOpacity(0.08),
+              borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              children: const [
+                Expanded(flex: 2, child: Text("DATE", style: headerStyle)),
+                Expanded(flex: 2, child: Text("CAT", style: headerStyle)),
+                Expanded(flex: 2, child: Text("INV#", style: headerStyle)),
+                Expanded(
+                    flex: 3,
+                    child: Text("TAX NO.", style: headerStyle)),
+                Expanded(
+                    flex: 2,
+                    child: Text("AMT", textAlign: TextAlign.right, style: headerStyle)),
+                Expanded(
+                    flex: 2,
+                    child: Text("TAX", textAlign: TextAlign.right, style: headerStyle)),
+              ],
+            ),
           ),
-          child: Row(
-            children: const [
-              Expanded(flex: 2, child: Text("DATE", style: headerStyle)),
-              Expanded(flex: 2, child: Text("CAT", style: headerStyle)),
-              Expanded(flex: 2, child: Text("INV#", style: headerStyle)),
-              Expanded(
-                  flex: 3,
-                  child: Text("TAX NO.", style: headerStyle)),
-              Expanded(
-                  flex: 2,
-                  child: Text("AMT", textAlign: TextAlign.right, style: headerStyle)),
-              Expanded(
-                  flex: 2,
-                  child: Text("TAX", textAlign: TextAlign.right, style: headerStyle)),
-            ],
-          ),
-        ),
 
-        // Empty state
-        if (rows.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Text("No data available",
-                style: TextStyle(
-                    fontSize: 12,
-                    color: kTextSecondary,
-                    fontWeight: FontWeight.w600)),
-          )
-        else
-          ...rows.map((row) {
-            final DateTime? dt = row['date'] is DateTime
-                ? row['date'] as DateTime
-                : null;
-            final String dateStr = dt != null
-                ? DateFormat('dd/MM/yy').format(dt)
-                : '--';
-            final String category =
-                (row['category']?.toString() ?? '');
-            final String inv = (row['invoice']?.toString() ?? '--');
-            final String gstNum =
-                (row['gstNumber']?.toString() ?? '--');
-            final double amount =
-                double.tryParse((row['amount'] ?? 0).toString()) ?? 0;
-            final double gst =
-                double.tryParse((row['gst'] ?? 0).toString()) ?? 0;
-
-            return Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
-              decoration: BoxDecoration(
-                border: Border(
-                    bottom: BorderSide(
-                        color: kBorderColor.withOpacity(0.15))),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                      flex: 2,
-                      child: Text(dateStr, style: dimStyle)),
-                  Expanded(
-                      flex: 2,
-                      child: Text(category, style: dimStyle)),
-                  Expanded(
-                      flex: 2,
-                      child: Text(
-                        inv,
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: kPrimaryColor),
-                      )),
-                  Expanded(
-                      flex: 3,
-                      child: Text(
-                        gstNum.isEmpty ? '--' : gstNum,
-                        style: dimStyle,
-                        overflow: TextOverflow.ellipsis,
-                      )),
-                  Expanded(
-                      flex: 2,
-                      child: Text(
-                        "$_currencySymbol${amount.toStringAsFixed(0)}",
-                        textAlign: TextAlign.right,
-                        style: cellStyle,
-                      )),
-                  Expanded(
-                      flex: 2,
-                      child: Text(
-                        "$_currencySymbol${gst.toStringAsFixed(0)}",
-                        textAlign: TextAlign.right,
-                        style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black87),
-                      )),
-                ],
-              ),
-            );
-          }).toList(),
-
-        // Totals row
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
-          decoration: BoxDecoration(
-            color: kBackgroundColor.withOpacity(0.05),
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(9)),
-          ),
-          child: Row(
-            children: [
-              const Expanded(flex: 9, child: Text('TOTAL',
+          // Empty state
+          if (rows.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text("No data available",
                   style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      color: kTextSecondary))),
-              Expanded(
-                  flex: 2,
-                  child: Text(
-                    "$_currencySymbol${totalAmount.toStringAsFixed(0)}",
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w900),
-                  )),
-              Expanded(
-                  flex: 2,
-                  child: Text(
-                    "$_currencySymbol${totalTax.toStringAsFixed(0)}",
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(
-                        fontSize: 11, fontWeight: FontWeight.w900),
-                  )),
-            ],
+                      fontSize: 12,
+                      color: kTextSecondary,
+                      fontWeight: FontWeight.w600)),
+            )
+          else
+            ...rows.map((row) {
+              final DateTime? dt = row['date'] is DateTime
+                  ? row['date'] as DateTime
+                  : null;
+              final String dateStr = dt != null
+                  ? DateFormat('dd/MM/yy').format(dt)
+                  : '--';
+              final String category =
+              (row['category']?.toString() ?? '');
+              final String inv = (row['invoice']?.toString() ?? '--');
+              final String gstNum =
+              (row['gstNumber']?.toString() ?? '--');
+              final double amount =
+                  double.tryParse((row['amount'] ?? 0).toString()) ?? 0;
+              final double gst =
+                  double.tryParse((row['gst'] ?? 0).toString()) ?? 0;
+
+              return Container(
+                padding:
+                const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
+                decoration: BoxDecoration(
+                  border: Border(
+                      bottom: BorderSide(
+                          color: kBorderColor.withOpacity(0.15))),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                        flex: 2,
+                        child: Text(dateStr, style: dimStyle)),
+                    Expanded(
+                        flex: 2,
+                        child: Text(category, style: dimStyle)),
+                    Expanded(
+                        flex: 2,
+                        child: Text(
+                          inv,
+                          style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: kPrimaryColor),
+                        )),
+                    Expanded(
+                        flex: 3,
+                        child: Text(
+                          gstNum.isEmpty ? '--' : gstNum,
+                          style: dimStyle,
+                          overflow: TextOverflow.ellipsis,
+                        )),
+                    Expanded(
+                        flex: 2,
+                        child: Text(
+                          "$_currencySymbol${amount.toStringAsFixed(0)}",
+                          textAlign: TextAlign.right,
+                          style: cellStyle,
+                        )),
+                    Expanded(
+                        flex: 2,
+                        child: Text(
+                          "$_currencySymbol${gst.toStringAsFixed(0)}",
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black87),
+                        )),
+                  ],
+                ),
+              );
+            }).toList(),
+
+          // Totals row
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 8),
+            decoration: BoxDecoration(
+              color: kBackgroundColor.withOpacity(0.05),
+              borderRadius:
+              const BorderRadius.vertical(bottom: Radius.circular(9)),
+            ),
+            child: Row(
+              children: [
+                const Expanded(flex: 9, child: Text('TOTAL',
+                    style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: kTextSecondary))),
+                Expanded(
+                    flex: 2,
+                    child: Text(
+                      "$_currencySymbol${totalAmount.toStringAsFixed(0)}",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w900),
+                    )),
+                Expanded(
+                    flex: 2,
+                    child: Text(
+                      "$_currencySymbol${totalTax.toStringAsFixed(0)}",
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                          fontSize: 11, fontWeight: FontWeight.w900),
+                    )),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
 // ─── BOTTOM SUMMARY BAR ──────────────────────────────
-Widget _buildTaxSummary(List<Map<String, dynamic>> salesRows,
-    List<Map<String, dynamic>> purchaseRows) {
-  double salesAmount = 0, salesGst = 0;
-  for (var r in salesRows) {
-    salesAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
-    salesGst += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
-  }
-  double purchaseAmount = 0, purchaseGst = 0;
-  for (var r in purchaseRows) {
-    purchaseAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
-    purchaseGst += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
-  }
-  final double netGst = salesGst - purchaseGst;
+  Widget _buildTaxSummary(List<Map<String, dynamic>> salesRows,
+      List<Map<String, dynamic>> purchaseRows) {
+    double salesAmount = 0, salesGst = 0;
+    for (var r in salesRows) {
+      salesAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
+      salesGst += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
+    }
+    double purchaseAmount = 0, purchaseGst = 0;
+    for (var r in purchaseRows) {
+      purchaseAmount += double.tryParse((r['amount'] ?? 0).toString()) ?? 0;
+      purchaseGst += double.tryParse((r['gst'] ?? 0).toString()) ?? 0;
+    }
+    final double netGst = salesGst - purchaseGst;
 
-  Widget cell(String title, String value,
-      {bool highlight = false, Color? color}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    Widget cell(String title, String value,
+        {bool highlight = false, Color? color}) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  color: kTextSecondary)),
+          const SizedBox(height: 3),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  color: highlight ? (color ?? Colors.black87) : Colors.black87)),
+        ],
+      );
+    }
+
+    return Row(
       children: [
-        Text(title,
-            style: const TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.w900,
-                color: kTextSecondary)),
-        const SizedBox(height: 3),
-        Text(value,
-            style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-                color: highlight ? (color ?? Colors.black87) : Colors.black87)),
+        // Sales
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: kBackgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border:
+                Border.all(color: kBorderColor.withOpacity(0.3))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('TAX ON SALES',
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: kPrimaryColor)),
+                const SizedBox(height: 5),
+                cell('Taxable', '$_currencySymbol${salesAmount.toStringAsFixed(0)}'),
+                const SizedBox(height: 4),
+                cell('Tax', '$_currencySymbol${salesGst.toStringAsFixed(0)}',
+                    highlight: true, color: kIncomeGreen),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Purchases
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+                color: kBackgroundColor,
+                borderRadius: BorderRadius.circular(8),
+                border:
+                Border.all(color: kBorderColor.withOpacity(0.3))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('TAX ON PURCHASES',
+                    style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w900,
+                        color: kPrimaryColor)),
+                const SizedBox(height: 5),
+                cell('Taxable', '$_currencySymbol${purchaseAmount.toStringAsFixed(0)}'),
+                const SizedBox(height: 4),
+                cell('Tax Paid', '$_currencySymbol${purchaseGst.toStringAsFixed(0)}',
+                    highlight: true, color: kExpenseRed),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+
+        // Net
+        // Expanded(
+        //   child: Container(
+        //     padding: const EdgeInsets.all(8),
+        //     decoration: BoxDecoration(
+        //         color: kBackgroundColor,
+        //         borderRadius: BorderRadius.circular(8),
+        //         border:
+        //             Border.all(color: kBorderColor.withOpacity(0.3))),
+        //     child: Column(
+        //       crossAxisAlignment: CrossAxisAlignment.start,
+        //       children: [
+        //         const Text('NET TAX DUE',
+        //             style: TextStyle(
+        //                 fontSize: 9,
+        //                 fontWeight: FontWeight.w900,
+        //                 color: kPrimaryColor)),
+        //         const SizedBox(height: 5),
+        //         cell('Total Tax Due',
+        //             '$_currencySymbol${netGst.toStringAsFixed(0)}',
+        //             highlight: true,
+        //             color: netGst >= 0 ? kExpenseRed : kIncomeGreen),
+        //         const SizedBox(height: 4),
+        //         cell('Advice',
+        //             netGst >= 0 ? 'Pay Govt' : 'Claim Refund'),
+        //       ],
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }
 
-  return Row(
-    children: [
-      // Sales
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: kBackgroundColor,
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: kBorderColor.withOpacity(0.3))),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('TAX ON SALES',
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: kPrimaryColor)),
-              const SizedBox(height: 5),
-              cell('Taxable', '$_currencySymbol${salesAmount.toStringAsFixed(0)}'),
-              const SizedBox(height: 4),
-              cell('Tax', '$_currencySymbol${salesGst.toStringAsFixed(0)}',
-                  highlight: true, color: kIncomeGreen),
-            ],
-          ),
-        ),
-      ),
-      const SizedBox(width: 8),
-
-      // Purchases
-      Expanded(
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-              color: kBackgroundColor,
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: kBorderColor.withOpacity(0.3))),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('TAX ON PURCHASES',
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      color: kPrimaryColor)),
-              const SizedBox(height: 5),
-              cell('Taxable', '$_currencySymbol${purchaseAmount.toStringAsFixed(0)}'),
-              const SizedBox(height: 4),
-              cell('Tax Paid', '$_currencySymbol${purchaseGst.toStringAsFixed(0)}',
-                  highlight: true, color: kExpenseRed),
-            ],
-          ),
-        ),
-      ),
-      const SizedBox(width: 8),
-
-      // Net
-      // Expanded(
-      //   child: Container(
-      //     padding: const EdgeInsets.all(8),
-      //     decoration: BoxDecoration(
-      //         color: kBackgroundColor,
-      //         borderRadius: BorderRadius.circular(8),
-      //         border:
-      //             Border.all(color: kBorderColor.withOpacity(0.3))),
-      //     child: Column(
-      //       crossAxisAlignment: CrossAxisAlignment.start,
-      //       children: [
-      //         const Text('NET TAX DUE',
-      //             style: TextStyle(
-      //                 fontSize: 9,
-      //                 fontWeight: FontWeight.w900,
-      //                 color: kPrimaryColor)),
-      //         const SizedBox(height: 5),
-      //         cell('Total Tax Due',
-      //             '$_currencySymbol${netGst.toStringAsFixed(0)}',
-      //             highlight: true,
-      //             color: netGst >= 0 ? kExpenseRed : kIncomeGreen),
-      //         const SizedBox(height: 4),
-      //         cell('Advice',
-      //             netGst >= 0 ? 'Pay Govt' : 'Claim Refund'),
-      //       ],
-      //     ),
-      //   ),
-      // ),
-    ],
-  );
-}
-
 // Keep this — used in _buildComprehensiveSummary
-Widget _buildSummaryRecord(String label, double val, Color color) {
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    children: [
-      Text(label,
-          style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: kTextSecondary)),
-      Text("$_currencySymbol${val.toStringAsFixed(2)}",
-          style: TextStyle(
-              fontWeight: FontWeight.w900, fontSize: 12, color: color)),
-    ],
-  );
-}
+  Widget _buildSummaryRecord(String label, double val, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: kTextSecondary)),
+        Text("$_currencySymbol${val.toStringAsFixed(2)}",
+            style: TextStyle(
+                fontWeight: FontWeight.w900, fontSize: 12, color: color)),
+      ],
+    );
+  }
 
 }
 // ==========================================
@@ -9361,269 +9615,269 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
                       return StreamBuilder<QuerySnapshot>(
                         stream: streamsSnapshot.data![3],
                         builder: (context, creditsSnapshot) {
-                      // Credit tracker streams
-                      return StreamBuilder<QuerySnapshot>(
-                        stream: _customersStream,
-                        builder: (context, customersSnapshot) {
+                          // Credit tracker streams
                           return StreamBuilder<QuerySnapshot>(
-                            stream: _purchaseCreditStream,
-                            builder: (context, purchaseCreditSnapshot) {
-                              if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
-                                return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                              }
+                            stream: _customersStream,
+                            builder: (context, customersSnapshot) {
+                              return StreamBuilder<QuerySnapshot>(
+                                stream: _purchaseCreditStream,
+                                builder: (context, purchaseCreditSnapshot) {
+                                  if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData) {
+                                    return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
+                                  }
 
-                              final now = DateTime.now();
-                              final todayStart = DateTime(now.year, now.month, now.day);
-                              final yesterday = now.subtract(const Duration(days: 1));
-                              final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
-                              final last7Days = now.subtract(const Duration(days: 7));
-                              final thisMonthStart = DateTime(now.year, now.month, 1);
+                                  final now = DateTime.now();
+                                  final todayStart = DateTime(now.year, now.month, now.day);
+                                  final yesterday = now.subtract(const Duration(days: 1));
+                                  final yesterdayStart = DateTime(yesterday.year, yesterday.month, yesterday.day);
+                                  final last7Days = now.subtract(const Duration(days: 7));
+                                  final thisMonthStart = DateTime(now.year, now.month, 1);
 
-                              double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0;
-                              double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0;
+                                  double incomeToday = 0, incomeYesterday = 0, incomeLast7Days = 0, incomeThisMonth = 0;
+                                  double expenseToday = 0, expenseYesterday = 0, expenseLast7Days = 0, expenseThisMonth = 0;
 
-                              // --- Process Sales (skip cancelled/returned like DayBook) ---
-                              for (var doc in salesSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final String status = (data['status'] ?? '').toString().toLowerCase();
-                                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                                  continue;
-                                }
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                  // --- Process Sales (skip cancelled/returned like DayBook) ---
+                                  for (var doc in salesSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    final String status = (data['status'] ?? '').toString().toLowerCase();
+                                    if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
+                                      continue;
+                                    }
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
-                                double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                                    double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
 
-                                if (dt != null) {
-                                  if (dt.isAfter(todayStart)) incomeToday += total;
-                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += total;
-                                  if (dt.isAfter(last7Days)) incomeLast7Days += total;
-                                  if (dt.isAfter(thisMonthStart)) incomeThisMonth += total;
-                                }
-                              }
+                                    if (dt != null) {
+                                      if (dt.isAfter(todayStart)) incomeToday += total;
+                                      if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += total;
+                                      if (dt.isAfter(last7Days)) incomeLast7Days += total;
+                                      if (dt.isAfter(thisMonthStart)) incomeThisMonth += total;
+                                    }
+                                  }
 
-                              // --- Process Credits (credit collected = income, manual credit = expense, like DayBook) ---
-                              if (creditsSnapshot.hasData) {
-                                for (var doc in creditsSnapshot.data!.docs) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  final type = (data['type'] ?? '').toString().toLowerCase();
-                                  final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                                  DateTime? dt;
-                                  if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                  else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                  // --- Process Credits (credit collected = income, manual credit = expense, like DayBook) ---
+                                  if (creditsSnapshot.hasData) {
+                                    for (var doc in creditsSnapshot.data!.docs) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      final type = (data['type'] ?? '').toString().toLowerCase();
+                                      final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                      DateTime? dt;
+                                      if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                      else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
-                                  // Skip sale_payment / credit_sale (already counted in sales)
-                                  if (type == 'sale_payment' || type == 'credit_sale') continue;
+                                      // Skip sale_payment / credit_sale (already counted in sales)
+                                      if (type == 'sale_payment' || type == 'credit_sale') continue;
 
-                                  if (dt != null) {
-                                    if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
-                                      // Credit collected from customer = money IN (income)
-                                      if (dt.isAfter(todayStart)) incomeToday += amount;
-                                      if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += amount;
-                                      if (dt.isAfter(last7Days)) incomeLast7Days += amount;
-                                      if (dt.isAfter(thisMonthStart)) incomeThisMonth += amount;
-                                    } else if (type == 'add_credit') {
-                                      // Manual credit given to customer = money OUT (expense)
+                                      if (dt != null) {
+                                        if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                                          // Credit collected from customer = money IN (income)
+                                          if (dt.isAfter(todayStart)) incomeToday += amount;
+                                          if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) incomeYesterday += amount;
+                                          if (dt.isAfter(last7Days)) incomeLast7Days += amount;
+                                          if (dt.isAfter(thisMonthStart)) incomeThisMonth += amount;
+                                        } else if (type == 'add_credit') {
+                                          // Manual credit given to customer = money OUT (expense)
+                                          if (dt.isAfter(todayStart)) expenseToday += amount;
+                                          if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
+                                          if (dt.isAfter(last7Days)) expenseLast7Days += amount;
+                                          if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
+                                        }
+                                      }
+                                    }
+                                  }
+
+                                  // --- Process Expenses ---
+                                  for (var doc in expenseSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                                    double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+
+                                    if (dt != null) {
                                       if (dt.isAfter(todayStart)) expenseToday += amount;
                                       if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
                                       if (dt.isAfter(last7Days)) expenseLast7Days += amount;
                                       if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
                                     }
                                   }
-                                }
-                              }
 
-                              // --- Process Expenses ---
-                              for (var doc in expenseSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                                double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-
-                                if (dt != null) {
-                                  if (dt.isAfter(todayStart)) expenseToday += amount;
-                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) expenseYesterday += amount;
-                                  if (dt.isAfter(last7Days)) expenseLast7Days += amount;
-                                  if (dt.isAfter(thisMonthStart)) expenseThisMonth += amount;
-                                }
-                              }
-
-                              // --- Credit Tracker: Total Receivable (customers.balance) ---
-                              double totalReceivable = 0;
-                              if (customersSnapshot.hasData) {
-                                for (var doc in customersSnapshot.data!.docs) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  totalReceivable += ((data['balance'] ?? 0.0) as num).toDouble();
-                                }
-                              }
-
-                              // --- Credit Tracker: Total Payable (purchaseCreditNotes: amount - paidAmount) ---
-                              double totalPayable = 0;
-                              if (purchaseCreditSnapshot.hasData) {
-                                for (var doc in purchaseCreditSnapshot.data!.docs) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  final amt = ((data['amount'] ?? 0.0) as num).toDouble();
-                                  final paid = ((data['paidAmount'] ?? 0.0) as num).toDouble();
-                                  totalPayable += (amt - paid).clamp(0, double.infinity);
-                                }
-                              }
-
-                              // --- Process Stock Purchases as expenses ---
-                              double purchaseToday = 0, purchaseYesterday = 0, purchaseLast7Days = 0, purchaseThisMonth = 0;
-                              for (var doc in purchaseSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
-                                double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
-
-                                if (dt != null) {
-                                  if (dt.isAfter(todayStart)) purchaseToday += amount;
-                                  if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) purchaseYesterday += amount;
-                                  if (dt.isAfter(last7Days)) purchaseLast7Days += amount;
-                                  if (dt.isAfter(thisMonthStart)) purchaseThisMonth += amount;
-                                }
-                              }
-
-                              // Total expenses = expenses + purchases
-                              final totalExpToday = expenseToday + purchaseToday;
-                              final totalExpYesterday = expenseYesterday + purchaseYesterday;
-                              final totalExpWeek = expenseLast7Days + purchaseLast7Days;
-                              final totalExpMonth = expenseThisMonth + purchaseThisMonth;
-
-                              // Build weekly data for chart (last 7 days, day-wise)
-                              final Map<int, double> weeklyIncome = {};
-                              final Map<int, double> weeklyExpense = {};
-                              for (int i = 6; i >= 0; i--) {
-                                weeklyIncome[6 - i] = 0;
-                                weeklyExpense[6 - i] = 0;
-                              }
-                              for (var doc in salesSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                // Skip cancelled/returned
-                                final String status = (data['status'] ?? '').toString().toLowerCase();
-                                if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) continue;
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                                double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
-                                if (dt != null && dt.isAfter(last7Days)) {
-                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
-                                  if (daysAgo >= 0 && daysAgo <= 6) {
-                                    weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + total;
+                                  // --- Credit Tracker: Total Receivable (customers.balance) ---
+                                  double totalReceivable = 0;
+                                  if (customersSnapshot.hasData) {
+                                    for (var doc in customersSnapshot.data!.docs) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      totalReceivable += ((data['balance'] ?? 0.0) as num).toDouble();
+                                    }
                                   }
-                                }
-                              }
-                              // Credits for chart: credit collected = income, manual credit = expense
-                              if (creditsSnapshot.hasData) {
-                                for (var doc in creditsSnapshot.data!.docs) {
-                                  final data = doc.data() as Map<String, dynamic>;
-                                  final type = (data['type'] ?? '').toString().toLowerCase();
-                                  final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                                  if (type == 'sale_payment' || type == 'credit_sale') continue;
-                                  DateTime? dt;
-                                  if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                  else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                                  if (dt != null && dt.isAfter(last7Days)) {
-                                    final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
-                                    if (daysAgo >= 0 && daysAgo <= 6) {
-                                      if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
-                                        weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + amount;
-                                      } else if (type == 'add_credit') {
+
+                                  // --- Credit Tracker: Total Payable (purchaseCreditNotes: amount - paidAmount) ---
+                                  double totalPayable = 0;
+                                  if (purchaseCreditSnapshot.hasData) {
+                                    for (var doc in purchaseCreditSnapshot.data!.docs) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      final amt = ((data['amount'] ?? 0.0) as num).toDouble();
+                                      final paid = ((data['paidAmount'] ?? 0.0) as num).toDouble();
+                                      totalPayable += (amt - paid).clamp(0, double.infinity);
+                                    }
+                                  }
+
+                                  // --- Process Stock Purchases as expenses ---
+                                  double purchaseToday = 0, purchaseYesterday = 0, purchaseLast7Days = 0, purchaseThisMonth = 0;
+                                  for (var doc in purchaseSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+
+                                    double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
+
+                                    if (dt != null) {
+                                      if (dt.isAfter(todayStart)) purchaseToday += amount;
+                                      if (dt.isAfter(yesterdayStart) && dt.isBefore(todayStart)) purchaseYesterday += amount;
+                                      if (dt.isAfter(last7Days)) purchaseLast7Days += amount;
+                                      if (dt.isAfter(thisMonthStart)) purchaseThisMonth += amount;
+                                    }
+                                  }
+
+                                  // Total expenses = expenses + purchases
+                                  final totalExpToday = expenseToday + purchaseToday;
+                                  final totalExpYesterday = expenseYesterday + purchaseYesterday;
+                                  final totalExpWeek = expenseLast7Days + purchaseLast7Days;
+                                  final totalExpMonth = expenseThisMonth + purchaseThisMonth;
+
+                                  // Build weekly data for chart (last 7 days, day-wise)
+                                  final Map<int, double> weeklyIncome = {};
+                                  final Map<int, double> weeklyExpense = {};
+                                  for (int i = 6; i >= 0; i--) {
+                                    weeklyIncome[6 - i] = 0;
+                                    weeklyExpense[6 - i] = 0;
+                                  }
+                                  for (var doc in salesSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    // Skip cancelled/returned
+                                    final String status = (data['status'] ?? '').toString().toLowerCase();
+                                    if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) continue;
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                    double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
+                                    if (dt != null && dt.isAfter(last7Days)) {
+                                      final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                      if (daysAgo >= 0 && daysAgo <= 6) {
+                                        weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + total;
+                                      }
+                                    }
+                                  }
+                                  // Credits for chart: credit collected = income, manual credit = expense
+                                  if (creditsSnapshot.hasData) {
+                                    for (var doc in creditsSnapshot.data!.docs) {
+                                      final data = doc.data() as Map<String, dynamic>;
+                                      final type = (data['type'] ?? '').toString().toLowerCase();
+                                      final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                      if (type == 'sale_payment' || type == 'credit_sale') continue;
+                                      DateTime? dt;
+                                      if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                      else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                      if (dt != null && dt.isAfter(last7Days)) {
+                                        final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                        if (daysAgo >= 0 && daysAgo <= 6) {
+                                          if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                                            weeklyIncome[6 - daysAgo] = (weeklyIncome[6 - daysAgo] ?? 0) + amount;
+                                          } else if (type == 'add_credit') {
+                                            weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                  for (var doc in expenseSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                    double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                                    if (dt != null && dt.isAfter(last7Days)) {
+                                      final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                      if (daysAgo >= 0 && daysAgo <= 6) {
                                         weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
                                       }
                                     }
                                   }
-                                }
-                              }
-                              for (var doc in expenseSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                                double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
-                                if (dt != null && dt.isAfter(last7Days)) {
-                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
-                                  if (daysAgo >= 0 && daysAgo <= 6) {
-                                    weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                  for (var doc in purchaseSnapshot.data!.docs) {
+                                    final data = doc.data() as Map<String, dynamic>;
+                                    DateTime? dt;
+                                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                                    double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
+                                    if (dt != null && dt.isAfter(last7Days)) {
+                                      final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
+                                      if (daysAgo >= 0 && daysAgo <= 6) {
+                                        weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
+                                      }
+                                    }
                                   }
-                                }
-                              }
-                              for (var doc in purchaseSnapshot.data!.docs) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                DateTime? dt;
-                                if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
-                                else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-                                double amount = double.tryParse(data['totalAmount']?.toString() ?? data['amount']?.toString() ?? '0') ?? 0;
-                                if (dt != null && dt.isAfter(last7Days)) {
-                                  final daysAgo = now.difference(DateTime(dt.year, dt.month, dt.day)).inDays;
-                                  if (daysAgo >= 0 && daysAgo <= 6) {
-                                    weeklyExpense[6 - daysAgo] = (weeklyExpense[6 - daysAgo] ?? 0) + amount;
-                                  }
-                                }
-                              }
 
-                              return Column(
-                                children: [
-                                  Expanded(
-                                    child: CustomScrollView(
-                                      physics: const BouncingScrollPhysics(),
-                                      slivers: [
-                                        SliverPadding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                          sliver: SliverList(
-                                            delegate: SliverChildListDelegate([
-                                              // ── Income VS Expense Performance Card ──
-                                              _buildPerformanceCard(incomeThisMonth, totalExpMonth),
+                                  return Column(
+                                    children: [
+                                      Expanded(
+                                        child: CustomScrollView(
+                                          physics: const BouncingScrollPhysics(),
+                                          slivers: [
+                                            SliverPadding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                              sliver: SliverList(
+                                                delegate: SliverChildListDelegate([
+                                                  // ── Income VS Expense Performance Card ──
+                                                  _buildPerformanceCard(incomeThisMonth, totalExpMonth),
 
-                                              const SizedBox(height: 16),
+                                                  const SizedBox(height: 16),
 
-                                              // ── Income VS Expense Bar Chart (Last 7 Days) ──
-                                              _buildIncomeExpenseChart(weeklyIncome, weeklyExpense, incomeLast7Days, totalExpWeek),
+                                                  // ── Income VS Expense Bar Chart (Last 7 Days) ──
+                                                  _buildIncomeExpenseChart(weeklyIncome, weeklyExpense, incomeLast7Days, totalExpWeek),
 
-                                              const SizedBox(height: 16),
+                                                  const SizedBox(height: 16),
 
-                                              // ── Comparison Cards with arrows ──
-                                              _buildSectionHeader("INCOME VS EXPENSE"),
-                                              const SizedBox(height: 8),
-                                              _buildComparisonRow("Today", incomeToday, totalExpToday),
-                                              const SizedBox(height: 8),
-                                              _buildComparisonRow("Yesterday", incomeYesterday, totalExpYesterday),
-                                              const SizedBox(height: 8),
-                                              _buildComparisonRow("Last 7 Days", incomeLast7Days, totalExpWeek),
-                                              const SizedBox(height: 8),
-                                              _buildComparisonRow("This Month", incomeThisMonth, totalExpMonth),
+                                                  // ── Comparison Cards with arrows ──
+                                                  _buildSectionHeader("INCOME VS EXPENSE"),
+                                                  const SizedBox(height: 8),
+                                                  _buildComparisonRow("Today", incomeToday, totalExpToday),
+                                                  const SizedBox(height: 8),
+                                                  _buildComparisonRow("Yesterday", incomeYesterday, totalExpYesterday),
+                                                  const SizedBox(height: 8),
+                                                  _buildComparisonRow("Last 7 Days", incomeLast7Days, totalExpWeek),
+                                                  const SizedBox(height: 8),
+                                                  _buildComparisonRow("This Month", incomeThisMonth, totalExpMonth),
 
-                                              const SizedBox(height: 24),
-                                              _buildSectionHeader("Credit Tracker – Settlement Monitor"),
-                                              const SizedBox(height: 8),
-                                              _buildCreditSummaryBanner(totalReceivable, totalPayable),
-                                              const SizedBox(height: 8),
-                                              Row(
-                                                children: [
-                                                  Expanded(child: _buildDuesTile("Total Receivable", totalReceivable, kIncomeGreen, Icons.call_received_rounded)),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(child: _buildDuesTile("Total Payable", totalPayable, kExpenseRed, Icons.call_made_rounded)),
-                                                ],
+                                                  const SizedBox(height: 24),
+                                                  _buildSectionHeader("Credit Tracker – Settlement Monitor"),
+                                                  const SizedBox(height: 8),
+                                                  _buildCreditSummaryBanner(totalReceivable, totalPayable),
+                                                  const SizedBox(height: 8),
+                                                  Row(
+                                                    children: [
+                                                      Expanded(child: _buildDuesTile("Total Receivable", totalReceivable, kIncomeGreen, Icons.call_received_rounded)),
+                                                      const SizedBox(width: 8),
+                                                      Expanded(child: _buildDuesTile("Total Payable", totalPayable, kExpenseRed, Icons.call_made_rounded)),
+                                                    ],
+                                                  ),
+
+                                                  const SizedBox(height: 30),
+                                                ]),
                                               ),
-
-                                               const SizedBox(height: 30),
-                                            ]),
-                                          ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
                             },
                           );
-                        },
-                      );
                         },
                       );
                     },
@@ -9673,9 +9927,9 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        // boxShadow: [
+        //   BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        // ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -9826,9 +10080,9 @@ class _IncomeSummaryPageState extends State<IncomeSummaryPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: kBorderColor.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        // boxShadow: [
+        //   BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        // ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -10362,12 +10616,15 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: kBackgroundColor,
+      backgroundColor: kGreyBg,
       appBar: _buildModernAppBar("Payment Summary", widget.onBack, onDownload: () => _downloadPdf(context)),
       body: FutureBuilder<List<Stream<QuerySnapshot>>>(
         future: Future.wait([
           _firestoreService.getCollectionStream('sales'),
           _firestoreService.getCollectionStream('expenses'),
+          _firestoreService.getCollectionStream('stockPurchases'),
+          _firestoreService.getCollectionStream('credits'),
+          _firestoreService.getCollectionStream('purchaseCreditNotes'),
         ]),
         builder: (context, streamsSnapshot) {
           if (!streamsSnapshot.hasData) {
@@ -10379,13 +10636,30 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
               return StreamBuilder<QuerySnapshot>(
                 stream: streamsSnapshot.data![1],
                 builder: (context, expenseSnapshot) {
-                  if (!salesSnapshot.hasData || !expenseSnapshot.hasData) {
+                  return StreamBuilder<QuerySnapshot>(
+                    stream: streamsSnapshot.data![2],
+                    builder: (context, purchaseSnapshot) {
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: streamsSnapshot.data![3],
+                        builder: (context, creditsSnapshot) {
+                          return StreamBuilder<QuerySnapshot>(
+                            stream: streamsSnapshot.data![4],
+                            builder: (context, purchaseCreditsSnapshot) {
+                  if (!salesSnapshot.hasData || !expenseSnapshot.hasData || !purchaseSnapshot.hasData || !creditsSnapshot.hasData || !purchaseCreditsSnapshot.hasData) {
                     return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
                   }
 
-                  // --- Income Calculations ---
+                  // --- Income from Sales (Money IN) ---
                   double incomeCash = 0, incomeOnline = 0, incomeCredit = 0;
                   int incomeCashCount = 0, incomeOnlineCount = 0, incomeCreditCount = 0;
+
+                  // --- Credit Collections (Money IN from credit repayments) ---
+                  double creditCollectedCash = 0, creditCollectedOnline = 0;
+                  int creditCollectedCashCount = 0, creditCollectedOnlineCount = 0;
+
+                  // --- Manual Credit Given (Money OUT) ---
+                  double manualCreditCash = 0, manualCreditOnline = 0;
+                  int manualCreditCashCount = 0, manualCreditOnlineCount = 0;
 
                   for (var doc in salesSnapshot.data!.docs) {
                     final data = doc.data() as Map<String, dynamic>;
@@ -10394,41 +10668,55 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                     else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
 
                     if (_isInDateRange(dt)) {
-                      // Skip cancelled or returned bills
                       final String status = (data['status'] ?? '').toString().toLowerCase();
-                      if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) {
-                        continue;
-                      }
+                      if (status == 'cancelled' || status == 'returned' || data['hasBeenReturned'] == true) continue;
 
                       double total = double.tryParse(data['total']?.toString() ?? '0') ?? 0;
                       String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
 
-                      // Handle Split payments separately
                       if (mode == 'split') {
                         double splitCash = double.tryParse(data['cashReceived_split']?.toString() ?? '0') ?? 0;
                         double splitOnline = double.tryParse(data['onlineReceived_split']?.toString() ?? '0') ?? 0;
                         double splitCredit = double.tryParse(data['creditIssued_split']?.toString() ?? '0') ?? 0;
-                        if (splitCash > 0) {
-                          incomeCash += splitCash;
-                          incomeCashCount++;
-                        }
-                        if (splitOnline > 0) {
-                          incomeOnline += splitOnline;
-                          incomeOnlineCount++;
-                        }
-                        if (splitCredit > 0) {
-                          incomeCredit += splitCredit;
-                          incomeCreditCount++;
-                        }
+                        if (splitCash > 0) { incomeCash += splitCash; incomeCashCount++; }
+                        if (splitOnline > 0) { incomeOnline += splitOnline; incomeOnlineCount++; }
+                        if (splitCredit > 0) { incomeCredit += splitCredit; incomeCreditCount++; }
                       } else if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                        incomeOnline += total;
-                        incomeOnlineCount++;
+                        incomeOnline += total; incomeOnlineCount++;
                       } else if (mode.contains('credit')) {
-                        incomeCredit += total;
-                        incomeCreditCount++;
+                        final partialCash = double.tryParse(data['cashReceived_partial']?.toString() ?? '0') ?? 0;
+                        final creditIssued = double.tryParse(data['creditIssued_partial']?.toString() ?? '0') ?? total;
+                        if (partialCash > 0) { incomeCash += partialCash; incomeCashCount++; }
+                        incomeCredit += creditIssued; incomeCreditCount++;
                       } else {
-                        incomeCash += total;
-                        incomeCashCount++;
+                        incomeCash += total; incomeCashCount++;
+                      }
+                    }
+                  }
+
+                  // --- Process Credits Collection ---
+                  for (var doc in creditsSnapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    DateTime? dt;
+                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                    if (_isInDateRange(dt)) {
+                      final type = (data['type'] ?? '').toString().toLowerCase();
+                      final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
+                      final method = (data['method'] ?? 'Cash').toString().toLowerCase();
+                      if (type == 'sale_payment' || type == 'credit_sale') continue;
+                      if (type.contains('payment_received') || type.contains('credit_payment') || type == 'settlement') {
+                        if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                          creditCollectedOnline += amount; creditCollectedOnlineCount++;
+                        } else {
+                          creditCollectedCash += amount; creditCollectedCashCount++;
+                        }
+                      } else if (type == 'add_credit') {
+                        if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                          manualCreditOnline += amount; manualCreditOnlineCount++;
+                        } else {
+                          manualCreditCash += amount; manualCreditCashCount++;
+                        }
                       }
                     }
                   }
@@ -10436,40 +10724,90 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                   // --- Expense Calculations ---
                   double expenseCash = 0, expenseOnline = 0;
                   int expenseCashCount = 0, expenseOnlineCount = 0;
-
                   for (var doc in expenseSnapshot.data!.docs) {
                     final data = doc.data() as Map<String, dynamic>;
                     DateTime? dt;
                     if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
                     else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
-
                     if (_isInDateRange(dt)) {
                       double amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0;
                       String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
-
                       if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
-                        expenseOnline += amount;
-                        expenseOnlineCount++;
+                        expenseOnline += amount; expenseOnlineCount++;
                       } else {
-                        expenseCash += amount;
-                        expenseCashCount++;
+                        expenseCash += amount; expenseCashCount++;
                       }
                     }
                   }
 
-                  double totalNet = (incomeCash + incomeOnline) - (expenseCash + expenseOnline);
+                  // --- Stock Purchase Calculations ---
+                  double purchaseCash = 0, purchaseOnline = 0;
+                  int purchaseCashCount = 0, purchaseOnlineCount = 0;
+                  for (var doc in purchaseSnapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    DateTime? dt;
+                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                    if (_isInDateRange(dt)) {
+                      double amount = double.tryParse(data['totalAmount']?.toString() ?? '0') ?? 0;
+                      String mode = (data['paymentMode'] ?? 'Cash').toString().toLowerCase();
+                      if (mode.contains('online') || mode.contains('upi') || mode.contains('card')) {
+                        purchaseOnline += amount; purchaseOnlineCount++;
+                      } else if (mode.contains('credit')) {
+                        // Purchase on credit — no actual money out yet
+                      } else {
+                        purchaseCash += amount; purchaseCashCount++;
+                      }
+                    }
+                  }
+
+                  // --- Purchase Credit Notes (payments made against purchase credits) ---
+                  double purchaseCreditPaidCash = 0, purchaseCreditPaidOnline = 0;
+                  int purchaseCreditPaidCashCount = 0, purchaseCreditPaidOnlineCount = 0;
+                  for (var doc in purchaseCreditsSnapshot.data!.docs) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    DateTime? dt;
+                    if (data['timestamp'] != null) dt = (data['timestamp'] as Timestamp).toDate();
+                    else if (data['date'] != null) dt = DateTime.tryParse(data['date'].toString());
+                    if (_isInDateRange(dt)) {
+                      final paidAmount = double.tryParse(data['paidAmount']?.toString() ?? '0') ?? 0;
+                      final method = (data['paymentMethod'] ?? data['method'] ?? 'Cash').toString().toLowerCase();
+                      if (paidAmount > 0) {
+                        if (method.contains('online') || method.contains('upi') || method.contains('card')) {
+                          purchaseCreditPaidOnline += paidAmount; purchaseCreditPaidOnlineCount++;
+                        } else {
+                          purchaseCreditPaidCash += paidAmount; purchaseCreditPaidCashCount++;
+                        }
+                      }
+                    }
+                  }
+
+                  // --- Aggregate Totals ---
+                  double totalInCash = incomeCash + creditCollectedCash;
+                  double totalInOnline = incomeOnline + creditCollectedOnline;
+                  int totalInCashCount = incomeCashCount + creditCollectedCashCount;
+                  int totalInOnlineCount = incomeOnlineCount + creditCollectedOnlineCount;
+
+                  double totalOutCash = expenseCash + purchaseCash + purchaseCreditPaidCash + manualCreditCash;
+                  double totalOutOnline = expenseOnline + purchaseOnline + purchaseCreditPaidOnline + manualCreditOnline;
+                  int totalOutCashCount = expenseCashCount + purchaseCashCount + purchaseCreditPaidCashCount + manualCreditCashCount;
+                  int totalOutOnlineCount = expenseOnlineCount + purchaseOnlineCount + purchaseCreditPaidOnlineCount + manualCreditOnlineCount;
+
+                  double totalIn = totalInCash + totalInOnline;
+                  double totalOut = totalOutCash + totalOutOnline;
+                  double totalNet = totalIn - totalOut;
 
                   // Store values for PDF download
-                  _incomeCash = incomeCash;
-                  _incomeOnline = incomeOnline;
+                  _incomeCash = totalInCash;
+                  _incomeOnline = totalInOnline;
                   _incomeCredit = incomeCredit;
-                  _expenseCash = expenseCash;
-                  _expenseOnline = expenseOnline;
-                  _incomeCashCount = incomeCashCount;
-                  _incomeOnlineCount = incomeOnlineCount;
+                  _expenseCash = totalOutCash;
+                  _expenseOnline = totalOutOnline;
+                  _incomeCashCount = totalInCashCount;
+                  _incomeOnlineCount = totalInOnlineCount;
                   _incomeCreditCount = incomeCreditCount;
-                  _expenseCashCount = expenseCashCount;
-                  _expenseOnlineCount = expenseOnlineCount;
+                  _expenseCashCount = totalOutCashCount;
+                  _expenseOnlineCount = totalOutOnlineCount;
 
                   return Column(
                     children: [
@@ -10483,49 +10821,76 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                         child: CustomScrollView(
                           physics: const BouncingScrollPhysics(),
                           slivers: [
-                            // Executive Net Strip
                             SliverToBoxAdapter(
-                              child: _buildNetPositionStrip(totalNet, incomeCash + incomeOnline, expenseCash + expenseOnline),
+                              child: _buildNetPositionStrip(totalNet, totalIn, totalOut),
                             ),
-
                             SliverPadding(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                               sliver: SliverList(
                                 delegate: SliverChildListDelegate([
-                                  _buildSectionHeader("Income Analysis"),
+                                  _buildSectionHeader("MONEY IN — INCOME"),
                                   const SizedBox(height: 8),
                                   _buildFlowAnalyticsCard(
-                                    "Total Receipts",
+                                    "Sales Receipts",
                                     incomeCash + incomeOnline,
                                     incomeCash,
                                     incomeOnline,
                                     kIncomeGreen,
                                     incomeCashCount + incomeOnlineCount,
                                   ),
-
+                                  if (creditCollectedCash + creditCollectedOnline > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildFlowAnalyticsCard(
+                                      "Credit Collections",
+                                      creditCollectedCash + creditCollectedOnline,
+                                      creditCollectedCash,
+                                      creditCollectedOnline,
+                                      kIncomeGreen,
+                                      creditCollectedCashCount + creditCollectedOnlineCount,
+                                    ),
+                                  ],
                                   if (incomeCredit > 0) ...[
                                     const SizedBox(height: 12),
-                                    _buildCreditCard("Credit Sales", incomeCredit, incomeCreditCount, kWarningOrange),
+                                    _buildCreditCard("Credit Sales (Pending)", incomeCredit, incomeCreditCount, kWarningOrange),
                                   ],
-
                                   const SizedBox(height: 24),
-                                  _buildSectionHeader(" Expenses Analysis"),
+                                  _buildSectionHeader("MONEY OUT — EXPENSES"),
                                   const SizedBox(height: 8),
                                   _buildFlowAnalyticsCard(
-                                    "Total Payments",
+                                    "Expenses",
                                     expenseCash + expenseOnline,
                                     expenseCash,
                                     expenseOnline,
                                     kExpenseRed,
                                     expenseCashCount + expenseOnlineCount,
                                   ),
-
+                                  if (purchaseCash + purchaseOnline > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildFlowAnalyticsCard(
+                                      "Stock Purchases",
+                                      purchaseCash + purchaseOnline,
+                                      purchaseCash,
+                                      purchaseOnline,
+                                      kExpenseRed,
+                                      purchaseCashCount + purchaseOnlineCount,
+                                    ),
+                                  ],
+                                  if (purchaseCreditPaidCash + purchaseCreditPaidOnline > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildCreditCard("Purchase Credits Paid", purchaseCreditPaidCash + purchaseCreditPaidOnline,
+                                        purchaseCreditPaidCashCount + purchaseCreditPaidOnlineCount, kExpenseRed),
+                                  ],
+                                  if (manualCreditCash + manualCreditOnline > 0) ...[
+                                    const SizedBox(height: 12),
+                                    _buildCreditCard("Manual Credit Given", manualCreditCash + manualCreditOnline,
+                                        manualCreditCashCount + manualCreditOnlineCount, kWarningOrange),
+                                  ],
                                   const SizedBox(height: 24),
-                                  _buildSectionHeader("Settlement Summary"),
+                                  _buildSectionHeader("SETTLEMENT SUMMARY"),
                                   const SizedBox(height: 8),
-                                  _buildLedgerRow("Cash Position", incomeCash, expenseCash, kIncomeGreen),
+                                  _buildLedgerRow("Cash Position", totalInCash, totalOutCash, kIncomeGreen),
                                   const SizedBox(height: 4),
-                                  _buildLedgerRow("Online Balance", incomeOnline, expenseOnline, kPrimaryColor),
+                                  _buildLedgerRow("Online Balance", totalInOnline, totalOutOnline, kPrimaryColor),
                                   if (incomeCredit > 0) ...[
                                     const SizedBox(height: 4),
                                     _buildLedgerRow("Credit Outstanding", incomeCredit, 0, kWarningOrange),
@@ -10538,6 +10903,12 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
                         ),
                       ),
                     ],
+                  );
+                            },
+                          );
+                        },
+                      );
+                    },
                   );
                 },
               );
@@ -10739,7 +11110,7 @@ class _PaymentReportPageState extends State<PaymentReportPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-          color: themeColor.withValues(alpha: 0.05),
+        color: themeColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: themeColor.withOpacity(0.2)),
       ),
@@ -11011,7 +11382,7 @@ class _StaffSaleReportPageState extends State<StaffSaleReportPage> {
         color: kSurfaceColor,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: kBorderColor.withOpacity(0.7)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
+        //boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -622,19 +622,16 @@ class _MenuPageState extends State<MenuPage> {
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 8),
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGrey200.withOpacity(0.5)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
-            ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kGrey200),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               onTap: () {
                 // If provider is not ready yet, allow navigation (avoid flicker/false blocks)
                 if (!isProviderReady) {
@@ -665,12 +662,12 @@ class _MenuPageState extends State<MenuPage> {
                 setState(() => _currentView = viewKey);
               },
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: Row(
                   children: [
                     Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                      width: 46, height: 46,
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
                       child: HeroIcon(icon, color: color, size: 22),
                     ),
                     const SizedBox(width: 14),
@@ -722,16 +719,13 @@ class _MenuPageState extends State<MenuPage> {
         return Container(
           decoration: BoxDecoration(
             color: kWhite,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: kGrey200.withOpacity(0.5)),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))
-            ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: kGrey200),
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               onTap: () {
                 if (!isProviderReady) {
                   setState(() => _currentView = viewKey);
@@ -766,8 +760,8 @@ class _MenuPageState extends State<MenuPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 44, height: 44,
-                      decoration: BoxDecoration(color: color.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                      width: 46, height: 46,
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
                       child: HeroIcon(icon, color: color, size: 22),
                     ),
                     const SizedBox(height: 12),
